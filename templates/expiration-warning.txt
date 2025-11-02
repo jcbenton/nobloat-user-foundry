@@ -1,0 +1,19 @@
+========================================
+ACCOUNT EXPIRATION NOTICE
+========================================
+
+Hello {display_name},
+
+This is a courtesy reminder that your account on {site_name} is scheduled to expire soon.
+
+EXPIRATION DATE: {expires_date}
+
+After this date, you will no longer be able to log in to your account. If you need to extend your account access, please contact the site administrator as soon as possible.
+
+If you believe this is an error, please reach out to us immediately.
+
+Visit our site: {site_url}
+
+----------------------------------------
+This is an automated message from {site_name}.
+{site_url}

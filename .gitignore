@@ -1,0 +1,75 @@
+# =========================
+# WordPress Plugin .gitignore
+# =========================
+
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+.AppleDouble
+.LSOverride
+__MACOSX/
+
+# IDE junk
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs, cache, and temp files
+*.log
+*.tmp
+*.bak
+.cache/
+tmp/
+cache/
+
+# Node / Composer / Build artifacts
+node_modules/
+vendor/
+dist/
+build/
+*.map
+
+# WordPress core & uploads (if ever working inside wp-content)
+wp-admin/
+wp-includes/
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/cache/
+wp-content/backups/
+
+# Plugin package files
+*.zip
+
+# Assets (design sources)
+assets/*.psd
+assets/*.ai
+assets/*.xcf
+
+# Local environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# MacOS
+.DS_Store
+
+# PHPStorm project files
+*.iml
+
+# WordPress config
+wp-config.php
+.htaccess
+
+# SVN metadata (if you sync with WP.org)
+.svn/
+
+# Claude AI development notes (do not commit)
+.claude/
+
+# Vendor plugins for comparison/analysis (not part of this codebase)
+z-others/

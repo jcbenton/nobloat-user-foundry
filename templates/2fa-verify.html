@@ -1,0 +1,207 @@
+<div class="nbuf-2fa-verify-wrapper">
+	<div class="nbuf-2fa-header">
+		<h2>Two-Factor Authentication</h2>
+		<p class="nbuf-2fa-subtitle">Verify your identity to continue</p>
+	</div>
+
+	{grace_period_notice}
+	{error_message}
+	{success_message}
+
+	<div class="nbuf-2fa-instructions">
+		{instructions_text}
+	</div>
+
+	<form method="post" class="nbuf-2fa-verify-form" action="{action_url}">
+		{nonce_field}
+		<input type="hidden" name="nbuf_2fa_verify" value="1">
+
+		<div class="nbuf-form-group">
+			<label for="nbuf_2fa_code">Verification Code</label>
+			<input type="text"
+				   name="code"
+				   id="nbuf_2fa_code"
+				   class="nbuf-2fa-input"
+				   placeholder="000000"
+				   maxlength="{code_length}"
+				   pattern="[0-9A-Z]*"
+				   inputmode="numeric"
+				   autocomplete="one-time-code"
+				   required
+				   autofocus>
+			<p class="nbuf-field-description">Enter the {code_length}-digit code</p>
+		</div>
+
+		{device_trust_checkbox}
+
+		<div class="nbuf-form-actions">
+			<button type="submit" class="nbuf-2fa-button nbuf-button-primary">Verify & Continue</button>
+		</div>
+	</form>
+
+	<div class="nbuf-2fa-help">
+		{backup_code_link}
+		{resend_email_link}
+		{help_text}
+	</div>
+
+	{locked_out_notice}
+</div>
+
+<style>
+.nbuf-2fa-verify-wrapper {
+	max-width: 400px;
+	margin: 40px auto;
+	padding: 30px;
+	background: #ffffff;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nbuf-2fa-header {
+	text-align: center;
+	margin-bottom: 30px;
+}
+
+.nbuf-2fa-header h2 {
+	margin: 0 0 10px 0;
+	font-size: 24px;
+	color: #333;
+}
+
+.nbuf-2fa-subtitle {
+	margin: 0;
+	color: #666;
+	font-size: 14px;
+}
+
+.nbuf-2fa-instructions {
+	background: #f8f9fa;
+	padding: 15px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	font-size: 14px;
+	line-height: 1.5;
+	color: #555;
+}
+
+.nbuf-2fa-verify-form {
+	margin-bottom: 20px;
+}
+
+.nbuf-form-group {
+	margin-bottom: 20px;
+}
+
+.nbuf-form-group label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: #333;
+	font-size: 14px;
+}
+
+.nbuf-2fa-input {
+	width: 100%;
+	padding: 12px 16px;
+	font-size: 20px;
+	text-align: center;
+	letter-spacing: 0.3em;
+	border: 2px solid #ddd;
+	border-radius: 6px;
+	font-family: 'Courier New', monospace;
+	transition: border-color 0.3s;
+}
+
+.nbuf-2fa-input:focus {
+	outline: none;
+	border-color: #0073aa;
+	box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+.nbuf-field-description {
+	margin: 8px 0 0 0;
+	font-size: 12px;
+	color: #666;
+}
+
+.nbuf-form-actions {
+	margin-top: 20px;
+}
+
+.nbuf-2fa-button {
+	width: 100%;
+	padding: 12px 24px;
+	font-size: 16px;
+	font-weight: 600;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.3s;
+}
+
+.nbuf-button-primary {
+	background: #0073aa;
+	color: #ffffff;
+}
+
+.nbuf-button-primary:hover {
+	background: #005a87;
+}
+
+.nbuf-2fa-help {
+	padding-top: 20px;
+	border-top: 1px solid #e5e5e5;
+	text-align: center;
+	font-size: 14px;
+}
+
+.nbuf-2fa-help a {
+	color: #0073aa;
+	text-decoration: none;
+	margin: 0 10px;
+}
+
+.nbuf-2fa-help a:hover {
+	text-decoration: underline;
+}
+
+.nbuf-error {
+	background: #ffebee;
+	color: #c62828;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #c62828;
+}
+
+.nbuf-success {
+	background: #e8f5e9;
+	color: #2e7d32;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #2e7d32;
+}
+
+.nbuf-warning {
+	background: #fff8e1;
+	color: #f57f17;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #f57f17;
+}
+
+@media (max-width: 480px) {
+	.nbuf-2fa-verify-wrapper {
+		margin: 20px;
+		padding: 20px;
+	}
+
+	.nbuf-2fa-input {
+		font-size: 18px;
+	}
+}
+</style>

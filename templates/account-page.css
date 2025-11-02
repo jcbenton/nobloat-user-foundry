@@ -1,0 +1,225 @@
+/* ==========================================================
+   NoBloat User Foundry - Account Page Styling
+   ----------------------------------------------------------
+   Custom styling for user account management page.
+   ========================================================== */
+
+.nbuf-account-wrapper {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.nbuf-account-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+    position: relative;
+}
+
+.nbuf-account-title {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    color: #333;
+}
+
+.nbuf-logout-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: #0073aa;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.nbuf-logout-link:hover {
+    text-decoration: underline;
+}
+
+.nbuf-account-status-badges {
+    margin-top: 10px;
+}
+
+.nbuf-account-status {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.nbuf-status-verified {
+    background: #d4edda;
+    color: #155724;
+}
+
+.nbuf-status-unverified {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.nbuf-status-expired {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.nbuf-account-sections {
+    display: grid;
+    gap: 25px;
+}
+
+.nbuf-account-section {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 20px;
+}
+
+.nbuf-section-title {
+    margin: 0 0 15px 0;
+    font-size: 20px;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.nbuf-info-grid {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 12px 20px;
+}
+
+.nbuf-info-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.nbuf-info-value {
+    color: #333;
+}
+
+.nbuf-account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.nbuf-form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.nbuf-form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+    font-size: 14px;
+}
+
+.nbuf-form-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nbuf-form-input:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 3px rgba(0,115,170,0.2);
+    outline: none;
+}
+
+.nbuf-form-input[type="text"],
+.nbuf-form-input[type="email"],
+.nbuf-form-input[type="tel"],
+.nbuf-form-input[type="url"],
+.nbuf-form-input[type="password"] {
+    font-family: inherit;
+}
+
+textarea.nbuf-form-input {
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.nbuf-form-help {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.nbuf-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.nbuf-button-primary {
+    background: #0073aa;
+    color: #fff;
+}
+
+.nbuf-button-primary:hover {
+    background: #005177;
+}
+
+.nbuf-message {
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.nbuf-message-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.nbuf-message-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.nbuf-message-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .nbuf-account-wrapper {
+        padding: 10px;
+        margin: 20px auto;
+    }
+
+    .nbuf-info-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .nbuf-info-label {
+        font-size: 13px;
+    }
+
+    .nbuf-account-title {
+        font-size: 22px;
+    }
+
+    .nbuf-section-title {
+        font-size: 18px;
+    }
+}

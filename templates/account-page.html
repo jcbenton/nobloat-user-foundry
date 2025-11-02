@@ -1,0 +1,80 @@
+<div class="nbuf-account-wrapper">
+
+    {messages}
+
+    <div class="nbuf-account-header">
+        <a href="{logout_url}" class="nbuf-logout-link">Logout</a>
+        <h1 class="nbuf-account-title">My Account</h1>
+        <div class="nbuf-account-status-badges">
+            {status_badges}
+        </div>
+    </div>
+
+    <div class="nbuf-account-sections">
+
+        <!-- Account Information -->
+        <div class="nbuf-account-section">
+            <h2 class="nbuf-section-title">Account Information</h2>
+            <div class="nbuf-info-grid">
+                <div class="nbuf-info-label">Username:</div>
+                <div class="nbuf-info-value">{username}</div>
+
+                <div class="nbuf-info-label">Email:</div>
+                <div class="nbuf-info-value">{email}</div>
+
+                <div class="nbuf-info-label">Display Name:</div>
+                <div class="nbuf-info-value">{display_name}</div>
+
+                <div class="nbuf-info-label">Member Since:</div>
+                <div class="nbuf-info-value">{registered_date}</div>
+
+                {expiration_info}
+            </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <div class="nbuf-account-section">
+            <h2 class="nbuf-section-title">Edit Profile</h2>
+            <form method="post" action="{action_url}" class="nbuf-account-form">
+                {nonce_field}
+                <input type="hidden" name="nbuf_account_action" value="update_profile">
+
+                {profile_fields}
+
+                <button type="submit" class="nbuf-button nbuf-button-primary">Update Profile</button>
+            </form>
+        </div>
+
+        <!-- Change Password Form -->
+        <div class="nbuf-account-section">
+            <h2 class="nbuf-section-title">Change Password</h2>
+            <form method="post" action="{action_url}" class="nbuf-account-form">
+                {nonce_field_password}
+                <input type="hidden" name="nbuf_account_action" value="change_password">
+
+                <div class="nbuf-form-group">
+                    <label for="current_password" class="nbuf-form-label">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" class="nbuf-form-input" required>
+                </div>
+
+                <div class="nbuf-form-group">
+                    <label for="new_password" class="nbuf-form-label">New Password</label>
+                    <input type="password" id="new_password" name="new_password" class="nbuf-form-input" required>
+                    <small class="nbuf-form-help">Minimum 8 characters</small>
+                </div>
+
+                <div class="nbuf-form-group">
+                    <label for="confirm_password" class="nbuf-form-label">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="nbuf-form-input" required>
+                </div>
+
+                <button type="submit" class="nbuf-button nbuf-button-primary">Change Password</button>
+            </form>
+        </div>
+
+        <!-- Version History Section (conditionally displayed) -->
+        {version_history_section}
+
+    </div>
+
+</div>

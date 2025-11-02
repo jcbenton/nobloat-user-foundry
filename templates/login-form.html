@@ -1,0 +1,35 @@
+<div class="nbuf-login-wrapper">
+    <h2 class="nbuf-login-title">Login to Your Account</h2>
+
+    {error_message}
+
+    <form method="post" class="nbuf-login-form" action="{action_url}">
+        {nonce_field}
+        <input type="hidden" name="nbuf_login_action" value="1">
+        <input type="hidden" name="redirect_to" value="{redirect_to}">
+
+        <div class="nbuf-form-group">
+            <label class="nbuf-login-label" for="nbuf_username">Username or Email</label>
+            <input type="text" name="log" id="nbuf_username" class="nbuf-login-input" placeholder="Username or Email" required autocomplete="username">
+        </div>
+
+        <div class="nbuf-form-group">
+            <label class="nbuf-login-label" for="nbuf_password">Password</label>
+            <input type="password" name="pwd" id="nbuf_password" class="nbuf-login-input" placeholder="Password" required autocomplete="current-password">
+        </div>
+
+        <div class="nbuf-form-group nbuf-remember-group">
+            <label class="nbuf-remember-label">
+                <input type="checkbox" name="rememberme" value="forever" class="nbuf-remember-checkbox">
+                <span>Remember Me</span>
+            </label>
+        </div>
+
+        <button type="submit" class="nbuf-login-button">Log In</button>
+
+        <div class="nbuf-login-links">
+            <a href="{reset_url}" class="nbuf-login-link">Forgot Password?</a>
+            {register_link}
+        </div>
+    </form>
+</div>

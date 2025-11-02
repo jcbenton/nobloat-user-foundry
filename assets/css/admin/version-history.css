@@ -1,0 +1,471 @@
+/**
+ * Version History UI Styles
+ *
+ * Styles for profile version timeline, diff viewer, and related components.
+ *
+ * @package NoBloat_User_Foundry
+ * @since 1.4.0
+ */
+
+/* ==========================================================================
+   Version History Viewer Container
+   ========================================================================== */
+
+.nbuf-version-history-viewer {
+	max-width: 1200px;
+	margin: 20px 0;
+}
+
+.nbuf-vh-header h3 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	font-size: 18px;
+	color: #23282d;
+}
+
+.nbuf-vh-header .description {
+	margin-bottom: 20px;
+	color: #666;
+}
+
+/* ==========================================================================
+   Timeline
+   ========================================================================== */
+
+.nbuf-vh-timeline {
+	position: relative;
+	padding-left: 0;
+}
+
+.nbuf-vh-item {
+	position: relative;
+	display: flex;
+	margin-bottom: 30px;
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+	transition: box-shadow 0.2s;
+}
+
+.nbuf-vh-item:hover {
+	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nbuf-vh-item-icon {
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	margin-right: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #0073aa;
+	color: #fff;
+	border-radius: 50%;
+	font-size: 20px;
+}
+
+.nbuf-vh-item-icon .dashicons {
+	width: 20px;
+	height: 20px;
+	font-size: 20px;
+}
+
+.nbuf-vh-item-content {
+	flex-grow: 1;
+}
+
+.nbuf-vh-item-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 12px;
+}
+
+.nbuf-vh-item-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+.nbuf-vh-item-date {
+	font-weight: 600;
+	font-size: 14px;
+	color: #23282d;
+}
+
+.nbuf-vh-item-time {
+	font-size: 13px;
+	color: #666;
+}
+
+.nbuf-vh-item-type {
+	display: inline-block;
+	padding: 3px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	border-radius: 3px;
+	letter-spacing: 0.5px;
+}
+
+.nbuf-vh-type-registration {
+	background: #d4edda;
+	color: #155724;
+}
+
+.nbuf-vh-type-profile_update {
+	background: #d1ecf1;
+	color: #0c5460;
+}
+
+.nbuf-vh-type-admin_update {
+	background: #fff3cd;
+	color: #856404;
+}
+
+.nbuf-vh-type-import {
+	background: #e2e3e5;
+	color: #383d41;
+}
+
+.nbuf-vh-type-revert {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.nbuf-vh-item-user {
+	font-size: 13px;
+	color: #666;
+}
+
+.nbuf-vh-item-details {
+	margin-bottom: 12px;
+}
+
+.nbuf-vh-item-details p {
+	margin: 5px 0;
+	font-size: 13px;
+	color: #555;
+}
+
+.nbuf-vh-item-fields {
+	font-family: "Courier New", monospace;
+	font-size: 12px;
+	color: #666;
+}
+
+.nbuf-vh-item-ip {
+	font-size: 12px;
+	color: #999;
+}
+
+.nbuf-vh-item-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding-top: 10px;
+	border-top: 1px solid #eee;
+}
+
+.nbuf-vh-item-actions .button {
+	margin: 0;
+}
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
+
+.nbuf-vh-pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 15px;
+	padding: 20px 0;
+}
+
+.nbuf-vh-page-info {
+	font-weight: 600;
+	color: #555;
+}
+
+/* ==========================================================================
+   Diff Modal
+   ========================================================================== */
+
+.nbuf-vh-diff-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.nbuf-vh-diff-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+}
+
+.nbuf-vh-diff-content {
+	position: relative;
+	z-index: 1;
+	width: 90%;
+	max-width: 1200px;
+	max-height: 90vh;
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+	display: flex;
+	flex-direction: column;
+}
+
+.nbuf-vh-diff-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 25px;
+	border-bottom: 1px solid #ddd;
+	background: #f9f9f9;
+	border-radius: 4px 4px 0 0;
+}
+
+.nbuf-vh-diff-header h3 {
+	margin: 0;
+	font-size: 18px;
+	color: #23282d;
+}
+
+.nbuf-vh-close-diff {
+	font-size: 24px;
+	line-height: 1;
+	padding: 5px 12px;
+}
+
+.nbuf-vh-diff-body {
+	overflow-y: auto;
+	padding: 25px;
+	flex-grow: 1;
+}
+
+.nbuf-vh-diff-header-info {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 20px;
+	padding: 15px;
+	background: #f5f5f5;
+	border-radius: 4px;
+}
+
+.nbuf-vh-diff-version {
+	font-size: 14px;
+	color: #555;
+}
+
+.nbuf-vh-diff-version strong {
+	color: #23282d;
+}
+
+/* ==========================================================================
+   Diff Table
+   ========================================================================== */
+
+.nbuf-vh-diff-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.nbuf-vh-diff-table thead {
+	background: #f9f9f9;
+	border-bottom: 2px solid #ddd;
+}
+
+.nbuf-vh-diff-table th {
+	padding: 12px 15px;
+	text-align: left;
+	font-weight: 600;
+	color: #23282d;
+}
+
+.nbuf-vh-diff-table td {
+	padding: 12px 15px;
+	border-top: 1px solid #eee;
+	vertical-align: top;
+	word-break: break-word;
+}
+
+.nbuf-vh-diff-table tr:hover {
+	background: #f9f9f9;
+}
+
+/* Diff status colors */
+.nbuf-vh-diff-changed {
+	background: #fff3cd;
+}
+
+.nbuf-vh-diff-changed:hover {
+	background: #ffe8a1;
+}
+
+.nbuf-vh-diff-added {
+	background: #d4edda;
+}
+
+.nbuf-vh-diff-added:hover {
+	background: #c3e6cb;
+}
+
+.nbuf-vh-diff-removed {
+	background: #f8d7da;
+}
+
+.nbuf-vh-diff-removed:hover {
+	background: #f1c2c7;
+}
+
+.nbuf-vh-diff-table td:first-child {
+	font-weight: 600;
+	width: 200px;
+}
+
+.nbuf-vh-diff-table td:nth-child(2),
+.nbuf-vh-diff-table td:nth-child(3) {
+	font-family: "Courier New", monospace;
+	font-size: 12px;
+	color: #555;
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+
+.nbuf-vh-empty {
+	text-align: center;
+	padding: 60px 20px;
+	background: #f9f9f9;
+	border: 2px dashed #ddd;
+	border-radius: 4px;
+}
+
+.nbuf-vh-empty p {
+	margin: 10px 0;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media screen and (max-width: 768px) {
+	.nbuf-vh-item {
+		flex-direction: column;
+	}
+
+	.nbuf-vh-item-icon {
+		margin-bottom: 15px;
+		margin-right: 0;
+	}
+
+	.nbuf-vh-item-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.nbuf-vh-item-user {
+		margin-top: 8px;
+	}
+
+	.nbuf-vh-item-actions {
+		flex-direction: column;
+	}
+
+	.nbuf-vh-item-actions .button {
+		width: 100%;
+	}
+
+	.nbuf-vh-diff-content {
+		width: 95%;
+		max-height: 95vh;
+	}
+
+	.nbuf-vh-diff-header-info {
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.nbuf-vh-diff-table td:first-child {
+		width: auto;
+	}
+
+	.nbuf-vh-pagination {
+		flex-direction: column;
+		gap: 10px;
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.nbuf-vh-diff-table {
+		font-size: 11px;
+	}
+
+	.nbuf-vh-diff-table th,
+	.nbuf-vh-diff-table td {
+		padding: 8px 10px;
+	}
+
+	.nbuf-vh-item {
+		padding: 15px;
+	}
+}
+
+/* ==========================================================================
+   Meta Box Specific Styles
+   ========================================================================== */
+
+.nbuf-vh-metabox .nbuf-version-history-viewer {
+	margin: 0;
+}
+
+.nbuf-vh-metabox .nbuf-vh-header h3 {
+	font-size: 16px;
+	margin-bottom: 8px;
+}
+
+.nbuf-vh-metabox .nbuf-vh-item {
+	padding: 15px;
+	margin-bottom: 15px;
+}
+
+.nbuf-vh-metabox .nbuf-vh-item-icon {
+	width: 35px;
+	height: 35px;
+	font-size: 18px;
+}
+
+/* ==========================================================================
+   Admin Page Specific Styles
+   ========================================================================== */
+
+.nbuf-vh-admin-page {
+	max-width: 100%;
+}
+
+/* ==========================================================================
+   Account Page Specific Styles
+   ========================================================================== */
+
+.nbuf-vh-account {
+	background: #fff;
+	padding: 20px;
+	border-radius: 4px;
+}

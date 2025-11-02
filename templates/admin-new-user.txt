@@ -1,0 +1,13 @@
+New User Registration
+
+A new user has registered on {site_name}:
+
+Username: {username}
+Email: {user_email}
+Registration Date: {registration_date}
+
+View user profile: {user_profile_link}
+
+--
+{site_name}
+{site_url}

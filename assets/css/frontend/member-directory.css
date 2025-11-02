@@ -1,0 +1,406 @@
+/**
+ * Member Directory Styles
+ *
+ * Styling for public member directories (grid and list views).
+ * Responsive design with mobile-first approach.
+ *
+ * @package NoBloat_User_Foundry
+ * @since   1.0.0
+ */
+
+/* ==========================================================
+   DIRECTORY CONTAINER
+   ========================================================== */
+
+.nbuf-member-directory {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px 0;
+}
+
+/* ==========================================================
+   DIRECTORY CONTROLS (Search & Filters)
+   ========================================================== */
+
+.nbuf-directory-controls {
+	background: #f5f5f5;
+	padding: 20px;
+	margin-bottom: 30px;
+	border-radius: 8px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nbuf-directory-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	align-items: center;
+	margin-bottom: 15px;
+}
+
+.nbuf-directory-search {
+	display: flex;
+	flex: 1;
+	min-width: 250px;
+	gap: 10px;
+}
+
+.nbuf-search-input {
+	flex: 1;
+	padding: 10px 15px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 14px;
+}
+
+.nbuf-search-input:focus {
+	outline: none;
+	border-color: #0073aa;
+	box-shadow: 0 0 0 1px #0073aa;
+}
+
+.nbuf-search-button,
+.nbuf-filter-button {
+	padding: 10px 20px;
+	background: #0073aa;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 14px;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.nbuf-search-button:hover,
+.nbuf-filter-button:hover {
+	background: #005a87;
+}
+
+.nbuf-directory-filters {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.nbuf-filter-select {
+	padding: 10px 15px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 14px;
+	background: #fff;
+}
+
+.nbuf-clear-filters {
+	padding: 10px 15px;
+	color: #d63638;
+	text-decoration: none;
+	font-size: 14px;
+}
+
+.nbuf-clear-filters:hover {
+	text-decoration: underline;
+}
+
+.nbuf-directory-stats {
+	color: #666;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+/* ==========================================================
+   GRID VIEW
+   ========================================================== */
+
+.nbuf-members-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 25px;
+	margin-bottom: 30px;
+}
+
+.nbuf-member-card {
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 20px;
+	text-align: center;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nbuf-member-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.nbuf-member-avatar {
+	margin-bottom: 15px;
+}
+
+.nbuf-member-avatar img {
+	border-radius: 50%;
+	width: 96px;
+	height: 96px;
+}
+
+.nbuf-member-name {
+	margin: 0 0 10px 0;
+	font-size: 18px;
+	font-weight: 600;
+	color: #333;
+}
+
+.nbuf-member-bio {
+	color: #666;
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: 12px;
+}
+
+.nbuf-member-location {
+	color: #777;
+	font-size: 13px;
+	margin-bottom: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+}
+
+.nbuf-member-location .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+.nbuf-member-website {
+	margin: 12px 0;
+}
+
+.nbuf-member-website a {
+	color: #0073aa;
+	text-decoration: none;
+	font-size: 14px;
+}
+
+.nbuf-member-website a:hover {
+	text-decoration: underline;
+}
+
+.nbuf-member-meta {
+	color: #999;
+	font-size: 12px;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid #f0f0f0;
+}
+
+/* ==========================================================
+   LIST VIEW
+   ========================================================== */
+
+.nbuf-members-list {
+	margin-bottom: 30px;
+}
+
+.nbuf-member-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 15px;
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	padding: 15px;
+	margin-bottom: 15px;
+	transition: box-shadow 0.2s;
+}
+
+.nbuf-member-item:hover {
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nbuf-member-avatar-small img {
+	border-radius: 50%;
+	width: 48px;
+	height: 48px;
+}
+
+.nbuf-member-details {
+	flex: 1;
+}
+
+.nbuf-member-details .nbuf-member-name {
+	margin: 0 0 5px 0;
+	font-size: 16px;
+}
+
+.nbuf-member-meta-inline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	color: #777;
+	font-size: 13px;
+	margin-bottom: 8px;
+}
+
+.nbuf-member-location-inline,
+.nbuf-member-joined-inline {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.nbuf-member-location-inline .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+}
+
+.nbuf-member-bio-inline {
+	color: #666;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.nbuf-member-actions {
+	display: flex;
+	align-items: center;
+}
+
+.nbuf-member-link {
+	padding: 8px 16px;
+	background: #0073aa;
+	color: #fff !important;
+	text-decoration: none;
+	border-radius: 4px;
+	font-size: 13px;
+	white-space: nowrap;
+	transition: background 0.2s;
+}
+
+.nbuf-member-link:hover {
+	background: #005a87;
+}
+
+/* ==========================================================
+   PAGINATION
+   ========================================================== */
+
+.nbuf-directory-pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+	margin-top: 30px;
+	padding: 20px 0;
+}
+
+.nbuf-page-prev,
+.nbuf-page-next,
+.nbuf-page-number {
+	padding: 8px 12px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	text-decoration: none;
+	color: #333;
+	font-size: 14px;
+	transition: all 0.2s;
+}
+
+.nbuf-page-prev:hover,
+.nbuf-page-next:hover,
+.nbuf-page-number:hover {
+	background: #f5f5f5;
+	border-color: #0073aa;
+	color: #0073aa;
+}
+
+.nbuf-page-number.current {
+	background: #0073aa;
+	color: #fff;
+	border-color: #0073aa;
+	font-weight: 600;
+}
+
+.nbuf-page-numbers {
+	display: flex;
+	gap: 5px;
+}
+
+/* ==========================================================
+   EMPTY STATE
+   ========================================================== */
+
+.nbuf-no-members {
+	text-align: center;
+	padding: 60px 20px;
+	background: #f9f9f9;
+	border-radius: 8px;
+}
+
+.nbuf-no-members p {
+	color: #666;
+	font-size: 16px;
+	margin-bottom: 15px;
+}
+
+.nbuf-no-members a {
+	color: #0073aa;
+	text-decoration: none;
+}
+
+.nbuf-no-members a:hover {
+	text-decoration: underline;
+}
+
+/* ==========================================================
+   RESPONSIVE DESIGN
+   ========================================================== */
+
+@media (max-width: 768px) {
+	.nbuf-members-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.nbuf-directory-form {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.nbuf-directory-search {
+		min-width: 100%;
+	}
+
+	.nbuf-directory-filters {
+		flex-wrap: wrap;
+	}
+
+	.nbuf-member-item {
+		flex-direction: column;
+		text-align: center;
+	}
+
+	.nbuf-member-actions {
+		justify-content: center;
+		width: 100%;
+	}
+
+	.nbuf-member-link {
+		width: 100%;
+		text-align: center;
+	}
+
+	.nbuf-directory-pagination {
+		flex-wrap: wrap;
+	}
+}
+
+@media (max-width: 480px) {
+	.nbuf-page-numbers .nbuf-page-number:not(.current) {
+		display: none;
+	}
+
+	.nbuf-page-numbers .nbuf-page-number.current {
+		display: inline-block;
+	}
+}

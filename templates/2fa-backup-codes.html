@@ -1,0 +1,324 @@
+<div class="nbuf-backup-codes-wrapper">
+	<div class="nbuf-backup-header">
+		<h2>Backup Codes</h2>
+		<p class="nbuf-backup-subtitle">Save these codes in a safe place</p>
+	</div>
+
+	{success_message}
+	{error_message}
+
+	<div class="nbuf-backup-notice">
+		<div class="nbuf-notice-icon">⚠️</div>
+		<div class="nbuf-notice-content">
+			<p><strong>Important: Save These Codes Now</strong></p>
+			<p>Each backup code can only be used once. Use them if you lose access to your authenticator app or cannot receive email codes.</p>
+			<p>Store these codes securely - treat them like passwords.</p>
+		</div>
+	</div>
+
+	<div class="nbuf-backup-codes-container">
+		<div class="nbuf-backup-codes-list">
+			{backup_codes_html}
+		</div>
+
+		<div class="nbuf-codes-status">
+			<p>{codes_remaining_text}</p>
+		</div>
+	</div>
+
+	<div class="nbuf-backup-actions">
+		<button type="button" class="nbuf-button nbuf-button-primary" id="nbuf-download-codes" data-codes="{backup_codes_text}">
+			<span class="nbuf-button-icon">⬇️</span> Download Codes
+		</button>
+
+		<button type="button" class="nbuf-button nbuf-button-secondary" id="nbuf-print-codes" onclick="window.print()">
+			<span class="nbuf-button-icon">🖨️</span> Print Codes
+		</button>
+
+		<button type="button" class="nbuf-button nbuf-button-secondary" id="nbuf-copy-codes" data-codes="{backup_codes_text}">
+			<span class="nbuf-button-icon">📋</span> Copy to Clipboard
+		</button>
+	</div>
+
+	<div class="nbuf-regenerate-section">
+		<h3>Generate New Codes</h3>
+		<p class="nbuf-regenerate-warning">
+			<strong>Warning:</strong> Generating new codes will immediately invalidate all existing backup codes, including any unused ones.
+		</p>
+
+		<form method="post" action="{action_url}" class="nbuf-regenerate-form">
+			{nonce_field}
+			<input type="hidden" name="nbuf_2fa_regenerate_codes" value="1">
+
+			<button type="submit" class="nbuf-button nbuf-button-warning" onclick="return confirm('Are you sure? This will invalidate all current backup codes.')">
+				<span class="nbuf-button-icon">🔄</span> Regenerate Backup Codes
+			</button>
+		</form>
+	</div>
+</div>
+
+<style>
+.nbuf-backup-codes-wrapper {
+	max-width: 700px;
+	margin: 40px auto;
+	padding: 30px;
+	background: #ffffff;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nbuf-backup-header {
+	text-align: center;
+	margin-bottom: 30px;
+}
+
+.nbuf-backup-header h2 {
+	margin: 0 0 10px 0;
+	font-size: 28px;
+	color: #333;
+}
+
+.nbuf-backup-subtitle {
+	margin: 0;
+	color: #666;
+	font-size: 16px;
+}
+
+.nbuf-backup-notice {
+	display: flex;
+	gap: 15px;
+	background: #fff8e1;
+	padding: 20px;
+	border-radius: 8px;
+	border-left: 4px solid #f57f17;
+	margin-bottom: 30px;
+}
+
+.nbuf-notice-icon {
+	font-size: 32px;
+	flex-shrink: 0;
+}
+
+.nbuf-notice-content p {
+	margin: 0 0 10px 0;
+	color: #555;
+	line-height: 1.6;
+}
+
+.nbuf-notice-content p:last-child {
+	margin-bottom: 0;
+}
+
+.nbuf-backup-codes-container {
+	background: #f8f9fa;
+	padding: 30px;
+	border-radius: 8px;
+	margin-bottom: 30px;
+}
+
+.nbuf-backup-codes-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 15px;
+	margin-bottom: 20px;
+}
+
+.nbuf-backup-code {
+	background: white;
+	padding: 15px;
+	border: 2px solid #ddd;
+	border-radius: 6px;
+	text-align: center;
+	font-family: 'Courier New', monospace;
+	font-size: 18px;
+	font-weight: bold;
+	color: #333;
+	letter-spacing: 0.1em;
+	transition: all 0.3s;
+}
+
+.nbuf-backup-code.used {
+	opacity: 0.4;
+	text-decoration: line-through;
+	border-color: #ccc;
+	color: #999;
+}
+
+.nbuf-backup-code:not(.used):hover {
+	border-color: #0073aa;
+	box-shadow: 0 2px 8px rgba(0, 115, 170, 0.15);
+}
+
+.nbuf-codes-status {
+	text-align: center;
+	padding-top: 15px;
+	border-top: 1px solid #ddd;
+	color: #666;
+	font-size: 14px;
+}
+
+.nbuf-backup-actions {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 15px;
+	margin-bottom: 40px;
+}
+
+.nbuf-button {
+	padding: 12px 20px;
+	font-size: 15px;
+	font-weight: 600;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.3s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+
+.nbuf-button-icon {
+	font-size: 18px;
+}
+
+.nbuf-button-primary {
+	background: #0073aa;
+	color: #ffffff;
+}
+
+.nbuf-button-primary:hover {
+	background: #005a87;
+}
+
+.nbuf-button-secondary {
+	background: #f5f5f5;
+	color: #333;
+	border: 1px solid #ddd;
+}
+
+.nbuf-button-secondary:hover {
+	background: #e5e5e5;
+}
+
+.nbuf-button-warning {
+	background: #f57f17;
+	color: #ffffff;
+}
+
+.nbuf-button-warning:hover {
+	background: #e65100;
+}
+
+.nbuf-regenerate-section {
+	padding-top: 30px;
+	border-top: 2px solid #e5e5e5;
+}
+
+.nbuf-regenerate-section h3 {
+	margin: 0 0 15px 0;
+	font-size: 20px;
+	color: #333;
+}
+
+.nbuf-regenerate-warning {
+	background: #ffebee;
+	color: #c62828;
+	padding: 15px;
+	border-radius: 6px;
+	border-left: 4px solid #c62828;
+	margin-bottom: 20px;
+}
+
+.nbuf-regenerate-form button {
+	width: 100%;
+}
+
+.nbuf-error {
+	background: #ffebee;
+	color: #c62828;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #c62828;
+}
+
+.nbuf-success {
+	background: #e8f5e9;
+	color: #2e7d32;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #2e7d32;
+}
+
+/* Print styles */
+@media print {
+	.nbuf-backup-actions,
+	.nbuf-regenerate-section,
+	.nbuf-backup-notice {
+		display: none;
+	}
+
+	.nbuf-backup-codes-wrapper {
+		border: none;
+		box-shadow: none;
+	}
+
+	.nbuf-backup-code {
+		page-break-inside: avoid;
+	}
+}
+
+@media (max-width: 640px) {
+	.nbuf-backup-codes-wrapper {
+		margin: 20px;
+		padding: 20px;
+	}
+
+	.nbuf-backup-codes-list {
+		grid-template-columns: 1fr;
+	}
+
+	.nbuf-backup-actions {
+		grid-template-columns: 1fr;
+	}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	/* Download backup codes as text file */
+	const downloadBtn = document.getElementById('nbuf-download-codes');
+	if (downloadBtn) {
+		downloadBtn.addEventListener('click', function() {
+			const codes = this.getAttribute('data-codes');
+			const blob = new Blob([codes], { type: 'text/plain' });
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'backup-codes.txt';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+		});
+	}
+
+	/* Copy backup codes to clipboard */
+	const copyBtn = document.getElementById('nbuf-copy-codes');
+	if (copyBtn) {
+		copyBtn.addEventListener('click', function() {
+			const codes = this.getAttribute('data-codes');
+			navigator.clipboard.writeText(codes).then(function() {
+				const originalHTML = copyBtn.innerHTML;
+				copyBtn.innerHTML = '<span class="nbuf-button-icon">✓</span> Copied!';
+				setTimeout(function() {
+					copyBtn.innerHTML = originalHTML;
+				}, 2000);
+			});
+		});
+	}
+});
+</script>

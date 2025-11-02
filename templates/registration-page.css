@@ -1,0 +1,178 @@
+/* ==========================================================
+   NoBloat User Foundry - Registration Page Styling
+   ----------------------------------------------------------
+   Custom styling for user registration page.
+   ========================================================== */
+
+.nbuf-registration-wrapper {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.nbuf-registration-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.nbuf-registration-title {
+    font-size: 28px;
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.nbuf-registration-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+}
+
+.nbuf-registration-form {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nbuf-form-group {
+    margin-bottom: 20px;
+}
+
+.nbuf-form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 14px;
+}
+
+.nbuf-form-label .required {
+    color: #d63638;
+    margin-left: 2px;
+}
+
+.nbuf-form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+}
+
+.nbuf-form-input:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 3px rgba(0,115,170,0.2);
+    outline: none;
+}
+
+.nbuf-form-input[type="text"],
+.nbuf-form-input[type="email"],
+.nbuf-form-input[type="tel"],
+.nbuf-form-input[type="url"],
+.nbuf-form-input[type="password"] {
+    font-family: inherit;
+}
+
+textarea.nbuf-form-input {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.nbuf-form-help {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.nbuf-button {
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+.nbuf-button-primary {
+    background: #0073aa;
+    color: #fff;
+}
+
+.nbuf-button-primary:hover {
+    background: #005177;
+}
+
+.nbuf-registration-message {
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.nbuf-message-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.nbuf-message-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.nbuf-message-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.nbuf-registration-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.nbuf-registration-footer a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.nbuf-registration-footer a:hover {
+    text-decoration: underline;
+}
+
+.nbuf-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .nbuf-registration-wrapper {
+        padding: 10px;
+        margin: 20px auto;
+    }
+
+    .nbuf-registration-form {
+        padding: 20px;
+    }
+
+    .nbuf-registration-title {
+        font-size: 22px;
+    }
+
+    .nbuf-form-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}

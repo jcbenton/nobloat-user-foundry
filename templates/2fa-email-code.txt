@@ -1,0 +1,25 @@
+TWO-FACTOR AUTHENTICATION
+=========================
+
+Hello {display_name},
+
+You're receiving this email because a login attempt was made to your account on {site_name}.
+
+YOUR VERIFICATION CODE:
+
+    {verification_code}
+
+This code will expire in {expiration_minutes} minutes.
+
+Enter this code on the verification page to complete your login.
+
+SECURITY NOTICE:
+If you did not attempt to log in, please ignore this email and consider changing your password. Someone may have your password.
+
+---
+
+Need Help?
+Contact us at {admin_email}
+
+This is an automated security email from {site_name}
+{site_url}

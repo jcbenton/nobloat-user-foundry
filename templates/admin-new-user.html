@@ -1,0 +1,31 @@
+<html>
+  <body style="font-family: Arial, sans-serif; background: #f8f8f8; padding: 20px;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.05);">
+      <tr>
+        <td style="padding: 30px;">
+          <h2 style="color: #333333; margin-top: 0;">New User Registration</h2>
+          <p>A new user has registered on <strong>{site_name}</strong>:</p>
+          <table style="margin: 20px 0; width: 100%;">
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;"><strong>Username:</strong></td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;">{username}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;"><strong>Email:</strong></td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e5e5e5;">{user_email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0;"><strong>Registration Date:</strong></td>
+              <td style="padding: 8px 0;">{registration_date}</td>
+            </tr>
+          </table>
+          <p style="text-align:center; margin: 30px 0;">
+            <a href="{user_profile_link}" style="background-color:#0073aa; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:4px; display:inline-block;">View User Profile</a>
+          </p>
+          <hr style="margin:30px 0; border:none; border-top:1px solid #e5e5e5;">
+          <p style="font-size:12px; color:#777;">{site_name} — {site_url}</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

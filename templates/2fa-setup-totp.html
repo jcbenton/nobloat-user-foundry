@@ -1,0 +1,394 @@
+<div class="nbuf-2fa-setup-wrapper">
+	<div class="nbuf-2fa-setup-header">
+		<h2>Set Up Authenticator App</h2>
+		<p class="nbuf-setup-subtitle">Add an extra layer of security to your account</p>
+	</div>
+
+	{success_message}
+	{error_message}
+
+	<div class="nbuf-2fa-setup-steps">
+
+		<!-- Step 1: Install App -->
+		<div class="nbuf-setup-step">
+			<div class="nbuf-step-number">1</div>
+			<div class="nbuf-step-content">
+				<h3>Install an Authenticator App</h3>
+				<p>Download one of these free apps on your smartphone:</p>
+				<ul class="nbuf-app-list">
+					<li><strong>Google Authenticator</strong> - iOS & Android</li>
+					<li><strong>Authy</strong> - iOS & Android</li>
+					<li><strong>1Password</strong> - iOS & Android</li>
+					<li><strong>Microsoft Authenticator</strong> - iOS & Android</li>
+				</ul>
+			</div>
+		</div>
+
+		<!-- Step 2: Scan QR Code -->
+		<div class="nbuf-setup-step">
+			<div class="nbuf-step-number">2</div>
+			<div class="nbuf-step-content">
+				<h3>Scan This QR Code</h3>
+				<p>Open your authenticator app and scan this QR code:</p>
+
+				<div class="nbuf-qr-code-container">
+					{qr_code}
+				</div>
+
+				<div class="nbuf-manual-setup">
+					<p class="nbuf-setup-alternative">
+						<a href="#" class="nbuf-toggle-secret">Can't scan? Enter code manually</a>
+					</p>
+					<div class="nbuf-manual-secret" style="display:none;">
+						<p><strong>Account:</strong> {account_name}</p>
+						<p><strong>Key:</strong></p>
+						<div class="nbuf-secret-code">
+							<code id="nbuf-secret-key">{secret_key}</code>
+							<button type="button" class="nbuf-copy-button" data-secret="{secret_key}" title="Copy to clipboard">
+								<span class="nbuf-copy-icon">📋</span>
+							</button>
+						</div>
+						<p class="nbuf-secret-note">
+							<small>Enter this key manually in your authenticator app if you cannot scan the QR code.</small>
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Step 3: Verify Setup -->
+		<div class="nbuf-setup-step">
+			<div class="nbuf-step-number">3</div>
+			<div class="nbuf-step-content">
+				<h3>Verify It Works</h3>
+				<p>Enter the 6-digit code from your authenticator app to confirm setup:</p>
+
+				<form method="post" action="{action_url}" class="nbuf-verify-setup-form">
+					{nonce_field}
+					<input type="hidden" name="nbuf_2fa_setup_totp" value="1">
+					<input type="hidden" name="secret" value="{secret_key}">
+
+					<div class="nbuf-form-group">
+						<label for="totp_code">Verification Code</label>
+						<input type="text"
+							   name="code"
+							   id="totp_code"
+							   class="nbuf-code-input"
+							   placeholder="000000"
+							   maxlength="6"
+							   pattern="[0-9]{6}"
+							   inputmode="numeric"
+							   autocomplete="off"
+							   required
+							   autofocus>
+					</div>
+
+					<button type="submit" class="nbuf-button nbuf-button-primary">
+						Verify & Enable Two-Factor Authentication
+					</button>
+				</form>
+			</div>
+		</div>
+
+		<!-- Backup Codes Info -->
+		<div class="nbuf-setup-step nbuf-backup-info">
+			<div class="nbuf-step-icon">🔑</div>
+			<div class="nbuf-step-content">
+				<h3>What's Next?</h3>
+				<p>After enabling two-factor authentication, you'll receive backup codes. Save these in a safe place - they can be used if you lose access to your authenticator app.</p>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+.nbuf-2fa-setup-wrapper {
+	max-width: 600px;
+	margin: 40px auto;
+	padding: 30px;
+	background: #ffffff;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nbuf-2fa-setup-header {
+	text-align: center;
+	margin-bottom: 40px;
+}
+
+.nbuf-2fa-setup-header h2 {
+	margin: 0 0 10px 0;
+	font-size: 28px;
+	color: #333;
+}
+
+.nbuf-setup-subtitle {
+	margin: 0;
+	color: #666;
+	font-size: 16px;
+}
+
+.nbuf-2fa-setup-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 30px;
+}
+
+.nbuf-setup-step {
+	display: flex;
+	gap: 20px;
+	padding: 25px;
+	background: #f8f9fa;
+	border-radius: 8px;
+	border-left: 4px solid #0073aa;
+}
+
+.nbuf-step-number {
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	background: #0073aa;
+	color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.nbuf-step-icon {
+	flex-shrink: 0;
+	font-size: 32px;
+}
+
+.nbuf-step-content {
+	flex: 1;
+}
+
+.nbuf-step-content h3 {
+	margin: 0 0 15px 0;
+	font-size: 20px;
+	color: #333;
+}
+
+.nbuf-step-content p {
+	margin: 0 0 15px 0;
+	color: #555;
+	line-height: 1.6;
+}
+
+.nbuf-app-list {
+	margin: 15px 0;
+	padding-left: 20px;
+}
+
+.nbuf-app-list li {
+	margin: 8px 0;
+	color: #555;
+}
+
+.nbuf-qr-code-container {
+	display: flex;
+	justify-content: center;
+	padding: 20px;
+	background: white;
+	border-radius: 8px;
+	margin: 20px 0;
+}
+
+.nbuf-manual-setup {
+	margin-top: 20px;
+}
+
+.nbuf-setup-alternative {
+	text-align: center;
+	margin: 15px 0;
+}
+
+.nbuf-toggle-secret {
+	color: #0073aa;
+	text-decoration: none;
+	font-size: 14px;
+}
+
+.nbuf-toggle-secret:hover {
+	text-decoration: underline;
+}
+
+.nbuf-manual-secret {
+	background: white;
+	padding: 20px;
+	border-radius: 6px;
+	margin-top: 15px;
+}
+
+.nbuf-secret-code {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px;
+	background: #f5f5f5;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	margin: 10px 0;
+}
+
+.nbuf-secret-code code {
+	flex: 1;
+	font-size: 16px;
+	font-family: 'Courier New', monospace;
+	color: #333;
+	word-break: break-all;
+}
+
+.nbuf-copy-button {
+	background: #0073aa;
+	color: white;
+	border: none;
+	padding: 8px 12px;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background 0.3s;
+}
+
+.nbuf-copy-button:hover {
+	background: #005a87;
+}
+
+.nbuf-copy-icon {
+	font-size: 18px;
+}
+
+.nbuf-secret-note {
+	margin: 10px 0 0 0;
+}
+
+.nbuf-verify-setup-form {
+	margin-top: 20px;
+}
+
+.nbuf-form-group {
+	margin-bottom: 20px;
+}
+
+.nbuf-form-group label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 600;
+	color: #333;
+}
+
+.nbuf-code-input {
+	width: 100%;
+	padding: 12px 16px;
+	font-size: 20px;
+	text-align: center;
+	letter-spacing: 0.3em;
+	border: 2px solid #ddd;
+	border-radius: 6px;
+	font-family: 'Courier New', monospace;
+	transition: border-color 0.3s;
+}
+
+.nbuf-code-input:focus {
+	outline: none;
+	border-color: #0073aa;
+	box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+.nbuf-button {
+	width: 100%;
+	padding: 14px 24px;
+	font-size: 16px;
+	font-weight: 600;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.3s;
+}
+
+.nbuf-button-primary {
+	background: #0073aa;
+	color: #ffffff;
+}
+
+.nbuf-button-primary:hover {
+	background: #005a87;
+}
+
+.nbuf-backup-info {
+	border-left-color: #f57f17;
+}
+
+.nbuf-error {
+	background: #ffebee;
+	color: #c62828;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #c62828;
+}
+
+.nbuf-success {
+	background: #e8f5e9;
+	color: #2e7d32;
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	border-left: 4px solid #2e7d32;
+}
+
+@media (max-width: 640px) {
+	.nbuf-2fa-setup-wrapper {
+		margin: 20px;
+		padding: 20px;
+	}
+
+	.nbuf-setup-step {
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.nbuf-step-number {
+		width: 36px;
+		height: 36px;
+		font-size: 18px;
+	}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	/* Toggle manual secret display */
+	const toggleLink = document.querySelector('.nbuf-toggle-secret');
+	if (toggleLink) {
+		toggleLink.addEventListener('click', function(e) {
+			e.preventDefault();
+			const manualSecret = document.querySelector('.nbuf-manual-secret');
+			if (manualSecret.style.display === 'none') {
+				manualSecret.style.display = 'block';
+				this.textContent = 'Hide manual setup';
+			} else {
+				manualSecret.style.display = 'none';
+				this.textContent = 'Can\'t scan? Enter code manually';
+			}
+		});
+	}
+
+	/* Copy secret to clipboard */
+	const copyButton = document.querySelector('.nbuf-copy-button');
+	if (copyButton) {
+		copyButton.addEventListener('click', function() {
+			const secret = this.getAttribute('data-secret');
+			navigator.clipboard.writeText(secret).then(function() {
+				copyButton.innerHTML = '<span class="nbuf-copy-icon">✓</span>';
+				setTimeout(function() {
+					copyButton.innerHTML = '<span class="nbuf-copy-icon">📋</span>';
+				}, 2000);
+			});
+		});
+	}
+});
+</script>

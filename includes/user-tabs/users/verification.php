@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = NBUF_Options::get('nbuf_settings', array());
+$settings   = NBUF_Options::get( 'nbuf_settings', array() );
 $verify_url = $settings['verification_page'] ?? '/verify';
 $reset_url  = $settings['password_reset_page'] ?? '/password-reset';
 ?>

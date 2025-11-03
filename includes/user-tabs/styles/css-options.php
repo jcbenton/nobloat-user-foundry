@@ -12,16 +12,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* ==========================================================
-   HANDLE FORM SUBMISSION
-   ========================================================== */
+/**
+ * Handle CSS options form submission
+ *
+ * Saves CSS to database and attempts to write to disk.
+ */
 if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_save', 'nbuf_styles_nonce' ) ) {
-
-	/* Get and sanitize CSS inputs */
+	/*
+	* Get and sanitize CSS inputs.
+	*/
+	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via NBUF_CSS_Manager::sanitize_css().
 	$reset_css        = isset( $_POST['reset_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['reset_page_css'] ) ) : '';
 	$login_css        = isset( $_POST['login_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['login_page_css'] ) ) : '';
 	$registration_css = isset( $_POST['registration_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['registration_page_css'] ) ) : '';
 	$account_css      = isset( $_POST['account_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['account_page_css'] ) ) : '';
+	$twofa_css        = isset( $_POST['2fa_setup_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['2fa_setup_css'] ) ) : '';
+	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	/* Get and save CSS optimization options */
 	$css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
@@ -36,44 +42,49 @@ if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_sa
 	NBUF_Options::update( 'nbuf_login_page_css', $login_css, false, 'css' );
 	NBUF_Options::update( 'nbuf_registration_page_css', $registration_css, false, 'css' );
 	NBUF_Options::update( 'nbuf_account_page_css', $account_css, false, 'css' );
+	NBUF_Options::update( 'nbuf_2fa_setup_css', $twofa_css, false, 'css' );
 
 	/* Try to write to disk with minification */
 	$reset_success        = NBUF_CSS_Manager::save_css_to_disk( $reset_css, 'reset-page', 'nbuf_css_write_failed_reset' );
 	$login_success        = NBUF_CSS_Manager::save_css_to_disk( $login_css, 'login-page', 'nbuf_css_write_failed_login' );
 	$registration_success = NBUF_CSS_Manager::save_css_to_disk( $registration_css, 'registration-page', 'nbuf_css_write_failed_registration' );
 	$account_success      = NBUF_CSS_Manager::save_css_to_disk( $account_css, 'account-page', 'nbuf_css_write_failed_account' );
+	$twofa_success        = NBUF_CSS_Manager::save_css_to_disk( $twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa' );
 
 	/* Create combined CSS file if option is enabled */
 	$combined_success = true;
 	if ( $css_combine_files ) {
-		$combined_css = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css;
+		$combined_css     = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css . "\n\n" . $twofa_css;
 		$combined_success = NBUF_CSS_Manager::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
 	}
 
 	/* Show appropriate message */
-	if ( $reset_success && $login_success && $registration_success && $account_success && $combined_success ) {
+	if ( $reset_success && $login_success && $registration_success && $account_success && $twofa_success && $combined_success ) {
 		$message = __( 'Styles saved successfully and written to disk.', 'nobloat-user-foundry' );
 		if ( $css_combine_files ) {
 			$message .= ' ' . __( 'Combined CSS file created.', 'nobloat-user-foundry' );
 		}
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
-	} elseif ( ! $reset_success || ! $login_success || ! $registration_success || ! $account_success || ! $combined_success ) {
+	} elseif ( ! $reset_success || ! $login_success || ! $registration_success || ! $account_success || ! $twofa_success || ! $combined_success ) {
 		echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Styles saved to database, but could not write to disk. Styles will be loaded from database (slightly slower). Check file permissions on /assets/css/frontend/ directory.', 'nobloat-user-foundry' ) . '</p></div>';
 	}
 }
 
-/* ==========================================================
-   LOAD CURRENT CSS VALUES
-   ========================================================== */
-$reset_css        = NBUF_Options::get('nbuf_reset_page_css' );
-$login_css        = NBUF_Options::get('nbuf_login_page_css' );
-$registration_css = NBUF_Options::get('nbuf_registration_page_css' );
-$account_css      = NBUF_Options::get('nbuf_account_page_css' );
+/*
+==========================================================
+	LOAD CURRENT CSS VALUES
+	==========================================================
+ */
+$reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
+$login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
+$registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
+$account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
+$twofa_css        = NBUF_Options::get( 'nbuf_2fa_setup_css' );
 
 /* CSS optimization settings */
-$css_load_on_pages = NBUF_Options::get('nbuf_css_load_on_pages', true );
-$css_use_minified  = NBUF_Options::get('nbuf_css_use_minified', true );
-$css_combine_files = NBUF_Options::get('nbuf_css_combine_files', true );
+$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
+$css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
+$css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
 
 /* If empty, load from default templates */
 if ( empty( $reset_css ) ) {
@@ -88,15 +99,21 @@ if ( empty( $registration_css ) ) {
 if ( empty( $account_css ) ) {
 	$account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
 }
+if ( empty( $twofa_css ) ) {
+	$twofa_css = NBUF_CSS_Manager::load_default_css( '2fa-setup' );
+}
 
-/* ==========================================================
-   CHECK FOR WRITE FAILURES
-   ========================================================== */
+/*
+==========================================================
+	CHECK FOR WRITE FAILURES
+	==========================================================
+ */
 $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_reset' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_combined' );
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_2fa' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_combined' );
 
 ?>
 
@@ -106,7 +123,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 		<div class="notice notice-error inline">
 			<p>
 				<strong><?php esc_html_e( 'File Write Permission Issue:', 'nobloat-user-foundry' ); ?></strong>
-				<?php esc_html_e( 'Unable to write CSS files to disk. Styles are being loaded from database (slower performance). Please check file permissions on the /assets/css/frontend/ directory.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Unable to write CSS files to disk. Styles are being loaded from database (slower performance). Please check file permissions on the /assets/css/frontend/ directory.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 	<?php endif; ?>
@@ -280,6 +297,34 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 			</p>
 		</div>
 
+		<!-- =================================================== -->
+		<!-- 2FA SETUP PAGE CSS -->
+		<!-- =================================================== -->
+		<div class="nbuf-style-section">
+			<h2><?php esc_html_e( '2FA Setup Page CSS', 'nobloat-user-foundry' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Customize the styling for the Two-Factor Authentication setup page. Changes will be minified and written to /assets/css/frontend/2fa-setup-live.min.css for optimal performance.', 'nobloat-user-foundry' ); ?>
+			</p>
+
+			<textarea
+				name="2fa_setup_css"
+				rows="20"
+				class="large-text code nbuf-css-editor"
+				spellcheck="false"
+			><?php echo esc_textarea( $twofa_css ); ?></textarea>
+
+			<p>
+				<button
+					type="button"
+					class="button nbuf-reset-style-btn"
+					data-template="2fa-setup"
+					data-target="2fa_setup_css"
+				>
+					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+				</button>
+			</p>
+		</div>
+
 		<?php submit_button( __( 'Save Styles', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_styles' ); ?>
 	</form>
 
@@ -312,49 +357,55 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 			<li><code>.nbuf-login-error</code> - Error messages</li>
 			<li><code>.nbuf-login-notice</code> - Success messages</li>
 		</ul>
+
+		<h4><?php esc_html_e( 'Registration Page Classes:', 'nobloat-user-foundry' ); ?></h4>
+		<ul>
+			<li><code>.nbuf-registration-wrapper</code> - Main container</li>
+			<li><code>.nbuf-registration-form</code> - Form element</li>
+			<li><code>.nbuf-registration-label</code> - Form labels</li>
+			<li><code>.nbuf-registration-input</code> - Input fields</li>
+			<li><code>.nbuf-registration-button</code> - Submit button</li>
+			<li><code>.nbuf-registration-error</code> - Error messages</li>
+			<li><code>.nbuf-registration-success</code> - Success messages</li>
+		</ul>
+
+		<h4><?php esc_html_e( 'Account Page Classes:', 'nobloat-user-foundry' ); ?></h4>
+		<ul>
+			<li><code>.nbuf-account-wrapper</code> - Main container</li>
+			<li><code>.nbuf-account-form</code> - Form element</li>
+			<li><code>.nbuf-account-label</code> - Form labels</li>
+			<li><code>.nbuf-account-input</code> - Input fields</li>
+			<li><code>.nbuf-account-button</code> - Submit button</li>
+			<li><code>.nbuf-account-error</code> - Error messages</li>
+			<li><code>.nbuf-account-success</code> - Success messages</li>
+		</ul>
+
+		<h4><?php esc_html_e( '2FA Setup Page Classes:', 'nobloat-user-foundry' ); ?></h4>
+		<ul>
+			<li><code>.nbuf-2fa-setup-page</code> - Main container</li>
+			<li><code>.nbuf-2fa-options</code> - Options grid container</li>
+			<li><code>.nbuf-2fa-option-card</code> - Individual option card</li>
+			<li><code>.nbuf-2fa-button</code> - Action buttons</li>
+			<li><code>.nbuf-status-active</code> - Active status badge</li>
+			<li><code>.nbuf-2fa-qr-code</code> - QR code container</li>
+			<li><code>.nbuf-backup-code</code> - Backup code item</li>
+		</ul>
+
+		<h4><?php esc_html_e( 'Shared Classes:', 'nobloat-user-foundry' ); ?></h4>
+		<ul>
+			<li><code>.nbuf-button</code> - Base button styles (all pages)</li>
+			<li><code>.nbuf-button-primary</code> - Primary button color</li>
+			<li><code>.nbuf-button-secondary</code> - Secondary button color</li>
+			<li><code>.nbuf-message</code> - Base message styles (all pages)</li>
+			<li><code>.nbuf-message-success</code> - Success message color</li>
+			<li><code>.nbuf-message-error</code> - Error message color</li>
+			<li><code>.nbuf-message-info</code> - Info message color</li>
+			<li><code>.nbuf-form-label</code> - Shared form label</li>
+			<li><code>.nbuf-form-input</code> - Shared form input</li>
+		</ul>
+
+		<p><strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'All pages use a dual-class system. Shared classes (.nbuf-button) provide consistent base styles, while page-specific classes (.nbuf-reset-button) allow targeted customization.', 'nobloat-user-foundry' ); ?></p>
 	</div>
 </div>
 
-<style>
-.nbuf-style-section {
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid #ddd;
-}
 
-.nbuf-style-section:last-of-type {
-    border-bottom: none;
-}
-
-.nbuf-css-editor {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    tab-size: 2;
-}
-
-.nbuf-style-info {
-    background: #f9f9f9;
-    padding: 1.5rem;
-    border-radius: 4px;
-    margin-top: 2rem;
-}
-
-.nbuf-style-info h3 {
-    margin-top: 0;
-}
-
-.nbuf-style-info h4 {
-    margin-bottom: 0.5rem;
-}
-
-.nbuf-style-info ul {
-    margin-top: 0.5rem;
-}
-
-.nbuf-style-info code {
-    background: #fff;
-    padding: 2px 6px;
-    border-radius: 3px;
-}
-</style>

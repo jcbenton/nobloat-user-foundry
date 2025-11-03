@@ -5,17 +5,25 @@
  * Handles CSV import of users with all profile fields
  *
  * @package NoBloat_User_Foundry
- * @since 1.3.0
+ * @since   1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Bulk user import handler
+ *
+ * @since 1.3.0
+ */
 class NBUF_Bulk_Import {
+
 
 	/**
 	 * Import results storage
+	 *
+	 * @var array
 	 */
 	private $results = array(
 		'success' => 0,
@@ -25,6 +33,8 @@ class NBUF_Bulk_Import {
 
 	/**
 	 * Valid profile field keys
+	 *
+	 * @var array
 	 */
 	private $valid_profile_fields = array();
 
@@ -46,43 +56,85 @@ class NBUF_Bulk_Import {
 	private function init_valid_fields() {
 		/* Core WordPress fields */
 		$core_fields = array(
-			'user_login', 'user_email', 'user_pass', 'display_name',
-			'first_name', 'last_name', 'user_url', 'description',
-			'role', 'user_registered'
+			'user_login',
+			'user_email',
+			'user_pass',
+			'display_name',
+			'first_name',
+			'last_name',
+			'user_url',
+			'description',
+			'role',
+			'user_registered',
 		);
 
 		/* Profile fields from registration */
 		$profile_fields = array(
 			/* Personal Information */
-			'bio', 'date_of_birth', 'gender', 'pronouns', 'nationality',
+			'bio',
+			'date_of_birth',
+			'gender',
+			'pronouns',
+			'nationality',
 
 			/* Contact Information */
-			'phone', 'mobile_phone', 'fax', 'address_line_1', 'address_line_2',
-			'city', 'state', 'postal_code', 'country',
+			'phone',
+			'mobile_phone',
+			'fax',
+			'address_line_1',
+			'address_line_2',
+			'city',
+			'state',
+			'postal_code',
+			'country',
 
 			/* Social Media */
-			'facebook', 'twitter', 'linkedin', 'instagram', 'youtube',
-			'tiktok', 'github', 'website',
+			'facebook',
+			'twitter',
+			'linkedin',
+			'instagram',
+			'youtube',
+			'tiktok',
+			'github',
+			'website',
 
 			/* Professional */
-			'company', 'job_title', 'department', 'employee_id',
-			'education_level', 'school', 'degree', 'graduation_year',
+			'company',
+			'job_title',
+			'department',
+			'employee_id',
+			'education_level',
+			'school',
+			'degree',
+			'graduation_year',
 
 			/* Preferences */
-			'language_preference', 'timezone', 'communication_preference',
-			'newsletter_opt_in', 'marketing_opt_in',
+			'language_preference',
+			'timezone',
+			'communication_preference',
+			'newsletter_opt_in',
+			'marketing_opt_in',
 
 			/* Emergency Contact */
-			'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship',
+			'emergency_contact_name',
+			'emergency_contact_phone',
+			'emergency_contact_relationship',
 
 			/* Legal */
-			'tax_id', 'government_id',
+			'tax_id',
+			'government_id',
 
 			/* Custom */
-			'custom_field_1', 'custom_field_2', 'custom_field_3',
-			'custom_field_4', 'custom_field_5', 'custom_field_6',
-			'custom_field_7', 'custom_field_8', 'custom_field_9',
-			'custom_field_10'
+			'custom_field_1',
+			'custom_field_2',
+			'custom_field_3',
+			'custom_field_4',
+			'custom_field_5',
+			'custom_field_6',
+			'custom_field_7',
+			'custom_field_8',
+			'custom_field_9',
+			'custom_field_10',
 		);
 
 		$this->valid_profile_fields = array_merge( $core_fields, $profile_fields );
@@ -103,7 +155,7 @@ class NBUF_Bulk_Import {
 			wp_send_json_error( array( 'message' => 'No file uploaded' ) );
 		}
 
-		$file = $_FILES['csv_file'];
+		$file = isset( $_FILES['csv_file'] ) ? wp_unslash( $_FILES['csv_file'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload data validated below.
 
 		/* Validate file size (10MB max) */
 		if ( $file['size'] > 10485760 ) {
@@ -111,7 +163,7 @@ class NBUF_Bulk_Import {
 		}
 
 		/* Validate file type using WordPress core function to prevent spoofing */
-		$filetype = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'] );
+		$filetype     = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'] );
 		$allowed_exts = array( 'csv' );
 
 		if ( ! in_array( $filetype['ext'], $allowed_exts, true ) ) {
@@ -139,24 +191,27 @@ class NBUF_Bulk_Import {
 		/* Run dry-run validation */
 		$preview = $this->dry_run_validation( $csv_data );
 
-		wp_send_json_success( array(
-			'transient_key' => $transient_key,
-			'preview'       => $preview,
-			'total_rows'    => count( $csv_data['rows'] ),
-		) );
+		wp_send_json_success(
+			array(
+				'transient_key' => $transient_key,
+				'preview'       => $preview,
+				'total_rows'    => count( $csv_data['rows'] ),
+			)
+		);
 	}
 
 	/**
 	 * Parse CSV file
 	 *
-	 * @param string $file_path Path to CSV file
-	 * @return array|WP_Error Parsed data or error
+	 * @param  string $file_path Path to CSV file.
+	 * @return array|WP_Error Parsed data or error.
 	 */
 	private function parse_csv( $file_path ) {
 		if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
 			return new WP_Error( 'file_error', 'Cannot read CSV file' );
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV parsing requires direct file access
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {
 			return new WP_Error( 'file_error', 'Cannot open CSV file' );
@@ -165,6 +220,7 @@ class NBUF_Bulk_Import {
 		/* Read header row */
 		$headers = fgetcsv( $handle );
 		if ( ! $headers ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- CSV parsing requires direct file access
 			fclose( $handle );
 			return new WP_Error( 'parse_error', 'CSV file is empty or invalid' );
 		}
@@ -174,20 +230,22 @@ class NBUF_Bulk_Import {
 		$headers = array_map( 'strtolower', $headers );
 
 		/* Read data rows */
-		$rows = array();
-		$line_number = 2; # Start at 2 (1 is header)
+		$rows        = array();
+		$line_number = 2; // Start at 2 (1 is header).
 
+		// phpcs:ignore Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure, Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- Standard CSV parsing pattern with fgetcsv().
 		while ( ( $row = fgetcsv( $handle ) ) !== false ) {
 			if ( count( $row ) === count( $headers ) ) {
 				$rows[] = array(
-					'line'   => $line_number,
-					'data'   => array_combine( $headers, $row ),
-					'raw'    => $row,
+					'line' => $line_number,
+					'data' => array_combine( $headers, $row ),
+					'raw'  => $row,
 				);
 			}
-			$line_number++;
+			++$line_number;
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- CSV parsing requires direct file access
 		fclose( $handle );
 
 		return array(
@@ -199,8 +257,8 @@ class NBUF_Bulk_Import {
 	/**
 	 * Validate CSV structure
 	 *
-	 * @param array $csv_data Parsed CSV data
-	 * @return true|WP_Error True if valid, error otherwise
+	 * @param  array $csv_data Parsed CSV data.
+	 * @return true|WP_Error True if valid, error otherwise.
 	 */
 	private function validate_csv_structure( $csv_data ) {
 		/* Check if CSV has data */
@@ -210,10 +268,10 @@ class NBUF_Bulk_Import {
 
 		/* Check for required fields */
 		$required_fields = array( 'user_email', 'user_login' );
-		$headers = $csv_data['headers'];
+		$headers         = $csv_data['headers'];
 
 		foreach ( $required_fields as $required ) {
-			if ( ! in_array( $required, $headers ) ) {
+			if ( ! in_array( $required, $headers, true ) ) {
 				return new WP_Error( 'missing_field', sprintf( 'Required field "%s" not found in CSV headers', $required ) );
 			}
 		}
@@ -224,8 +282,8 @@ class NBUF_Bulk_Import {
 	/**
 	 * Dry-run validation (preview without importing)
 	 *
-	 * @param array $csv_data Parsed CSV data
-	 * @return array Validation results
+	 * @param  array $csv_data Parsed CSV data.
+	 * @return array Validation results.
 	 */
 	private function dry_run_validation( $csv_data ) {
 		$preview = array(
@@ -235,20 +293,20 @@ class NBUF_Bulk_Import {
 			'samples' => array(),
 		);
 
-		$max_samples = 5;
+		$max_samples  = 5;
 		$sample_count = 0;
 
 		foreach ( $csv_data['rows'] as $row ) {
 			$validation = $this->validate_row( $row['data'], $row['line'] );
 
 			if ( is_wp_error( $validation ) ) {
-				$preview['invalid']++;
+				++$preview['invalid'];
 				$preview['errors'][] = array(
 					'line'    => $row['line'],
 					'message' => $validation->get_error_message(),
 				);
 			} else {
-				$preview['valid']++;
+				++$preview['valid'];
 
 				/* Add to samples */
 				if ( $sample_count < $max_samples ) {
@@ -256,7 +314,7 @@ class NBUF_Bulk_Import {
 						'line' => $row['line'],
 						'data' => $validation,
 					);
-					$sample_count++;
+					++$sample_count;
 				}
 			}
 		}
@@ -267,13 +325,13 @@ class NBUF_Bulk_Import {
 	/**
 	 * Validate single row
 	 *
-	 * @param array $row Row data
-	 * @param int   $line_number Line number
-	 * @return array|WP_Error Validated data or error
+	 * @param  array $row         Row data.
+	 * @param  int   $line_number Line number.
+	 * @return array|WP_Error Validated data or error.
 	 */
 	private function validate_row( $row, $line_number ) {
 		$validated = array();
-		$errors = array();
+		$errors    = array();
 
 		/* Required: Email */
 		if ( empty( $row['user_email'] ) ) {
@@ -315,7 +373,7 @@ class NBUF_Bulk_Import {
 
 		/* Optional: Password (generate if not provided) */
 		if ( ! empty( $row['user_pass'] ) ) {
-			$validated['user_pass'] = $row['user_pass']; # Don't sanitize passwords
+			$validated['user_pass'] = $row['user_pass']; // Don't sanitize passwords.
 		} else {
 			$validated['user_pass'] = wp_generate_password( 16, true, true );
 		}
@@ -352,7 +410,7 @@ class NBUF_Bulk_Import {
 		/* Optional: Role */
 		if ( ! empty( $row['role'] ) ) {
 			$valid_roles = array_keys( wp_roles()->roles );
-			if ( ! in_array( $row['role'], $valid_roles ) ) {
+			if ( ! in_array( $row['role'], $valid_roles, true ) ) {
 				return new WP_Error( 'invalid_role', sprintf( 'Line %d: Invalid role: %s', $line_number, $row['role'] ) );
 			}
 			$validated['role'] = $row['role'];
@@ -362,11 +420,11 @@ class NBUF_Bulk_Import {
 
 		/* Process all other fields */
 		foreach ( $row as $key => $value ) {
-			if ( in_array( $key, array( 'user_email', 'user_login', 'user_pass', 'display_name', 'first_name', 'last_name', 'role' ) ) ) {
-				continue; # Already processed
+			if ( in_array( $key, array( 'user_email', 'user_login', 'user_pass', 'display_name', 'first_name', 'last_name', 'role' ), true ) ) {
+				continue; // Already processed.
 			}
 
-			if ( in_array( $key, $this->valid_profile_fields ) && ! empty( $value ) ) {
+			if ( in_array( $key, $this->valid_profile_fields, true ) && ! empty( $value ) ) {
 				/* Prevent CSV injection (formulas) */
 				$sanitized = sanitize_text_field( $value );
 				if ( strlen( $sanitized ) > 0 && in_array( substr( $sanitized, 0, 1 ), array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
@@ -390,8 +448,8 @@ class NBUF_Bulk_Import {
 		}
 
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
-		$batch_size = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
-		$offset = isset( $_POST['offset'] ) ? intval( wp_unslash( $_POST['offset'] ) ) : 0;
+		$batch_size    = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
+		$offset        = isset( $_POST['offset'] ) ? intval( wp_unslash( $_POST['offset'] ) ) : 0;
 
 		/* Get CSV data from transient */
 		$csv_data = get_transient( $transient_key );
@@ -408,8 +466,8 @@ class NBUF_Bulk_Import {
 		}
 
 		$total_rows = count( $csv_data['rows'] );
-		$processed = $offset + count( $batch_rows );
-		$complete = ( $processed >= $total_rows );
+		$processed  = $offset + count( $batch_rows );
+		$complete   = ( $processed >= $total_rows );
 
 		/* Clean up transient if complete */
 		if ( $complete ) {
@@ -421,29 +479,31 @@ class NBUF_Bulk_Import {
 			}
 		}
 
-		wp_send_json_success( array(
-			'complete'  => $complete,
-			'processed' => $processed,
-			'total'     => $total_rows,
-			'success'   => $this->results['success'],
-			'skipped'   => $this->results['skipped'],
-			'errors'    => count( $this->results['errors'] ),
-			'error_key' => $transient_key . '_errors',
-		) );
+		wp_send_json_success(
+			array(
+				'complete'  => $complete,
+				'processed' => $processed,
+				'total'     => $total_rows,
+				'success'   => $this->results['success'],
+				'skipped'   => $this->results['skipped'],
+				'errors'    => count( $this->results['errors'] ),
+				'error_key' => $transient_key . '_errors',
+			)
+		);
 	}
 
 	/**
 	 * Import single user
 	 *
-	 * @param array $data User data
-	 * @param int   $line_number Line number
+	 * @param array $data        User data.
+	 * @param int   $line_number Line number.
 	 */
 	private function import_user( $data, $line_number ) {
 		/* Validate row */
 		$validated = $this->validate_row( $data, $line_number );
 
 		if ( is_wp_error( $validated ) ) {
-			$this->results['skipped']++;
+			++$this->results['skipped'];
 			$this->results['errors'][] = array(
 				'line'    => $line_number,
 				'message' => $validated->get_error_message(),
@@ -452,11 +512,11 @@ class NBUF_Bulk_Import {
 		}
 
 		/* Check if user exists */
-		$existing_user = get_user_by( 'email', $validated['user_email'] );
+		$existing_user   = get_user_by( 'email', $validated['user_email'] );
 		$update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
 
 		if ( $existing_user && ! $update_existing ) {
-			$this->results['skipped']++;
+			++$this->results['skipped'];
 			$this->results['errors'][] = array(
 				'line'    => $line_number,
 				'message' => sprintf( 'User already exists: %s', $validated['user_email'] ),
@@ -466,15 +526,22 @@ class NBUF_Bulk_Import {
 
 		/* Separate core fields from profile fields */
 		$core_fields = array(
-			'user_login', 'user_email', 'user_pass', 'display_name',
-			'first_name', 'last_name', 'user_url', 'description', 'role'
+			'user_login',
+			'user_email',
+			'user_pass',
+			'display_name',
+			'first_name',
+			'last_name',
+			'user_url',
+			'description',
+			'role',
 		);
 
-		$user_data = array();
+		$user_data    = array();
 		$profile_data = array();
 
 		foreach ( $validated as $key => $value ) {
-			if ( in_array( $key, $core_fields ) ) {
+			if ( in_array( $key, $core_fields, true ) ) {
 				$user_data[ $key ] = $value;
 			} else {
 				$profile_data[ $key ] = $value;
@@ -484,13 +551,13 @@ class NBUF_Bulk_Import {
 		/* Create or update user */
 		if ( $existing_user ) {
 			$user_data['ID'] = $existing_user->ID;
-			$user_id = wp_update_user( $user_data );
+			$user_id         = wp_update_user( $user_data );
 		} else {
 			$user_id = wp_insert_user( $user_data );
 		}
 
 		if ( is_wp_error( $user_id ) ) {
-			$this->results['skipped']++;
+			++$this->results['skipped'];
 			$this->results['errors'][] = array(
 				'line'    => $line_number,
 				'message' => sprintf( 'Failed to create user: %s', $user_id->get_error_message() ),
@@ -517,27 +584,34 @@ class NBUF_Bulk_Import {
 			$this->send_welcome_email( $user_id, $validated['user_pass'] );
 		}
 
-		$this->results['success']++;
+		++$this->results['success'];
 	}
 
 	/**
 	 * Save profile data for user
 	 *
-	 * @param int   $user_id User ID
-	 * @param array $profile_data Profile field data
+	 * @param int   $user_id      User ID.
+	 * @param array $profile_data Profile field data.
 	 */
 	private function save_profile_data( $user_id, $profile_data ) {
 		global $wpdb;
 
 		/* Check if profile row exists */
 		$table_name = $wpdb->prefix . 'nbuf_user_profile';
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			"SELECT user_id FROM $table_name WHERE user_id = %d",
-			$user_id
-		) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+		$exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT user_id FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		if ( $exists ) {
-			/* Update existing */
+			/*
+			 * Update existing
+			 */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations for nbuf_profile_data table.
 			$wpdb->update(
 				$table_name,
 				$profile_data,
@@ -548,6 +622,7 @@ class NBUF_Bulk_Import {
 		} else {
 			/* Insert new */
 			$profile_data['user_id'] = $user_id;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$wpdb->insert(
 				$table_name,
 				$profile_data,
@@ -559,22 +634,27 @@ class NBUF_Bulk_Import {
 	/**
 	 * Set user verification status
 	 *
-	 * @param int  $user_id User ID
-	 * @param bool $verified Verified status
+	 * @param int  $user_id  User ID.
+	 * @param bool $verified Verified status.
 	 */
 	private function set_user_verified( $user_id, $verified ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			"SELECT user_id FROM $table_name WHERE user_id = %d",
-			$user_id
-		) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+		$exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT user_id FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
-		$status = $verified ? 'verified' : 'pending';
+		$status      = $verified ? 'verified' : 'pending';
 		$verified_at = $verified ? current_time( 'mysql' ) : null;
 
 		if ( $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$wpdb->update(
 				$table_name,
 				array(
@@ -586,6 +666,7 @@ class NBUF_Bulk_Import {
 				array( '%d' )
 			);
 		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$wpdb->insert(
 				$table_name,
 				array(
@@ -601,8 +682,8 @@ class NBUF_Bulk_Import {
 	/**
 	 * Send welcome email to new user
 	 *
-	 * @param int    $user_id User ID
-	 * @param string $password Plain text password
+	 * @param int    $user_id  User ID.
+	 * @param string $password Plain text password.
 	 */
 	private function send_welcome_email( $user_id, $password ) {
 		$user = get_userdata( $user_id );
@@ -633,7 +714,7 @@ class NBUF_Bulk_Import {
 		}
 
 		$error_key = isset( $_GET['error_key'] ) ? sanitize_text_field( wp_unslash( $_GET['error_key'] ) ) : '';
-		$errors = get_transient( $error_key );
+		$errors    = get_transient( $error_key );
 
 		if ( ! $errors ) {
 			wp_die( 'Error report not found or expired' );
@@ -641,8 +722,9 @@ class NBUF_Bulk_Import {
 
 		/* Generate CSV */
 		header( 'Content-Type: text/csv' );
-		header( 'Content-Disposition: attachment; filename="import-errors-' . date( 'Y-m-d-His' ) . '.csv"' );
+		header( 'Content-Disposition: attachment; filename="import-errors-' . gmdate( 'Y-m-d-His' ) . '.csv"' );
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV output requires direct file access
 		$output = fopen( 'php://output', 'w' );
 		fputcsv( $output, array( 'Line Number', 'Error Message' ) );
 
@@ -650,6 +732,7 @@ class NBUF_Bulk_Import {
 			fputcsv( $output, array( $error['line'], $error['message'] ) );
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- CSV output requires direct file access
 		fclose( $output );
 		delete_transient( $error_key );
 		exit;

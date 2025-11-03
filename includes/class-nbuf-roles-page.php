@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Roles_Page
+ *
+ * Admin interface for managing custom user roles.
+ */
 class NBUF_Roles_Page {
+
 
 	/**
 	 * Initialize roles page
@@ -35,105 +41,40 @@ class NBUF_Roles_Page {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Determine view */
-		$action  = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'list';
+		/*
+		 * Determine view
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameter
+		$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : 'list';
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameter
 		$role_id = isset( $_GET['role'] ) ? sanitize_text_field( wp_unslash( $_GET['role'] ) ) : '';
 
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'User Roles', 'nobloat-user-foundry' ); ?></h1>
-			<?php if ( 'list' === $action ) : ?>
+		<?php if ( 'list' === $action ) : ?>
 				<a href="?page=nobloat-foundry-roles&action=add" class="page-title-action"><?php esc_html_e( 'Add New Role', 'nobloat-user-foundry' ); ?></a>
 			<?php elseif ( 'edit' === $action || 'add' === $action ) : ?>
 				<a href="?page=nobloat-foundry-roles" class="page-title-action"><?php esc_html_e( 'Back to Roles', 'nobloat-user-foundry' ); ?></a>
 			<?php endif; ?>
 			<hr class="wp-header-end">
 
-			<?php
-			switch ( $action ) {
-				case 'add':
-					self::render_role_editor( null );
-					break;
-				case 'edit':
-					self::render_role_editor( $role_id );
-					break;
-				default:
-					self::render_role_list();
-					break;
-			}
-			?>
+		<?php
+		switch ( $action ) {
+			case 'add':
+				self::render_role_editor( null );
+				break;
+			case 'edit':
+				self::render_role_editor( $role_id );
+				break;
+			default:
+				self::render_role_list();
+				break;
+		}
+		?>
 		</div>
 
-		<style>
-		.nbuf-roles-table {
-			margin-top: 20px;
-		}
-		.nbuf-roles-table th {
-			text-align: left;
-			padding: 8px 10px;
-		}
-		.nbuf-roles-table td {
-			padding: 8px 10px;
-		}
-		.role-actions {
-			visibility: hidden;
-		}
-		tr:hover .role-actions {
-			visibility: visible;
-		}
-		.role-badge {
-			display: inline-block;
-			padding: 3px 8px;
-			background: #f0f0f1;
-			border-radius: 3px;
-			font-size: 11px;
-			margin-left: 5px;
-		}
-		.role-badge.native {
-			background: #d7dce5;
-		}
-		.role-editor-tabs {
-			margin: 20px 0;
-			border-bottom: 1px solid #c3c4c7;
-		}
-		.role-editor-tabs button {
-			background: none;
-			border: none;
-			padding: 10px 20px;
-			cursor: pointer;
-			border-bottom: 2px solid transparent;
-			font-size: 14px;
-		}
-		.role-editor-tabs button.active {
-			border-bottom-color: #2271b1;
-			color: #2271b1;
-		}
-		.role-editor-tab-content {
-			display: none;
-			padding: 20px 0;
-		}
-		.role-editor-tab-content.active {
-			display: block;
-		}
-		.capability-group {
-			margin-bottom: 30px;
-		}
-		.capability-group h3 {
-			margin-bottom: 10px;
-			border-bottom: 1px solid #f0f0f1;
-			padding-bottom: 5px;
-		}
-		.capability-checkboxes {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-			gap: 10px;
-			margin-top: 15px;
-		}
-		.capability-checkboxes label {
-			display: flex;
-			align-items: center;
-		}
-		</style>
+		
 		<?php
 	}
 
@@ -158,21 +99,21 @@ class NBUF_Roles_Page {
 				</tr>
 			</thead>
 			<tbody>
-				<?php
-				$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		<?php
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
 
-				foreach ( $wp_roles as $role_key => $role_data ) :
-					$is_native  = in_array( $role_key, $native_roles, true );
-					$is_custom  = isset( $custom_roles[ $role_key ] );
-					$user_count = NBUF_Role_Manager::get_user_count( $role_key );
-					$cap_count  = count( $role_data['capabilities'] );
-					$priority   = $is_custom ? $custom_roles[ $role_key ]['priority'] : 0;
-					?>
+		foreach ( $wp_roles as $role_key => $role_data ) :
+			$is_native  = in_array( $role_key, $native_roles, true );
+			$is_custom  = isset( $custom_roles[ $role_key ] );
+			$user_count = NBUF_Role_Manager::get_user_count( $role_key );
+			$cap_count  = count( $role_data['capabilities'] );
+			$priority   = $is_custom ? $custom_roles[ $role_key ]['priority'] : 0;
+			?>
 					<tr>
 						<td>
 							<strong><?php echo esc_html( $role_data['name'] ); ?></strong>
 							<div class="role-actions">
-								<?php if ( $is_custom ) : ?>
+			<?php if ( $is_custom ) : ?>
 									<a href="?page=nobloat-foundry-roles&action=edit&role=<?php echo esc_attr( $role_key ); ?>"><?php esc_html_e( 'Edit', 'nobloat-user-foundry' ); ?></a> |
 									<a href="#" class="nbuf-delete-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?></a> |
 									<a href="#" class="nbuf-export-role" data-role="<?php echo esc_attr( $role_key ); ?>"><?php esc_html_e( 'Export', 'nobloat-user-foundry' ); ?></a>
@@ -185,7 +126,7 @@ class NBUF_Roles_Page {
 						<td><?php echo esc_html( number_format_i18n( $user_count ) ); ?></td>
 						<td><?php echo esc_html( number_format_i18n( $cap_count ) ); ?></td>
 						<td>
-							<?php if ( $is_native ) : ?>
+			<?php if ( $is_native ) : ?>
 								<span class="role-badge native"><?php esc_html_e( 'WordPress', 'nobloat-user-foundry' ); ?></span>
 							<?php elseif ( $is_custom ) : ?>
 								<span class="role-badge"><?php esc_html_e( 'Custom', 'nobloat-user-foundry' ); ?></span>
@@ -193,7 +134,7 @@ class NBUF_Roles_Page {
 						</td>
 						<td><?php echo esc_html( $priority ); ?></td>
 					</tr>
-				<?php endforeach; ?>
+		<?php endforeach; ?>
 			</tbody>
 		</table>
 
@@ -263,10 +204,10 @@ class NBUF_Roles_Page {
 	/**
 	 * Render role editor (add/edit)
 	 *
-	 * @param string|null $role_key Role key for editing, null for new
+	 * @param string|null $role_key Role key for editing, null for new.
 	 */
 	private static function render_role_editor( $role_key ) {
-		$is_edit = ! empty( $role_key );
+		$is_edit   = ! empty( $role_key );
 		$role_data = $is_edit ? NBUF_Role_Manager::get_role( $role_key ) : null;
 
 		/* If editing and role not found */
@@ -277,7 +218,7 @@ class NBUF_Roles_Page {
 
 		/* Get all capabilities organized by category */
 		$all_capabilities = NBUF_Role_Manager::get_all_capabilities();
-		$current_caps = $is_edit ? $role_data['capabilities'] : array();
+		$current_caps     = $is_edit ? $role_data['capabilities'] : array();
 
 		/* Get all roles for parent selection */
 		$all_roles = wp_roles()->get_names();
@@ -286,10 +227,10 @@ class NBUF_Roles_Page {
 		<form id="nbuf-role-editor-form" method="post" style="max-width: 1200px;">
 			<input type="hidden" name="action" value="nbuf_save_role">
 			<input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'nbuf_roles_nonce' ) ); ?>">
-			<?php if ( $is_edit ) : ?>
+		<?php if ( $is_edit ) : ?>
 				<input type="hidden" name="role_key" value="<?php echo esc_attr( $role_key ); ?>">
 				<input type="hidden" name="is_edit" value="1">
-			<?php endif; ?>
+		<?php endif; ?>
 
 			<!-- Basic Information -->
 			<table class="form-table" role="presentation">
@@ -305,7 +246,7 @@ class NBUF_Roles_Page {
 						</td>
 					</tr>
 
-					<?php if ( ! $is_edit ) : ?>
+		<?php if ( ! $is_edit ) : ?>
 					<tr>
 						<th scope="row">
 							<label for="role_key"><?php esc_html_e( 'Role Key', 'nobloat-user-foundry' ); ?> *</label>
@@ -316,7 +257,7 @@ class NBUF_Roles_Page {
 							<p class="description"><?php esc_html_e( 'Unique key for the role (lowercase letters, numbers, underscores only, e.g., "team_manager")', 'nobloat-user-foundry' ); ?></p>
 						</td>
 					</tr>
-					<?php endif; ?>
+		<?php endif; ?>
 
 					<tr>
 						<th scope="row">
@@ -326,9 +267,13 @@ class NBUF_Roles_Page {
 							<select name="parent_role" id="parent_role" class="regular-text">
 								<option value=""><?php esc_html_e( '-- No Inheritance --', 'nobloat-user-foundry' ); ?></option>
 								<?php foreach ( $all_roles as $r_key => $r_name ) : ?>
-									<?php if ( $is_edit && $r_key === $role_key ) continue; // Skip self ?>
+									<?php
+									if ( $is_edit && $r_key === $role_key ) {
+										continue;
+									} // Skip self
+									?>
 									<option value="<?php echo esc_attr( $r_key ); ?>" <?php selected( $is_edit && $role_data['parent_role'], $r_key ); ?>>
-										<?php echo esc_html( $r_name ); ?>
+									<?php echo esc_html( $r_name ); ?>
 									</option>
 								<?php endforeach; ?>
 							</select>
@@ -360,21 +305,21 @@ class NBUF_Roles_Page {
 				<button type="button" class="role-tab-btn" data-tab="other"><?php esc_html_e( 'Other', 'nobloat-user-foundry' ); ?></button>
 			</div>
 
-			<?php foreach ( $all_capabilities as $category => $caps ) : ?>
+		<?php foreach ( $all_capabilities as $category => $caps ) : ?>
 			<div class="role-editor-tab-content <?php echo 'content' === $category ? 'active' : ''; ?>" data-tab="<?php echo esc_attr( $category ); ?>">
 				<div class="capability-checkboxes">
-					<?php foreach ( $caps as $cap ) : ?>
+			<?php foreach ( $caps as $cap ) : ?>
 						<label>
 							<input type="checkbox" name="capabilities[]" value="<?php echo esc_attr( $cap ); ?>"
-								<?php checked( isset( $current_caps[ $cap ] ) && $current_caps[ $cap ] ); ?>>
+				<?php checked( isset( $current_caps[ $cap ] ) && $current_caps[ $cap ] ); ?>>
 							<code style="margin-left: 5px;"><?php echo esc_html( $cap ); ?></code>
 						</label>
-					<?php endforeach; ?>
+			<?php endforeach; ?>
 				</div>
 			</div>
-			<?php endforeach; ?>
+		<?php endforeach; ?>
 
-			<?php submit_button( $is_edit ? __( 'Update Role', 'nobloat-user-foundry' ) : __( 'Create Role', 'nobloat-user-foundry' ) ); ?>
+		<?php submit_button( $is_edit ? __( 'Update Role', 'nobloat-user-foundry' ) : __( 'Create Role', 'nobloat-user-foundry' ) ); ?>
 		</form>
 
 		<script>
@@ -424,12 +369,14 @@ class NBUF_Roles_Page {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
-		$is_edit    = ! empty( $_POST['is_edit'] );
-		$role_key   = isset( $_POST['role_key'] ) ? sanitize_text_field( wp_unslash( $_POST['role_key'] ) ) : '';
-		$role_name  = isset( $_POST['role_name'] ) ? sanitize_text_field( wp_unslash( $_POST['role_name'] ) ) : '';
-		$parent     = isset( $_POST['parent_role'] ) ? sanitize_text_field( wp_unslash( $_POST['parent_role'] ) ) : null;
-		$priority   = isset( $_POST['priority'] ) ? absint( $_POST['priority'] ) : 0;
+     // phpcs:disable WordPress.Security.NonceVerification.Missing -- Protected by check_ajax_referer() on line 429
+		$is_edit      = ! empty( $_POST['is_edit'] );
+		$role_key     = isset( $_POST['role_key'] ) ? sanitize_text_field( wp_unslash( $_POST['role_key'] ) ) : '';
+		$role_name    = isset( $_POST['role_name'] ) ? sanitize_text_field( wp_unslash( $_POST['role_name'] ) ) : '';
+		$parent       = isset( $_POST['parent_role'] ) ? sanitize_text_field( wp_unslash( $_POST['parent_role'] ) ) : null;
+		$priority     = isset( $_POST['priority'] ) ? absint( $_POST['priority'] ) : 0;
 		$capabilities = isset( $_POST['capabilities'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['capabilities'] ) ) : array();
+     // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/* Convert capabilities array to associative (cap => true) */
 		$caps_assoc = array();
@@ -438,12 +385,15 @@ class NBUF_Roles_Page {
 		}
 
 		if ( $is_edit ) {
-			$result = NBUF_Role_Manager::update_role( $role_key, array(
-				'role_name'    => $role_name,
-				'capabilities' => $caps_assoc,
-				'parent_role'  => $parent,
-				'priority'     => $priority,
-			) );
+			$result = NBUF_Role_Manager::update_role(
+				$role_key,
+				array(
+					'role_name'    => $role_name,
+					'capabilities' => $caps_assoc,
+					'parent_role'  => $parent,
+					'priority'     => $priority,
+				)
+			);
 		} else {
 			$result = NBUF_Role_Manager::create_role( $role_key, $role_name, $caps_assoc, $parent, $priority );
 		}

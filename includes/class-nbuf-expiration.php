@@ -24,13 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Expiration {
 
+
 	/**
 	 * Initialize expiration functionality.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function init() {
-		// Register cron hooks
+		// Register cron hooks.
 		add_action( 'nbuf_check_expirations', array( __CLASS__, 'process_expired_users' ) );
 		add_action( 'nbuf_send_expiration_warnings', array( __CLASS__, 'send_warnings' ) );
 	}
@@ -39,15 +40,15 @@ class NBUF_Expiration {
 	 * Activate cron jobs.
 	 * Called on plugin activation.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function activate() {
-		// Schedule hourly check for expired users
+		// Schedule hourly check for expired users.
 		if ( ! wp_next_scheduled( 'nbuf_check_expirations' ) ) {
 			wp_schedule_event( time(), 'hourly', 'nbuf_check_expirations' );
 		}
 
-		// Schedule daily expiration warning emails
+		// Schedule daily expiration warning emails.
 		if ( ! wp_next_scheduled( 'nbuf_send_expiration_warnings' ) ) {
 			wp_schedule_event( time(), 'daily', 'nbuf_send_expiration_warnings' );
 		}
@@ -57,7 +58,7 @@ class NBUF_Expiration {
 	 * Deactivate cron jobs.
 	 * Called on plugin deactivation.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function deactivate() {
 		$timestamp = wp_next_scheduled( 'nbuf_check_expirations' );
@@ -75,16 +76,16 @@ class NBUF_Expiration {
 	 * Process expired users (hourly cron job).
 	 * Auto-disables users whose expiration date has passed.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function process_expired_users() {
-		// Check if expiration feature is enabled
+		// Check if expiration feature is enabled.
 		$enabled = NBUF_Options::get( 'nbuf_enable_expiration', false );
 		if ( ! $enabled ) {
 			return;
 		}
 
-		$current_time = current_time( 'mysql' );
+		$current_time  = current_time( 'mysql' );
 		$expired_users = NBUF_User_Data::get_expiring_before( $current_time );
 
 		if ( empty( $expired_users ) ) {
@@ -92,19 +93,19 @@ class NBUF_Expiration {
 		}
 
 		foreach ( $expired_users as $user_id ) {
-			// Skip if user should be protected
+			// Skip if user should be protected.
 			if ( self::should_protect_from_expiration( $user_id ) ) {
 				continue;
 			}
 
-			// Disable user
+			// Disable user.
 			NBUF_User_Data::set_disabled( $user_id, 'expired' );
 
-			// Kill all sessions
+			// Kill all sessions.
 			$sessions = WP_Session_Tokens::get_instance( $user_id );
 			$sessions->destroy_all();
 
-			// Fire action hook for extensions
+			// Fire action hook for extensions.
 			do_action( 'nbuf_user_expired', $user_id );
 
 			// Log if WP_DEBUG enabled.
@@ -118,18 +119,18 @@ class NBUF_Expiration {
 	 * Send expiration warning emails (daily cron job).
 	 * Sends emails to users X days before expiration.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function send_warnings() {
-		// Check if expiration feature is enabled
+		// Check if expiration feature is enabled.
 		$enabled = NBUF_Options::get( 'nbuf_enable_expiration', false );
 		if ( ! $enabled ) {
 			return;
 		}
 
-		// Get warning threshold (default: 7 days)
+		// Get warning threshold (default: 7 days).
 		$warning_days = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
-		$warning_date = date( 'Y-m-d H:i:s', strtotime( "+{$warning_days} days" ) );
+		$warning_date = gmdate( 'Y-m-d H:i:s', strtotime( "+{$warning_days} days" ) );
 
 		$users_needing_warning = NBUF_User_Data::get_needing_warning( $warning_date );
 
@@ -138,14 +139,14 @@ class NBUF_Expiration {
 		}
 
 		foreach ( $users_needing_warning as $user_id ) {
-			// Skip if user should be protected
+			// Skip if user should be protected.
 			if ( self::should_protect_from_expiration( $user_id ) ) {
 				continue;
 			}
 
-			// Send warning email
+			// Send warning email.
 			if ( self::send_expiration_warning_email( $user_id ) ) {
-				// Mark warning as sent
+				// Mark warning as sent.
 				NBUF_User_Data::set_expiration_warned( $user_id );
 
 				// Log if WP_DEBUG enabled.
@@ -159,9 +160,9 @@ class NBUF_Expiration {
 	/**
 	 * Send expiration warning email to user.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
 	private static function send_expiration_warning_email( $user_id ) {
 		$user = get_userdata( $user_id );
@@ -174,7 +175,7 @@ class NBUF_Expiration {
 			return false;
 		}
 
-		// Get email templates
+		// Get email templates.
 		$html_template = NBUF_Options::get( 'nbuf_expiration_warning_html', '' );
 		$text_template = NBUF_Options::get( 'nbuf_expiration_warning_text', '' );
 
@@ -182,7 +183,7 @@ class NBUF_Expiration {
 			return false;
 		}
 
-		// Prepare placeholders
+		// Prepare placeholders.
 		$expires_date = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $user_data->expires_at ) );
 		$placeholders = array(
 			'{site_name}'    => get_bloginfo( 'name' ),
@@ -192,14 +193,15 @@ class NBUF_Expiration {
 			'{site_url}'     => site_url(),
 		);
 
-		// Use HTML template if available, otherwise text
+		// Use HTML template if available, otherwise text.
 		$use_html = ! empty( $html_template );
 		$template = $use_html ? $html_template : $text_template;
 
-		// Replace placeholders
+		// Replace placeholders.
 		$message = str_replace( array_keys( $placeholders ), array_values( $placeholders ), $template );
 
-		// Prepare email
+		// Prepare email.
+		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account will expire soon', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 		$headers = array();
 
@@ -207,7 +209,7 @@ class NBUF_Expiration {
 			$headers[] = 'Content-Type: text/html; charset=UTF-8';
 		}
 
-		// Send email
+		// Send email.
 		return wp_mail( $user->user_email, $subject, $message, $headers );
 	}
 
@@ -215,30 +217,30 @@ class NBUF_Expiration {
 	 * Check if user should be protected from expiration.
 	 * Handles WooCommerce integration checks.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True if user should be protected, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True if user should be protected, false otherwise.
 	 */
 	private static function should_protect_from_expiration( $user_id ) {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
-			return true; // Protect if user doesn't exist
+			return true; // Protect if user doesn't exist.
 		}
 
-		// Never expire admins
+		// Never expire admins.
 		if ( user_can( $user, 'manage_options' ) ) {
 			return true;
 		}
 
-		// Check WooCommerce settings if WooCommerce is active
+		// Check WooCommerce settings if WooCommerce is active.
 		if ( class_exists( 'WooCommerce' ) ) {
-			// Check for active subscriptions
+			// Check for active subscriptions.
 			$prevent_active_subs = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
 			if ( $prevent_active_subs && self::has_active_subscription( $user_id ) ) {
 				return true;
 			}
 
-			// Check for recent orders
+			// Check for recent orders.
 			$prevent_recent_orders = NBUF_Options::get( 'nbuf_wc_prevent_recent_orders', false );
 			if ( $prevent_recent_orders ) {
 				$days = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
@@ -254,9 +256,9 @@ class NBUF_Expiration {
 	/**
 	 * Check if user has active WooCommerce subscriptions.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True if user has active subscriptions, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True if user has active subscriptions, false otherwise.
 	 */
 	private static function has_active_subscription( $user_id ) {
 		if ( ! function_exists( 'wcs_get_users_subscriptions' ) ) {
@@ -276,23 +278,25 @@ class NBUF_Expiration {
 	/**
 	 * Check if user has recent WooCommerce orders.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @param    int     $days       Number of days to consider "recent"
-	 * @return   bool                True if user has recent orders, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @param  int $days    Number of days to consider "recent".
+	 * @return bool                True if user has recent orders, false otherwise.
 	 */
 	private static function has_recent_orders( $user_id, $days = 90 ) {
 		if ( ! function_exists( 'wc_get_orders' ) ) {
 			return false;
 		}
 
-		$date_threshold = date( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$date_threshold = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 
-		$orders = wc_get_orders( array(
-			'customer_id' => $user_id,
-			'date_after'  => $date_threshold,
-			'limit'       => 1,
-		) );
+		$orders = wc_get_orders(
+			array(
+				'customer_id' => $user_id,
+				'date_after'  => $date_threshold,
+				'limit'       => 1,
+			)
+		);
 
 		return count( $orders ) > 0;
 	}

@@ -12,11 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* ==========================================================
-   HANDLE FORM SUBMISSION
-   ========================================================== */
+/**
+ * Handle template form submission
+ *
+ * Saves all email and form templates to custom table.
+ */
 if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templates_save', 'nbuf_templates_nonce' ) ) {
-	// Define all template fields
+	// Define all template fields.
 	$templates = array(
 		'email-verification-html',
 		'email-verification-text',
@@ -36,10 +38,11 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 		'2fa-backup-codes',
 	);
 
-	// Save all templates
+	// Save all templates.
 	foreach ( $templates as $template_name ) {
 		$post_key = str_replace( '-', '_', $template_name );
 		if ( isset( $_POST[ $post_key ] ) ) {
+         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Unslashed then sanitized in save_template().
 			$content = wp_unslash( $_POST[ $post_key ] );
 			NBUF_Template_Manager::save_template( $template_name, $content );
 		}
@@ -48,26 +51,26 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Templates saved successfully to custom table (zero wp_options bloat).', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
-/* ==========================================================
-   LOAD CURRENT TEMPLATE VALUES
-   ========================================================== */
+/**
+ * Load current template values from custom table
+ */
 $templates_data = array(
-	'email_verification_html'    => NBUF_Template_Manager::load_template( 'email-verification-html' ),
-	'email_verification_text'    => NBUF_Template_Manager::load_template( 'email-verification-text' ),
-	'welcome_email_html'         => NBUF_Template_Manager::load_template( 'welcome-email-html' ),
-	'welcome_email_text'         => NBUF_Template_Manager::load_template( 'welcome-email-text' ),
-	'expiration_warning_html'    => NBUF_Template_Manager::load_template( 'expiration-warning-html' ),
-	'expiration_warning_text'    => NBUF_Template_Manager::load_template( 'expiration-warning-text' ),
-	'2fa_email_code_html'        => NBUF_Template_Manager::load_template( '2fa-email-code-html' ),
-	'2fa_email_code_text'        => NBUF_Template_Manager::load_template( '2fa-email-code-text' ),
-	'login_form'                 => NBUF_Template_Manager::load_template( 'login-form' ),
-	'registration_form'          => NBUF_Template_Manager::load_template( 'registration-form' ),
-	'account_page'               => NBUF_Template_Manager::load_template( 'account-page' ),
-	'request_reset_form'         => NBUF_Template_Manager::load_template( 'request-reset-form' ),
-	'reset_form'                 => NBUF_Template_Manager::load_template( 'reset-form' ),
-	'2fa_verify'                 => NBUF_Template_Manager::load_template( '2fa-verify' ),
-	'2fa_setup_totp'             => NBUF_Template_Manager::load_template( '2fa-setup-totp' ),
-	'2fa_backup_codes'           => NBUF_Template_Manager::load_template( '2fa-backup-codes' ),
+	'email_verification_html' => NBUF_Template_Manager::load_template( 'email-verification-html' ),
+	'email_verification_text' => NBUF_Template_Manager::load_template( 'email-verification-text' ),
+	'welcome_email_html'      => NBUF_Template_Manager::load_template( 'welcome-email-html' ),
+	'welcome_email_text'      => NBUF_Template_Manager::load_template( 'welcome-email-text' ),
+	'expiration_warning_html' => NBUF_Template_Manager::load_template( 'expiration-warning-html' ),
+	'expiration_warning_text' => NBUF_Template_Manager::load_template( 'expiration-warning-text' ),
+	'2fa_email_code_html'     => NBUF_Template_Manager::load_template( '2fa-email-code-html' ),
+	'2fa_email_code_text'     => NBUF_Template_Manager::load_template( '2fa-email-code-text' ),
+	'login_form'              => NBUF_Template_Manager::load_template( 'login-form' ),
+	'registration_form'       => NBUF_Template_Manager::load_template( 'registration-form' ),
+	'account_page'            => NBUF_Template_Manager::load_template( 'account-page' ),
+	'request_reset_form'      => NBUF_Template_Manager::load_template( 'request-reset-form' ),
+	'reset_form'              => NBUF_Template_Manager::load_template( 'reset-form' ),
+	'2fa_verify'              => NBUF_Template_Manager::load_template( '2fa-verify' ),
+	'2fa_setup_totp'          => NBUF_Template_Manager::load_template( '2fa-setup-totp' ),
+	'2fa_backup_codes'        => NBUF_Template_Manager::load_template( '2fa-backup-codes' ),
 );
 ?>
 
@@ -102,7 +105,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'email-verification-html' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'email-verification-html' ) );
 						?>
 					</p>
 				</div>
@@ -112,7 +115,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'email-verification-text' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'email-verification-text' ) );
 						?>
 					</p>
 				</div>
@@ -137,7 +140,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'welcome-email-html' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'welcome-email-html' ) );
 						?>
 					</p>
 				</div>
@@ -147,7 +150,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'welcome-email-text' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'welcome-email-text' ) );
 						?>
 					</p>
 				</div>
@@ -172,7 +175,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-warning-html' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-warning-html' ) );
 						?>
 					</p>
 				</div>
@@ -182,7 +185,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-warning-text' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-warning-text' ) );
 						?>
 					</p>
 				</div>
@@ -207,7 +210,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( '2fa-email-code-html' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-email-code-html' ) );
 						?>
 					</p>
 				</div>
@@ -217,7 +220,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( '2fa-email-code-text' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-email-code-text' ) );
 						?>
 					</p>
 				</div>
@@ -245,7 +248,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'login-form' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'login-form' ) );
 						?>
 					</p>
 					<p class="description">
@@ -269,7 +272,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'registration-form' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'registration-form' ) );
 						?>
 					</p>
 					<p class="description">
@@ -293,7 +296,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'account-page' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'account-page' ) );
 						?>
 					</p>
 					<p class="description">
@@ -317,7 +320,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'request-reset-form' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'request-reset-form' ) );
 						?>
 					</p>
 					<p class="description">
@@ -341,7 +344,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( 'reset-form' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( 'reset-form' ) );
 						?>
 					</p>
 					<p class="description">
@@ -372,7 +375,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( '2fa-verify' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-verify' ) );
 						?>
 					</p>
 					<p class="description">
@@ -396,7 +399,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( '2fa-setup-totp' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-setup-totp' ) );
 						?>
 					</p>
 					<p class="description">
@@ -420,7 +423,7 @@ $templates_data = array(
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
-							esc_html( NBUF_Template_Manager::get_placeholders( '2fa-backup-codes' ) );
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-backup-codes' ) );
 						?>
 					</p>
 				</div>
@@ -431,80 +434,7 @@ $templates_data = array(
 	</form>
 </div>
 
-<style>
-/* Accordion Styles */
-.nbuf-accordion {
-    margin-bottom: 1.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    overflow: hidden;
-}
 
-.nbuf-accordion-header {
-    width: 100%;
-    padding: 1rem 1.5rem;
-    background: #f7f7f7;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
-    font-weight: 600;
-    transition: background 0.2s;
-}
-
-.nbuf-accordion-header:hover {
-    background: #f0f0f0;
-}
-
-.nbuf-accordion-header:focus {
-    outline: 2px solid #2271b1;
-    outline-offset: -2px;
-}
-
-.nbuf-accordion-icon {
-    transition: transform 0.3s;
-    font-size: 12px;
-}
-
-.nbuf-accordion.active .nbuf-accordion-icon {
-    transform: rotate(-180deg);
-}
-
-.nbuf-accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    background: #fff;
-}
-
-.nbuf-accordion.active .nbuf-accordion-content {
-    max-height: 5000px;
-    transition: max-height 0.5s ease-in;
-}
-
-.nbuf-template-section {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.nbuf-template-section:last-child {
-    border-bottom: none;
-}
-
-.nbuf-template-section h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-}
-
-.nbuf-template-editor {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-}
-</style>
 
 <script>
 document.addEventListener( 'DOMContentLoaded', function() {

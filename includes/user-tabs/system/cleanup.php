@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = NBUF_Options::get('nbuf_settings', array() );
+$settings = NBUF_Options::get( 'nbuf_settings', array() );
 $cleanup  = (array) ( $settings['cleanup'] ?? array() );
 ?>
 

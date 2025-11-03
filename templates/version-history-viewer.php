@@ -38,7 +38,7 @@ if ( empty( $context ) ) {
 if ( ! isset( $can_revert ) ) {
 	$current_user_id = get_current_user_id();
 	$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-	$can_revert = current_user_can( 'manage_options' ) || ( $allow_user_revert && $current_user_id === $user_id );
+	$can_revert = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
 }
 
 ?>

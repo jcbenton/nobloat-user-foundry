@@ -14,6 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/**
+ * Direct database access is architectural for user data management.
+ * Custom nbuf_user_data table stores verification/expiration data and cannot use
+ * WordPress's standard meta APIs. Caching is not implemented as data changes
+ * frequently and caching would introduce stale data issues.
+ */
+
 /**
  * User data management class.
  *
@@ -26,23 +35,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_User_Data {
 
+
 	/**
 	 * Get user data from custom table.
 	 *
-	 * @since    1.0.0
-	 * @param    int    $user_id    User ID
-	 * @return   object|null         User data object or null if not found
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return object|null         User data object or null if not found.
 	 */
-	public static function get( $user_id ) {
+	public static function get( int $user_id ): ?object {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT * FROM $table_name WHERE user_id = %d",
 				$user_id
 			)
 		);
+     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $data;
 	}
@@ -50,37 +62,37 @@ class NBUF_User_Data {
 	/**
 	 * Check if user is verified.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True if verified, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True if verified, false otherwise.
 	 */
-	public static function is_verified( $user_id ) {
+	public static function is_verified( int $user_id ): bool {
 		$data = self::get( $user_id );
-		/* SECURITY: Use strict comparison to prevent type juggling attacks */
-		return $data && (int) $data->is_verified === 1;
+		/* SECURITY: Use strict comparison to prevent type juggling attacks. */
+		return $data && 1 === (int) $data->is_verified;
 	}
 
 	/**
 	 * Check if user is disabled.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True if disabled, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True if disabled, false otherwise.
 	 */
-	public static function is_disabled( $user_id ) {
+	public static function is_disabled( int $user_id ): bool {
 		$data = self::get( $user_id );
-		/* SECURITY: Use strict comparison to prevent type juggling attacks */
-		return $data && (int) $data->is_disabled === 1;
+		/* SECURITY: Use strict comparison to prevent type juggling attacks. */
+		return $data && 1 === (int) $data->is_disabled;
 	}
 
 	/**
 	 * Get user's expiration date.
 	 *
-	 * @since    1.0.0
-	 * @param    int            $user_id    User ID
-	 * @return   string|null                Expiration datetime or null
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return string|null                Expiration datetime or null.
 	 */
-	public static function get_expiration( $user_id ) {
+	public static function get_expiration( int $user_id ): ?string {
 		$data = self::get( $user_id );
 		return $data ? $data->expires_at : null;
 	}
@@ -88,57 +100,63 @@ class NBUF_User_Data {
 	/**
 	 * Check if user account is expired.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True if expired, false otherwise
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True if expired, false otherwise.
 	 */
-	public static function is_expired( $user_id ) {
+	public static function is_expired( int $user_id ): bool {
 		$expires_at = self::get_expiration( $user_id );
 		if ( ! $expires_at ) {
 			return false;
 		}
-		/* FIXED: Use consistent UTC time for comparison (database stores GMT/UTC) */
+		/* FIXED: Use consistent UTC time for comparison (database stores GMT/UTC). */
 		return strtotime( $expires_at ) <= time();
 	}
 
 	/**
 	 * Set user as verified.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
-	public static function set_verified( $user_id ) {
-		return self::update( $user_id, array(
-			'is_verified'   => 1,
-			'verified_date' => current_time( 'mysql' ),
-		) );
+	public static function set_verified( int $user_id ): bool {
+		return self::update(
+			$user_id,
+			array(
+				'is_verified'   => 1,
+				'verified_date' => current_time( 'mysql' ),
+			)
+		);
 	}
 
 	/**
 	 * Set user as unverified.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
-	public static function set_unverified( $user_id ) {
-		return self::update( $user_id, array(
-			'is_verified'   => 0,
-			'verified_date' => null,
-		) );
+	public static function set_unverified( int $user_id ): bool {
+		return self::update(
+			$user_id,
+			array(
+				'is_verified'   => 0,
+				'verified_date' => null,
+			)
+		);
 	}
 
 	/**
 	 * Set user as disabled.
 	 *
-	 * @since    1.0.0
-	 * @param    int        $user_id    User ID
-	 * @param    string     $reason     Reason for disable (manual, expired, etc.)
-	 * @return   bool                   True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int    $user_id User ID.
+	 * @param  string $reason  Reason for disable (manual, expired, etc.).
+	 * @return bool                   True on success, false on failure.
 	 */
-	public static function set_disabled( $user_id, $reason = 'manual' ) {
-		/* Log account disabled */
+	public static function set_disabled( int $user_id, string $reason = 'manual' ): bool {
+		/* Log account disabled. */
 		NBUF_Audit_Log::log(
 			$user_id,
 			'account_disabled',
@@ -147,21 +165,24 @@ class NBUF_User_Data {
 			array( 'reason' => $reason )
 		);
 
-		return self::update( $user_id, array(
-			'is_disabled'     => 1,
-			'disabled_reason' => $reason,
-		) );
+		return self::update(
+			$user_id,
+			array(
+				'is_disabled'     => 1,
+				'disabled_reason' => $reason,
+			)
+		);
 	}
 
 	/**
 	 * Set user as enabled.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
-	public static function set_enabled( $user_id ) {
-		/* Log account enabled */
+	public static function set_enabled( int $user_id ): bool {
+		/* Log account enabled. */
 		NBUF_Audit_Log::log(
 			$user_id,
 			'account_enabled',
@@ -169,33 +190,36 @@ class NBUF_User_Data {
 			'User account enabled'
 		);
 
-		return self::update( $user_id, array(
-			'is_disabled'     => 0,
-			'disabled_reason' => null,
-		) );
+		return self::update(
+			$user_id,
+			array(
+				'is_disabled'     => 0,
+				'disabled_reason' => null,
+			)
+		);
 	}
 
 	/**
 	 * Set user expiration date.
 	 *
-	 * @since    1.0.0
-	 * @param    int        $user_id      User ID
-	 * @param    string     $expires_at   Expiration datetime (MySQL format) or null to remove
-	 * @return   bool                     True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int    $user_id    User ID.
+	 * @param  string $expires_at Expiration datetime (MySQL format) or null to remove.
+	 * @return bool                     True on success, false on failure.
 	 */
-	public static function set_expiration( $user_id, $expires_at ) {
+	public static function set_expiration( int $user_id, ?string $expires_at ): bool {
 		$data = array( 'expires_at' => $expires_at );
 
-		// If removing expiration and user is expired, auto-enable
-		if ( $expires_at === null && self::is_expired( $user_id ) ) {
+		// If removing expiration and user is expired, auto-enable.
+		if ( null === $expires_at && self::is_expired( $user_id ) ) {
 			$user_data = self::get( $user_id );
-			if ( $user_data && $user_data->disabled_reason === 'expired' ) {
+			if ( $user_data && 'expired' === $user_data->disabled_reason ) {
 				$data['is_disabled']     = 0;
 				$data['disabled_reason'] = null;
 			}
 		}
 
-		// Reset warning flag when expiration changes
+		// Reset warning flag when expiration changes.
 		$data['expiration_warned_at'] = null;
 
 		return self::update( $user_id, $data );
@@ -204,33 +228,37 @@ class NBUF_User_Data {
 	/**
 	 * Mark that expiration warning was sent.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
-	public static function set_expiration_warned( $user_id ) {
-		return self::update( $user_id, array(
-			'expiration_warned_at' => current_time( 'mysql' ),
-		) );
+	public static function set_expiration_warned( int $user_id ): bool {
+		return self::update(
+			$user_id,
+			array(
+				'expiration_warned_at' => current_time( 'mysql' ),
+			)
+		);
 	}
 
 	/**
 	 * Update user data in table.
 	 *
-	 * @since    1.0.0
-	 * @param    int      $user_id    User ID
-	 * @param    array    $data       Data to update (column => value)
-	 * @return   bool                 True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int   $user_id User ID.
+	 * @param  array $data    Data to update (column => value).
+	 * @return bool                 True on success, false on failure.
 	 */
-	public static function update( $user_id, $data ) {
+	public static function update( int $user_id, array $data ): bool {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
-		// Check if record exists
+		// Check if record exists.
 		$exists = self::get( $user_id );
 
 		if ( $exists ) {
-			// Update existing record
+			// Update existing record.
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table_name,
 				$data,
@@ -239,50 +267,53 @@ class NBUF_User_Data {
 				array( '%d' )
 			);
 		} else {
-			// Insert new record
+			// Insert new record.
 			$data['user_id'] = $user_id;
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$result = $wpdb->insert( $table_name, $data );
 		}
 
-		/* Invalidate unified user cache */
-		if ( $result !== false && class_exists( 'NBUF_User' ) ) {
+		/* Invalidate unified user cache. */
+		if ( false !== $result && class_exists( 'NBUF_User' ) ) {
 			NBUF_User::invalidate_cache( $user_id, 'user_data' );
 		}
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Delete user data from table.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
-	public static function delete( $user_id ) {
+	public static function delete( int $user_id ): bool {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table_name,
 			array( 'user_id' => $user_id ),
 			array( '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get all users with expiration before given date.
 	 *
-	 * @since    1.0.0
-	 * @param    string    $before_date    MySQL datetime
-	 * @return   array                     Array of user IDs
+	 * @since  1.0.0
+	 * @param  string $before_date MySQL datetime.
+	 * @return array                     Array of user IDs.
 	 */
-	public static function get_expiring_before( $before_date ) {
+	public static function get_expiring_before( string $before_date ): array {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT user_id FROM $table_name
@@ -293,6 +324,7 @@ class NBUF_User_Data {
 				$before_date
 			)
 		);
+     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results ? $results : array();
 	}
@@ -300,14 +332,15 @@ class NBUF_User_Data {
 	/**
 	 * Get users needing expiration warning.
 	 *
-	 * @since    1.0.0
-	 * @param    string    $warning_date    MySQL datetime for warning threshold
-	 * @return   array                      Array of user IDs
+	 * @since  1.0.0
+	 * @param  string $warning_date MySQL datetime for warning threshold.
+	 * @return array                      Array of user IDs.
 	 */
 	public static function get_needing_warning( $warning_date ) {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT user_id FROM $table_name
@@ -319,6 +352,7 @@ class NBUF_User_Data {
 				$warning_date
 			)
 		);
+     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results ? $results : array();
 	}
@@ -326,13 +360,13 @@ class NBUF_User_Data {
 	/**
 	 * Get user count by filters.
 	 *
-	 * @since    1.0.0
-	 * @param    string    $filter    Filter type: 'verified', 'unverified', 'disabled', 'enabled', 'has_expiration', 'no_expiration', 'expired'
-	 * @return   int                  User count
+	 * @since  1.0.0
+	 * @param  string $filter Filter type: 'verified', 'unverified', 'disabled', 'enabled', 'has_expiration', 'no_expiration', 'expired'.
+	 * @return int                  User count.
 	 */
 	public static function get_count( $filter = '' ) {
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name  = NBUF_Database::get_table_name( 'user_data' );
 		$users_table = $wpdb->prefix . 'users';
 
 		$where = '';
@@ -358,19 +392,22 @@ class NBUF_User_Data {
 				break;
 			case 'expired':
 				$current_time = current_time( 'mysql' );
-				$where = $wpdb->prepare(
+				$where        = $wpdb->prepare(
 					"AND d.expires_at IS NOT NULL AND d.expires_at != '0000-00-00 00:00:00' AND d.expires_at <= %s",
 					$current_time
 				);
 				break;
 		}
 
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Table names from WordPress/plugin constants. $where built from static switch cases above.
 		$count = $wpdb->get_var(
 			"SELECT COUNT(DISTINCT u.ID)
 			FROM $users_table u
 			LEFT JOIN $table_name d ON u.ID = d.user_id
 			WHERE 1=1 $where"
 		);
+     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return (int) $count;
 	}
@@ -378,9 +415,9 @@ class NBUF_User_Data {
 	/**
 	 * Get weak password flagged timestamp.
 	 *
-	 * @since    1.0.0
-	 * @param    int            $user_id    User ID
-	 * @return   string|null                Flagged datetime or null
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return string|null                Flagged datetime or null.
 	 */
 	public static function get_weak_password_flagged_at( $user_id ) {
 		$data = self::get( $user_id );
@@ -390,9 +427,9 @@ class NBUF_User_Data {
 	/**
 	 * Get password changed timestamp.
 	 *
-	 * @since    1.0.0
-	 * @param    int            $user_id    User ID
-	 * @return   string|null                Changed datetime or null
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return string|null                Changed datetime or null.
 	 */
 	public static function get_password_changed_at( $user_id ) {
 		$data = self::get( $user_id );
@@ -402,40 +439,50 @@ class NBUF_User_Data {
 	/**
 	 * Flag user password as weak.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
 	public static function flag_weak_password( $user_id ) {
-		return self::update( $user_id, array(
-			'weak_password_flagged_at' => current_time( 'mysql' ),
-		) );
+		return self::update(
+			$user_id,
+			array(
+				'weak_password_flagged_at' => current_time( 'mysql' ),
+			)
+		);
 	}
 
 	/**
 	 * Clear weak password flag.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
 	public static function clear_weak_password_flag( $user_id ) {
-		return self::update( $user_id, array(
-			'weak_password_flagged_at' => null,
-		) );
+		return self::update(
+			$user_id,
+			array(
+				'weak_password_flagged_at' => null,
+			)
+		);
 	}
 
 	/**
 	 * Set password changed timestamp.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id    User ID
-	 * @return   bool                True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool                True on success, false on failure.
 	 */
 	public static function set_password_changed( $user_id ) {
-		return self::update( $user_id, array(
-			'password_changed_at'      => current_time( 'mysql' ),
-			'weak_password_flagged_at' => null, // Clear flag when password changes
-		) );
+		return self::update(
+			$user_id,
+			array(
+				'password_changed_at'      => current_time( 'mysql' ),
+				'weak_password_flagged_at' => null, // Clear flag when password changes.
+			)
+		);
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

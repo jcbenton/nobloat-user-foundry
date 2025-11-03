@@ -1,0 +1,376 @@
+/* ==========================================================
+   NoBloat User Foundry - 2FA Setup Page Styling
+   ----------------------------------------------------------
+   Custom styling for Two-Factor Authentication setup page.
+
+   Class Strategy: Dual-class system for maximum flexibility
+   - Shared classes (.nbuf-button) for consistent base styles
+   - Page-specific classes (.nbuf-2fa-button) for customization
+   ========================================================== */
+
+/* ==========================================================
+   CSS CUSTOM PROPERTIES
+   ----------------------------------------------------------
+   Centralized design tokens for easy customization and
+   theme consistency. Users can override these in admin settings.
+   ========================================================== */
+
+:root {
+    /* Brand Colors */
+    --nbuf-primary: #0073aa;
+    --nbuf-primary-hover: #005177;
+    --nbuf-primary-focus: rgba(0, 115, 170, 0.2);
+
+    /* Status Colors */
+    --nbuf-success: #155724;
+    --nbuf-success-bg: #d4edda;
+    --nbuf-success-border: #c3e6cb;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
+    --nbuf-info: #0c5460;
+    --nbuf-info-bg: #d1ecf1;
+    --nbuf-info-border: #bee5eb;
+    --nbuf-warning: #856404;
+    --nbuf-warning-bg: #fff3cd;
+    --nbuf-warning-border: #ffc107;
+
+    /* Status Badge Colors */
+    --nbuf-active: #2e7d32;
+    --nbuf-active-bg: #e8f5e9;
+    --nbuf-inactive: #666;
+    --nbuf-inactive-bg: #f5f5f5;
+
+    /* Neutral Colors */
+    --nbuf-text-primary: #333;
+    --nbuf-text-secondary: #666;
+    --nbuf-border: #ddd;
+    --nbuf-background: #f9f9f9;
+    --nbuf-surface: #fff;
+
+    /* Spacing Scale (rem-based for accessibility) */
+    --nbuf-space-xs: 0.5rem;    /* 8px */
+    --nbuf-space-sm: 0.625rem;  /* 10px */
+    --nbuf-space-md: 0.75rem;   /* 12px */
+    --nbuf-space-lg: 0.938rem;  /* 15px */
+    --nbuf-space-xl: 1.25rem;   /* 20px */
+    --nbuf-space-2xl: 1.563rem; /* 25px */
+    --nbuf-space-3xl: 1.875rem; /* 30px */
+    --nbuf-space-4xl: 2.5rem;   /* 40px */
+
+    /* Typography */
+    --nbuf-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --nbuf-font-size-sm: 0.875rem; /* 14px */
+    --nbuf-font-size-base: 1rem;   /* 16px */
+    --nbuf-font-size-lg: 1.25rem;  /* 20px */
+
+    /* Border Radius */
+    --nbuf-radius-sm: 4px;
+    --nbuf-radius-md: 8px;
+
+    /* Shadows */
+    --nbuf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --nbuf-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --nbuf-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --nbuf-shadow-focus: 0 0 0 3px var(--nbuf-primary-focus);
+
+    /* Transitions */
+    --nbuf-transition-fast: 150ms ease-in-out;
+    --nbuf-transition-base: 200ms ease-in-out;
+}
+
+/* ==========================================================
+   PAGE LAYOUT
+   ========================================================== */
+
+.nbuf-2fa-setup-page {
+    max-width: 900px;
+    margin: var(--nbuf-space-4xl) auto;
+    padding: var(--nbuf-space-xl);
+    font-family: var(--nbuf-font-family);
+}
+
+/* ==========================================================
+   OPTIONS GRID
+   ========================================================== */
+
+.nbuf-2fa-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--nbuf-space-xl);
+    margin-top: var(--nbuf-space-3xl);
+}
+
+.nbuf-2fa-option-card {
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-2xl);
+    box-shadow: var(--nbuf-shadow-md);
+    /* Specific transitions for better performance */
+    transition: box-shadow var(--nbuf-transition-base),
+                border-color var(--nbuf-transition-base),
+                transform var(--nbuf-transition-fast);
+}
+
+.nbuf-2fa-option-card:hover {
+    box-shadow: var(--nbuf-shadow-hover);
+    border-color: var(--nbuf-primary);
+    transform: translateY(-2px);
+}
+
+.nbuf-2fa-option-card h3 {
+    margin-top: 0;
+    margin-bottom: var(--nbuf-space-lg);
+    color: var(--nbuf-text-primary);
+    font-size: var(--nbuf-font-size-lg);
+    font-weight: 600;
+}
+
+.nbuf-2fa-option-card p {
+    color: var(--nbuf-text-secondary);
+    font-size: var(--nbuf-font-size-sm);
+    line-height: 1.6;
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+/* ==========================================================
+   STATUS INDICATORS
+   ========================================================== */
+
+.nbuf-status-active {
+    color: var(--nbuf-active);
+    background: var(--nbuf-active-bg);
+    padding: var(--nbuf-space-xs) var(--nbuf-space-md);
+    border-radius: var(--nbuf-radius-sm);
+    font-weight: 600;
+    font-size: var(--nbuf-font-size-sm);
+    display: inline-block;
+    margin: var(--nbuf-space-lg) 0;
+    border: 1px solid var(--nbuf-success-border);
+}
+
+.nbuf-status-inactive {
+    color: var(--nbuf-inactive);
+    background: var(--nbuf-inactive-bg);
+    padding: var(--nbuf-space-xs) var(--nbuf-space-md);
+    border-radius: var(--nbuf-radius-sm);
+    font-weight: 600;
+    font-size: var(--nbuf-font-size-sm);
+    display: inline-block;
+    margin: var(--nbuf-space-lg) 0;
+    border: 1px solid var(--nbuf-border);
+}
+
+/* ==========================================================
+   BUTTONS
+   ========================================================== */
+
+/* Shared button base styles */
+.nbuf-button {
+    padding: var(--nbuf-space-sm) var(--nbuf-space-xl);
+    border: none;
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+    /* Specific transition properties for better performance */
+    transition: background-color var(--nbuf-transition-base),
+                transform var(--nbuf-transition-fast);
+}
+
+/* Shared primary button color */
+.nbuf-button-primary {
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+}
+
+.nbuf-button-primary:hover {
+    background: var(--nbuf-primary-hover);
+}
+
+/* Shared secondary button color (danger/destructive actions) */
+.nbuf-button-secondary {
+    background: #d63638;
+    color: var(--nbuf-surface);
+}
+
+.nbuf-button-secondary:hover {
+    background: #b32d2e;
+}
+
+/* Subtle press effect for tactile feedback */
+.nbuf-button:active {
+    transform: translateY(1px);
+}
+
+/* Enhanced focus state for accessibility */
+.nbuf-button:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    box-shadow: var(--nbuf-shadow-focus);
+}
+
+/* Page-specific button override target */
+.nbuf-2fa-button {
+    /* Override styles here for 2FA buttons only */
+    width: 100%;
+    margin-top: var(--nbuf-space-sm);
+}
+
+/* ==========================================================
+   MESSAGES
+   ========================================================== */
+
+/* Shared message base */
+.nbuf-message {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-xl);
+    font-size: var(--nbuf-font-size-sm);
+    line-height: 1.5;
+}
+
+/* Shared message types */
+.nbuf-message-success {
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
+}
+
+.nbuf-message-error {
+    background: var(--nbuf-error-bg);
+    color: var(--nbuf-error);
+    border: 1px solid var(--nbuf-error-border);
+}
+
+.nbuf-message-info {
+    background: var(--nbuf-info-bg);
+    color: var(--nbuf-info);
+    border: 1px solid var(--nbuf-info-border);
+}
+
+/* Page-specific message override targets */
+.nbuf-2fa-message {
+    /* Override styles here for 2FA messages only */
+}
+
+.nbuf-2fa-error {
+    /* Override styles here for 2FA error messages only */
+}
+
+.nbuf-2fa-success {
+    /* Override styles here for 2FA success messages only */
+}
+
+/* ==========================================================
+   QR CODE SECTION
+   ========================================================== */
+
+.nbuf-2fa-qr-code {
+    text-align: center;
+    margin: var(--nbuf-space-xl) 0;
+    padding: var(--nbuf-space-xl);
+    background: var(--nbuf-background);
+    border-radius: var(--nbuf-radius-md);
+}
+
+.nbuf-2fa-qr-code img {
+    max-width: 250px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    padding: var(--nbuf-space-sm);
+    background: var(--nbuf-surface);
+}
+
+.nbuf-2fa-secret {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: var(--nbuf-font-size-base);
+    background: var(--nbuf-surface);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    display: inline-block;
+    margin: var(--nbuf-space-sm) 0;
+    letter-spacing: 2px;
+    user-select: all; /* Allow easy selection for copy */
+}
+
+/* ==========================================================
+   BACKUP CODES
+   ========================================================== */
+
+.nbuf-2fa-backup-codes {
+    background: var(--nbuf-warning-bg);
+    border: 1px solid var(--nbuf-warning-border);
+    border-radius: var(--nbuf-radius-sm);
+    padding: var(--nbuf-space-xl);
+    margin: var(--nbuf-space-xl) 0;
+}
+
+.nbuf-2fa-backup-codes h4 {
+    margin-top: 0;
+    margin-bottom: var(--nbuf-space-lg);
+    color: var(--nbuf-warning);
+    font-weight: 600;
+}
+
+.nbuf-backup-code-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--nbuf-space-sm);
+    margin: var(--nbuf-space-lg) 0;
+}
+
+.nbuf-backup-code {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: var(--nbuf-font-size-sm);
+    background: var(--nbuf-surface);
+    padding: var(--nbuf-space-xs) var(--nbuf-space-md);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    text-align: center;
+    user-select: all; /* Allow easy selection for copy */
+}
+
+/* ==========================================================
+   RESPONSIVE DESIGN
+   ========================================================== */
+
+@media (max-width: 768px) {
+    .nbuf-2fa-setup-page {
+        padding: var(--nbuf-space-sm);
+        margin: var(--nbuf-space-xl) auto;
+    }
+
+    .nbuf-2fa-options {
+        grid-template-columns: 1fr;
+        gap: var(--nbuf-space-lg);
+    }
+
+    .nbuf-2fa-option-card {
+        padding: var(--nbuf-space-xl);
+    }
+
+    /* Prevent hover transform on touch devices */
+    .nbuf-2fa-option-card:hover {
+        transform: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .nbuf-backup-code-list {
+        grid-template-columns: 1fr;
+    }
+
+    .nbuf-2fa-qr-code img {
+        max-width: 200px;
+    }
+}

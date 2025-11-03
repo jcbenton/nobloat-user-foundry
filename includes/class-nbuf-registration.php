@@ -14,14 +14,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Registration
+ *
+ * Handles user registration logic and validation.
+ */
 class NBUF_Registration {
+
 
 	/**
 	 * Generate username based on settings.
 	 *
-	 * @param string $email      User email address
-	 * @param string $username   User-provided username (if applicable)
-	 * @return string            Generated or validated username
+	 * @param  string $email    User email address.
+	 * @param  string $username User-provided username (if applicable).
+	 * @return string            Generated or validated username.
 	 */
 	public static function generate_username( $email, $username = '' ) {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
@@ -46,8 +52,8 @@ class NBUF_Registration {
 
 			case 'auto_random':
 			default:
-				/* Generate random username */
-				$base = 'user_' . wp_generate_password( 8, false, false );
+				/* SECURITY: Generate cryptographically secure random username */
+				$base = 'user_' . bin2hex( random_bytes( 4 ) );
 				return self::ensure_unique_username( $base );
 		}
 	}
@@ -55,8 +61,8 @@ class NBUF_Registration {
 	/**
 	 * Ensure username is unique by appending numbers if needed.
 	 *
-	 * @param string $base Base username
-	 * @return string      Unique username
+	 * @param  string $base Base username.
+	 * @return string      Unique username.
 	 */
 	private static function ensure_unique_username( $base ) {
 		$username = $base;
@@ -65,7 +71,7 @@ class NBUF_Registration {
 		/* Keep incrementing until we find a unique username */
 		while ( username_exists( $username ) ) {
 			$username = $base . $counter;
-			$counter++;
+			++$counter;
 		}
 
 		return $username;
@@ -74,8 +80,8 @@ class NBUF_Registration {
 	/**
 	 * Validate registration fields based on settings.
 	 *
-	 * @param array $data Posted form data
-	 * @return WP_Error|true  WP_Error on failure, true on success
+	 * @param  array $data Posted form data.
+	 * @return WP_Error|true  WP_Error on failure, true on success.
 	 */
 	public static function validate_registration_data( $data ) {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
@@ -106,8 +112,18 @@ class NBUF_Registration {
 
 		/* Validate required fields */
 		$fields = array(
-			'first_name', 'last_name', 'phone', 'company', 'job_title',
-			'address', 'city', 'state', 'postal_code', 'country', 'bio', 'website'
+			'first_name',
+			'last_name',
+			'phone',
+			'company',
+			'job_title',
+			'address',
+			'city',
+			'state',
+			'postal_code',
+			'country',
+			'bio',
+			'website',
 		);
 
 		foreach ( $fields as $field ) {
@@ -138,8 +154,8 @@ class NBUF_Registration {
 	/**
 	 * Register new user and save profile data.
 	 *
-	 * @param array $data Registration form data
-	 * @return int|WP_Error  User ID on success, WP_Error on failure
+	 * @param  array $data Registration form data.
+	 * @return int|WP_Error  User ID on success, WP_Error on failure.
 	 */
 	public static function register_user( $data ) {
 		/* Validate data first */
@@ -178,11 +194,20 @@ class NBUF_Registration {
 		}
 
 		/* Save profile data to custom table */
-		$profile_data = array();
+		$profile_data   = array();
 		$profile_fields = array(
-			'phone', 'company', 'job_title', 'address',
-			'address_line1', 'address_line2', 'city', 'state',
-			'postal_code', 'country', 'bio', 'website'
+			'phone',
+			'company',
+			'job_title',
+			'address',
+			'address_line1',
+			'address_line2',
+			'city',
+			'state',
+			'postal_code',
+			'country',
+			'bio',
+			'website',
 		);
 
 		foreach ( $profile_fields as $field ) {
@@ -214,7 +239,7 @@ class NBUF_Registration {
 	/**
 	 * Get enabled registration fields based on settings.
 	 *
-	 * @return array Array of enabled fields with their settings
+	 * @return array Array of enabled fields with their settings.
 	 */
 	public static function get_enabled_fields() {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
@@ -252,11 +277,9 @@ class NBUF_Registration {
 					if ( in_array( $field, array( 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country' ), true ) ) {
 						continue;
 					}
-				} else {
+				} elseif ( 'address' === $field ) {
 					/* Skip single address field in full mode */
-					if ( 'address' === $field ) {
-						continue;
-					}
+					continue;
 				}
 
 				$enabled_fields[ $field ] = array(
@@ -272,7 +295,7 @@ class NBUF_Registration {
 	/**
 	 * Check if username field should be shown.
 	 *
-	 * @return bool True if username field should be shown
+	 * @return bool True if username field should be shown.
 	 */
 	public static function should_show_username_field() {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );

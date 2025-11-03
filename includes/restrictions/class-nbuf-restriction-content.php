@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restriction_Content
+ *
+ * Handles post/page access restrictions.
+ */
 class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
+
 
 	/**
 	 * Initialize content restrictions
@@ -36,8 +42,8 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Filter post/page content based on restrictions
 	 *
-	 * @param string $content Post content
-	 * @return string Filtered content
+	 * @param  string $content Post content.
+	 * @return string Filtered content.
 	 */
 	public static function filter_content( $content ) {
 		/* Only filter singular posts/pages */
@@ -74,8 +80,8 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 			case 'message':
 				/* Show custom message or default */
 				$message = ! empty( $restriction['custom_message'] )
-					? $restriction['custom_message']
-					: __( 'This content is restricted. Please log in to view.', 'nobloat-user-foundry' );
+				? $restriction['custom_message']
+				: __( 'This content is restricted. Please log in to view.', 'nobloat-user-foundry' );
 
 				/* Log access denial */
 				if ( class_exists( 'NBUF_Audit_Log' ) ) {
@@ -84,7 +90,7 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 						'restrictions',
 						'access_denied_message',
 						sprintf(
-							/* translators: %s: Post title */
+						/* translators: %s: Post title */
 							__( 'Access denied to "%s" - message shown', 'nobloat-user-foundry' ),
 							$post->post_title
 						),
@@ -101,7 +107,9 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 
 			case 'redirect':
 			case '404':
-				/* These are handled in template_redirect hook */
+				/*
+				* These are handled in template_redirect hook
+				*/
 				/* But if we get here, show a message as fallback */
 				return '<div class="nbuf-restricted-content">' . wpautop( esc_html__( 'This content is restricted.', 'nobloat-user-foundry' ) ) . '</div>';
 
@@ -149,8 +157,8 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 			case 'redirect':
 				/* Get redirect URL */
 				$url = ! empty( $restriction['redirect_url'] )
-					? esc_url( $restriction['redirect_url'] )
-					: wp_login_url( get_permalink( $post->ID ) );
+				? esc_url( $restriction['redirect_url'] )
+				: wp_login_url( get_permalink( $post->ID ) );
 
 				/* Log access denial */
 				if ( class_exists( 'NBUF_Audit_Log' ) ) {
@@ -159,7 +167,7 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 						'restrictions',
 						'access_denied_redirect',
 						sprintf(
-							/* translators: 1: Post title, 2: Redirect URL */
+						/* translators: 1: Post title, 2: Redirect URL */
 							__( 'Access denied to "%1$s" - redirected to %2$s', 'nobloat-user-foundry' ),
 							$post->post_title,
 							$url
@@ -185,7 +193,7 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 						'restrictions',
 						'access_denied_404',
 						sprintf(
-							/* translators: %s: Post title */
+						/* translators: %s: Post title */
 							__( 'Access denied to "%s" - 404 shown', 'nobloat-user-foundry' ),
 							$post->post_title
 						),
@@ -212,7 +220,7 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Exclude restricted posts from queries (optional feature)
 	 *
-	 * @param WP_Query $query WordPress query object
+	 * @param WP_Query $query WordPress query object.
 	 */
 	public static function exclude_from_queries( $query ) {
 		/* Skip for admin, singular, and non-main queries */
@@ -223,7 +231,7 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 		/* Get post type being queried */
 		$post_type = $query->get( 'post_type' );
 		if ( empty( $post_type ) ) {
-			$post_type = 'post'; // Default
+			$post_type = 'post'; // Default.
 		}
 
 		/* Get excluded post IDs */
@@ -243,13 +251,13 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Get list of post IDs to exclude from queries
 	 *
-	 * @param string $post_type Post type to check
-	 * @return array Array of post IDs to exclude
+	 * @param  string $post_type Post type to check.
+	 * @return array Array of post IDs to exclude.
 	 */
 	private static function get_excluded_post_ids( $post_type ) {
 		/* Try to get from cache */
 		$cache_key = 'nbuf_excluded_posts_' . $post_type . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' );
-		$cached = wp_cache_get( $cache_key, 'nbuf_restrictions' );
+		$cached    = wp_cache_get( $cache_key, 'nbuf_restrictions' );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -258,10 +266,13 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		/* Get all restrictions for this post type */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/*
+		* Get all restrictions for this post type
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$restrictions = $wpdb->get_results(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT content_id, visibility, allowed_roles FROM {$table} WHERE content_type = %s",
 				$post_type
 			)

@@ -11,16 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* ==========================================================
-   HANDLE FORM SUBMISSION
-   ========================================================== */
+/**
+ * Handle expiration settings form submission
+ */
 if ( isset( $_POST['nbuf_save_expiration'] ) && check_admin_referer( 'nbuf_expiration_save', 'nbuf_expiration_nonce' ) ) {
 
 	/* Get and sanitize inputs */
-	$enable_expiration        = isset( $_POST['enable_expiration'] ) ? 1 : 0;
-	$warning_days             = isset( $_POST['expiration_warning_days'] ) ? absint( wp_unslash( $_POST['expiration_warning_days'] ) ) : 7;
-	$warning_html             = isset( $_POST['expiration_warning_html'] ) ? wp_kses_post( wp_unslash( $_POST['expiration_warning_html'] ) ) : '';
-	$warning_text             = isset( $_POST['expiration_warning_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['expiration_warning_text'] ) ) : '';
+	$enable_expiration = isset( $_POST['enable_expiration'] ) ? 1 : 0;
+	$warning_days      = isset( $_POST['expiration_warning_days'] ) ? absint( wp_unslash( $_POST['expiration_warning_days'] ) ) : 7;
+	$warning_html      = isset( $_POST['expiration_warning_html'] ) ? wp_kses_post( wp_unslash( $_POST['expiration_warning_html'] ) ) : '';
+	$warning_text      = isset( $_POST['expiration_warning_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['expiration_warning_text'] ) ) : '';
 
 	/* Save options */
 	NBUF_Options::update( 'nbuf_enable_expiration', $enable_expiration, true, 'settings' );
@@ -31,24 +31,26 @@ if ( isset( $_POST['nbuf_save_expiration'] ) && check_admin_referer( 'nbuf_expir
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Expiration settings saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
-/* ==========================================================
-   LOAD CURRENT VALUES
-   ========================================================== */
-$enable_expiration        = NBUF_Options::get('nbuf_enable_expiration', false );
-$warning_days             = NBUF_Options::get('nbuf_expiration_warning_days', 7 );
-$warning_html             = NBUF_Options::get('nbuf_expiration_warning_html', '' );
-$warning_text             = NBUF_Options::get('nbuf_expiration_warning_text', '' );
+/**
+ * Load current expiration settings values
+ */
+$enable_expiration = NBUF_Options::get( 'nbuf_enable_expiration', false );
+$warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
+$warning_html      = NBUF_Options::get( 'nbuf_expiration_warning_html', '' );
+$warning_text      = NBUF_Options::get( 'nbuf_expiration_warning_text', '' );
 
 /* Load from defaults if empty */
 if ( empty( $warning_html ) ) {
 	$default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.html';
 	if ( file_exists( $default_path ) ) {
+     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$warning_html = file_get_contents( $default_path );
 	}
 }
 if ( empty( $warning_text ) ) {
 	$default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.txt';
 	if ( file_exists( $default_path ) ) {
+     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$warning_text = file_get_contents( $default_path );
 	}
 }
@@ -104,7 +106,7 @@ if ( empty( $warning_text ) ) {
 		<h3><?php esc_html_e( 'HTML Email Template', 'nobloat-user-foundry' ); ?></h3>
 		<p class="description" style="margin-bottom:10px;">
 			<?php
-			echo sprintf(
+			printf(
 				/* translators: %s: Available placeholders */
 				esc_html__( 'Available placeholders: %s', 'nobloat-user-foundry' ),
 				'<code>{site_name}</code>, <code>{display_name}</code>, <code>{username}</code>, <code>{expires_date}</code>, <code>{site_url}</code>'
@@ -116,7 +118,7 @@ if ( empty( $warning_text ) ) {
 		<h3 style="margin-top:30px;"><?php esc_html_e( 'Plain Text Email Template', 'nobloat-user-foundry' ); ?></h3>
 		<p class="description" style="margin-bottom:10px;">
 			<?php
-			echo sprintf(
+			printf(
 				/* translators: %s: Available placeholders */
 				esc_html__( 'Available placeholders: %s', 'nobloat-user-foundry' ),
 				'<code>{site_name}</code>, <code>{display_name}</code>, <code>{username}</code>, <code>{expires_date}</code>, <code>{site_url}</code>'
@@ -133,8 +135,4 @@ if ( empty( $warning_text ) ) {
 	</form>
 </div>
 
-<style>
-    .form-table th {
-        width: 200px;
-    }
-</style>
+

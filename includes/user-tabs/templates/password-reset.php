@@ -12,55 +12,55 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$verification_html  = NBUF_Options::get('nbuf_email_template_html', '' );
-$verification_text  = NBUF_Options::get('nbuf_email_template_text', '' );
-$welcome_html       = NBUF_Options::get('nbuf_welcome_email_html', '' );
-$welcome_text       = NBUF_Options::get('nbuf_welcome_email_text', '' );
-$login_form         = NBUF_Options::get('nbuf_login_form_template', '' );
-$registration_form  = NBUF_Options::get('nbuf_registration_form_template', '' );
-$account_page       = NBUF_Options::get('nbuf_account_page_template', '' );
+$verification_html = NBUF_Options::get( 'nbuf_email_template_html', '' );
+$verification_text = NBUF_Options::get( 'nbuf_email_template_text', '' );
+$welcome_html      = NBUF_Options::get( 'nbuf_welcome_email_html', '' );
+$welcome_text      = NBUF_Options::get( 'nbuf_welcome_email_text', '' );
+$login_form        = NBUF_Options::get( 'nbuf_login_form_template', '' );
+$registration_form = NBUF_Options::get( 'nbuf_registration_form_template', '' );
+$account_page      = NBUF_Options::get( 'nbuf_account_page_template', '' );
 
 /* If empty, load from default templates */
 if ( empty( $verification_html ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'email-verification.html';
-	if ( file_exists( $path ) ) {
-		$verification_html = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'email-verification.html';
+	if ( file_exists( $template_path ) ) {
+		$verification_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $verification_text ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'email-verification.txt';
-	if ( file_exists( $path ) ) {
-		$verification_text = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'email-verification.txt';
+	if ( file_exists( $template_path ) ) {
+		$verification_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $welcome_html ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'welcome-email.html';
-	if ( file_exists( $path ) ) {
-		$welcome_html = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'welcome-email.html';
+	if ( file_exists( $template_path ) ) {
+		$welcome_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $welcome_text ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'welcome-email.txt';
-	if ( file_exists( $path ) ) {
-		$welcome_text = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'welcome-email.txt';
+	if ( file_exists( $template_path ) ) {
+		$welcome_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $login_form ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'login-form.html';
-	if ( file_exists( $path ) ) {
-		$login_form = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'login-form.html';
+	if ( file_exists( $template_path ) ) {
+		$login_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $registration_form ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'registration-form.html';
-	if ( file_exists( $path ) ) {
-		$registration_form = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'registration-form.html';
+	if ( file_exists( $template_path ) ) {
+		$registration_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 if ( empty( $account_page ) ) {
-	$path = NBUF_TEMPLATES_DIR . 'account-page.html';
-	if ( file_exists( $path ) ) {
-		$account_page = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$template_path = NBUF_TEMPLATES_DIR . 'account-page.html';
+	if ( file_exists( $template_path ) ) {
+		$account_page = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -304,80 +304,7 @@ if ( empty( $account_page ) ) {
 	</form>
 </div>
 
-<style>
-/* Accordion Styles */
-.nbuf-accordion {
-    margin-bottom: 1.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    overflow: hidden;
-}
 
-.nbuf-accordion-header {
-    width: 100%;
-    padding: 1rem 1.5rem;
-    background: #f7f7f7;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 15px;
-    font-weight: 600;
-    transition: background 0.2s;
-}
-
-.nbuf-accordion-header:hover {
-    background: #f0f0f0;
-}
-
-.nbuf-accordion-header:focus {
-    outline: 2px solid #2271b1;
-    outline-offset: -2px;
-}
-
-.nbuf-accordion-icon {
-    transition: transform 0.3s;
-    font-size: 12px;
-}
-
-.nbuf-accordion.active .nbuf-accordion-icon {
-    transform: rotate(-180deg);
-}
-
-.nbuf-accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease-out;
-    background: #fff;
-}
-
-.nbuf-accordion.active .nbuf-accordion-content {
-    max-height: 5000px;
-    transition: max-height 0.5s ease-in;
-}
-
-.nbuf-template-section {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.nbuf-template-section:last-child {
-    border-bottom: none;
-}
-
-.nbuf-template-section h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-}
-
-.nbuf-template-editor {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-}
-</style>
 
 <script>
 document.addEventListener( 'DOMContentLoaded', function() {

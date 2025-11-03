@@ -13,7 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Account_Merger
+ *
+ * Handles merging of multiple user accounts into one.
+ */
 class NBUF_Account_Merger {
+
 
 	/**
 	 * Initialize hooks
@@ -39,7 +45,7 @@ class NBUF_Account_Merger {
 			wp_send_json_error( array( 'message' => __( 'At least 2 accounts required', 'nobloat-user-foundry' ) ) );
 		}
 
-		$accounts = array();
+		$accounts  = array();
 		$conflicts = array();
 
 		/* Load account data */
@@ -63,16 +69,18 @@ class NBUF_Account_Merger {
 		/* Detect profile field conflicts */
 		$conflicts = self::detect_conflicts( $account_ids );
 
-		wp_send_json_success( array(
-			'accounts'  => $accounts,
-			'conflicts' => $conflicts,
-		) );
+		wp_send_json_success(
+			array(
+				'accounts'  => $accounts,
+				'conflicts' => $conflicts,
+			)
+		);
 	}
 
 	/**
 	 * Detect conflicts in profile fields across multiple accounts
 	 *
-	 * @param array $account_ids Array of user IDs.
+	 * @param  array $account_ids Array of user IDs.
 	 * @return array Array of conflicts.
 	 */
 	private static function detect_conflicts( $account_ids ) {
@@ -80,27 +88,27 @@ class NBUF_Account_Merger {
 		$conflicts = array();
 
 		$profile_fields = array(
-			'phone'         => __( 'Phone Number', 'nobloat-user-foundry' ),
-			'mobile_phone'  => __( 'Mobile Phone', 'nobloat-user-foundry' ),
-			'work_phone'    => __( 'Work Phone', 'nobloat-user-foundry' ),
-			'address'       => __( 'Address', 'nobloat-user-foundry' ),
-			'city'          => __( 'City', 'nobloat-user-foundry' ),
-			'state'         => __( 'State', 'nobloat-user-foundry' ),
-			'postal_code'   => __( 'Postal Code', 'nobloat-user-foundry' ),
-			'country'       => __( 'Country', 'nobloat-user-foundry' ),
-			'company'       => __( 'Company', 'nobloat-user-foundry' ),
-			'job_title'     => __( 'Job Title', 'nobloat-user-foundry' ),
+			'phone'        => __( 'Phone Number', 'nobloat-user-foundry' ),
+			'mobile_phone' => __( 'Mobile Phone', 'nobloat-user-foundry' ),
+			'work_phone'   => __( 'Work Phone', 'nobloat-user-foundry' ),
+			'address'      => __( 'Address', 'nobloat-user-foundry' ),
+			'city'         => __( 'City', 'nobloat-user-foundry' ),
+			'state'        => __( 'State', 'nobloat-user-foundry' ),
+			'postal_code'  => __( 'Postal Code', 'nobloat-user-foundry' ),
+			'country'      => __( 'Country', 'nobloat-user-foundry' ),
+			'company'      => __( 'Company', 'nobloat-user-foundry' ),
+			'job_title'    => __( 'Job Title', 'nobloat-user-foundry' ),
 		);
 
 		foreach ( $profile_fields as $field => $label ) {
-			$values = array();
+			$values        = array();
 			$unique_values = array();
 
 			foreach ( $account_ids as $user_id ) {
 				$value = NBUF_User_Data::get_profile_field( $user_id, $field );
 				if ( ! empty( $value ) ) {
 					$values[ $user_id ] = $value;
-					$unique_values[] = $value;
+					$unique_values[]    = $value;
 				}
 			}
 
@@ -121,15 +129,18 @@ class NBUF_Account_Merger {
 	/**
 	 * Get comment count for a user
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return int Comment count.
 	 */
 	private static function get_user_comment_count( $user_id ) {
 		global $wpdb;
-		return (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->comments} WHERE user_id = %d",
-			$user_id
-		) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->comments} WHERE user_id = %d",
+				$user_id
+			)
+		);
 	}
 
 	/**
@@ -147,13 +158,13 @@ class NBUF_Account_Merger {
 		}
 
 		/* Get merge parameters */
-		$account_ids = isset( $_POST['nbuf_merge_accounts'] ) ? array_map( 'intval', (array) $_POST['nbuf_merge_accounts'] ) : array();
-		$primary_id = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
-		$merge_posts = isset( $_POST['nbuf_merge_posts'] );
-		$merge_comments = isset( $_POST['nbuf_merge_comments'] );
-		$merge_meta = isset( $_POST['nbuf_merge_meta'] );
+		$account_ids      = isset( $_POST['nbuf_merge_accounts'] ) ? array_map( 'intval', (array) $_POST['nbuf_merge_accounts'] ) : array();
+		$primary_id       = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
+		$merge_posts      = isset( $_POST['nbuf_merge_posts'] );
+		$merge_comments   = isset( $_POST['nbuf_merge_comments'] );
+		$merge_meta       = isset( $_POST['nbuf_merge_meta'] );
 		$secondary_action = isset( $_POST['nbuf_secondary_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_secondary_action'] ) ) : 'delete';
-		$notify_user = isset( $_POST['nbuf_notify_user'] );
+		$notify_user      = isset( $_POST['nbuf_notify_user'] );
 
 		/* Validate */
 		if ( count( $account_ids ) < 2 || ! $primary_id || ! in_array( $primary_id, $account_ids, true ) ) {
@@ -161,33 +172,41 @@ class NBUF_Account_Merger {
 		}
 
 		/* Execute merge */
-		$result = self::execute_merge( array(
-			'primary_id'       => $primary_id,
-			'account_ids'      => $account_ids,
-			'merge_posts'      => $merge_posts,
-			'merge_comments'   => $merge_comments,
-			'merge_meta'       => $merge_meta,
-			'secondary_action' => $secondary_action,
-			'notify_user'      => $notify_user,
-		) );
+		$result = self::execute_merge(
+			array(
+				'primary_id'       => $primary_id,
+				'account_ids'      => $account_ids,
+				'merge_posts'      => $merge_posts,
+				'merge_comments'   => $merge_comments,
+				'merge_meta'       => $merge_meta,
+				'secondary_action' => $secondary_action,
+				'notify_user'      => $notify_user,
+			)
+		);
 
 		/* Redirect with result */
 		if ( $result['success'] ) {
-			$redirect = add_query_arg( array(
-				'page'           => 'nobloat-foundry-users',
-				'tab'            => 'tools',
-				'subtab'         => 'merge-accounts',
-				'merge_success'  => 1,
-				'merged_count'   => count( $account_ids ) - 1,
-			), admin_url( 'admin.php' ) );
+			$redirect = add_query_arg(
+				array(
+					'page'          => 'nobloat-foundry-users',
+					'tab'           => 'tools',
+					'subtab'        => 'merge-accounts',
+					'merge_success' => 1,
+					'merged_count'  => count( $account_ids ) - 1,
+				),
+				admin_url( 'admin.php' )
+			);
 		} else {
-			$redirect = add_query_arg( array(
-				'page'          => 'nobloat-foundry-users',
-				'tab'           => 'tools',
-				'subtab'        => 'merge-accounts',
-				'merge_error'   => 1,
-				'error_message' => urlencode( $result['message'] ),
-			), admin_url( 'admin.php' ) );
+			$redirect = add_query_arg(
+				array(
+					'page'          => 'nobloat-foundry-users',
+					'tab'           => 'tools',
+					'subtab'        => 'merge-accounts',
+					'merge_error'   => 1,
+					'error_message' => rawurlencode( $result['message'] ),
+				),
+				admin_url( 'admin.php' )
+			);
 		}
 
 		wp_safe_redirect( $redirect );
@@ -197,7 +216,7 @@ class NBUF_Account_Merger {
 	/**
 	 * Execute account merge
 	 *
-	 * @param array $args Merge parameters.
+	 * @param  array $args Merge parameters.
 	 * @return array Result array with success status and message.
 	 */
 	public static function execute_merge( $args ) {
@@ -229,7 +248,7 @@ class NBUF_Account_Merger {
 				return array(
 					'success' => false,
 					'message' => sprintf(
-						/* translators: %d: User ID */
+					/* translators: %d: User ID */
 						__( 'Invalid user ID: %d. User does not exist.', 'nobloat-user-foundry' ),
 						$user_id
 					),
@@ -247,7 +266,10 @@ class NBUF_Account_Merger {
 			);
 		}
 
-		/* Start transaction */
+		/*
+		 * Start transaction
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction management for atomic account merge operations.
 		$wpdb->query( 'START TRANSACTION' );
 
 		try {
@@ -271,10 +293,10 @@ class NBUF_Account_Merger {
 
 			/* Handle secondary accounts */
 			foreach ( $secondary_ids as $secondary_id ) {
-				if ( $args['secondary_action'] === 'delete' ) {
-					require_once ABSPATH . 'wp-admin/includes/user.php';
+				if ( 'delete' === $args['secondary_action'] ) {
+					include_once ABSPATH . 'wp-admin/includes/user.php';
 					wp_delete_user( $secondary_id, $args['primary_id'] );
-				} elseif ( $args['secondary_action'] === 'disable' ) {
+				} elseif ( 'disable' === $args['secondary_action'] ) {
 					NBUF_User_Data::disable_user( $secondary_id, 'merged' );
 				}
 			}
@@ -285,7 +307,7 @@ class NBUF_Account_Merger {
 				'account_merge',
 				'success',
 				sprintf(
-					/* translators: %d: Number of accounts merged */
+				/* translators: %d: Number of accounts merged */
 					__( 'Merged %d accounts into this account', 'nobloat-user-foundry' ),
 					count( $secondary_ids )
 				),
@@ -295,7 +317,10 @@ class NBUF_Account_Merger {
 				)
 			);
 
-			/* Commit transaction */
+			/*
+			 * Commit transaction
+			 */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit transaction for atomic account merge.
 			$wpdb->query( 'COMMIT' );
 
 			/* Send notification */
@@ -306,14 +331,17 @@ class NBUF_Account_Merger {
 			return array(
 				'success' => true,
 				'message' => sprintf(
-					/* translators: %d: Number of accounts merged */
+				/* translators: %d: Number of accounts merged */
 					__( 'Successfully merged %d accounts', 'nobloat-user-foundry' ),
 					count( $secondary_ids )
 				),
 			);
 
 		} catch ( Exception $e ) {
-			/* Rollback on error */
+			/*
+			 * Rollback on error
+			 */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Rollback transaction on error.
 			$wpdb->query( 'ROLLBACK' );
 
 			return array(
@@ -330,7 +358,7 @@ class NBUF_Account_Merger {
 	 * @param array $secondary_ids Secondary user IDs.
 	 */
 	private static function consolidate_emails( $primary_id, $secondary_ids ) {
-		$primary_user = get_userdata( $primary_id );
+		$primary_user  = get_userdata( $primary_id );
 		$primary_email = $primary_user->user_email;
 
 		$secondary_emails = array();
@@ -366,6 +394,7 @@ class NBUF_Account_Merger {
 		global $wpdb;
 
 		foreach ( $secondary_ids as $secondary_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$wpdb->update(
 				$wpdb->posts,
 				array( 'post_author' => $primary_id ),
@@ -388,6 +417,7 @@ class NBUF_Account_Merger {
 		$primary_user = get_userdata( $primary_id );
 
 		foreach ( $secondary_ids as $secondary_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$wpdb->update(
 				$wpdb->comments,
 				array(
@@ -450,14 +480,15 @@ class NBUF_Account_Merger {
 		$primary_user = get_userdata( $primary_id );
 
 		$subject = sprintf(
-			/* translators: %s: Site name */
+		/* translators: %s: Site name */
 			__( '[%s] Your accounts have been merged', 'nobloat-user-foundry' ),
 			get_bloginfo( 'name' )
 		);
 
 		$message = sprintf(
-			/* translators: 1: Display name, 2: Site name, 3: Number of merged accounts, 4: Username, 5: Email, 6: Login URL */
-			__( 'Hello %1$s,
+		/* translators: 1: Display name, 2: Site name, 3: Number of merged accounts, 4: Username, 5: Email, 6: Login URL */
+			__(
+				'Hello %1$s,
 
 Your accounts on %2$s have been merged.
 
@@ -469,7 +500,9 @@ Email: %5$s
 
 You can log in here: %6$s
 
-If you did not request this merge or have questions, please contact the site administrator.', 'nobloat-user-foundry' ),
+If you did not request this merge or have questions, please contact the site administrator.',
+				'nobloat-user-foundry'
+			),
 			$primary_user->display_name,
 			get_bloginfo( 'name' ),
 			count( $secondary_ids ) + 1,
@@ -515,9 +548,10 @@ If you did not request this merge or have questions, please contact the site adm
 		);
 
 		foreach ( $critical_tables as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 			$engine = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
+					'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
 					$table
 				)
 			);
@@ -526,7 +560,7 @@ If you did not request this merge or have questions, please contact the site adm
 				return new WP_Error(
 					'transaction_not_supported',
 					sprintf(
-						/* translators: %s: Table name */
+					/* translators: %s: Table name */
 						__( 'Transaction support not available. Table %s does not use InnoDB storage engine. Account merging requires InnoDB for data integrity.', 'nobloat-user-foundry' ),
 						$table
 					)

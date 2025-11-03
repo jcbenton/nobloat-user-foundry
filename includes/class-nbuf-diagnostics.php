@@ -12,7 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/*
+ * Direct database access is architectural for diagnostics reporting.
+ * Diagnostics need to query custom tables and system information directly
+ * for accurate reporting. Caching is not applicable for diagnostic data.
+ */
+
+/**
+ * Diagnostics report generator
+ *
+ * @since 1.0.0
+ */
 class NBUF_Diagnostics {
+
 
 	/**
 	 * Initialize diagnostics export.
@@ -34,7 +48,7 @@ class NBUF_Diagnostics {
 		global $wpdb;
 
 		/* Gather all diagnostic data */
-		$report = array();
+		$report   = array();
 		$report[] = '===========================================';
 		$report[] = 'NOBLOAT USER FOUNDRY - DIAGNOSTIC REPORT';
 		$report[] = '===========================================';
@@ -56,7 +70,7 @@ class NBUF_Diagnostics {
 		$report[] = 'WordPress Version: ' . get_bloginfo( 'version' );
 		$report[] = 'PHP Version: ' . PHP_VERSION;
 		$report[] = 'Database Version: ' . $wpdb->get_var( 'SELECT VERSION()' );
-		$report[] = 'Server Software: ' . ( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown' );
+		$report[] = 'Server Software: ' . ( isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : 'Unknown' );
 		$report[] = 'PHP Memory Limit: ' . ini_get( 'memory_limit' );
 		$report[] = 'WP Memory Limit: ' . WP_MEMORY_LIMIT;
 		$report[] = 'WP Max Memory Limit: ' . WP_MAX_MEMORY_LIMIT;
@@ -83,16 +97,18 @@ class NBUF_Diagnostics {
 		foreach ( $tables as $key => $table_name ) {
 			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 			if ( $exists ) {
-				$count = $wpdb->get_var( "SELECT COUNT(*) FROM `$table_name`" );
-				$size  = $wpdb->get_var( $wpdb->prepare(
-					"SELECT ROUND((data_length + index_length) / 1024, 2)
+				$count       = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+				$size        = $wpdb->get_var(
+					$wpdb->prepare(
+						'SELECT ROUND((data_length + index_length) / 1024, 2)
 					FROM information_schema.TABLES
-					WHERE table_schema = %s AND table_name = %s",
-					DB_NAME,
-					$table_name
-				) );
+					WHERE table_schema = %s AND table_name = %s',
+						DB_NAME,
+						$table_name
+					)
+				);
 				$total_size += (float) $size;
-				$report[] = sprintf( '%-30s | Status: EXISTS | Rows: %s | Size: %s KB', $table_name, number_format( $count ), number_format( $size, 2 ) );
+				$report[]    = sprintf( '%-30s | Status: EXISTS | Rows: %s | Size: %s KB', $table_name, number_format( $count ), number_format( $size, 2 ) );
 			} else {
 				$report[] = sprintf( '%-30s | Status: MISSING', $table_name );
 			}
@@ -101,30 +117,30 @@ class NBUF_Diagnostics {
 		$report[] = '';
 
 		/* Zero Bloat Verification */
-		$report[] = '-------------------------------------------';
-		$report[] = 'ZERO BLOAT VERIFICATION';
-		$report[] = '-------------------------------------------';
+		$report[]          = '-------------------------------------------';
+		$report[]          = 'ZERO BLOAT VERIFICATION';
+		$report[]          = '-------------------------------------------';
 		$wp_options_bloat  = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'nbuf_%'" );
 		$wp_usermeta_bloat = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key LIKE 'nbuf_%'" );
-		$custom_options    = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['options']}" );
+		$custom_options    = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['options'] ) );
 
-		$report[] = 'wp_options bloat: ' . ( $wp_options_bloat == 0 ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_options_bloat . ' entries found (WARNING)' );
-		$report[] = 'wp_usermeta bloat: ' . ( $wp_usermeta_bloat == 0 ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
+		$report[] = 'wp_options bloat: ' . ( 0 === $wp_options_bloat ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_options_bloat . ' entries found (WARNING)' );
+		$report[] = 'wp_usermeta bloat: ' . ( 0 === $wp_usermeta_bloat ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
 		$report[] = 'Custom options table: ' . number_format( $custom_options ) . ' settings stored';
 		$report[] = '';
 
 		/* User Statistics */
-		$report[] = '-------------------------------------------';
-		$report[] = 'USER STATISTICS';
-		$report[] = '-------------------------------------------';
+		$report[]              = '-------------------------------------------';
+		$report[]              = 'USER STATISTICS';
+		$report[]              = '-------------------------------------------';
 		$total_users           = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
-		$verified_users        = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_data']} WHERE is_verified = 1" );
-		$unverified_users      = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_data']} WHERE is_verified = 0" );
-		$users_with_expiration = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_data']} WHERE expires_at IS NOT NULL" );
-		$expired_users         = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_data']} WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_disabled = 0" );
-		$users_with_2fa        = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_2fa']} WHERE enabled = 1" );
-		$total_notes           = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['user_notes']}" );
-		$total_audit_logs      = $wpdb->get_var( "SELECT COUNT(*) FROM {$tables['audit_log']}" );
+		$verified_users        = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 1', $tables['user_data'] ) );
+		$unverified_users      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 0', $tables['user_data'] ) );
+		$users_with_expiration = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL', $tables['user_data'] ) );
+		$expired_users         = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_disabled = 0', $tables['user_data'] ) );
+		$users_with_2fa        = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE enabled = 1', $tables['user_2fa'] ) );
+		$total_notes           = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['user_notes'] ) );
+		$total_audit_logs      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['audit_log'] ) );
 
 		$report[] = 'Total Users: ' . number_format( $total_users );
 		$report[] = 'Verified Users: ' . number_format( $verified_users );
@@ -137,13 +153,13 @@ class NBUF_Diagnostics {
 		$report[] = '';
 
 		/* Active Plugins */
-		$report[] = '-------------------------------------------';
-		$report[] = 'ACTIVE PLUGINS';
-		$report[] = '-------------------------------------------';
+		$report[]       = '-------------------------------------------';
+		$report[]       = 'ACTIVE PLUGINS';
+		$report[]       = '-------------------------------------------';
 		$active_plugins = get_option( 'active_plugins', array() );
 		foreach ( $active_plugins as $plugin ) {
 			$plugin_data = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin );
-			$report[] = $plugin_data['Name'] . ' (v' . $plugin_data['Version'] . ')';
+			$report[]    = $plugin_data['Name'] . ' (v' . $plugin_data['Version'] . ')';
 		}
 		$report[] = '';
 
@@ -166,6 +182,7 @@ class NBUF_Diagnostics {
 		exit;
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 /* Initialize */
 NBUF_Diagnostics::init();

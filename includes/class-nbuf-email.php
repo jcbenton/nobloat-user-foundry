@@ -13,16 +13,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Email
+ *
+ * Handles email sending functionality.
+ */
 class NBUF_Email {
+
 
 	/**
 	 * Send verification email.
 	 *
 	 * Builds and sends the verification email message.
 	 *
-	 * @param string       $user_email User email address.
-	 * @param string       $token      Verification token.
-	 * @param WP_User|null $user       Optional. User object to avoid redundant query.
+	 * @param  string       $user_email User email address.
+	 * @param  string       $token      Verification token.
+	 * @param  WP_User|null $user       Optional. User object to avoid redundant query.
 	 * @return bool True on success, false on failure.
 	 */
 	public static function send_verification_email( $user_email, $token, $user = null ) {
@@ -33,8 +39,8 @@ class NBUF_Email {
 
 		// Determine verification page path.
 		$relative_path = ! empty( $settings['verification_page'] )
-			? '/' . ltrim( $settings['verification_page'], '/' )
-			: '/nbuf-verify';
+		? '/' . ltrim( $settings['verification_page'], '/' )
+		: '/nbuf-verify';
 
 		// Construct verification URL.
 		$verification_url = add_query_arg( 'token', rawurlencode( $token ), home_url( $relative_path ) );
@@ -67,8 +73,8 @@ class NBUF_Email {
 
 		// Subject.
 		$subject = ! empty( $settings['email_subject'] )
-			? sanitize_text_field( $settings['email_subject'] )
-			: __( 'Verify your email address', 'nobloat-user-foundry' );
+		? sanitize_text_field( $settings['email_subject'] )
+		: __( 'Verify your email address', 'nobloat-user-foundry' );
 
 		// Set content type via filter instead of headers array.
 		$content_type_callback = function () use ( $mode ) {
@@ -83,16 +89,16 @@ class NBUF_Email {
 		remove_filter( 'wp_mail_content_type', $content_type_callback );
 
 		/*
-		 * CRITICAL: Always log email failures in production
-		 *
-		 * Silent email failures are a major user experience issue. Without logging,
-		 * users never receive verification emails and there's no debugging info.
-		 *
-		 * This logs to both error_log (for server admins) and audit log (for WP admins).
-		 */
+		* CRITICAL: Always log email failures in production
+		*
+		* Silent email failures are a major user experience issue. Without logging,
+		* users never receive verification emails and there's no debugging info.
+		*
+		* This logs to both error_log (for server admins) and audit log (for WP admins).
+		*/
 		if ( ! $sent ) {
 			/* ALWAYS log email failures, even in production */
-			error_log(
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical production logging for email failures.
 				sprintf(
 					'[NoBloat User Foundry] CRITICAL: Failed to send verification email to %s',
 					$user_email
@@ -119,15 +125,15 @@ class NBUF_Email {
 	 *
 	 * Fetches stored or fallback email template using Template Manager.
 	 *
-	 * @param string $type Template type (html or text).
+	 * @param  string $type Template type (html or text).
 	 * @return string Template content.
 	 */
 	private static function get_template_content( $type = 'html' ) {
 		$template_name = ( 'html' === $type )
-			? 'email-verification-html'
-			: 'email-verification-text';
+		? 'email-verification-html'
+		: 'email-verification-text';
 
-		// Use Template Manager for loading (uses custom table + caching)
+		// Use Template Manager for loading (uses custom table + caching).
 		return NBUF_Template_Manager::load_template( $template_name );
 	}
 }

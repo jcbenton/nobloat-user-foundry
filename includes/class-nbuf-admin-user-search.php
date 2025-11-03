@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Enhanced admin user search and filtering
+ *
+ * @since 1.0.0
+ */
 class NBUF_Admin_User_Search {
+
 
 	/**
 	 * Initialize admin user search enhancements
@@ -45,8 +51,8 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Add custom columns to users list table
 	 *
-	 * @param array $columns Existing columns
-	 * @return array Modified columns
+	 * @param  array $columns Existing columns.
+	 * @return array Modified columns.
 	 */
 	public static function add_custom_columns( $columns ) {
 		/* Insert custom columns after username */
@@ -56,11 +62,11 @@ class NBUF_Admin_User_Search {
 			$new_columns[ $key ] = $label;
 
 			/* Add custom columns after username */
-			if ( $key === 'username' ) {
+			if ( 'username' === $key ) {
 				$new_columns['nbuf_verification'] = __( 'Verified', 'nobloat-user-foundry' );
-				$new_columns['nbuf_expiration'] = __( 'Expiration', 'nobloat-user-foundry' );
-				$new_columns['nbuf_company'] = __( 'Company', 'nobloat-user-foundry' );
-				$new_columns['nbuf_location'] = __( 'Location', 'nobloat-user-foundry' );
+				$new_columns['nbuf_expiration']   = __( 'Expiration', 'nobloat-user-foundry' );
+				$new_columns['nbuf_company']      = __( 'Company', 'nobloat-user-foundry' );
+				$new_columns['nbuf_location']     = __( 'Location', 'nobloat-user-foundry' );
 			}
 		}
 
@@ -70,10 +76,10 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Render custom column content
 	 *
-	 * @param string $output      Custom column output
-	 * @param string $column_name Column name
-	 * @param int    $user_id     User ID
-	 * @return string Column content
+	 * @param  string $output      Custom column output.
+	 * @param  string $column_name Column name.
+	 * @param  int    $user_id     User ID.
+	 * @return string Column content.
 	 */
 	public static function render_custom_column( $output, $column_name, $user_id ) {
 		switch ( $column_name ) {
@@ -86,9 +92,9 @@ class NBUF_Admin_User_Search {
 						'</span>';
 				} else {
 					$output = '<span class="nbuf-status-badge nbuf-unverified" title="' . esc_attr__( 'Email not verified', 'nobloat-user-foundry' ) . '">' .
-						'<span class="dashicons dashicons-warning"></span> ' .
-						esc_html__( 'Unverified', 'nobloat-user-foundry' ) .
-						'</span>';
+					'<span class="dashicons dashicons-warning"></span> ' .
+					esc_html__( 'Unverified', 'nobloat-user-foundry' ) .
+					'</span>';
 				}
 				break;
 
@@ -98,21 +104,24 @@ class NBUF_Admin_User_Search {
 
 				if ( $is_expired ) {
 					$output = '<span class="nbuf-status-badge nbuf-expired" title="' . esc_attr__( 'Account expired', 'nobloat-user-foundry' ) . '">' .
-						'<span class="dashicons dashicons-dismiss"></span> ' .
-						esc_html__( 'Expired', 'nobloat-user-foundry' ) .
-						'</span>';
+					'<span class="dashicons dashicons-dismiss"></span> ' .
+					esc_html__( 'Expired', 'nobloat-user-foundry' ) .
+					'</span>';
 				} elseif ( $expires_at ) {
 					$days_until = floor( ( strtotime( $expires_at ) - time() ) / DAY_IN_SECONDS );
 
 					if ( $days_until <= 7 ) {
+						/* translators: %d: Number of days until expiration */
 						$output = '<span class="nbuf-status-badge nbuf-expiring-soon" title="' . esc_attr( sprintf( __( 'Expires in %d days', 'nobloat-user-foundry' ), $days_until ) ) . '">' .
-							'<span class="dashicons dashicons-clock"></span> ' .
-							esc_html( sprintf( _n( '%d day', '%d days', $days_until, 'nobloat-user-foundry' ), $days_until ) ) .
-							'</span>';
+						'<span class="dashicons dashicons-clock"></span> ' .
+						/* translators: %d: Number of days */
+						esc_html( sprintf( _n( '%d day', '%d days', $days_until, 'nobloat-user-foundry' ), $days_until ) ) .
+						'</span>';
 					} else {
-						$output = '<span class="nbuf-status-badge nbuf-active" title="' . esc_attr( sprintf( __( 'Expires: %s', 'nobloat-user-foundry' ), date_i18n( get_option( 'date_format' ), strtotime( $expires_at ) ) ) ) . '">' .
-							esc_html( date_i18n( 'M j, Y', strtotime( $expires_at ) ) ) .
-							'</span>';
+						/* translators: %s: Expiration date */
+						$output = '<span class="nbuf-status-badge nbuf-expiring-soon" title="' . esc_attr( sprintf( __( 'Expires: %s', 'nobloat-user-foundry' ), date_i18n( get_option( 'date_format' ), strtotime( $expires_at ) ) ) ) . '">' .
+						esc_html( date_i18n( 'M j, Y', strtotime( $expires_at ) ) ) .
+						'</span>';
 					}
 				} else {
 					$output = '<span class="nbuf-status-badge nbuf-no-expiration">' . esc_html__( 'Never', 'nobloat-user-foundry' ) . '</span>';
@@ -134,13 +143,15 @@ class NBUF_Admin_User_Search {
 			case 'nbuf_location':
 				$profile = NBUF_Profile_Data::get( $user_id );
 				if ( $profile ) {
-					$location_parts = array_filter( array(
-						$profile->city,
-						$profile->state,
-						$profile->country
-					) );
+					$location_parts = array_filter(
+						array(
+							$profile->city,
+							$profile->state,
+							$profile->country,
+						)
+					);
 					if ( ! empty( $location_parts ) ) {
-						$output = esc_html( implode( ', ', $location_parts ) );
+							$output = esc_html( implode( ', ', $location_parts ) );
 					} else {
 						$output = '<span class="nbuf-empty-field">—</span>';
 					}
@@ -156,14 +167,14 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Make custom columns sortable
 	 *
-	 * @param array $columns Sortable columns
-	 * @return array Modified columns
+	 * @param  array $columns Sortable columns.
+	 * @return array Modified columns.
 	 */
 	public static function make_columns_sortable( $columns ) {
 		$columns['nbuf_verification'] = 'nbuf_verification';
-		$columns['nbuf_expiration'] = 'nbuf_expiration';
-		$columns['nbuf_company'] = 'nbuf_company';
-		$columns['nbuf_location'] = 'nbuf_location';
+		$columns['nbuf_expiration']   = 'nbuf_expiration';
+		$columns['nbuf_company']      = 'nbuf_company';
+		$columns['nbuf_location']     = 'nbuf_location';
 		return $columns;
 	}
 
@@ -176,6 +187,8 @@ class NBUF_Admin_User_Search {
 		if ( 'users.php' !== $pagenow ) {
 			return;
 		}
+
+     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Filter display only, no data modification */
 
 		/* Verification status filter */
 		$verification_filter = isset( $_GET['nbuf_verification'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_verification'] ) ) : '';
@@ -211,12 +224,14 @@ class NBUF_Admin_User_Search {
 			<option value="not_in_directory" <?php selected( $directory_filter, 'not_in_directory' ); ?>><?php esc_html_e( 'Not In Directory', 'nobloat-user-foundry' ); ?></option>
 		</select>
 		<?php
+
+     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
 	}
 
 	/**
 	 * Filter users query based on selected filters
 	 *
-	 * @param WP_User_Query $query User query object
+	 * @param WP_User_Query $query User query object.
 	 */
 	public static function filter_users_query( $query ) {
 		global $pagenow, $wpdb;
@@ -225,9 +240,11 @@ class NBUF_Admin_User_Search {
 			return;
 		}
 
+     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Query filtering only, no data modification */
+
 		/* Get user_data and profile table names */
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
-		$profile_table = $wpdb->prefix . 'nbuf_user_profile';
+		$profile_table   = $wpdb->prefix . 'nbuf_user_profile';
 
 		/* Verification filter */
 		if ( isset( $_GET['nbuf_verification'] ) && ! empty( $_GET['nbuf_verification'] ) ) {
@@ -242,9 +259,9 @@ class NBUF_Admin_User_Search {
 			$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
 
 			if ( 'verified' === $verification ) {
-				$query->query_where .= " AND nbuf_ud.is_verified = 1 ";
+				$query->query_where .= ' AND nbuf_ud.is_verified = 1 ';
 			} elseif ( 'unverified' === $verification ) {
-				$query->query_where .= " AND (nbuf_ud.is_verified = 0 OR nbuf_ud.is_verified IS NULL) ";
+				$query->query_where .= ' AND (nbuf_ud.is_verified = 0 OR nbuf_ud.is_verified IS NULL) ';
 			}
 		}
 
@@ -253,24 +270,24 @@ class NBUF_Admin_User_Search {
 			$expiration = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
 
 			/* Add join if not already added */
-			if ( strpos( $query->query_from, 'nbuf_ud' ) === false ) {
+			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
 				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
 			}
 
-			$now = current_time( 'mysql' );
+			$now        = current_time( 'mysql' );
 			$seven_days = gmdate( 'Y-m-d H:i:s', strtotime( '+7 days' ) );
 
 			switch ( $expiration ) {
 				case 'expired':
-					$query->query_where .= $wpdb->prepare( " AND nbuf_ud.expires_at IS NOT NULL AND nbuf_ud.expires_at < %s ", $now );
+					$query->query_where .= $wpdb->prepare( ' AND nbuf_ud.expires_at IS NOT NULL AND nbuf_ud.expires_at < %s ', $now );
 					break;
 
 				case 'active':
-					$query->query_where .= $wpdb->prepare( " AND (nbuf_ud.expires_at IS NULL OR nbuf_ud.expires_at >= %s) ", $now );
+					$query->query_where .= $wpdb->prepare( ' AND (nbuf_ud.expires_at IS NULL OR nbuf_ud.expires_at >= %s) ', $now );
 					break;
 
 				case 'expiring_soon':
-					$query->query_where .= $wpdb->prepare( " AND nbuf_ud.expires_at BETWEEN %s AND %s ", $now, $seven_days );
+					$query->query_where .= $wpdb->prepare( ' AND nbuf_ud.expires_at BETWEEN %s AND %s ', $now, $seven_days );
 					break;
 
 				case 'no_expiration':
@@ -284,14 +301,14 @@ class NBUF_Admin_User_Search {
 			$directory = sanitize_text_field( wp_unslash( $_GET['nbuf_directory'] ) );
 
 			/* Add join if not already added */
-			if ( strpos( $query->query_from, 'nbuf_ud' ) === false ) {
+			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
 				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
 			}
 
 			if ( 'in_directory' === $directory ) {
-				$query->query_where .= " AND nbuf_ud.show_in_directory = 1 ";
+				$query->query_where .= ' AND nbuf_ud.show_in_directory = 1 ';
 			} elseif ( 'not_in_directory' === $directory ) {
-				$query->query_where .= " AND (nbuf_ud.show_in_directory = 0 OR nbuf_ud.show_in_directory IS NULL) ";
+				$query->query_where .= ' AND (nbuf_ud.show_in_directory = 0 OR nbuf_ud.show_in_directory IS NULL) ';
 			}
 		}
 
@@ -299,34 +316,38 @@ class NBUF_Admin_User_Search {
 		$orderby = $query->get( 'orderby' );
 
 		if ( 'nbuf_verification' === $orderby ) {
-			if ( strpos( $query->query_from, 'nbuf_ud' ) === false ) {
+			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
 				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
 			}
 			$query->query_orderby = 'ORDER BY nbuf_ud.is_verified ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
 		} elseif ( 'nbuf_expiration' === $orderby ) {
-			if ( strpos( $query->query_from, 'nbuf_ud' ) === false ) {
+			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
 				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
 			}
 			$query->query_orderby = 'ORDER BY nbuf_ud.expires_at ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
 		} elseif ( 'nbuf_company' === $orderby ) {
-			$query->query_from .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
+			$query->query_from   .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
 			$query->query_orderby = 'ORDER BY nbuf_up.company ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
 		} elseif ( 'nbuf_location' === $orderby ) {
-			$query->query_from .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
+			$query->query_from   .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
 			$query->query_orderby = 'ORDER BY nbuf_up.city ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
 		}
+
+     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
 	}
 
 	/**
 	 * Add profile fields to searchable columns
 	 *
-	 * @param array         $search_columns Columns to search
-	 * @param string        $search         Search term
-	 * @param WP_User_Query $query          User query
-	 * @return array Modified search columns
+	 * @param  array         $search_columns Columns to search.
+	 * @param  string        $search         Search term.
+	 * @param  WP_User_Query $query          User query.
+	 * @return array Modified search columns.
 	 */
 	public static function add_search_columns( $search_columns, $search, $query ) {
 		global $wpdb;
+
+     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Search enhancement only */
 
 		/* Only enhance on admin users.php page */
 		if ( ! is_admin() || ! isset( $_GET['s'] ) ) {
@@ -335,35 +356,49 @@ class NBUF_Admin_User_Search {
 
 		/* Add custom search logic */
 		$profile_table = $wpdb->prefix . 'nbuf_user_profile';
-		$search_term = '%' . $wpdb->esc_like( $search ) . '%';
+		$search_term   = '%' . $wpdb->esc_like( $search ) . '%';
 
 		/* Join profile table */
-		add_filter( 'users_search', function( $search_sql ) use ( $wpdb, $profile_table, $search_term ) {
-			if ( empty( $search_sql ) ) {
+		add_filter(
+			'users_search',
+			function ( $search_sql ) use ( $wpdb, $profile_table, $search_term ) {
+				if ( empty( $search_sql ) ) {
+					return $search_sql;
+				}
+
+				/* Add profile field search to existing WHERE clause */
+				$profile_search = $wpdb->prepare(
+					' OR nbuf_profile.company LIKE %s OR nbuf_profile.job_title LIKE %s OR nbuf_profile.city LIKE %s OR nbuf_profile.state LIKE %s OR nbuf_profile.country LIKE %s OR nbuf_profile.bio LIKE %s ',
+					$search_term,
+					$search_term,
+					$search_term,
+					$search_term,
+					$search_term,
+					$search_term
+				);
+
+				$search_sql = str_replace( 'WHERE 1=1 AND (', 'WHERE 1=1 AND (', $search_sql ) . $profile_search;
+
 				return $search_sql;
 			}
-
-			/* Add profile field search to existing WHERE clause */
-			$profile_search = $wpdb->prepare(
-				" OR nbuf_profile.company LIKE %s OR nbuf_profile.job_title LIKE %s OR nbuf_profile.city LIKE %s OR nbuf_profile.state LIKE %s OR nbuf_profile.country LIKE %s OR nbuf_profile.bio LIKE %s ",
-				$search_term, $search_term, $search_term, $search_term, $search_term, $search_term
-			);
-
-			$search_sql = str_replace( 'WHERE 1=1 AND (', 'WHERE 1=1 AND (', $search_sql ) . $profile_search;
-
-			return $search_sql;
-		} );
+		);
 
 		/* Join profile table in FROM clause */
-		add_filter( 'pre_user_query', function( $query ) use ( $wpdb, $profile_table ) {
-			if ( ! isset( $_GET['s'] ) ) {
-				return;
-			}
+		add_filter(
+			'pre_user_query',
+			function ( $query ) use ( $wpdb, $profile_table ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Search enhancement only.
+				if ( ! isset( $_GET['s'] ) ) {
+					return;
+				}
 
-			if ( strpos( $query->query_from, 'nbuf_profile' ) === false ) {
-				$query->query_from .= " LEFT JOIN {$profile_table} nbuf_profile ON {$wpdb->users}.ID = nbuf_profile.user_id ";
+				if ( false === strpos( $query->query_from, 'nbuf_profile' ) ) {
+					$query->query_from .= " LEFT JOIN {$profile_table} nbuf_profile ON {$wpdb->users}.ID = nbuf_profile.user_id ";
+				}
 			}
-		} );
+		);
+
+     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
 
 		return $search_columns;
 	}
@@ -411,6 +446,8 @@ class NBUF_Admin_User_Search {
 			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
 		}
 
+     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce already verified above */
+
 		/* Build query args from current filters */
 		$args = array(
 			'number' => -1, /* Get all users */
@@ -418,7 +455,7 @@ class NBUF_Admin_User_Search {
 
 		/* Apply search */
 		if ( isset( $_GET['s'] ) ) {
-			$args['search'] = '*' . sanitize_text_field( wp_unslash( $_GET['s'] ) ) . '*';
+			$args['search']         = '*' . sanitize_text_field( wp_unslash( $_GET['s'] ) ) . '*';
 			$args['search_columns'] = array( 'user_login', 'user_email', 'display_name' );
 		}
 
@@ -429,7 +466,7 @@ class NBUF_Admin_User_Search {
 
 		/* Get users */
 		$user_query = new WP_User_Query( $args );
-		$users = $user_query->get_results();
+		$users      = $user_query->get_results();
 
 		/* Filter by custom filters manually (since WP_User_Query doesn't support them directly) */
 		if ( isset( $_GET['nbuf_verification'] ) || isset( $_GET['nbuf_expiration'] ) || isset( $_GET['nbuf_directory'] ) ) {
@@ -485,7 +522,7 @@ class NBUF_Admin_User_Search {
 				/* Directory filter */
 				if ( $include && isset( $_GET['nbuf_directory'] ) && ! empty( $_GET['nbuf_directory'] ) ) {
 					$directory_status = sanitize_text_field( wp_unslash( $_GET['nbuf_directory'] ) );
-					$in_directory = NBUF_Privacy_Manager::show_in_directory( $user->ID, $user->ID );
+					$in_directory     = NBUF_Privacy_Manager::show_in_directory( $user->ID, $user->ID );
 					if ( 'in_directory' === $directory_status && ! $in_directory ) {
 						$include = false;
 					} elseif ( 'not_in_directory' === $directory_status && $in_directory ) {
@@ -501,17 +538,25 @@ class NBUF_Admin_User_Search {
 			$users = $filtered_users;
 		}
 
+     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
+
 		/* Set headers for CSV download */
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename=users-export-' . gmdate( 'Y-m-d-H-i-s' ) . '.csv' );
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		/* Open output stream */
+		/*
+		Open output stream
+		*/
+     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Direct output stream for CSV export.
 		$output = fopen( 'php://output', 'w' );
 
-		/* Add UTF-8 BOM for Excel compatibility */
-		fprintf( $output, chr(0xEF).chr(0xBB).chr(0xBF) );
+		/*
+		Add UTF-8 BOM for Excel compatibility
+		*/
+     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fprintf -- Direct output for CSV BOM.
+		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
 		/* CSV headers */
 		$headers = array(
@@ -537,13 +582,13 @@ class NBUF_Admin_User_Search {
 
 		/* Add user data rows */
 		foreach ( $users as $user ) {
-			$profile = NBUF_Profile_Data::get( $user->ID );
+			$profile     = NBUF_Profile_Data::get( $user->ID );
 			$is_verified = NBUF_User_Data::is_verified( $user->ID );
-			$expires_at = NBUF_User_Data::get_expires_at( $user->ID );
+			$expires_at  = NBUF_User_Data::get_expires_at( $user->ID );
 
 			/* Get user role */
 			$roles = $user->roles;
-			$role = ! empty( $roles ) ? ucfirst( $roles[0] ) : '';
+			$role  = ! empty( $roles ) ? ucfirst( $roles[0] ) : '';
 
 			$row = array(
 				$user->ID,
@@ -567,6 +612,7 @@ class NBUF_Admin_User_Search {
 			fputcsv( $output, $row );
 		}
 
+     // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Direct output stream closure for CSV export.
 		fclose( $output );
 		exit;
 	}
@@ -574,14 +620,16 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Enqueue admin styles
 	 *
-	 * @param string $hook Current admin page
+	 * @param string $hook Current admin page.
 	 */
 	public static function enqueue_admin_styles( $hook ) {
 		if ( 'users.php' !== $hook ) {
 			return;
 		}
 
-		wp_add_inline_style( 'wp-admin', '
+		wp_add_inline_style(
+			'wp-admin',
+			'
 			.nbuf-status-badge {
 				display: inline-flex;
 				align-items: center;
@@ -628,6 +676,7 @@ class NBUF_Admin_User_Search {
 				color: #646970;
 				font-style: italic;
 			}
-		' );
+		'
+		);
 	}
 }

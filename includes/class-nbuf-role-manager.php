@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Role_Manager
+ *
+ * Lightweight role management with three-tier caching.
+ */
 class NBUF_Role_Manager {
+
 
 	/**
 	 * In-memory cache for current request
@@ -48,7 +54,7 @@ class NBUF_Role_Manager {
 	/**
 	 * Get all custom roles with smart caching
 	 *
-	 * @return array Custom roles data
+	 * @return array Custom roles data.
 	 */
 	public static function get_all_roles() {
 		/* Level 1: In-memory cache (zero cost) */
@@ -67,9 +73,12 @@ class NBUF_Role_Manager {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_user_roles';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$roles = $wpdb->get_results(
-			"SELECT * FROM {$table} ORDER BY priority DESC",
+			$wpdb->prepare(
+				'SELECT * FROM %i ORDER BY priority DESC',
+				$table
+			),
 			ARRAY_A
 		);
 
@@ -95,8 +104,8 @@ class NBUF_Role_Manager {
 	/**
 	 * Get single role - even more efficient
 	 *
-	 * @param string $role_key Role key/slug
-	 * @return array|null Role data or null if not found
+	 * @param  string $role_key Role key/slug.
+	 * @return array|null Role data or null if not found.
 	 */
 	public static function get_role( $role_key ) {
 		/* Check object cache first */
@@ -120,12 +129,12 @@ class NBUF_Role_Manager {
 	/**
 	 * Create a new custom role
 	 *
-	 * @param string $role_key     Role key/slug (e.g., 'team_manager')
-	 * @param string $role_name    Display name (e.g., 'Team Manager')
-	 * @param array  $capabilities Array of capabilities
-	 * @param string $parent_role  Optional parent role for inheritance
-	 * @param int    $priority     Priority for multiple roles (higher = more important)
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @param  string $role_key     Role key/slug (e.g., 'team_manager').
+	 * @param  string $role_name    Display name (e.g., 'Team Manager').
+	 * @param  array  $capabilities Array of capabilities.
+	 * @param  string $parent_role  Optional parent role for inheritance.
+	 * @param  int    $priority     Priority for multiple roles (higher = more important).
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function create_role( $role_key, $role_name, $capabilities = array(), $parent_role = null, $priority = 0 ) {
 		global $wpdb;
@@ -146,10 +155,12 @@ class NBUF_Role_Manager {
 		}
 
 		/* Resolve capabilities (handle inheritance) */
-		$final_capabilities = self::resolve_capabilities( array(
-			'capabilities' => $capabilities,
-			'parent_role'  => $parent_role,
-		) );
+		$final_capabilities = self::resolve_capabilities(
+			array(
+				'capabilities' => $capabilities,
+				'parent_role'  => $parent_role,
+			)
+		);
 
 		/* Prepare data */
 		$table = $wpdb->prefix . 'nbuf_user_roles';
@@ -163,7 +174,7 @@ class NBUF_Role_Manager {
 			'updated_at'   => current_time( 'mysql' ),
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->insert( $table, $data );
 
 		if ( false === $result ) {
@@ -183,14 +194,14 @@ class NBUF_Role_Manager {
 				'roles',
 				'role_created',
 				sprintf(
-					/* translators: %s: Role name */
+				/* translators: %s: Role name */
 					__( 'Created role "%s"', 'nobloat-user-foundry' ),
 					$role_name
 				),
 				array(
-					'role_key'      => $role_key,
-					'capabilities'  => count( $final_capabilities ),
-					'parent_role'   => $parent_role,
+					'role_key'     => $role_key,
+					'capabilities' => count( $final_capabilities ),
+					'parent_role'  => $parent_role,
 				)
 			);
 		}
@@ -201,9 +212,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Update an existing role
 	 *
-	 * @param string $role_key     Role key
-	 * @param array  $updates      Array of fields to update
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @param  string $role_key Role key.
+	 * @param  array  $updates  Array of fields to update.
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function update_role( $role_key, $updates ) {
 		global $wpdb;
@@ -224,10 +235,12 @@ class NBUF_Role_Manager {
 
 		if ( isset( $updates['capabilities'] ) ) {
 			/* Resolve capabilities with inheritance */
-			$final_capabilities = self::resolve_capabilities( array(
-				'capabilities' => $updates['capabilities'],
-				'parent_role'  => isset( $updates['parent_role'] ) ? $updates['parent_role'] : null,
-			) );
+			$final_capabilities   = self::resolve_capabilities(
+				array(
+					'capabilities' => $updates['capabilities'],
+					'parent_role'  => isset( $updates['parent_role'] ) ? $updates['parent_role'] : null,
+				)
+			);
 			$data['capabilities'] = wp_json_encode( $final_capabilities );
 		}
 
@@ -242,7 +255,7 @@ class NBUF_Role_Manager {
 		/* Update database */
 		$table = $wpdb->prefix . 'nbuf_user_roles';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$data,
@@ -269,7 +282,7 @@ class NBUF_Role_Manager {
 				'roles',
 				'role_updated',
 				sprintf(
-					/* translators: %s: Role key */
+				/* translators: %s: Role key */
 					__( 'Updated role "%s"', 'nobloat-user-foundry' ),
 					$role_key
 				),
@@ -286,9 +299,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Delete a custom role
 	 *
-	 * @param string $role_key          Role key
-	 * @param string $reassign_role     Role to reassign users to (default: subscriber)
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @param  string $role_key      Role key.
+	 * @param  string $reassign_role Role to reassign users to (default: subscriber).
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function delete_role( $role_key, $reassign_role = 'subscriber' ) {
 		global $wpdb;
@@ -315,7 +328,7 @@ class NBUF_Role_Manager {
 		/* Delete from database */
 		$table = $wpdb->prefix . 'nbuf_user_roles';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array( 'role_key' => $role_key ),
@@ -339,7 +352,7 @@ class NBUF_Role_Manager {
 				'roles',
 				'role_deleted',
 				sprintf(
-					/* translators: 1: Role key, 2: Number of users reassigned */
+				/* translators: 1: Role key, 2: Number of users reassigned */
 					__( 'Deleted role "%1$s" and reassigned %2$d users', 'nobloat-user-foundry' ),
 					$role_key,
 					count( $users )
@@ -358,8 +371,8 @@ class NBUF_Role_Manager {
 	/**
 	 * Check if a role exists (in database or WordPress)
 	 *
-	 * @param string $role_key Role key
-	 * @return bool True if exists
+	 * @param  string $role_key Role key.
+	 * @return bool True if exists.
 	 */
 	public static function role_exists( $role_key ) {
 		/* Check custom roles */
@@ -376,8 +389,8 @@ class NBUF_Role_Manager {
 	/**
 	 * Resolve capabilities with inheritance
 	 *
-	 * @param array $role_data Role data with capabilities and parent_role
-	 * @return array Final capabilities array
+	 * @param  array $role_data Role data with capabilities and parent_role.
+	 * @return array Final capabilities array.
 	 */
 	public static function resolve_capabilities( $role_data ) {
 		$capabilities = isset( $role_data['capabilities'] ) ? $role_data['capabilities'] : array();
@@ -402,7 +415,7 @@ class NBUF_Role_Manager {
 	/**
 	 * Register custom roles with WordPress
 	 *
-	 * @param WP_Roles $roles WordPress roles object
+	 * @param WP_Roles $roles WordPress roles object.
 	 */
 	public static function register_roles( $roles ) {
 		$custom_roles = self::get_all_roles(); // Cached!
@@ -421,8 +434,8 @@ class NBUF_Role_Manager {
 	/**
 	 * Get user count for a role
 	 *
-	 * @param string $role_key Role key
-	 * @return int Number of users with this role
+	 * @param  string $role_key Role key.
+	 * @return int Number of users with this role.
 	 */
 	public static function get_user_count( $role_key ) {
 		$users = count_users();
@@ -432,11 +445,11 @@ class NBUF_Role_Manager {
 	/**
 	 * Get all WordPress capabilities (for UI)
 	 *
-	 * @return array Capabilities grouped by category
+	 * @return array Capabilities grouped by category.
 	 */
 	public static function get_all_capabilities() {
-		$wp_roles      = wp_roles()->roles;
-		$all_caps      = array();
+		$wp_roles = wp_roles()->roles;
+		$all_caps = array();
 
 		/* Collect all unique capabilities from all roles */
 		foreach ( $wp_roles as $role_data ) {
@@ -450,31 +463,31 @@ class NBUF_Role_Manager {
 
 		/* Organize by category */
 		$categorized = array(
-			'content'      => array(),
-			'users'        => array(),
-			'plugins'      => array(),
-			'themes'       => array(),
-			'settings'     => array(),
-			'other'        => array(),
+			'content'  => array(),
+			'users'    => array(),
+			'plugins'  => array(),
+			'themes'   => array(),
+			'settings' => array(),
+			'other'    => array(),
 		);
 
 		foreach ( $all_caps as $cap ) {
 			/* Content capabilities */
 			if ( preg_match( '/(post|page|attachment|edit|delete|publish|read)/', $cap ) ) {
 				$categorized['content'][] = $cap;
-			/* User capabilities */
+				/* User capabilities */
 			} elseif ( preg_match( '/(user|profile|list_users|promote_users|delete_users|create_users|edit_users)/', $cap ) ) {
 				$categorized['users'][] = $cap;
-			/* Plugin capabilities */
+				/* Plugin capabilities */
 			} elseif ( preg_match( '/(plugin|activate_plugin|edit_plugins)/', $cap ) ) {
 				$categorized['plugins'][] = $cap;
-			/* Theme capabilities */
+				/* Theme capabilities */
 			} elseif ( preg_match( '/(theme|edit_themes|switch_themes)/', $cap ) ) {
 				$categorized['themes'][] = $cap;
-			/* Settings capabilities */
+				/* Settings capabilities */
 			} elseif ( preg_match( '/(manage_options|manage_categories|manage_links|moderate_comments)/', $cap ) ) {
 				$categorized['settings'][] = $cap;
-			/* Everything else */
+				/* Everything else */
 			} else {
 				$categorized['other'][] = $cap;
 			}
@@ -500,8 +513,8 @@ class NBUF_Role_Manager {
 	/**
 	 * Export role configuration as JSON
 	 *
-	 * @param string $role_key Role key
-	 * @return string|WP_Error JSON string or error
+	 * @param  string $role_key Role key.
+	 * @return string|WP_Error JSON string or error.
 	 */
 	public static function export_role( $role_key ) {
 		$role = self::get_role( $role_key );
@@ -526,9 +539,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Import role from JSON
 	 *
-	 * @param string $json         JSON string
-	 * @param bool   $overwrite    Whether to overwrite existing role
-	 * @return bool|WP_Error True on success, WP_Error on failure
+	 * @param  string $json      JSON string.
+	 * @param  bool   $overwrite Whether to overwrite existing role.
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public static function import_role( $json, $overwrite = false ) {
 		$data = json_decode( $json, true );
@@ -544,12 +557,15 @@ class NBUF_Role_Manager {
 		}
 
 		if ( $exists && $overwrite ) {
-			return self::update_role( $data['role_key'], array(
-				'role_name'    => $data['role_name'],
-				'capabilities' => $data['capabilities'],
-				'parent_role'  => $data['parent_role'] ?? null,
-				'priority'     => $data['priority'] ?? 0,
-			) );
+			return self::update_role(
+				$data['role_key'],
+				array(
+					'role_name'    => $data['role_name'],
+					'capabilities' => $data['capabilities'],
+					'parent_role'  => $data['parent_role'] ?? null,
+					'priority'     => $data['priority'] ?? 0,
+				)
+			);
 		} else {
 			return self::create_role(
 				$data['role_key'],

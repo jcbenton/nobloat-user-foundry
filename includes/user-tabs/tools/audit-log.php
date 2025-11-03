@@ -46,18 +46,21 @@ if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_audit_log_settings'
 }
 
 /* Get current settings */
-$enabled = NBUF_Options::get( 'nbuf_audit_log_enabled', true );
-$retention = NBUF_Options::get( 'nbuf_audit_log_retention', '90days' );
-$events = NBUF_Options::get( 'nbuf_audit_log_events', array(
-	'authentication' => true,
-	'verification'   => true,
-	'passwords'      => true,
-	'2fa'            => true,
-	'account_status' => true,
-	'profile'        => false,
-) );
-$store_user_agent = NBUF_Options::get( 'nbuf_audit_log_store_user_agent', true );
-$anonymize_ip = NBUF_Options::get( 'nbuf_audit_log_anonymize_ip', false );
+$enabled            = NBUF_Options::get( 'nbuf_audit_log_enabled', true );
+$retention          = NBUF_Options::get( 'nbuf_audit_log_retention', '90days' );
+$events             = NBUF_Options::get(
+	'nbuf_audit_log_events',
+	array(
+		'authentication' => true,
+		'verification'   => true,
+		'passwords'      => true,
+		'2fa'            => true,
+		'account_status' => true,
+		'profile'        => false,
+	)
+);
+$store_user_agent   = NBUF_Options::get( 'nbuf_audit_log_store_user_agent', true );
+$anonymize_ip       = NBUF_Options::get( 'nbuf_audit_log_anonymize_ip', false );
 $max_message_length = NBUF_Options::get( 'nbuf_audit_log_max_message_length', 500 );
 
 /* Get statistics */
@@ -247,7 +250,7 @@ $stats = NBUF_Audit_Log::get_stats();
 				<p class="description">
 					<?php
 					printf(
-						/* translators: %s: Audit log page URL */
+					/* translators: %s: Audit log page URL */
 						esc_html__( 'View logs and purge options on the %s page.', 'nobloat-user-foundry' ),
 						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-user-log' ) ) . '">' . esc_html__( 'User Log', 'nobloat-user-foundry' ) . '</a>'
 					);

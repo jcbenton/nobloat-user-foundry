@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration orchestrator for plugin data
+ *
+ * @since 1.0.0
+ */
 class NBUF_Migration {
+
 
 	/**
 	 * Plugin mapper registry
@@ -26,9 +32,11 @@ class NBUF_Migration {
 	private static $plugin_mappers = array(
 		'ultimate-member' => 'NBUF_Migration_Ultimate_Member',
 		'buddypress'      => 'NBUF_Migration_BP_Profile',
-		/* Add more plugins here as we build them:
-		'profile-builder' => 'NBUF_Migration_Profile_Builder',
-		*/
+
+	/*
+	* Add more plugins here as we build them:
+	'profile-builder' => 'NBUF_Migration_Profile_Builder',
+	*/
 	);
 
 	/**
@@ -62,8 +70,8 @@ class NBUF_Migration {
 	/**
 	 * Get mapper instance for plugin
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @return Abstract_NBUF_Migration_Plugin|null Mapper instance or null if not found
+	 * @param  string $plugin_slug Plugin slug.
+	 * @return Abstract_NBUF_Migration_Plugin|null Mapper instance or null if not found.
 	 */
 	public static function get_mapper( $plugin_slug ) {
 		/* Return cached instance if exists */
@@ -90,7 +98,7 @@ class NBUF_Migration {
 	/**
 	 * Detect installed user management plugins
 	 *
-	 * @return array List of detected plugins
+	 * @return array List of detected plugins.
 	 */
 	public static function detect_installed_plugins() {
 		$detected = array();
@@ -119,8 +127,8 @@ class NBUF_Migration {
 	/**
 	 * Get field mapping for a plugin
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @return array Field mappings
+	 * @param  string $plugin_slug Plugin slug.
+	 * @return array Field mappings.
 	 */
 	public static function get_field_mapping( $plugin_slug ) {
 		$mapper = self::get_mapper( $plugin_slug );
@@ -137,8 +145,8 @@ class NBUF_Migration {
 	/**
 	 * Discover custom fields from plugin
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @return array Custom fields with sample data
+	 * @param  string $plugin_slug Plugin slug.
+	 * @return array Custom fields with sample data.
 	 */
 	public static function discover_custom_fields( $plugin_slug ) {
 		$mapper = self::get_mapper( $plugin_slug );
@@ -153,10 +161,10 @@ class NBUF_Migration {
 	/**
 	 * Preview import data
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @param int    $limit       Number of users to preview.
-	 * @param array  $field_mapping Optional custom field mapping.
-	 * @return array Preview data
+	 * @param  string $plugin_slug   Plugin slug.
+	 * @param  int    $limit         Number of users to preview.
+	 * @param  array  $field_mapping Optional custom field mapping.
+	 * @return array Preview data.
 	 */
 	public static function preview_import( $plugin_slug, $limit = 10, $field_mapping = array() ) {
 		$mapper = self::get_mapper( $plugin_slug );
@@ -171,10 +179,10 @@ class NBUF_Migration {
 	/**
 	 * Execute import from a plugin
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @param array  $options     Import options.
-	 * @param array  $field_mapping Optional custom field mapping.
-	 * @return array Import results
+	 * @param  string $plugin_slug   Plugin slug.
+	 * @param  array  $options       Import options.
+	 * @param  array  $field_mapping Optional custom field mapping.
+	 * @return array Import results.
 	 */
 	public static function execute_import( $plugin_slug, $options = array(), $field_mapping = array() ) {
 		$mapper = self::get_mapper( $plugin_slug );
@@ -187,11 +195,11 @@ class NBUF_Migration {
 		}
 
 		$defaults = array(
-			'send_emails'       => false,
-			'set_verified'      => true,
-			'skip_existing'     => true,
-			'batch_size'        => 50,
-			'batch_offset'      => 0,
+			'send_emails'   => false,
+			'set_verified'  => true,
+			'skip_existing' => true,
+			'batch_size'    => 50,
+			'batch_offset'  => 0,
 		);
 
 		$options = wp_parse_args( $options, $defaults );
@@ -204,9 +212,9 @@ class NBUF_Migration {
 	/**
 	 * Log import to history
 	 *
-	 * @param string $plugin_slug Plugin slug.
-	 * @param array  $results     Import results.
-	 * @return int Import history ID
+	 * @param  string $plugin_slug Plugin slug.
+	 * @param  array  $results     Import results.
+	 * @return int Import history ID.
 	 */
 	public static function log_import_history( $plugin_slug, $results ) {
 		global $wpdb;
@@ -224,6 +232,7 @@ class NBUF_Migration {
 			'imported_at'   => current_time( 'mysql' ),
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 		$wpdb->insert( $table_name, $data );
 
 		return $wpdb->insert_id;
@@ -232,17 +241,19 @@ class NBUF_Migration {
 	/**
 	 * Get import history
 	 *
-	 * @param int $limit Number of records to retrieve.
-	 * @return array Import history records
+	 * @param  int $limit Number of records to retrieve.
+	 * @return array Import history records.
 	 */
 	public static function get_import_history( $limit = 10 ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_import_history';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} ORDER BY imported_at DESC LIMIT %d",
+				'SELECT * FROM %i ORDER BY imported_at DESC LIMIT %d',
+				$table_name,
 				$limit
 			)
 		);
@@ -315,7 +326,7 @@ class NBUF_Migration {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
-		$plugin_slug = isset( $_POST['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_slug'] ) ) : '';
+		$plugin_slug  = isset( $_POST['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_slug'] ) ) : '';
 		$batch_offset = isset( $_POST['batch_offset'] ) ? absint( $_POST['batch_offset'] ) : 0;
 
 		if ( empty( $plugin_slug ) ) {
@@ -325,8 +336,8 @@ class NBUF_Migration {
 		/* Parse custom field mappings if provided */
 		$field_mapping = array();
 		if ( isset( $_POST['field_mapping'] ) && ! empty( $_POST['field_mapping'] ) ) {
-			$field_mapping_json = wp_unslash( $_POST['field_mapping'] );
-			$field_mapping = json_decode( $field_mapping_json, true );
+			$field_mapping_json = sanitize_text_field( wp_unslash( $_POST['field_mapping'] ) );
+			$field_mapping      = json_decode( $field_mapping_json, true );
 
 			if ( ! is_array( $field_mapping ) ) {
 				$field_mapping = array();
@@ -345,7 +356,7 @@ class NBUF_Migration {
 
 		/* Log to history on first batch */
 		if ( 0 === $batch_offset ) {
-			$import_id = self::log_import_history( $plugin_slug, $results );
+			$import_id            = self::log_import_history( $plugin_slug, $results );
 			$results['import_id'] = $import_id;
 		}
 
@@ -391,7 +402,7 @@ class NBUF_Migration {
 		}
 
 		/* Create mapper and get suggestions */
-		$mapper = new NBUF_Field_Mapper();
+		$mapper      = new NBUF_Field_Mapper();
 		$suggestions = $mapper->suggest_mapping( $source_field, $sample_value );
 
 		wp_send_json_success( array( 'suggestions' => $suggestions ) );
@@ -417,9 +428,11 @@ class NBUF_Migration {
 		wp_send_json_error( array( 'message' => __( 'Rollback not yet implemented', 'nobloat-user-foundry' ) ) );
 	}
 
-	/* ============================================================
-	   NEW SIMPLIFIED UI AJAX HANDLERS
-	   ============================================================ */
+	/*
+	============================================================
+	NEW SIMPLIFIED UI AJAX HANDLERS
+	============================================================
+	*/
 
 	/**
 	 * AJAX: Load migration plugin data
@@ -459,7 +472,7 @@ class NBUF_Migration {
 
 			/* Count profile fields */
 			global $wpdb;
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$data['profile_fields_count'] = (int) $wpdb->get_var(
 				"SELECT COUNT(DISTINCT meta_key)
 				FROM {$wpdb->usermeta}
@@ -526,8 +539,10 @@ class NBUF_Migration {
 
 			global $wpdb;
 			foreach ( $default_mapping as $source_field => $target_data ) {
-				/* Get sample value */
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				/*
+				* Get sample value.
+				*/
+             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$sample = $wpdb->get_var(
 					$wpdb->prepare(
 						"SELECT meta_value FROM {$wpdb->usermeta}
@@ -543,8 +558,8 @@ class NBUF_Migration {
 
 				/* Extract just the field name if it's a path */
 				if ( is_string( $target_field ) && strpos( $target_field, '.' ) !== false ) {
-					$parts = explode( '.', $target_field );
-					$target_field = end( $parts );
+						$parts        = explode( '.', $target_field );
+						$target_field = end( $parts );
 				}
 
 				$mappings[ $source_field ] = array(
@@ -693,8 +708,8 @@ class NBUF_Migration {
 		/* Parse migration types */
 		$migration_types = array();
 		if ( isset( $_POST['migration_types'] ) && ! empty( $_POST['migration_types'] ) ) {
-			$migration_types_json = wp_unslash( $_POST['migration_types'] );
-			$migration_types = json_decode( $migration_types_json, true );
+			$migration_types_json = sanitize_text_field( wp_unslash( $_POST['migration_types'] ) );
+			$migration_types      = json_decode( $migration_types_json, true );
 
 			if ( ! is_array( $migration_types ) ) {
 				$migration_types = array();
@@ -704,8 +719,8 @@ class NBUF_Migration {
 		/* Parse field mappings */
 		$field_mappings = array();
 		if ( isset( $_POST['field_mappings'] ) && ! empty( $_POST['field_mappings'] ) ) {
-			$field_mappings_json = wp_unslash( $_POST['field_mappings'] );
-			$field_mappings = json_decode( $field_mappings_json, true );
+			$field_mappings_json = sanitize_text_field( wp_unslash( $_POST['field_mappings'] ) );
+			$field_mappings      = json_decode( $field_mappings_json, true );
 
 			if ( ! is_array( $field_mappings ) ) {
 				$field_mappings = array();

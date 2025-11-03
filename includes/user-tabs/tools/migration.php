@@ -37,8 +37,8 @@ $available_plugins = array(
 				<td>
 					<select id="nbuf-source-plugin" class="regular-text">
 						<option value=""><?php esc_html_e( '-- Select a plugin to migrate from --', 'nobloat-user-foundry' ); ?></option>
-						<?php foreach ( $available_plugins as $slug => $plugin ) : ?>
-							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $plugin['name'] ); ?></option>
+						<?php foreach ( $available_plugins as $slug => $available_plugin ) : ?>
+							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $available_plugin['name'] ); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<p class="description">
@@ -169,21 +169,21 @@ $available_plugins = array(
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $history as $record ) : ?>
+			<?php foreach ( $history as $record ) : ?>
 						<tr>
 							<td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $record->imported_at ) ) ); ?></td>
 							<td><?php echo esc_html( $record->source_plugin ); ?></td>
 							<td><?php echo esc_html( $record->migration_type ?? 'unknown' ); ?></td>
 							<td><?php echo esc_html( $record->successful ); ?> / <?php echo esc_html( $record->total_rows ); ?></td>
 							<td>
-								<?php if ( $record->failed > 0 ) : ?>
+				<?php if ( $record->failed > 0 ) : ?>
 									<span style="color: orange;">⚠ <?php echo esc_html( $record->failed ); ?> errors</span>
 								<?php else : ?>
 									<span style="color: green;">✓ Success</span>
 								<?php endif; ?>
 							</td>
 						</tr>
-					<?php endforeach; ?>
+			<?php endforeach; ?>
 				</tbody>
 			</table>
 			<?php
@@ -193,206 +193,5 @@ $available_plugins = array(
 
 </div>
 
-<style>
-.nbuf-migration-simple {
-	max-width: 1000px;
-}
 
-.nbuf-migration-card {
-	background: #fff;
-	border: 1px solid #ccd0d4;
-	box-shadow: 0 1px 1px rgba(0,0,0,.04);
-	padding: 20px;
-	margin: 20px 0;
-}
-
-.nbuf-migration-card h3 {
-	margin-top: 0;
-	margin-bottom: 15px;
-	padding-bottom: 10px;
-	border-bottom: 1px solid #f0f0f1;
-}
-
-#nbuf-plugin-status {
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-}
-
-.nbuf-status-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 15px;
-	margin-top: 15px;
-}
-
-.nbuf-status-item {
-	background: #fff;
-	padding: 12px;
-	border-radius: 4px;
-	border: 1px solid #ddd;
-}
-
-.nbuf-status-item strong {
-	display: block;
-	color: #666;
-	font-size: 11px;
-	text-transform: uppercase;
-	margin-bottom: 5px;
-}
-
-.nbuf-status-item .value {
-	font-size: 24px;
-	font-weight: 600;
-	color: #2271b1;
-}
-
-.nbuf-checkbox-group {
-	margin: 15px 0;
-}
-
-.nbuf-checkbox-group label {
-	display: flex;
-	align-items: center;
-	padding: 12px;
-	margin: 8px 0;
-	background: #f9f9f9;
-	border: 2px solid #ddd;
-	border-radius: 4px;
-	cursor: pointer;
-	transition: all 0.2s;
-}
-
-.nbuf-checkbox-group label:hover {
-	border-color: #2271b1;
-	background: #f0f6fc;
-}
-
-.nbuf-checkbox-group input[type="checkbox"] {
-	margin-right: 10px;
-	width: 18px;
-	height: 18px;
-}
-
-.nbuf-checkbox-group .checkbox-label {
-	flex: 1;
-}
-
-.nbuf-checkbox-group .checkbox-label strong {
-	display: block;
-	margin-bottom: 3px;
-}
-
-.nbuf-checkbox-group .checkbox-label .description {
-	font-size: 13px;
-	color: #666;
-	margin: 0;
-}
-
-#nbuf-field-mapping-table {
-	overflow-x: auto;
-}
-
-.nbuf-mapping-table {
-	width: 100%;
-	border-collapse: collapse;
-	margin-top: 15px;
-}
-
-.nbuf-mapping-table th,
-.nbuf-mapping-table td {
-	padding: 12px;
-	text-align: left;
-	border: 1px solid #ddd;
-}
-
-.nbuf-mapping-table th {
-	background: #f0f0f1;
-	font-weight: 600;
-	position: sticky;
-	top: 0;
-}
-
-.nbuf-mapping-table tbody tr:hover {
-	background: #f9f9f9;
-}
-
-.nbuf-mapping-table code {
-	background: #f0f0f1;
-	padding: 2px 6px;
-	border-radius: 3px;
-	font-size: 12px;
-}
-
-.nbuf-mapping-table select {
-	min-width: 200px;
-}
-
-.nbuf-mapping-status {
-	display: inline-block;
-	padding: 3px 8px;
-	border-radius: 3px;
-	font-size: 11px;
-	font-weight: 600;
-}
-
-.nbuf-mapping-status.auto {
-	background: #d4edda;
-	color: #155724;
-}
-
-.nbuf-mapping-status.manual {
-	background: #fff3cd;
-	color: #856404;
-}
-
-.nbuf-mapping-status.unmapped {
-	background: #f8d7da;
-	color: #721c24;
-}
-
-.nbuf-progress-bar {
-	width: 100%;
-	height: 30px;
-	background: #f0f0f1;
-	border: 1px solid #ccd0d4;
-	border-radius: 4px;
-	overflow: hidden;
-}
-
-.nbuf-progress-fill {
-	height: 100%;
-	background: linear-gradient(90deg, #2271b1, #135e96);
-	transition: width 0.3s ease;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #fff;
-	font-weight: 600;
-	font-size: 14px;
-}
-
-.nbuf-progress-text {
-	margin-top: 10px;
-	font-size: 14px;
-}
-
-.nbuf-migration-warning {
-	padding: 12px 15px !important;
-}
-
-.button-hero {
-	padding: 10px 24px !important;
-	height: auto !important;
-	line-height: 1.5 !important;
-	font-size: 16px !important;
-}
-
-.button-hero .dashicons {
-	font-size: 20px;
-	width: 20px;
-	height: 20px;
-	margin-right: 5px;
-	vertical-align: middle;
-}
-</style>
 

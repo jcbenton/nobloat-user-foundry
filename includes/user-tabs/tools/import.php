@@ -3,7 +3,7 @@
  * Tools Tab - Bulk User Import
  *
  * @package NoBloat_User_Foundry
- * @since 1.3.0
+ * @since   1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,11 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$import_require_email = NBUF_Options::get( 'nbuf_import_require_email', true );
-$import_send_welcome = NBUF_Options::get( 'nbuf_import_send_welcome', false );
-$import_verify_emails = NBUF_Options::get( 'nbuf_import_verify_emails', true );
-$import_default_role = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
-$import_batch_size = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
+$import_require_email   = NBUF_Options::get( 'nbuf_import_require_email', true );
+$import_send_welcome    = NBUF_Options::get( 'nbuf_import_send_welcome', false );
+$import_verify_emails   = NBUF_Options::get( 'nbuf_import_verify_emails', true );
+$import_default_role    = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
+$import_batch_size      = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
 $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
 ?>
 
@@ -35,10 +35,10 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_import_require_email"
-							   id="nbuf_import_require_email"
-							   value="1"
-							   <?php checked( $import_require_email ); ?> />
+								name="nbuf_import_require_email"
+								id="nbuf_import_require_email"
+								value="1"
+								<?php checked( $import_require_email ); ?> />
 						All users must have valid email addresses
 					</label>
 					<p class="description">Rows without valid emails will be skipped.</p>
@@ -52,10 +52,10 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_import_verify_emails"
-							   id="nbuf_import_verify_emails"
-							   value="1"
-							   <?php checked( $import_verify_emails ); ?> />
+								name="nbuf_import_verify_emails"
+								id="nbuf_import_verify_emails"
+								value="1"
+								<?php checked( $import_verify_emails ); ?> />
 						Imported users must verify their email
 					</label>
 					<p class="description">Recommended: ON. Ensures all imported users verify their accounts.</p>
@@ -69,10 +69,10 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_import_send_welcome"
-							   id="nbuf_import_send_welcome"
-							   value="1"
-							   <?php checked( $import_send_welcome ); ?> />
+								name="nbuf_import_send_welcome"
+								id="nbuf_import_send_welcome"
+								value="1"
+								<?php checked( $import_send_welcome ); ?> />
 						Send welcome email with login credentials
 					</label>
 					<p class="description">⚠️ Emails will include plain-text passwords. Use with caution.</p>
@@ -86,10 +86,10 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_import_update_existing"
-							   id="nbuf_import_update_existing"
-							   value="1"
-							   <?php checked( $import_update_existing ); ?> />
+								name="nbuf_import_update_existing"
+								id="nbuf_import_update_existing"
+								value="1"
+								<?php checked( $import_update_existing ); ?> />
 						Update existing users if email/username matches
 					</label>
 					<p class="description">If disabled, duplicate users will be skipped.</p>
@@ -124,12 +124,12 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				</th>
 				<td>
 					<input type="number"
-						   name="nbuf_import_batch_size"
-						   id="nbuf_import_batch_size"
-						   value="<?php echo esc_attr( $import_batch_size ); ?>"
-						   min="10"
-						   max="500"
-						   step="10" />
+							name="nbuf_import_batch_size"
+							id="nbuf_import_batch_size"
+							value="<?php echo esc_attr( $import_batch_size ); ?>"
+							min="10"
+							max="500"
+							step="10" />
 					<p class="description">Users processed per batch (default: 50). Lower = safer, higher = faster.</p>
 				</td>
 			</tr>
@@ -150,10 +150,10 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 					</th>
 					<td>
 						<input type="file"
-							   name="csv_file"
-							   id="csv_file"
-							   accept=".csv"
-							   required />
+								name="csv_file"
+								id="csv_file"
+								accept=".csv"
+								required />
 						<p class="description">Maximum file size: 10MB. Format: UTF-8 CSV with headers.</p>
 					</td>
 				</tr>
@@ -312,25 +312,4 @@ jane@example.com,janedoe,Jane,Doe,editor,Tech Inc,Seattle</pre>
 </div>
 
 
-<style>
-.nbuf-card {
-	background: #fff;
-	border: 1px solid #c3c4c7;
-	border-radius: 4px;
-	padding: 20px;
-}
 
-.nbuf-card h3 {
-	margin-top: 0;
-	padding-bottom: 10px;
-	border-bottom: 1px solid #ddd;
-}
-
-#nbuf-import-progress #nbuf-progress-bar {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #fff;
-	font-weight: 600;
-}
-</style>

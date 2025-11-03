@@ -13,7 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Template_Manager
+ *
+ * Manages email and form templates with caching and customization.
+ */
 class NBUF_Template_Manager {
+
 
 	/**
 	 * Runtime cache for loaded templates.
@@ -28,31 +34,31 @@ class NBUF_Template_Manager {
 	 * @var array
 	 */
 	private static $template_map = array(
-		// Email templates
-		'email-verification-html'    => 'nbuf_email_template_html',
-		'email-verification-text'    => 'nbuf_email_template_text',
-		'welcome-email-html'         => 'nbuf_welcome_email_html',
-		'welcome-email-text'         => 'nbuf_welcome_email_text',
-		'expiration-warning-html'    => 'nbuf_expiration_warning_html',
-		'expiration-warning-text'    => 'nbuf_expiration_warning_text',
-		'2fa-email-code-html'        => 'nbuf_2fa_email_code_html',
-		'2fa-email-code-text'        => 'nbuf_2fa_email_code_text',
-		'password-reset-html'        => 'nbuf_password_reset_html',
-		'password-reset-text'        => 'nbuf_password_reset_text',
-		'admin-new-user-html'        => 'nbuf_admin_new_user_html',
-		'admin-new-user-text'        => 'nbuf_admin_new_user_text',
+		// Email templates.
+		'email-verification-html' => 'nbuf_email_template_html',
+		'email-verification-text' => 'nbuf_email_template_text',
+		'welcome-email-html'      => 'nbuf_welcome_email_html',
+		'welcome-email-text'      => 'nbuf_welcome_email_text',
+		'expiration-warning-html' => 'nbuf_expiration_warning_html',
+		'expiration-warning-text' => 'nbuf_expiration_warning_text',
+		'2fa-email-code-html'     => 'nbuf_2fa_email_code_html',
+		'2fa-email-code-text'     => 'nbuf_2fa_email_code_text',
+		'password-reset-html'     => 'nbuf_password_reset_html',
+		'password-reset-text'     => 'nbuf_password_reset_text',
+		'admin-new-user-html'     => 'nbuf_admin_new_user_html',
+		'admin-new-user-text'     => 'nbuf_admin_new_user_text',
 
-		// Form templates
-		'login-form'                 => 'nbuf_login_form_template',
-		'registration-form'          => 'nbuf_registration_form_template',
-		'account-page'               => 'nbuf_account_page_template',
-		'request-reset-form'         => 'nbuf_request_reset_form_template',
-		'reset-form'                 => 'nbuf_reset_form_template',
+		// Form templates.
+		'login-form'              => 'nbuf_login_form_template',
+		'registration-form'       => 'nbuf_registration_form_template',
+		'account-page'            => 'nbuf_account_page_template',
+		'request-reset-form'      => 'nbuf_request_reset_form_template',
+		'reset-form'              => 'nbuf_reset_form_template',
 
-		// 2FA page templates
-		'2fa-verify'                 => 'nbuf_2fa_verify_template',
-		'2fa-setup-totp'             => 'nbuf_2fa_setup_totp_template',
-		'2fa-backup-codes'           => 'nbuf_2fa_backup_codes_template',
+		// 2FA page templates.
+		'2fa-verify'              => 'nbuf_2fa_verify_template',
+		'2fa-setup-totp'          => 'nbuf_2fa_setup_totp_template',
+		'2fa-backup-codes'        => 'nbuf_2fa_backup_codes_template',
 	);
 
 	/**
@@ -61,97 +67,108 @@ class NBUF_Template_Manager {
 	 * @var array
 	 */
 	private static $file_map = array(
-		'email-verification-html'    => 'email-verification.html',
-		'email-verification-text'    => 'email-verification.txt',
-		'welcome-email-html'         => 'welcome-email.html',
-		'welcome-email-text'         => 'welcome-email.txt',
-		'expiration-warning-html'    => 'expiration-warning.html',
-		'expiration-warning-text'    => 'expiration-warning.txt',
-		'2fa-email-code-html'        => '2fa-email-code.html',
-		'2fa-email-code-text'        => '2fa-email-code.txt',
-		'password-reset-html'        => 'password-reset.html',
-		'password-reset-text'        => 'password-reset.txt',
-		'admin-new-user-html'        => 'admin-new-user.html',
-		'admin-new-user-text'        => 'admin-new-user.txt',
-		'login-form'                 => 'login-form.html',
-		'registration-form'          => 'registration-form.html',
-		'account-page'               => 'account-page.html',
-		'request-reset-form'         => 'request-reset-form.html',
-		'reset-form'                 => 'reset-form.html',
-		'2fa-verify'                 => '2fa-verify.html',
-		'2fa-setup-totp'             => '2fa-setup-totp.html',
-		'2fa-backup-codes'           => '2fa-backup-codes.html',
+		'email-verification-html' => 'email-verification.html',
+		'email-verification-text' => 'email-verification.txt',
+		'welcome-email-html'      => 'welcome-email.html',
+		'welcome-email-text'      => 'welcome-email.txt',
+		'expiration-warning-html' => 'expiration-warning.html',
+		'expiration-warning-text' => 'expiration-warning.txt',
+		'2fa-email-code-html'     => '2fa-email-code.html',
+		'2fa-email-code-text'     => '2fa-email-code.txt',
+		'password-reset-html'     => 'password-reset.html',
+		'password-reset-text'     => 'password-reset.txt',
+		'admin-new-user-html'     => 'admin-new-user.html',
+		'admin-new-user-text'     => 'admin-new-user.txt',
+		'login-form'              => 'login-form.html',
+		'registration-form'       => 'registration-form.html',
+		'account-page'            => 'account-page.html',
+		'request-reset-form'      => 'request-reset-form.html',
+		'reset-form'              => 'reset-form.html',
+		'2fa-verify'              => '2fa-verify.html',
+		'2fa-setup-totp'          => '2fa-setup-totp.html',
+		'2fa-backup-codes'        => '2fa-backup-codes.html',
 	);
 
-	/* ==========================================================
-	   LOAD TEMPLATE
-	   ----------------------------------------------------------
-	   Load template with runtime caching.
-	   Priority: runtime cache > custom table > file > fallback
-	   ========================================================== */
+	/**
+	 * LOAD TEMPLATE.
+	 *
+	 * Load template with runtime caching.
+	 * Priority: runtime cache > custom table > file > fallback.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string Template content.
+	 */
 	public static function load_template( $template_name ) {
-		// Check runtime cache first
+		// Check runtime cache first.
 		if ( isset( self::$cache[ $template_name ] ) ) {
 			return self::$cache[ $template_name ];
 		}
 
-		// Get option key
+		// Get option key.
 		$option_key = self::get_option_key( $template_name );
 		if ( ! $option_key ) {
 			return self::load_fallback( $template_name );
 		}
 
-		// Try loading from custom table
+		// Try loading from custom table.
 		$template = NBUF_Options::get( $option_key );
 
-		// If empty, load from default file
+		// If empty, load from default file.
 		if ( empty( $template ) ) {
 			$template = self::load_default_file( $template_name );
 		}
 
-		// Cache and return
+		// Cache and return.
 		self::$cache[ $template_name ] = $template;
 		return $template;
 	}
 
-	/* ==========================================================
-	   SAVE TEMPLATE
-	   ----------------------------------------------------------
-	   Save template to custom table (NBUF_Options).
-	   Automatically sanitizes based on template type.
-	   ========================================================== */
+	/**
+	 * SAVE TEMPLATE.
+	 *
+	 * Save template to custom table (NBUF_Options).
+	 * Automatically sanitizes based on template type.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @param  string $content       Template content.
+	 * @return bool True on success.
+	 */
 	public static function save_template( $template_name, $content ) {
 		$option_key = self::get_option_key( $template_name );
 		if ( ! $option_key ) {
 			return false;
 		}
 
-		// Sanitize based on type
+		// Sanitize based on type.
 		$sanitized = self::sanitize_template( $content, $template_name );
 
-		// Save to custom table (autoload = false for templates)
+		// Save to custom table (autoload = false for templates).
 		NBUF_Options::update( $option_key, $sanitized, false, 'templates' );
 
-		// Update runtime cache
+		// Update runtime cache.
 		self::$cache[ $template_name ] = $sanitized;
 
 		return true;
 	}
 
-	/* ==========================================================
-	   SANITIZE TEMPLATE
-	   ----------------------------------------------------------
-	   Sanitize template content based on type.
-	   HTML templates: allow forms + safe HTML
-	   Text templates: sanitize_textarea_field
-	   ========================================================== */
+	/**
+	 * SANITIZE TEMPLATE.
+	 *
+	 * Sanitize template content based on type.
+	 * HTML templates: allow forms + safe HTML
+	 * Text templates: sanitize_textarea_field.
+	 *
+	 * @param  string $content       Template content.
+	 * @param  string $template_name Template identifier.
+	 * @return string Sanitized content.
+	 */
 	public static function sanitize_template( $content, $template_name ) {
-		// Text templates - simple sanitization
+		// Text templates - simple sanitization.
 		if ( strpos( $template_name, '-text' ) !== false ) {
 			return sanitize_textarea_field( $content );
 		}
 
-		// HTML templates - allow forms and safe HTML
+		// HTML templates - allow forms and safe HTML.
 		$allowed_html = array(
 			'form'     => array(
 				'method' => true,
@@ -287,11 +304,14 @@ class NBUF_Template_Manager {
 		return wp_kses( $content, $allowed_html );
 	}
 
-	/* ==========================================================
-	   LOAD DEFAULT FILE
-	   ----------------------------------------------------------
-	   Load template from /templates/ directory.
-	   ========================================================== */
+	/**
+	 * LOAD DEFAULT FILE.
+	 *
+	 * Load template from /templates/ directory.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string Template content or empty string.
+	 */
 	public static function load_default_file( $template_name ) {
 		$filename = self::get_filename( $template_name );
 		if ( ! $filename ) {
@@ -307,29 +327,38 @@ class NBUF_Template_Manager {
 		return '';
 	}
 
-	/* ==========================================================
-	   GET OPTION KEY
-	   ----------------------------------------------------------
-	   Get database option key for a template name.
-	   ========================================================== */
+	/**
+	 * GET OPTION KEY.
+	 *
+	 * Get database option key for a template name.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string|false Option key or false.
+	 */
 	private static function get_option_key( $template_name ) {
 		return isset( self::$template_map[ $template_name ] ) ? self::$template_map[ $template_name ] : false;
 	}
 
-	/* ==========================================================
-	   GET FILENAME
-	   ----------------------------------------------------------
-	   Get default filename for a template name.
-	   ========================================================== */
+	/**
+	 * GET FILENAME.
+	 *
+	 * Get default filename for a template name.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string|false Filename or false.
+	 */
 	private static function get_filename( $template_name ) {
 		return isset( self::$file_map[ $template_name ] ) ? self::$file_map[ $template_name ] : false;
 	}
 
-	/* ==========================================================
-	   LOAD FALLBACK
-	   ----------------------------------------------------------
-	   Return minimal fallback content if template not found.
-	   ========================================================== */
+	/**
+	 * LOAD FALLBACK.
+	 *
+	 * Return minimal fallback content if template not found.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string Fallback content.
+	 */
 	private static function load_fallback( $template_name ) {
 		if ( strpos( $template_name, 'email' ) !== false ) {
 			return __( 'Email content unavailable.', 'nobloat-user-foundry' );
@@ -338,11 +367,13 @@ class NBUF_Template_Manager {
 		return '<p>' . __( 'Template not found.', 'nobloat-user-foundry' ) . '</p>';
 	}
 
-	/* ==========================================================
-	   CLEAR CACHE
-	   ----------------------------------------------------------
-	   Clear runtime template cache (useful for testing).
-	   ========================================================== */
+	/**
+	 * CLEAR CACHE.
+	 *
+	 * Clear runtime template cache (useful for testing).
+	 *
+	 * @param string|null $template_name Optional template to clear, or null for all.
+	 */
 	public static function clear_cache( $template_name = null ) {
 		if ( $template_name ) {
 			unset( self::$cache[ $template_name ] );
@@ -351,60 +382,65 @@ class NBUF_Template_Manager {
 		}
 	}
 
-	/* ==========================================================
-	   GET TEMPLATE LIST
-	   ----------------------------------------------------------
-	   Get all available templates (for admin UI).
-	   ========================================================== */
+	/**
+	==========================================================
+	GET TEMPLATE LIST
+	----------------------------------------------------------
+	Get all available templates (for admin UI).
+	==========================================================
+	 */
 	public static function get_template_list() {
 		return array_keys( self::$template_map );
 	}
 
-	/* ==========================================================
-	   GET PLACEHOLDERS
-	   ----------------------------------------------------------
-	   Get available placeholders for each template type.
-	   ========================================================== */
+	/**
+	 * GET PLACEHOLDERS.
+	 *
+	 * Get available placeholders for each template type.
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return array Array of placeholder descriptions.
+	 */
 	public static function get_placeholders( $template_name ) {
 		$placeholders = array(
-			// Email verification
+			// Email verification.
 			'email-verification-html' => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
 			'email-verification-text' => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
 
-			// Welcome email
+			// Welcome email.
 			'welcome-email-html'      => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
 			'welcome-email-text'      => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
 
-			// Expiration warning
+			// Expiration warning.
 			'expiration-warning-html' => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
 			'expiration-warning-text' => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
 
-			// 2FA email code
+			// 2FA email code.
 			'2fa-email-code-html'     => '{site_name}, {display_name}, {code}, {user_email}',
 			'2fa-email-code-text'     => '{site_name}, {display_name}, {code}, {user_email}',
 
-			// Password reset
+			// Password reset.
 			'password-reset-html'     => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
 			'password-reset-text'     => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
 
-			// Admin new user notification
+			// Admin new user notification.
 			'admin-new-user-html'     => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
 			'admin-new-user-text'     => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
 
-			// Login form
+			// Login form.
 			'login-form'              => '{action_url}, {nonce_field}, {redirect_to}, {reset_url}, {register_link}, {error_message}',
 
-			// Registration form
+			// Registration form.
 			'registration-form'       => '{action_url}, {nonce_field}, {registration_fields}, {error_message}, {login_link}',
 
-			// Account page
+			// Account page.
 			'account-page'            => '{messages}, {status_badges}, {username}, {email}, {display_name}, {registered_date}, {expiration_info}, {action_url}, {nonce_field}, {nonce_field_password}, {profile_fields}, {logout_url}',
 
-			// Reset forms
+			// Reset forms.
 			'request-reset-form'      => '{action_url}, {nonce_field}, {error_message}, {success_message}, {login_url}, {register_link}',
 			'reset-form'              => '{action_url}, {nonce_field}, {error_message}, {password_requirements}, {login_url}',
 
-			// 2FA pages
+			// 2FA pages.
 			'2fa-verify'              => '{action_url}, {nonce_field}, {error_message}, {method}, {resend_link}',
 			'2fa-setup-totp'          => '{qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}',
 			'2fa-backup-codes'        => '{backup_codes}, {action_url}, {nonce_field}, {error_message}',

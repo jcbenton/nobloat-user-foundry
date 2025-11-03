@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings   = NBUF_Options::get('nbuf_settings', array() );
+$settings = NBUF_Options::get( 'nbuf_settings', array() );
 
 /* Feature toggles */
 $require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );

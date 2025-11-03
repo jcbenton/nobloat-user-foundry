@@ -14,15 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Abstract class Abstract_NBUF_Restriction
+ *
+ * Base class for all restriction types.
+ */
 abstract class Abstract_NBUF_Restriction {
+
 
 	/**
 	 * Check if current user has access based on visibility settings
 	 *
-	 * @param string $visibility Visibility setting: 'everyone', 'logged_in', 'logged_out', 'role_based'
-	 * @param array  $allowed_roles Array of allowed role slugs (only used if visibility = 'role_based')
-	 * @param int    $user_id Optional user ID (defaults to current user)
-	 * @return bool True if user has access, false otherwise
+	 * @param  string $visibility    Visibility setting: 'everyone', 'logged_in', 'logged_out', 'role_based'.
+	 * @param  array  $allowed_roles Array of allowed role slugs (only used if visibility = 'role_based').
+	 * @param  int    $user_id       Optional user ID (defaults to current user).
+	 * @return bool True if user has access, false otherwise.
 	 */
 	protected static function check_access( $visibility, $allowed_roles = array(), $user_id = null ) {
 		/* Get user */
@@ -51,7 +57,7 @@ abstract class Abstract_NBUF_Restriction {
 
 				/* Check if user has one of the allowed roles */
 				if ( empty( $allowed_roles ) ) {
-					return false; // No roles specified = no access
+					return false; // No roles specified = no access.
 				}
 
 				/* Parse allowed roles if JSON string */
@@ -74,8 +80,8 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Sanitize visibility value
 	 *
-	 * @param string $visibility Raw visibility value
-	 * @return string Sanitized visibility value
+	 * @param  string $visibility Raw visibility value.
+	 * @return string Sanitized visibility value.
 	 */
 	protected static function sanitize_visibility( $visibility ) {
 		$allowed = array( 'everyone', 'logged_in', 'logged_out', 'role_based' );
@@ -88,8 +94,8 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Sanitize allowed roles array
 	 *
-	 * @param array $roles Raw roles array
-	 * @return array Sanitized roles array
+	 * @param  array $roles Raw roles array.
+	 * @return array Sanitized roles array.
 	 */
 	protected static function sanitize_roles( $roles ) {
 		if ( ! is_array( $roles ) ) {
@@ -97,7 +103,7 @@ abstract class Abstract_NBUF_Restriction {
 		}
 
 		/* Get valid WordPress roles */
-		$wp_roles = wp_roles()->get_names();
+		$wp_roles   = wp_roles()->get_names();
 		$role_slugs = array_keys( $wp_roles );
 
 		/* Filter to only valid roles */

@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restriction_Menu
+ *
+ * Handles menu item visibility restrictions.
+ */
 class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
+
 
 	/**
 	 * Initialize menu restrictions
@@ -33,9 +39,9 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 	/**
 	 * Filter menu items based on restrictions
 	 *
-	 * @param array $items Menu items
-	 * @param array $args Menu arguments
-	 * @return array Filtered items
+	 * @param  array $items Menu items.
+	 * @param  array $args  Menu arguments.
+	 * @return array Filtered items.
 	 */
 	public static function filter_menu_items( $items, $args ) {
 		/* Get all menu item IDs */
@@ -47,13 +53,14 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 
 		/* Load all restrictions in one query */
 		global $wpdb;
-		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
+		$table        = $wpdb->prefix . 'nbuf_menu_restrictions';
 		$placeholders = implode( ',', array_fill( 0, count( $menu_item_ids ), '%d' ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$restrictions = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE menu_item_id IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN clause with variable placeholders
+				"SELECT * FROM {$table} WHERE menu_item_id IN ($placeholders)",
 				...$menu_item_ids
 			),
 			OBJECT_K
@@ -102,26 +109,27 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 	/**
 	 * Add restriction fields to menu editor
 	 *
-	 * @param int    $item_id Menu item ID
-	 * @param object $item Menu item object
-	 * @param int    $depth Item depth
-	 * @param array  $args Menu arguments
+	 * @param int    $item_id Menu item ID.
+	 * @param object $item    Menu item object.
+	 * @param int    $depth   Item depth.
+	 * @param array  $args    Menu arguments.
 	 */
 	public static function add_menu_fields( $item_id, $item, $depth, $args ) {
 		/* Get existing restriction */
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$restriction = $wpdb->get_row(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT * FROM {$table} WHERE menu_item_id = %d",
 				$item_id
 			)
 		);
 
 		/* Current values */
-		$visibility = $restriction ? $restriction->visibility : 'everyone';
+		$visibility    = $restriction ? $restriction->visibility : 'everyone';
 		$allowed_roles = array();
 		if ( $restriction && ! empty( $restriction->allowed_roles ) ) {
 			$allowed_roles = json_decode( $restriction->allowed_roles, true );
@@ -135,7 +143,7 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 		?>
 		<p class="description description-wide nbuf-menu-restriction-visibility">
 			<label for="nbuf_menu_visibility_<?php echo esc_attr( $item_id ); ?>">
-				<?php esc_html_e( 'Access Restriction', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Access Restriction', 'nobloat-user-foundry' ); ?>
 			</label>
 			<select name="nbuf_menu_visibility[<?php echo esc_attr( $item_id ); ?>]" id="nbuf_menu_visibility_<?php echo esc_attr( $item_id ); ?>" class="widefat nbuf-menu-visibility-select">
 				<option value="everyone" <?php selected( $visibility, 'everyone' ); ?>><?php esc_html_e( 'Everyone', 'nobloat-user-foundry' ); ?></option>
@@ -147,18 +155,18 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 
 		<p class="description description-wide nbuf-menu-restriction-roles" id="nbuf_menu_roles_<?php echo esc_attr( $item_id ); ?>" style="display: <?php echo 'role_based' === $visibility ? 'block' : 'none'; ?>;">
 			<label><?php esc_html_e( 'Allowed Roles:', 'nobloat-user-foundry' ); ?></label><br>
-			<?php
-			$wp_roles = wp_roles()->get_names();
-			foreach ( $wp_roles as $role_slug => $role_name ) {
-				$checked = in_array( $role_slug, $allowed_roles, true );
-				?>
+		<?php
+		$wp_roles = wp_roles()->get_names();
+		foreach ( $wp_roles as $role_slug => $role_name ) {
+			$checked = in_array( $role_slug, $allowed_roles, true );
+			?>
 				<label style="display: inline-block; margin-right: 10px;">
 					<input type="checkbox" name="nbuf_menu_roles[<?php echo esc_attr( $item_id ); ?>][]" value="<?php echo esc_attr( $role_slug ); ?>" <?php checked( $checked ); ?>>
-					<?php echo esc_html( $role_name ); ?>
+			<?php echo esc_html( $role_name ); ?>
 				</label>
-				<?php
-			}
-			?>
+			<?php
+		}
+		?>
 		</p>
 
 		<script>
@@ -179,9 +187,9 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 	/**
 	 * Save menu restriction fields
 	 *
-	 * @param int   $menu_id Menu ID
-	 * @param int   $menu_item_id Menu item ID
-	 * @param array $args Menu item arguments
+	 * @param int   $menu_id      Menu ID.
+	 * @param int   $menu_item_id Menu item ID.
+	 * @param array $args         Menu item arguments.
 	 */
 	public static function save_menu_fields( $menu_id, $menu_item_id, $args ) {
 		/* Verify nonce */
@@ -206,7 +214,7 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 
 		/* If visibility is "everyone", delete restriction and return */
 		if ( 'everyone' === $visibility ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->delete(
 				$table,
 				array( 'menu_item_id' => $menu_item_id ),
@@ -218,30 +226,35 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 		/* Get allowed roles */
 		$allowed_roles = array();
 		if ( 'role_based' === $visibility && ! empty( $_POST['nbuf_menu_roles'][ $menu_item_id ] ) ) {
-			$raw_roles = array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_menu_roles'][ $menu_item_id ] ) );
+			$raw_roles     = array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_menu_roles'][ $menu_item_id ] ) );
 			$allowed_roles = self::sanitize_roles( $raw_roles );
 		}
 
 		/* Prepare data */
 		$data = array(
-			'menu_item_id' => $menu_item_id,
-			'visibility'   => $visibility,
+			'menu_item_id'  => $menu_item_id,
+			'visibility'    => $visibility,
 			'allowed_roles' => wp_json_encode( $allowed_roles ),
-			'updated_at'   => self::get_current_timestamp(),
+			'updated_at'    => self::get_current_timestamp(),
 		);
 
-		/* Check if exists */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/*
+		* Check if exists
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT menu_item_id FROM {$table} WHERE menu_item_id = %d",
 				$menu_item_id
 			)
 		);
 
 		if ( $exists ) {
-			/* Update existing */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			/*
+			* Update existing
+			*/
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->update(
 				$table,
 				$data,
@@ -252,7 +265,7 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 		} else {
 			/* Insert new */
 			$data['created_at'] = self::get_current_timestamp();
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
 				$table,
 				$data,

@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Version_History_Page
+ *
+ * Admin page for viewing and managing user profile version history.
+ */
 class NBUF_Version_History_Page {
+
 
 	/**
 	 * Initialize version history page
@@ -46,6 +52,8 @@ class NBUF_Version_History_Page {
 
 	/**
 	 * Enqueue page assets
+	 *
+	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_assets( $hook ) {
 		if ( 'nobloat-user-foundry_page_nobloat-foundry-version-history' !== $hook ) {
@@ -57,7 +65,7 @@ class NBUF_Version_History_Page {
 		/* Enqueue version history CSS */
 		wp_enqueue_style(
 			'nbuf-version-history',
-			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/css/admin/version-history.css',
+			plugin_dir_url( __DIR__ ) . 'assets/css/admin/version-history.css',
 			array(),
 			'1.4.0'
 		);
@@ -65,35 +73,39 @@ class NBUF_Version_History_Page {
 		/* Enqueue version history JS */
 		wp_enqueue_script(
 			'nbuf-version-history',
-			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/admin/version-history.js',
+			plugin_dir_url( __DIR__ ) . 'assets/js/admin/version-history.js',
 			array( 'jquery' ),
 			'1.4.0',
 			true
 		);
 
-		wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', array(
-			'ajax_url'   => admin_url( 'admin-ajax.php' ),
-			'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-			'can_revert' => $can_revert ? true : false,
-			'i18n'       => array(
-				'registration'      => __( 'Registration', 'nobloat-user-foundry' ),
-				'profile_update'    => __( 'Profile Update', 'nobloat-user-foundry' ),
-				'admin_update'      => __( 'Admin Update', 'nobloat-user-foundry' ),
-				'import'            => __( 'Import', 'nobloat-user-foundry' ),
-				'reverted'          => __( 'Reverted', 'nobloat-user-foundry' ),
-				'self'              => __( 'Self', 'nobloat-user-foundry' ),
-				'admin'             => __( 'Admin', 'nobloat-user-foundry' ),
-				'confirm_revert'    => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-				'revert_success'    => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-				'revert_failed'     => __( 'Revert failed.', 'nobloat-user-foundry' ),
-				'error'             => __( 'An error occurred.', 'nobloat-user-foundry' ),
-				'before'            => __( 'Before:', 'nobloat-user-foundry' ),
-				'after'             => __( 'After:', 'nobloat-user-foundry' ),
-				'field'             => __( 'Field', 'nobloat-user-foundry' ),
-				'before_value'      => __( 'Before', 'nobloat-user-foundry' ),
-				'after_value'       => __( 'After', 'nobloat-user-foundry' ),
-			),
-		) );
+		wp_localize_script(
+			'nbuf-version-history',
+			'NBUF_VersionHistory',
+			array(
+				'ajax_url'   => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
+				'can_revert' => $can_revert ? true : false,
+				'i18n'       => array(
+					'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
+					'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
+					'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
+					'import'         => __( 'Import', 'nobloat-user-foundry' ),
+					'reverted'       => __( 'Reverted', 'nobloat-user-foundry' ),
+					'self'           => __( 'Self', 'nobloat-user-foundry' ),
+					'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
+					'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
+					'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
+					'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
+					'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
+					'before'         => __( 'Before:', 'nobloat-user-foundry' ),
+					'after'          => __( 'After:', 'nobloat-user-foundry' ),
+					'field'          => __( 'Field', 'nobloat-user-foundry' ),
+					'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
+					'after_value'    => __( 'After', 'nobloat-user-foundry' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -105,7 +117,10 @@ class NBUF_Version_History_Page {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Get selected user from query string */
+		/*
+		 * Get selected user from query string
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display parameter
 		$selected_user_id = isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0;
 
 		/* Get statistics */
@@ -118,7 +133,7 @@ class NBUF_Version_History_Page {
 			<hr class="wp-header-end">
 
 			<p class="description" style="margin-bottom: 20px;">
-				<?php esc_html_e( 'View complete profile change history for any user. Track all modifications, compare versions, and restore previous states.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'View complete profile change history for any user. Track all modifications, compare versions, and restore previous states.', 'nobloat-user-foundry' ); ?>
 			</p>
 
 			<!-- Statistics Dashboard -->
@@ -143,15 +158,16 @@ class NBUF_Version_History_Page {
 					</div>
 				</div>
 
-				<?php if ( ! empty( $stats['last_cleanup'] ) ) : ?>
+		<?php if ( ! empty( $stats['last_cleanup'] ) ) : ?>
 					<p style="margin: 15px 0 0 0; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px;">
 						<strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong>
-						<?php echo esc_html( $stats['last_cleanup'] ); ?>
-						<?php if ( $stats['last_cleanup_count'] > 0 ) : ?>
-							(<?php echo esc_html( sprintf( _n( '%d version deleted', '%d versions deleted', $stats['last_cleanup_count'], 'nobloat-user-foundry' ), $stats['last_cleanup_count'] ) ); ?>)
-						<?php endif; ?>
+			<?php echo esc_html( $stats['last_cleanup'] ); ?>
+			<?php if ( $stats['last_cleanup_count'] > 0 ) : ?>
+				<?php /* translators: %d: Number of deleted versions */ ?>
+						(<?php echo esc_html( sprintf( _n( '%d version deleted', '%d versions deleted', $stats['last_cleanup_count'], 'nobloat-user-foundry' ), $stats['last_cleanup_count'] ) ); ?>)
+			<?php endif; ?>
 					</p>
-				<?php endif; ?>
+		<?php endif; ?>
 			</div>
 
 			<!-- User Selector -->
@@ -162,48 +178,48 @@ class NBUF_Version_History_Page {
 
 					<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 						<label for="user_id" style="font-weight: 600;">
-							<?php esc_html_e( 'User:', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'User:', 'nobloat-user-foundry' ); ?>
 						</label>
 
-						<?php
-						wp_dropdown_users(
-							array(
-								'name'             => 'user_id',
-								'id'               => 'user_id',
-								'selected'         => $selected_user_id,
-								'show_option_none' => __( '— Select User —', 'nobloat-user-foundry' ),
-								'class'            => 'regular-text',
-							)
-						);
-						?>
+		<?php
+		wp_dropdown_users(
+			array(
+				'name'             => 'user_id',
+				'id'               => 'user_id',
+				'selected'         => $selected_user_id,
+				'show_option_none' => __( '— Select User —', 'nobloat-user-foundry' ),
+				'class'            => 'regular-text',
+			)
+		);
+		?>
 
-						<?php submit_button( __( 'View History', 'nobloat-user-foundry' ), 'primary', 'submit', false ); ?>
+		<?php submit_button( __( 'View History', 'nobloat-user-foundry' ), 'primary', 'submit', false ); ?>
 					</div>
 
-					<?php if ( $selected_user_id > 0 ) : ?>
+		<?php if ( $selected_user_id > 0 ) : ?>
 						<p style="margin: 10px 0 0 0;">
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-version-history' ) ); ?>" class="button">
-								<?php esc_html_e( 'Clear Selection', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'Clear Selection', 'nobloat-user-foundry' ); ?>
 							</a>
 						</p>
-					<?php endif; ?>
+		<?php endif; ?>
 				</form>
 			</div>
 
 			<!-- Version History Display -->
-			<?php if ( $selected_user_id > 0 ) : ?>
-				<?php
-				$user = get_userdata( $selected_user_id );
-				if ( $user ) :
-					?>
+		<?php if ( $selected_user_id > 0 ) : ?>
+			<?php
+			$user = get_userdata( $selected_user_id );
+			if ( $user ) :
+				?>
 					<div class="nbuf-vh-admin-page" style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; border-radius: 4px;">
-						<?php
-						/* Include the version history viewer template */
-						$user_id = $selected_user_id;
-						$context = 'admin';
-						$can_revert = true; // Admins can always revert
-						include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/version-history-viewer.php';
-						?>
+				<?php
+				/* Include the version history viewer template */
+				$user_id    = $selected_user_id;
+				$context    = 'admin';
+				$can_revert = true; // Admins can always revert.
+				include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+				?>
 					</div>
 				<?php else : ?>
 					<div class="notice notice-error">
@@ -217,41 +233,47 @@ class NBUF_Version_History_Page {
 			<?php endif; ?>
 		</div>
 
-		<style>
-		.nbuf-stats-box h3 {
-			font-size: 16px;
-			margin-bottom: 15px;
-		}
-		</style>
+		
 		<?php
 	}
 
 	/**
 	 * Get version history statistics
 	 *
-	 * @return array Statistics data
+	 * @return array Statistics data.
 	 */
 	private static function get_stats() {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
-		/* Total versions */
-		$total_versions = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name}" );
+		/*
+		* Total versions.
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
+		$total_versions = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
 
-		/* Total users with versions */
-		$total_users = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT user_id) FROM {$table_name}" );
+		/*
+		* Total users with versions.
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
+		$total_users = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(DISTINCT user_id) FROM %i', $table_name ) );
 
-		/* Database size */
-		$size_result = $wpdb->get_row( "SHOW TABLE STATUS LIKE '{$table_name}'" );
+		/*
+		* Database size.
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
+		$size_result = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $table_name ) );
+     // phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$size_bytes = isset( $size_result->Data_length ) ? (int) $size_result->Data_length : 0;
+     // phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$database_size = size_format( $size_bytes, 2 );
 
 		/* Retention period */
 		$retention_days = (int) NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
 
 		/* Last cleanup */
-		$last_cleanup = NBUF_Options::get( 'nbuf_last_vh_cleanup', '' );
+		$last_cleanup       = NBUF_Options::get( 'nbuf_last_vh_cleanup', '' );
 		$last_cleanup_count = (int) NBUF_Options::get( 'nbuf_last_vh_cleanup_count', 0 );
 
 		if ( $last_cleanup ) {
@@ -261,12 +283,12 @@ class NBUF_Version_History_Page {
 		}
 
 		return array(
-			'total_versions'      => $total_versions,
-			'total_users'         => $total_users,
-			'database_size'       => $database_size,
-			'retention_days'      => $retention_days,
-			'last_cleanup'        => $last_cleanup,
-			'last_cleanup_count'  => $last_cleanup_count,
+			'total_versions'     => $total_versions,
+			'total_users'        => $total_users,
+			'database_size'      => $database_size,
+			'retention_days'     => $retention_days,
+			'last_cleanup'       => $last_cleanup,
+			'last_cleanup_count' => $last_cleanup_count,
 		);
 	}
 }

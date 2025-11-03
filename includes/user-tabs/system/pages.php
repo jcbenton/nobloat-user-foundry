@@ -43,8 +43,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_verification',
-						'selected'          => $page_verification,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_verification ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);
@@ -61,8 +61,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_password_reset',
-						'selected'          => $page_reset,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_reset ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);
@@ -79,8 +79,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_request_reset',
-						'selected'          => $page_request_reset,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_request_reset ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);
@@ -97,8 +97,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_login',
-						'selected'          => $page_login,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_login ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);
@@ -115,8 +115,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_registration',
-						'selected'          => $page_registration,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_registration ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);
@@ -133,8 +133,8 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_account',
-						'selected'          => $page_account,
-						'show_option_none'  => __( '— Select Page —', 'nobloat-user-foundry' ),
+						'selected'          => absint( $page_account ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
 				);

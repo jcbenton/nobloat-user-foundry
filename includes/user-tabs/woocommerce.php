@@ -17,7 +17,7 @@ $settings = NBUF_Options::get( 'nbuf_settings', array() );
 $hooks    = (array) ( $settings['hooks'] ?? array() );
 
 /* WooCommerce expiration settings */
-$wc_prevent_active_subs  = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
+$wc_prevent_active_subs   = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
 $wc_prevent_recent_orders = NBUF_Options::get( 'nbuf_wc_prevent_recent_orders', false );
 $wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
 

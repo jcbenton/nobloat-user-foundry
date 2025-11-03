@@ -20,14 +20,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Password_Validator {
 
+
 	/**
 	 * Validate password against requirements
 	 *
 	 * Checks password against all enabled strength requirements
 	 * including length, character types, and minimum strength level.
 	 *
-	 * @param string $password Password to validate.
-	 * @param int    $user_id  User ID (for admin bypass check).
+	 * @param  string $password Password to validate.
+	 * @param  int    $user_id  User ID (for admin bypass check).
 	 * @return true|WP_Error True if valid, WP_Error if invalid.
 	 */
 	public static function validate( $password, $user_id = 0 ) {
@@ -91,7 +92,7 @@ class NBUF_Password_Validator {
 	 * Checks if password requirements should be enforced for the
 	 * specified context based on plugin settings.
 	 *
-	 * @param string $context Context: 'registration', 'profile_change', or 'reset'.
+	 * @param  string $context Context: 'registration', 'profile_change', or 'reset'.
 	 * @return bool True if enforcement enabled for context.
 	 */
 	public static function should_enforce( $context ) {
@@ -118,7 +119,7 @@ class NBUF_Password_Validator {
 	 * Determines if a user's current password meets the strength
 	 * requirements. Used for weak password migration feature.
 	 *
-	 * @param int $user_id User ID to check.
+	 * @param  int $user_id User ID to check.
 	 * @return bool True if password is weak and should be changed.
 	 */
 	public static function has_weak_password( $user_id ) {
@@ -142,10 +143,12 @@ class NBUF_Password_Validator {
 				NBUF_User_Data::clear_weak_password_flag( $user_id );
 				return false;
 			}
-			return true; // Still flagged and not changed
+			return true; // Still flagged and not changed.
 		}
 
-		/* Note: We cannot validate existing password hashes */
+		/*
+		Note: We cannot validate existing password hashes
+		*/
 		/* This feature requires tracking password changes moving forward */
 
 		return false;

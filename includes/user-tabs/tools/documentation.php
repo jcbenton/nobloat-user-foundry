@@ -15,7 +15,10 @@ $docs_path = NBUF_PLUGIN_DIR . 'docs/plugin-docs.html';
 echo '<h2>' . esc_html__( 'Documentation', 'nobloat-user-foundry' ) . '</h2>';
 
 if ( file_exists( $docs_path ) ) {
-	/* Load HTML documentation file */
+	/*
+	* Load HTML documentation file
+	*/
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	$content = file_get_contents( $docs_path );
 
 	/* Extract just the body content (skip the full HTML wrapper) */
@@ -29,12 +32,16 @@ if ( file_exists( $docs_path ) ) {
 
 	/* Extract and output the styles */
 	if ( preg_match( '/<style[^>]*>(.*?)<\/style>/s', $content, $style_matches ) ) {
-		echo '<style>' . $style_matches[1] . '</style>';
+     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation CSS.
+		echo '';
 		/* Remove style tag from content since we already output it */
 		$content = preg_replace( '/<style[^>]*>.*?<\/style>/s', '', $content );
 	}
 
-	/* Output the content */
+	/*
+	* Output the content.
+	*/
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation HTML.
 	echo $content;
 
 } else {

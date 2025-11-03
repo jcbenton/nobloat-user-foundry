@@ -12,6 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/**
+ * Direct database access is architectural for 2FA data management.
+ * Custom nbuf_user_2fa table stores security-sensitive 2FA data and cannot use
+ * WordPress's standard meta APIs. Caching is not implemented for security data
+ * to prevent stale authentication states.
+ */
+
 /**
  * NBUF_2FA class.
  *
@@ -19,22 +28,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_2FA {
 
+
 	/* TOTP (Time-based One-Time Password) constants per RFC 6238 */
-	const TOTP_TIME_WINDOW       = 30;  // Seconds per time step (RFC 6238 standard)
-	const TOTP_TOLERANCE_STEPS   = 1;   // Number of time steps to check before/after current
-	const TOTP_DEFAULT_CODE_LENGTH = 6; // Standard TOTP code length
+	const TOTP_TIME_WINDOW         = 30;  // Seconds per time step (RFC 6238 standard).
+	const TOTP_TOLERANCE_STEPS     = 1;   // Number of time steps to check before/after current.
+	const TOTP_DEFAULT_CODE_LENGTH = 6; // Standard TOTP code length.
 
 	/* Email 2FA code constants */
-	const EMAIL_CODE_LENGTH      = 6;   // Default email verification code length
-	const EMAIL_CODE_EXPIRATION  = 300; // Email code expiration in seconds (5 minutes)
-	const EMAIL_CODE_COOLDOWN    = 60;  // Cooldown between code requests in seconds
+	const EMAIL_CODE_LENGTH     = 6;   // Default email verification code length.
+	const EMAIL_CODE_EXPIRATION = 300; // Email code expiration in seconds (5 minutes).
+	const EMAIL_CODE_COOLDOWN   = 60;  // Cooldown between code requests in seconds.
 
 	/* Backup code constants */
-	const BACKUP_CODE_COUNT      = 10;  // Default number of backup codes to generate
-	const BACKUP_CODE_LENGTH     = 8;   // Length of each backup code
+	const BACKUP_CODE_COUNT  = 10;  // Default number of backup codes to generate.
+	const BACKUP_CODE_LENGTH = 8;   // Length of each backup code.
 
 	/* Device trust constants */
-	const DEVICE_TRUST_DURATION  = 2592000; // 30 days in seconds (30 * 24 * 60 * 60)
+	const DEVICE_TRUST_DURATION = 2592000; // 30 days in seconds (30 * 24 * 60 * 60)
 
 	/**
 	 * Check if user should be challenged with 2FA
@@ -45,10 +55,10 @@ class NBUF_2FA {
 	 * - Whether their device is trusted
 	 * - Grace period status
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if 2FA challenge required.
 	 */
-	public static function should_challenge( $user_id ) {
+	public static function should_challenge( int $user_id ): bool {
 		/* Check if user has 2FA enabled */
 		if ( ! self::is_enabled( $user_id ) ) {
 			/* Check if 2FA is required but user hasn't set it up */
@@ -77,21 +87,21 @@ class NBUF_2FA {
 	 *
 	 * Determines if 2FA is mandatory for the user based on role and settings.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if 2FA is required.
 	 */
-	public static function is_required( $user_id ) {
+	public static function is_required( int $user_id ): bool {
 		$email_method = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
 		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
 
 		/* Check if either method requires 2FA for all users */
-		if ( $email_method === 'required_all' || $totp_method === 'required_all' ) {
+		if ( 'required_all' === $email_method || 'required_all' === $totp_method ) {
 			return true;
 		}
 
 		/* Check if user is admin and admin 2FA is required */
 		if ( user_can( $user_id, 'manage_options' ) ) {
-			if ( $email_method === 'required_admin' || $totp_method === 'required_admin' ) {
+			if ( 'required_admin' === $email_method || 'required_admin' === $totp_method ) {
 				return true;
 			}
 		}
@@ -102,20 +112,20 @@ class NBUF_2FA {
 	/**
 	 * Check if user has 2FA enabled
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if user has 2FA active.
 	 */
-	public static function is_enabled( $user_id ) {
+	public static function is_enabled( int $user_id ): bool {
 		return NBUF_User_2FA_Data::is_enabled( $user_id );
 	}
 
 	/**
 	 * Get user's 2FA method
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return string|false 'email', 'totp', 'both', or false if not enabled.
 	 */
-	public static function get_user_method( $user_id ) {
+	public static function get_user_method( int $user_id ) {
 		if ( ! self::is_enabled( $user_id ) ) {
 			return false;
 		}
@@ -128,7 +138,7 @@ class NBUF_2FA {
 	 *
 	 * Uses random_int() for CSPRNG security, consistent with backup codes.
 	 *
-	 * @param int $code_length Number of digits (default EMAIL_CODE_LENGTH).
+	 * @param  int $code_length Number of digits (default EMAIL_CODE_LENGTH).
 	 * @return string|false Numeric code padded with leading zeros, or false on failure.
 	 */
 	private static function generate_numeric_code( $code_length = self::EMAIL_CODE_LENGTH ) {
@@ -143,7 +153,7 @@ class NBUF_2FA {
 			$code = random_int( 0, $max_value );
 		} catch ( Exception $e ) {
 			/* Extremely rare - indicates broken random source */
-			error_log( 'NBUF 2FA: random_int() failed: ' . $e->getMessage() );
+			error_log( 'NBUF 2FA: random_int() failed: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Exception logging for fallback random generation.
 			return false;
 		}
 
@@ -160,26 +170,27 @@ class NBUF_2FA {
 	 * SECURITY: Codes are hashed before storage to protect against database compromise.
 	 * Even if an attacker gains database access, they cannot retrieve usable codes.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function send_email_code( $user_id ) {
+	public static function send_email_code( int $user_id ) {
 		/* Get user */
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
+			/* SECURITY: Generic error message to prevent user enumeration */
 			return new WP_Error(
-				'nbuf_2fa_user_not_found',
-				__( 'User not found.', 'nobloat-user-foundry' )
+				'nbuf_2fa_error',
+				__( 'Verification failed. Please try again.', 'nobloat-user-foundry' )
 			);
 		}
 
 		/*
-		 * SECURITY: Atomic rate limiting check using add_transient()
-		 *
-		 * add_transient() returns false if transient already exists, providing
-		 * atomic check-and-set operation that prevents race conditions.
-		 * This ensures only one code generation request succeeds within the 60-second window.
-		 */
+		* SECURITY: Atomic rate limiting check using add_transient()
+		*
+		* add_transient() returns false if transient already exists, providing
+		* atomic check-and-set operation that prevents race conditions.
+		* This ensures only one code generation request succeeds within the 60-second window.
+		*/
 		$rate_limit_key = 'nbuf_2fa_email_rate_limit_' . $user_id;
 		if ( ! add_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN ) ) {
 			/* Transient already exists - user is rate limited */
@@ -197,7 +208,7 @@ class NBUF_2FA {
 		/* Generate cryptographically secure random code */
 		$code = self::generate_numeric_code( $code_length );
 
-		if ( $code === false ) {
+		if ( false === $code ) {
 			return new WP_Error(
 				'nbuf_2fa_generation_failed',
 				__( 'Failed to generate verification code. Please try again.', 'nobloat-user-foundry' )
@@ -208,7 +219,7 @@ class NBUF_2FA {
 		$hashed_code = wp_hash_password( $code );
 
 		if ( empty( $hashed_code ) || ! is_string( $hashed_code ) ) {
-			error_log( sprintf( 'NBUF 2FA: wp_hash_password() failed for user %d', $user_id ) );
+			error_log( sprintf( 'NBUF 2FA: wp_hash_password() failed for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
 			return new WP_Error(
 				'nbuf_2fa_hash_failed',
 				__( 'Security error. Please try again.', 'nobloat-user-foundry' )
@@ -220,7 +231,7 @@ class NBUF_2FA {
 		$stored        = set_transient( $transient_key, $hashed_code, $expiration_seconds );
 
 		if ( ! $stored ) {
-			error_log( sprintf( 'NBUF 2FA: Failed to store code for user %d', $user_id ) );
+			error_log( sprintf( 'NBUF 2FA: Failed to store code for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
 			return new WP_Error(
 				'nbuf_2fa_storage_failed',
 				__( 'Failed to store verification code. Please try again.', 'nobloat-user-foundry' )
@@ -231,14 +242,15 @@ class NBUF_2FA {
 
 		/* Send email with plain text code (user needs to read it) */
 		$subject = sprintf(
-			/* translators: %s: site name */
+		/* translators: %s: site name */
 			__( 'Your verification code for %s', 'nobloat-user-foundry' ),
 			get_bloginfo( 'name' )
 		);
 
 		$message = sprintf(
-			/* translators: 1: user display name, 2: verification code, 3: expiration minutes, 4: site name */
-			__( 'Hello %1$s,
+		/* translators: 1: user display name, 2: verification code, 3: expiration minutes, 4: site name */
+			__(
+				'Hello %1$s,
 
 Your verification code is: %2$s
 
@@ -246,7 +258,9 @@ This code will expire in %3$d minutes.
 
 If you did not request this code, please ignore this email.
 
-- %4$s', 'nobloat-user-foundry' ),
+- %4$s',
+				'nobloat-user-foundry'
+			),
 			$user->display_name,
 			$code,
 			$expiration_minutes,
@@ -271,11 +285,11 @@ If you did not request this code, please ignore this email.
 	 * brute force attacks. Even if database is compromised, hashed codes cannot be
 	 * reversed to obtain usable verification codes.
 	 *
-	 * @param int    $user_id User ID.
-	 * @param string $code User-entered code.
+	 * @param  int    $user_id User ID.
+	 * @param  string $code    User-entered code.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function verify_email_code( $user_id, $code ) {
+	public static function verify_email_code( int $user_id, string $code ) {
 		/* Check for lockout */
 		if ( self::is_locked_out( $user_id ) ) {
 			return new WP_Error(
@@ -302,24 +316,29 @@ If you did not request this code, please ignore this email.
 		}
 
 		/*
-		 * SECURITY: Timing attack protection
-		 *
-		 * Always perform password check even if code expired. If we return early on
-		 * expiration without hashing, the timing difference reveals whether a valid
-		 * code exists. bcrypt verification takes ~50-100ms, so early return creates
-		 * a measurable timing oracle.
-		 *
-		 * Solution: Use dummy hash with same bcrypt cost factor as real codes.
-		 * This ensures both code paths (expired vs valid) take approximately the
-		 * same time (~50-100ms), preventing timing side-channel attacks.
-		 */
-		if ( $stored_hash === false ) {
+		* SECURITY: Timing attack protection
+		*
+		* Always perform password check even if code expired. If we return early on
+		* expiration without hashing, the timing difference reveals whether a valid
+		* code exists. bcrypt verification takes ~50-100ms, so early return creates
+		* a measurable timing oracle.
+		*
+		* Solution: Use dummy hash with same bcrypt cost factor as real codes.
+		* This ensures both code paths (expired vs valid) take approximately the
+		* same time (~50-100ms), preventing timing side-channel attacks.
+		*/
+		if ( false === $stored_hash ) {
 			/*
-			 * Dummy bcrypt hash for constant-time comparison
-			 * Format: $2y$10$ = bcrypt with cost factor 10 (same as wp_hash_password)
-			 * The actual hash data is irrelevant - we just need bcrypt to do work
-			 */
-			$dummy_hash = '$2y$10$abcdefghijklmnopqrstuv.WXYZ01234567890ABCDEFGHIJKLMNO';
+			* SECURITY: Dynamic dummy hash for constant-time comparison
+			*
+			* Generate dummy hash with same cost factor as wp_hash_password().
+			* This ensures timing protection remains effective even if WordPress
+			* changes default bcrypt cost factor in future versions.
+			*/
+			static $dummy_hash = null;
+			if ( null === $dummy_hash ) {
+				$dummy_hash = wp_hash_password( 'dummy_2fa_timing_protection_' . wp_salt() );
+			}
 			wp_check_password( $code, $dummy_hash );
 
 			return new WP_Error(
@@ -329,13 +348,13 @@ If you did not request this code, please ignore this email.
 		}
 
 		/*
-		 * SECURITY: Verify code using bcrypt password verification
-		 *
-		 * wp_check_password() uses password_verify() internally, which:
-		 * 1. Is constant-time for comparison (timing attack resistant)
-		 * 2. Automatically handles bcrypt salt and cost factor
-		 * 3. Is consistent with backup code verification logic (line 350)
-		 */
+		* SECURITY: Verify code using bcrypt password verification
+		*
+		* wp_check_password() uses password_verify() internally, which:
+		* 1. Is constant-time for comparison (timing attack resistant)
+		* 2. Automatically handles bcrypt salt and cost factor
+		* 3. Is consistent with backup code verification logic (line 350)
+		*/
 		if ( ! wp_check_password( $code, $stored_hash ) ) {
 			self::record_failed_attempt( $user_id );
 			return new WP_Error(
@@ -359,11 +378,11 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Verifies a TOTP code from an authenticator app.
 	 *
-	 * @param int    $user_id User ID.
-	 * @param string $code User-entered code.
+	 * @param  int    $user_id User ID.
+	 * @param  string $code    User-entered code.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function verify_totp_code( $user_id, $code ) {
+	public static function verify_totp_code( int $user_id, string $code ) {
 		/* Check for lockout */
 		if ( self::is_locked_out( $user_id ) ) {
 			return new WP_Error(
@@ -376,9 +395,10 @@ If you did not request this code, please ignore this email.
 		$secret = NBUF_User_2FA_Data::get_totp_secret( $user_id );
 
 		if ( empty( $secret ) ) {
+			/* SECURITY: Generic error message to prevent configuration enumeration */
 			return new WP_Error(
-				'2fa_not_configured',
-				__( 'TOTP not configured for this account.', 'nobloat-user-foundry' )
+				'2fa_verification_failed',
+				__( 'Verification failed. Please try again.', 'nobloat-user-foundry' )
 			);
 		}
 
@@ -413,11 +433,11 @@ If you did not request this code, please ignore this email.
 	 * Creates a set of one-time use backup codes.
 	 * Codes are bcrypt hashed before storage.
 	 *
-	 * @param int $user_id User ID.
-	 * @param int $count Number of codes to generate (default BACKUP_CODE_COUNT).
+	 * @param  int $user_id User ID.
+	 * @param  int $count   Number of codes to generate (default BACKUP_CODE_COUNT).
 	 * @return array Plain text codes (only shown once).
 	 */
-	public static function generate_backup_codes( $user_id, $count = self::BACKUP_CODE_COUNT ) {
+	public static function generate_backup_codes( int $user_id, int $count = self::BACKUP_CODE_COUNT ): array {
 		$code_length = NBUF_Options::get( 'nbuf_2fa_backup_length', self::BACKUP_CODE_LENGTH );
 		$codes       = array();
 		$hashed      = array();
@@ -425,8 +445,8 @@ If you did not request this code, please ignore this email.
 		/* Generate codes */
 		for ( $i = 0; $i < $count; $i++ ) {
 			/* Generate alphanumeric code */
-			$code = '';
-			$chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing characters
+			$code         = '';
+			$chars        = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing characters.
 			$chars_length = strlen( $chars );
 
 			for ( $j = 0; $j < $code_length; $j++ ) {
@@ -450,11 +470,11 @@ If you did not request this code, please ignore this email.
 	 * Checks if a backup code is valid and not already used.
 	 * Marks code as used on successful verification.
 	 *
-	 * @param int    $user_id User ID.
-	 * @param string $code User-entered backup code.
+	 * @param  int    $user_id User ID.
+	 * @param  string $code    User-entered backup code.
 	 * @return bool|WP_Error True if code is valid and unused, WP_Error on failure.
 	 */
-	public static function verify_backup_code( $user_id, $code ) {
+	public static function verify_backup_code( int $user_id, string $code ) {
 		/* Get stored codes and used indexes */
 		$stored_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
 		$used_indexes = NBUF_User_2FA_Data::get_backup_codes_used( $user_id );
@@ -504,10 +524,10 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Verifies if the current device has a valid trust cookie.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if device is trusted.
 	 */
-	public static function is_device_trusted( $user_id ) {
+	public static function is_device_trusted( int $user_id ): bool {
 		/* Check if device trust is enabled */
 		if ( ! NBUF_Options::get( 'nbuf_2fa_device_trust', true ) ) {
 			return false;
@@ -534,15 +554,22 @@ If you did not request this code, please ignore this email.
 			$expires = $trusted_devices[ $token ];
 
 			if ( $expires > time() ) {
-				/* Rotate token for enhanced security (prevents long-term token theft) */
-				$new_token = bin2hex( random_bytes( 32 ) );
-				$new_expires = time() + ( $expires - time() ); // Maintain same duration
+				/* Rotate token for enhanced security (prevents long-term token theft). */
+				$new_token   = bin2hex( random_bytes( 32 ) );
+				$new_expires = time() + ( $expires - time() ); // Maintain same duration.
 
 				/* Remove old token and add new one */
 				NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
 				NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_expires );
 
-				/* Update cookie with new token */
+				/*
+				Update cookie with new token
+				*/
+				/* SECURITY: 2FA cookies should only be used over HTTPS */
+				if ( ! is_ssl() ) {
+					error_log( 'NBUF Warning: 2FA device trust should only be used over HTTPS connections' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security warning for HTTPS requirement.
+				}
+
 				$cookie_name = 'nbuf_2fa_trust_' . $user_id;
 				setcookie(
 					$cookie_name,
@@ -551,7 +578,7 @@ If you did not request this code, please ignore this email.
 						'expires'  => $new_expires,
 						'path'     => COOKIEPATH,
 						'domain'   => COOKIE_DOMAIN,
-						'secure'   => is_ssl(),
+						'secure'   => true, /* Always use secure flag for 2FA cookies */
 						'httponly' => true,
 						'samesite' => 'Lax',
 					)
@@ -572,11 +599,16 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Sets a cookie to remember this device for future logins.
 	 *
-	 * @param int $user_id User ID.
-	 * @param int $duration Duration in seconds (default DEVICE_TRUST_DURATION = 30 days).
+	 * @param  int $user_id  User ID.
+	 * @param  int $duration Duration in seconds (default DEVICE_TRUST_DURATION = 30 days).
 	 * @return bool True on success.
 	 */
-	public static function trust_device( $user_id, $duration = self::DEVICE_TRUST_DURATION ) {
+	public static function trust_device( int $user_id, int $duration = self::DEVICE_TRUST_DURATION ): bool {
+		/* SECURITY: 2FA cookies should only be used over HTTPS */
+		if ( ! is_ssl() ) {
+			error_log( 'NBUF Warning: 2FA device trust should only be used over HTTPS connections' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security warning for HTTPS requirement.
+		}
+
 		/* Generate secure token */
 		$token = bin2hex( random_bytes( 32 ) );
 
@@ -591,7 +623,7 @@ If you did not request this code, please ignore this email.
 				'expires'  => $expires,
 				'path'     => COOKIEPATH,
 				'domain'   => COOKIE_DOMAIN,
-				'secure'   => is_ssl(),
+				'secure'   => true, /* Always use secure flag for 2FA cookies */
 				'httponly' => true,
 				'samesite' => 'Lax',
 			)
@@ -608,14 +640,14 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Increments failed attempt counter and applies lockout if threshold exceeded.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if now locked out.
 	 */
-	public static function record_failed_attempt( $user_id ) {
+	public static function record_failed_attempt( int $user_id ): bool {
 		$attempts_key = 'nbuf_2fa_attempts_' . $user_id;
 		$attempts     = (int) get_transient( $attempts_key );
 
-		$attempts++;
+		++$attempts;
 
 		$rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 ) * 60;
 		set_transient( $attempts_key, $attempts, $rate_window );
@@ -635,10 +667,10 @@ If you did not request this code, please ignore this email.
 	/**
 	 * Check if user is locked out
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if locked out.
 	 */
-	public static function is_locked_out( $user_id ) {
+	public static function is_locked_out( int $user_id ): bool {
 		$lockout_key = 'nbuf_2fa_lockout_' . $user_id;
 		return (bool) get_transient( $lockout_key );
 	}
@@ -648,7 +680,7 @@ If you did not request this code, please ignore this email.
 	 *
 	 * @param int $user_id User ID.
 	 */
-	public static function clear_attempts( $user_id ) {
+	public static function clear_attempts( int $user_id ): void {
 		$attempts_key = 'nbuf_2fa_attempts_' . $user_id;
 		$lockout_key  = 'nbuf_2fa_lockout_' . $user_id;
 
@@ -661,10 +693,10 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Returns number of days remaining for user to set up required 2FA.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return int Days remaining (0 if expired or not applicable).
 	 */
-	public static function get_grace_period_remaining( $user_id ) {
+	public static function get_grace_period_remaining( int $user_id ): int {
 		$forced_at = NBUF_User_2FA_Data::get_forced_at( $user_id );
 
 		if ( empty( $forced_at ) ) {
@@ -677,9 +709,9 @@ If you did not request this code, please ignore this email.
 			}
 		}
 
-		$grace_days   = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
-		$grace_end    = strtotime( $forced_at ) + ( $grace_days * DAY_IN_SECONDS );
-		$days_left    = ceil( ( $grace_end - time() ) / DAY_IN_SECONDS );
+		$grace_days = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
+		$grace_end  = strtotime( $forced_at ) + ( $grace_days * DAY_IN_SECONDS );
+		$days_left  = ceil( ( $grace_end - time() ) / DAY_IN_SECONDS );
 
 		return max( 0, $days_left );
 	}
@@ -689,12 +721,12 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Activates 2FA with the specified method.
 	 *
-	 * @param int         $user_id User ID.
-	 * @param string      $method 'email', 'totp', or 'both'.
-	 * @param string|null $totp_secret Required if method includes 'totp'.
+	 * @param  int         $user_id     User ID.
+	 * @param  string      $method      'email', 'totp', or 'both'.
+	 * @param  string|null $totp_secret Required if method includes 'totp'.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function enable_for_user( $user_id, $method, $totp_secret = null ) {
+	public static function enable_for_user( int $user_id, string $method, ?string $totp_secret = null ) {
 		$valid_methods = array( 'email', 'totp', 'both' );
 
 		if ( ! in_array( $method, $valid_methods, true ) ) {
@@ -702,7 +734,7 @@ If you did not request this code, please ignore this email.
 		}
 
 		/* If TOTP is included, secret is required */
-		if ( ( $method === 'totp' || $method === 'both' ) && empty( $totp_secret ) ) {
+		if ( ( 'totp' === $method || 'both' === $method ) && empty( $totp_secret ) ) {
 			return new WP_Error( '2fa_missing_secret', __( 'TOTP secret is required.', 'nobloat-user-foundry' ) );
 		}
 
@@ -720,10 +752,11 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Removes all 2FA data for the user.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True on success.
 	 */
-	public static function disable_for_user( $user_id ) {
+	public static function disable_for_user( int $user_id ): bool {
 		return NBUF_User_2FA_Data::disable( $user_id );
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -22,7 +22,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/**
+ * Direct database access is architectural for password expiration tracking.
+ * Custom nbuf_user_data table stores password metadata and cannot use
+ * WordPress's standard meta APIs. Caching is not implemented as password
+ * data is time-sensitive and caching would create security risks.
+ */
+
+/**
+ * Class NBUF_Password_Expiration
+ *
+ * Handles password expiration logic.
+ */
 class NBUF_Password_Expiration {
+
 
 	/**
 	 * Initialize password expiration system.
@@ -63,7 +78,7 @@ class NBUF_Password_Expiration {
 	 * @param WP_User $user     User object.
 	 * @param string  $new_pass New password.
 	 */
-	public static function track_password_change( $user, $new_pass ) {
+	public static function track_password_change( $user, $new_pass ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_pass required by WordPress password_reset action signature
 		if ( $user instanceof WP_User ) {
 			self::update_password_changed_date( $user->ID );
 		}
@@ -103,28 +118,33 @@ class NBUF_Password_Expiration {
 	 *
 	 * Also clears force_password_change flag and password_expires_at.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
 	public static function update_password_changed_date( $user_id ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
-		$now = current_time( 'mysql', true );
+		$now        = current_time( 'mysql', true );
 
 		/* Calculate new expiration date if enabled */
 		$expiration_days = (int) NBUF_Options::get( 'nbuf_password_expiration_days', 365 );
-		$expires_at = null;
+		$expires_at      = null;
 
 		if ( $expiration_days > 0 ) {
 			$expires_at = gmdate( 'Y-m-d H:i:s', strtotime( "+{$expiration_days} days", strtotime( $now ) ) );
 		}
 
-		/* Check if user exists in nbuf_user_data */
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		/*
+		* Check if user exists in nbuf_user_data.
+		*/
+		$exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		if ( $exists ) {
 			/* Update existing record */
@@ -155,7 +175,7 @@ class NBUF_Password_Expiration {
 			);
 		}
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -167,12 +187,12 @@ class NBUF_Password_Expiration {
 	 *
 	 * If either is true, redirect to password change form.
 	 *
-	 * @param WP_User|WP_Error|null $user     User object or error.
-	 * @param string                $username Username.
-	 * @param string                $password Password.
+	 * @param  WP_User|WP_Error|null $user     User object or error.
+	 * @param  string                $username Username.
+	 * @param  string                $password Password.
 	 * @return WP_User|WP_Error User object or error.
 	 */
-	public static function check_password_on_login( $user, $username, $password ) {
+	public static function check_password_on_login( $user, $username, $password ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $username, $password required by WordPress authenticate filter signature
 		/* Only proceed if we have a valid user */
 		if ( ! $user instanceof WP_User ) {
 			return $user;
@@ -197,8 +217,8 @@ class NBUF_Password_Expiration {
 
 			/* Create error with redirect flag */
 			$message = $force_change
-				? __( 'Your password must be changed before you can continue.', 'nobloat-user-foundry' )
-				: __( 'Your password has expired. Please choose a new password.', 'nobloat-user-foundry' );
+			? __( 'Your password must be changed before you can continue.', 'nobloat-user-foundry' )
+			: __( 'Your password has expired. Please choose a new password.', 'nobloat-user-foundry' );
 
 			return new WP_Error( 'nbuf_password_change_required', $message );
 		}
@@ -209,7 +229,7 @@ class NBUF_Password_Expiration {
 	/**
 	 * Check if password is expired for a user.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if password is expired.
 	 */
 	public static function is_password_expired( $user_id ) {
@@ -217,10 +237,13 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
-		$expires_at = $wpdb->get_var( $wpdb->prepare(
-			"SELECT password_expires_at FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		$expires_at = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT password_expires_at FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		/* If no expiration date set, password is not expired */
 		if ( empty( $expires_at ) ) {
@@ -235,7 +258,7 @@ class NBUF_Password_Expiration {
 	/**
 	 * Check if password change is forced for a user.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool True if password change is forced.
 	 */
 	public static function is_password_change_forced( $user_id ) {
@@ -243,10 +266,13 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
-		$force_change = $wpdb->get_var( $wpdb->prepare(
-			"SELECT force_password_change FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		$force_change = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT force_password_change FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		return (bool) $force_change;
 	}
@@ -256,7 +282,7 @@ class NBUF_Password_Expiration {
 	 *
 	 * Sets force_password_change flag to 1.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
 	public static function force_password_change( $user_id ) {
@@ -264,11 +290,16 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
-		/* Check if user exists in nbuf_user_data */
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		/*
+		* Check if user exists in nbuf_user_data.
+		*/
+		$exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		if ( $exists ) {
 			/* Update existing record */
@@ -293,13 +324,13 @@ class NBUF_Password_Expiration {
 			);
 		}
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Clear force password change flag for a user.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
 	public static function clear_force_password_change( $user_id ) {
@@ -319,7 +350,7 @@ class NBUF_Password_Expiration {
 	/**
 	 * Get password age in days.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return int|null Password age in days, or null if never changed.
 	 */
 	public static function get_password_age( $user_id ) {
@@ -327,19 +358,22 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
-		$changed_at = $wpdb->get_var( $wpdb->prepare(
-			"SELECT password_changed_at FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		$changed_at = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT password_changed_at FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		if ( empty( $changed_at ) ) {
 			return null;
 		}
 
-		$now = current_time( 'timestamp', true );
+		$now               = time();
 		$changed_timestamp = strtotime( $changed_at );
-		$diff_seconds = $now - $changed_timestamp;
-		$diff_days = floor( $diff_seconds / DAY_IN_SECONDS );
+		$diff_seconds      = $now - $changed_timestamp;
+		$diff_days         = floor( $diff_seconds / DAY_IN_SECONDS );
 
 		return (int) $diff_days;
 	}
@@ -347,7 +381,7 @@ class NBUF_Password_Expiration {
 	/**
 	 * Get days until password expires.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return int|null Days until expiration, negative if expired, null if no expiration.
 	 */
 	public static function get_days_until_expiration( $user_id ) {
@@ -355,19 +389,22 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
-		$expires_at = $wpdb->get_var( $wpdb->prepare(
-			"SELECT password_expires_at FROM {$table_name} WHERE user_id = %d",
-			$user_id
-		) );
+		$expires_at = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT password_expires_at FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 
 		if ( empty( $expires_at ) ) {
 			return null;
 		}
 
-		$now = current_time( 'timestamp', true );
+		$now               = time();
 		$expires_timestamp = strtotime( $expires_at );
-		$diff_seconds = $expires_timestamp - $now;
-		$diff_days = ceil( $diff_seconds / DAY_IN_SECONDS );
+		$diff_seconds      = $expires_timestamp - $now;
+		$diff_days         = ceil( $diff_seconds / DAY_IN_SECONDS );
 
 		return (int) $diff_days;
 	}
@@ -377,7 +414,7 @@ class NBUF_Password_Expiration {
 	 *
 	 * Destroys all active sessions for a user, forcing re-authentication.
 	 *
-	 * @param int $user_id User ID.
+	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
 	public static function force_logout_all_devices( $user_id ) {
@@ -416,19 +453,19 @@ class NBUF_Password_Expiration {
 			/* Verify transient exists for this user */
 			$transient = get_transient( 'nbuf_password_change_user_' . $user_id );
 			if ( ! $transient ) {
-				wp_redirect( wp_login_url() );
+				wp_safe_redirect( wp_login_url() );
 				exit;
 			}
 		}
 
 		if ( ! $user_id ) {
-			wp_redirect( wp_login_url() );
+			wp_safe_redirect( wp_login_url() );
 			exit;
 		}
 
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
-			wp_redirect( wp_login_url() );
+			wp_safe_redirect( wp_login_url() );
 			exit;
 		}
 
@@ -439,11 +476,16 @@ class NBUF_Password_Expiration {
 		}
 
 		/* Handle form submission */
-		if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['nbuf_change_password_nonce'] ) ) {
+		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['nbuf_change_password_nonce'] ) ) {
 			check_admin_referer( 'nbuf_change_password_' . $user_id, 'nbuf_change_password_nonce' );
 
-			$new_password = $_POST['new_password'] ?? '';
-			$confirm_password = $_POST['confirm_password'] ?? '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized upfront.
+
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized upfront.
+			$new_password = isset( $_POST['new_password'] ) ? wp_unslash( $_POST['new_password'] ) : '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized.
+			$confirm_password = isset( $_POST['confirm_password'] ) ? wp_unslash( $_POST['confirm_password'] ) : '';
 
 			$errors = array();
 
@@ -496,27 +538,27 @@ class NBUF_Password_Expiration {
 		login_header( __( 'Password Change Required', 'nobloat-user-foundry' ), '', $errors );
 
 		/* Check why password change is required */
-		$is_forced = self::is_password_change_forced( $user->ID );
+		$is_forced  = self::is_password_change_forced( $user->ID );
 		$is_expired = self::is_password_expired( $user->ID );
 
 		$message = $is_forced
-			? __( 'Your administrator has required you to change your password before continuing.', 'nobloat-user-foundry' )
-			: __( 'Your password has expired. Please choose a new password to continue.', 'nobloat-user-foundry' );
+		? __( 'Your administrator has required you to change your password before continuing.', 'nobloat-user-foundry' )
+		: __( 'Your password has expired. Please choose a new password to continue.', 'nobloat-user-foundry' );
 
 		?>
 		<div class="nbuf-password-change-form">
 			<p class="message"><?php echo esc_html( $message ); ?></p>
 
-			<?php if ( ! empty( $errors ) ) : ?>
+		<?php if ( ! empty( $errors ) ) : ?>
 				<div id="login_error">
-					<?php foreach ( $errors as $error ) : ?>
+			<?php foreach ( $errors as $error ) : ?>
 						<p><?php echo esc_html( $error ); ?></p>
-					<?php endforeach; ?>
+			<?php endforeach; ?>
 				</div>
-			<?php endif; ?>
+		<?php endif; ?>
 
 			<form name="nbuf_change_password_form" id="nbuf_change_password_form" action="<?php echo esc_url( site_url( 'wp-login.php?action=nbuf_change_expired_password&user_id=' . $user->ID, 'login_post' ) ); ?>" method="post">
-				<?php wp_nonce_field( 'nbuf_change_password_' . $user->ID, 'nbuf_change_password_nonce' ); ?>
+		<?php wp_nonce_field( 'nbuf_change_password_' . $user->ID, 'nbuf_change_password_nonce' ); ?>
 
 				<p>
 					<label for="new_password"><?php esc_html_e( 'New Password', 'nobloat-user-foundry' ); ?><br />
@@ -588,16 +630,23 @@ class NBUF_Password_Expiration {
 	public static function recalculate_all_expirations() {
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
+		$table_name      = $wpdb->prefix . 'nbuf_user_data';
 		$expiration_days = (int) NBUF_Options::get( 'nbuf_password_expiration_days', 365 );
 
 		if ( $expiration_days <= 0 ) {
-			/* Clear all expirations */
+			/*
+			* Clear all expirations.
+			*/
+         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query( "UPDATE {$table_name} SET password_expires_at = NULL WHERE password_expires_at IS NOT NULL" );
+         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			return 0;
 		}
 
-		/* Update all users with password_changed_at */
+		/*
+		* Update all users with password_changed_at.
+		*/
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = $wpdb->prepare(
 			"UPDATE {$table_name}
 			SET password_expires_at = DATE_ADD(password_changed_at, INTERVAL %d DAY)
@@ -605,6 +654,9 @@ class NBUF_Password_Expiration {
 			$expiration_days
 		);
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query prepared above with $wpdb->prepare().
 		return $wpdb->query( $sql );
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

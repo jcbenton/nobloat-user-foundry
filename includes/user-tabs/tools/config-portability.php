@@ -3,7 +3,7 @@
  * Tools Tab - Configuration Export/Import
  *
  * @package NoBloat_User_Foundry
- * @since 1.3.0
+ * @since   1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$allow_import = NBUF_Options::get( 'nbuf_config_allow_import', true );
+$allow_import     = NBUF_Options::get( 'nbuf_config_allow_import', true );
 $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 ?>
 
@@ -84,7 +84,7 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 			<p>Import plugin settings from a JSON configuration file.</p>
 
 			<form id="nbuf-import-form" enctype="multipart/form-data">
-				<?php wp_nonce_field( 'nbuf_config_nonce', 'nbuf_config_import_nonce' ); ?>
+			<?php wp_nonce_field( 'nbuf_config_nonce', 'nbuf_config_import_nonce' ); ?>
 
 				<table class="form-table">
 					<tr>
@@ -139,10 +139,10 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_config_allow_import"
-							   id="nbuf_config_allow_import"
-							   value="1"
-							   <?php checked( $allow_import ); ?> />
+								name="nbuf_config_allow_import"
+								id="nbuf_config_allow_import"
+								value="1"
+								<?php checked( $allow_import ); ?> />
 						Enable configuration import functionality
 					</label>
 					<p class="description">For security, you can disable imports when not needed.</p>
@@ -156,10 +156,10 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_config_export_sensitive"
-							   id="nbuf_config_export_sensitive"
-							   value="1"
-							   <?php checked( $export_sensitive ); ?> />
+								name="nbuf_config_export_sensitive"
+								id="nbuf_config_export_sensitive"
+								value="1"
+								<?php checked( $export_sensitive ); ?> />
 						Include sensitive data in exports by default
 					</label>
 					<p class="description">⚠️ Not recommended. Disable to exclude API keys and tokens.</p>
@@ -259,11 +259,4 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 </div>
 
 
-<style>
-.nbuf-import-preview-box {
-	padding: 20px;
-	background: #fff;
-	border: 2px solid #2271b1;
-	border-radius: 4px;
-}
-</style>
+

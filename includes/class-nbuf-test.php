@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Test {
 
+
 	/**
 	 * Initialize test utility.
 	 */
@@ -89,7 +90,7 @@ class NBUF_Test {
 	/**
 	 * Send test verification email.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_verification( $recipient ) {
@@ -104,24 +105,25 @@ class NBUF_Test {
 	/**
 	 * Send test welcome email.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_welcome( $recipient ) {
-		$mode = 'html';
+		$mode          = 'html';
 		$template_name = ( 'html' === $mode ) ? 'welcome-email-html' : 'welcome-email-text';
-		$template = NBUF_Template_Manager::load_template( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		$replacements = array(
-			'{site_name}'          => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-			'{site_url}'           => home_url(),
-			'{display_name}'       => 'Test User',
-			'{username}'           => 'testuser',
-			'{user_email}'         => $recipient,
+			'{site_name}'           => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'{site_url}'            => home_url(),
+			'{display_name}'        => 'Test User',
+			'{username}'            => 'testuser',
+			'{user_email}'          => $recipient,
 			'{password_reset_link}' => home_url( '/reset-password' ),
 		);
 
 		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
 		$subject = sprintf( __( 'Welcome to %s!', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
@@ -139,13 +141,13 @@ class NBUF_Test {
 	/**
 	 * Send test expiration warning email.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_expiration( $recipient ) {
-		$mode = 'html';
+		$mode          = 'html';
 		$template_name = ( 'html' === $mode ) ? 'expiration-warning-html' : 'expiration-warning-text';
-		$template = NBUF_Template_Manager::load_template( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		$replacements = array(
 			'{site_name}'             => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
@@ -156,6 +158,7 @@ class NBUF_Test {
 		);
 
 		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account is expiring soon', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
@@ -173,13 +176,13 @@ class NBUF_Test {
 	/**
 	 * Send test 2FA email code.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_2fa_code( $recipient ) {
-		$mode = 'html';
+		$mode          = 'html';
 		$template_name = ( 'html' === $mode ) ? '2fa-email-code-html' : '2fa-email-code-text';
-		$template = NBUF_Template_Manager::load_template( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		$test_code = wp_rand( 100000, 999999 );
 
@@ -191,6 +194,7 @@ class NBUF_Test {
 		);
 
 		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
 		$subject = sprintf( __( 'Your verification code for %s', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
@@ -208,13 +212,13 @@ class NBUF_Test {
 	/**
 	 * Send test password reset email.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_password_reset( $recipient ) {
-		$mode = 'html';
+		$mode          = 'html';
 		$template_name = ( 'html' === $mode ) ? 'password-reset-html' : 'password-reset-text';
-		$template = NBUF_Template_Manager::load_template( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		$replacements = array(
 			'{site_name}'    => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
@@ -225,6 +229,7 @@ class NBUF_Test {
 		);
 
 		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Password Reset', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
@@ -242,13 +247,13 @@ class NBUF_Test {
 	/**
 	 * Send test admin new user notification email.
 	 *
-	 * @param string $recipient Email recipient.
+	 * @param  string $recipient Email recipient.
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_admin_notification( $recipient ) {
-		$mode = 'html';
+		$mode          = 'html';
 		$template_name = ( 'html' === $mode ) ? 'admin-new-user-html' : 'admin-new-user-text';
-		$template = NBUF_Template_Manager::load_template( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		$replacements = array(
 			'{site_name}'         => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
@@ -260,6 +265,7 @@ class NBUF_Test {
 		);
 
 		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] New User Registration', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
@@ -297,17 +303,21 @@ class NBUF_Test {
 	 * Display admin notice.
 	 */
 	public static function admin_notice() {
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display parameter for admin notice
 		if ( ! isset( $_GET['nbuf_test'] ) ) {
 			return;
 		}
 
-		$tab    = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameters
+		$tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameters
 		$subtab = isset( $_GET['subtab'] ) ? sanitize_text_field( wp_unslash( $_GET['subtab'] ) ) : '';
 
 		if ( 'tools' !== $tab || 'tests' !== $subtab ) {
 			return;
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display parameter
 		$code = sanitize_text_field( wp_unslash( $_GET['nbuf_test'] ) );
 		$map  = array(
 			'success' => array( 'notice-success', __( 'Test email sent successfully! Check your inbox.', 'nobloat-user-foundry' ) ),

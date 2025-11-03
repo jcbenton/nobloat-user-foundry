@@ -77,73 +77,7 @@ $admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-tex
 	</form>
 </div>
 
-<style>
-.nbuf-templates-tab {
-    max-width: 1200px;
-}
 
-.nbuf-accordion {
-    border: 1px solid #ddd;
-    margin-bottom: 1rem;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.nbuf-accordion-header {
-    width: 100%;
-    background: #f8f8f8;
-    border: none;
-    padding: 1rem 1.5rem;
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.nbuf-accordion-header:hover {
-    background: #f0f0f0;
-}
-
-.nbuf-accordion-content {
-    display: none;
-    background: #fff;
-}
-
-.nbuf-accordion.active .nbuf-accordion-content {
-    display: block;
-}
-
-.nbuf-accordion.active .nbuf-accordion-icon {
-    transform: rotate(180deg);
-}
-
-.nbuf-accordion-icon {
-    transition: transform 0.3s ease;
-}
-
-.nbuf-template-section {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.nbuf-template-section:last-child {
-    border-bottom: none;
-}
-
-.nbuf-template-section h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-}
-
-.nbuf-template-editor {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-}
-</style>
 
 <script>
 document.addEventListener( 'DOMContentLoaded', function() {

@@ -12,16 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* ==========================================================
-   HANDLE FORM SUBMISSION
-   ========================================================== */
+/**
+ * Handle registration page styles form submission
+ *
+ * Saves CSS to database and attempts to write to disk.
+ */
 if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_save', 'nbuf_styles_nonce' ) ) {
-
-	/* Get and sanitize CSS inputs */
+	/*
+	* Get and sanitize CSS inputs.
+	*/
+	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via NBUF_CSS_Manager::sanitize_css().
 	$reset_css        = isset( $_POST['reset_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['reset_page_css'] ) ) : '';
 	$login_css        = isset( $_POST['login_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['login_page_css'] ) ) : '';
 	$registration_css = isset( $_POST['registration_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['registration_page_css'] ) ) : '';
 	$account_css      = isset( $_POST['account_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['account_page_css'] ) ) : '';
+	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	/* Get and save CSS optimization options */
 	$css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
@@ -46,7 +51,7 @@ if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_sa
 	/* Create combined CSS file if option is enabled */
 	$combined_success = true;
 	if ( $css_combine_files ) {
-		$combined_css = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css;
+		$combined_css     = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css;
 		$combined_success = NBUF_CSS_Manager::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
 	}
 
@@ -62,18 +67,20 @@ if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_sa
 	}
 }
 
-/* ==========================================================
-   LOAD CURRENT CSS VALUES
-   ========================================================== */
-$reset_css        = NBUF_Options::get('nbuf_reset_page_css' );
-$login_css        = NBUF_Options::get('nbuf_login_page_css' );
-$registration_css = NBUF_Options::get('nbuf_registration_page_css' );
-$account_css      = NBUF_Options::get('nbuf_account_page_css' );
+/*
+==========================================================
+	LOAD CURRENT CSS VALUES
+	==========================================================
+ */
+$reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
+$login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
+$registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
+$account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
 
 /* CSS optimization settings */
-$css_load_on_pages = NBUF_Options::get('nbuf_css_load_on_pages', true );
-$css_use_minified  = NBUF_Options::get('nbuf_css_use_minified', true );
-$css_combine_files = NBUF_Options::get('nbuf_css_combine_files', true );
+$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
+$css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
+$css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
 
 /* If empty, load from default templates */
 if ( empty( $reset_css ) ) {
@@ -89,14 +96,16 @@ if ( empty( $account_css ) ) {
 	$account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
 }
 
-/* ==========================================================
-   CHECK FOR WRITE FAILURES
-   ========================================================== */
+/*
+==========================================================
+	CHECK FOR WRITE FAILURES
+	==========================================================
+ */
 $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_reset' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
-                     NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_combined' );
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
+					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_combined' );
 
 ?>
 
@@ -106,7 +115,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 		<div class="notice notice-error inline">
 			<p>
 				<strong><?php esc_html_e( 'File Write Permission Issue:', 'nobloat-user-foundry' ); ?></strong>
-				<?php esc_html_e( 'Unable to write CSS files to disk. Styles are being loaded from database (slower performance). Please check file permissions on the /assets/css/frontend/ directory.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Unable to write CSS files to disk. Styles are being loaded from database (slower performance). Please check file permissions on the /assets/css/frontend/ directory.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 	<?php endif; ?>
@@ -315,46 +324,4 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 	</div>
 </div>
 
-<style>
-.nbuf-style-section {
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid #ddd;
-}
 
-.nbuf-style-section:last-of-type {
-    border-bottom: none;
-}
-
-.nbuf-css-editor {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    tab-size: 2;
-}
-
-.nbuf-style-info {
-    background: #f9f9f9;
-    padding: 1.5rem;
-    border-radius: 4px;
-    margin-top: 2rem;
-}
-
-.nbuf-style-info h3 {
-    margin-top: 0;
-}
-
-.nbuf-style-info h4 {
-    margin-bottom: 0.5rem;
-}
-
-.nbuf-style-info ul {
-    margin-top: 0.5rem;
-}
-
-.nbuf-style-info code {
-    background: #fff;
-    padding: 2px 6px;
-    border-radius: 3px;
-}
-</style>

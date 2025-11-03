@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restriction_Widget
+ *
+ * Handles widget visibility restrictions.
+ */
 class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
+
 
 	/**
 	 * Initialize widget restrictions
@@ -33,10 +39,10 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 	/**
 	 * Filter widget display based on restrictions
 	 *
-	 * @param array     $instance Widget instance
-	 * @param WP_Widget $widget Widget object
-	 * @param array     $args Widget arguments
-	 * @return array|false Widget instance or false to hide
+	 * @param  array     $instance Widget instance.
+	 * @param  WP_Widget $widget   Widget object.
+	 * @param  array     $args     Widget arguments.
+	 * @return array|false Widget instance or false to hide.
 	 */
 	public static function filter_widget_display( $instance, $widget, $args ) {
 		/* Skip if no visibility setting */
@@ -71,14 +77,14 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 	/**
 	 * Add restriction fields to widget form
 	 *
-	 * @param WP_Widget $widget Widget object
-	 * @param null      $return Return value (not used)
-	 * @param array     $instance Widget instance
+	 * @param  WP_Widget $widget   Widget object.
+	 * @param  null      $return   Return value (not used).
+	 * @param  array     $instance Widget instance.
 	 * @return null
 	 */
-	public static function add_widget_fields( $widget, $return, $instance ) {
+	public static function add_widget_fields( $widget, $return, $instance ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase, Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- $return parameter required by WordPress in_widget_form filter hook signature.
 		/* Current values */
-		$visibility = ! empty( $instance['nbuf_visibility'] ) ? $instance['nbuf_visibility'] : 'everyone';
+		$visibility    = ! empty( $instance['nbuf_visibility'] ) ? $instance['nbuf_visibility'] : 'everyone';
 		$allowed_roles = array();
 		if ( ! empty( $instance['nbuf_allowed_roles'] ) ) {
 			if ( is_array( $instance['nbuf_allowed_roles'] ) ) {
@@ -99,7 +105,7 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 			</p>
 			<p>
 				<label for="<?php echo esc_attr( $widget->get_field_id( 'nbuf_visibility' ) ); ?>">
-					<?php esc_html_e( 'Who can see this widget:', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Who can see this widget:', 'nobloat-user-foundry' ); ?>
 				</label>
 				<select
 					id="<?php echo esc_attr( $widget->get_field_id( 'nbuf_visibility' ) ); ?>"
@@ -121,23 +127,23 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 			>
 				<p>
 					<label><?php esc_html_e( 'Allowed Roles:', 'nobloat-user-foundry' ); ?></label><br>
-					<?php
-					$wp_roles = wp_roles()->get_names();
-					foreach ( $wp_roles as $role_slug => $role_name ) {
-						$checked = in_array( $role_slug, $allowed_roles, true );
-						?>
+		<?php
+		$wp_roles = wp_roles()->get_names();
+		foreach ( $wp_roles as $role_slug => $role_name ) {
+			$checked = in_array( $role_slug, $allowed_roles, true );
+			?>
 						<label style="display: block; margin: 5px 0;">
 							<input
 								type="checkbox"
 								name="<?php echo esc_attr( $widget->get_field_name( 'nbuf_allowed_roles' ) ); ?>[]"
 								value="<?php echo esc_attr( $role_slug ); ?>"
-								<?php checked( $checked ); ?>
+			<?php checked( $checked ); ?>
 							>
-							<?php echo esc_html( $role_name ); ?>
+			<?php echo esc_html( $role_name ); ?>
 						</label>
-						<?php
-					}
-					?>
+			<?php
+		}
+		?>
 				</p>
 			</div>
 		</div>
@@ -157,16 +163,7 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 		});
 		</script>
 
-		<style>
-		.nbuf-widget-restriction {
-			background: #f9f9f9;
-			padding: 15px;
-			margin: 15px -15px 0;
-		}
-		.nbuf-widget-restriction strong {
-			color: #333;
-		}
-		</style>
+		
 		<?php
 
 		return null;
@@ -175,11 +172,11 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 	/**
 	 * Save widget restriction fields
 	 *
-	 * @param array     $instance Current widget instance
-	 * @param array     $new_instance New widget instance
-	 * @param array     $old_instance Old widget instance
-	 * @param WP_Widget $widget Widget object
-	 * @return array Updated widget instance
+	 * @param  array     $instance     Current widget instance.
+	 * @param  array     $new_instance New widget instance.
+	 * @param  array     $old_instance Old widget instance.
+	 * @param  WP_Widget $widget       Widget object.
+	 * @return array Updated widget instance.
 	 */
 	public static function save_widget_fields( $instance, $new_instance, $old_instance, $widget ) {
 		/* Save visibility */
@@ -191,7 +188,7 @@ class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
 
 		/* Save allowed roles */
 		if ( 'role_based' === $instance['nbuf_visibility'] && ! empty( $new_instance['nbuf_allowed_roles'] ) ) {
-			$raw_roles = array_map( 'sanitize_text_field', $new_instance['nbuf_allowed_roles'] );
+			$raw_roles                      = array_map( 'sanitize_text_field', $new_instance['nbuf_allowed_roles'] );
 			$instance['nbuf_allowed_roles'] = self::sanitize_roles( $raw_roles );
 		} else {
 			$instance['nbuf_allowed_roles'] = array();

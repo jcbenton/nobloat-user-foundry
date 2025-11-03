@@ -6,17 +6,34 @@
  * diff comparison, and revert capability.
  *
  * @package NoBloat_User_Foundry
- * @since 1.4.0
+ * @since   1.4.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/**
+ * Direct database access is architectural for version history tracking.
+ * Custom nbuf_profile_versions table stores profile snapshots and cannot use
+ * WordPress's standard meta APIs. Caching is not implemented as version data
+ * is accessed infrequently and caching would provide minimal benefit.
+ */
+
+/**
+ * Class NBUF_Version_History
+ *
+ * Tracks and manages user profile version history.
+ */
 class NBUF_Version_History {
 
+
 	/**
-	 * Original user data (before changes)
+	 * Original user data (before changes).
+	 *
+	 * @var array
 	 */
 	private $original_data = array();
 
@@ -56,7 +73,7 @@ class NBUF_Version_History {
 	/**
 	 * Store original user data before update
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 */
 	public function store_original_data( $user_id ) {
 		$this->original_data[ $user_id ] = $this->get_user_snapshot( $user_id );
@@ -65,14 +82,14 @@ class NBUF_Version_History {
 	/**
 	 * Track profile update
 	 *
-	 * @param int    $user_id User ID
-	 * @param object $old_user_data Old user object (WP_User)
+	 * @param int    $user_id       User ID.
+	 * @param object $old_user_data Old user object (WP_User).
 	 */
-	public function track_profile_update( $user_id, $old_user_data ) {
+	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
 		/* Get before/after snapshots */
 		$before = isset( $this->original_data[ $user_id ] )
-			? $this->original_data[ $user_id ]
-			: $this->get_user_snapshot( $user_id );
+		? $this->original_data[ $user_id ]
+		: $this->get_user_snapshot( $user_id );
 
 		$after = $this->get_user_snapshot( $user_id );
 
@@ -86,10 +103,10 @@ class NBUF_Version_History {
 
 		/* Determine who made the change */
 		$current_user_id = get_current_user_id();
-		$changed_by = ( $current_user_id === $user_id ) ? null : $current_user_id;
+		$changed_by      = ( $current_user_id === $user_id ) ? null : $current_user_id;
 
 		/* Determine change type */
-		$change_type = ( $changed_by === null ) ? 'profile_update' : 'admin_update';
+		$change_type = ( null === $changed_by ) ? 'profile_update' : 'admin_update';
 
 		/* Save version */
 		$this->save_version( $user_id, $after, $changed_fields, $change_type, $changed_by );
@@ -101,7 +118,7 @@ class NBUF_Version_History {
 	/**
 	 * Track user registration (initial snapshot)
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 */
 	public function track_user_registration( $user_id ) {
 		$snapshot = $this->get_user_snapshot( $user_id );
@@ -121,7 +138,7 @@ class NBUF_Version_History {
 	/**
 	 * Get complete user profile snapshot
 	 *
-	 * @param int $user_id User ID
+	 * @param  int $user_id User ID.
 	 * @return array Complete profile data
 	 */
 	private function get_user_snapshot( $user_id ) {
@@ -134,22 +151,26 @@ class NBUF_Version_History {
 
 		$snapshot = array(
 			/* WordPress core fields */
-			'user_login'    => $user->user_login,
-			'user_email'    => $user->user_email,
-			'display_name'  => $user->display_name,
-			'first_name'    => get_user_meta( $user_id, 'first_name', true ),
-			'last_name'     => get_user_meta( $user_id, 'last_name', true ),
-			'description'   => $user->description,
-			'user_url'      => $user->user_url,
-			'role'          => ! empty( $user->roles ) ? $user->roles[0] : '',
+			'user_login'   => $user->user_login,
+			'user_email'   => $user->user_email,
+			'display_name' => $user->display_name,
+			'first_name'   => get_user_meta( $user_id, 'first_name', true ),
+			'last_name'    => get_user_meta( $user_id, 'last_name', true ),
+			'description'  => $user->description,
+			'user_url'     => $user->user_url,
+			'role'         => ! empty( $user->roles ) ? $user->roles[0] : '',
 		);
 
 		/* Get NBUF user_data */
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
-		$user_data = $wpdb->get_row( $wpdb->prepare(
-			"SELECT * FROM $user_data_table WHERE user_id = %d",
-			$user_id
-		), ARRAY_A );
+		$user_data       = $wpdb->get_row(
+			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
+				"SELECT * FROM $user_data_table WHERE user_id = %d",
+				$user_id
+			),
+			ARRAY_A
+		);
 
 		if ( $user_data ) {
 			unset( $user_data['user_id'] );
@@ -158,10 +179,14 @@ class NBUF_Version_History {
 
 		/* Get NBUF profile data (53 fields) */
 		$profile_table = $wpdb->prefix . 'nbuf_user_profile';
-		$profile = $wpdb->get_row( $wpdb->prepare(
-			"SELECT * FROM $profile_table WHERE user_id = %d",
-			$user_id
-		), ARRAY_A );
+		$profile       = $wpdb->get_row(
+			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
+				"SELECT * FROM $profile_table WHERE user_id = %d",
+				$user_id
+			),
+			ARRAY_A
+		);
 
 		if ( $profile ) {
 			unset( $profile['user_id'] );
@@ -179,7 +204,7 @@ class NBUF_Version_History {
 
 		foreach ( $meta_keys as $key ) {
 			$value = get_user_meta( $user_id, $key, true );
-			if ( $value !== '' ) {
+			if ( '' !== $value ) {
 				$snapshot[ $key ] = $value;
 			}
 		}
@@ -190,8 +215,8 @@ class NBUF_Version_History {
 	/**
 	 * Detect which fields changed between two snapshots
 	 *
-	 * @param array $before Before snapshot
-	 * @param array $after After snapshot
+	 * @param  array $before Before snapshot.
+	 * @param  array $after  After snapshot.
 	 * @return array Changed field names
 	 */
 	private function detect_changed_fields( $before, $after ) {
@@ -202,17 +227,15 @@ class NBUF_Version_History {
 
 		foreach ( $all_keys as $key ) {
 			$before_value = isset( $before[ $key ] ) ? $before[ $key ] : null;
-			$after_value = isset( $after[ $key ] ) ? $after[ $key ] : null;
+			$after_value  = isset( $after[ $key ] ) ? $after[ $key ] : null;
 
 			/* Deep comparison for arrays */
 			if ( is_array( $before_value ) || is_array( $after_value ) ) {
 				if ( wp_json_encode( $before_value ) !== wp_json_encode( $after_value ) ) {
 					$changed[] = $key;
 				}
-			} else {
-				if ( $before_value !== $after_value ) {
-					$changed[] = $key;
-				}
+			} elseif ( $before_value !== $after_value ) {
+				$changed[] = $key;
 			}
 		}
 
@@ -222,11 +245,11 @@ class NBUF_Version_History {
 	/**
 	 * Save a version snapshot to the database
 	 *
-	 * @param int    $user_id User ID
-	 * @param array  $snapshot Profile snapshot data
-	 * @param array  $changed_fields Changed field names
-	 * @param string $change_type Type of change (registration, profile_update, admin_update, import, revert)
-	 * @param int    $changed_by User ID who made the change (null = self)
+	 * @param  int    $user_id        User ID.
+	 * @param  array  $snapshot       Profile snapshot data.
+	 * @param  array  $changed_fields Changed field names.
+	 * @param  string $change_type    Type of change (registration, profile_update, admin_update, import, revert).
+	 * @param  int    $changed_by     User ID who made the change (null = self).
 	 * @return bool Success
 	 */
 	private function save_version( $user_id, $snapshot, $changed_fields, $change_type, $changed_by = null ) {
@@ -236,16 +259,16 @@ class NBUF_Version_History {
 
 		/* Get IP tracking setting */
 		$ip_tracking = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'off' );
-		$ip_address = null;
+		$ip_address  = null;
 
-		if ( $ip_tracking !== 'off' ) {
-			$ip_address = $this->get_ip_address( $ip_tracking === 'anonymized' );
+		if ( 'off' !== $ip_tracking ) {
+			$ip_address = $this->get_ip_address( 'anonymized' === $ip_tracking );
 		}
 
 		/* Get user agent */
 		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
-			? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 500 )
-			: null;
+		? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 500 )
+		: null;
 
 		/* Insert version record */
 		$inserted = $wpdb->insert(
@@ -269,7 +292,7 @@ class NBUF_Version_History {
 	/**
 	 * Get IP address with optional anonymization
 	 *
-	 * @param bool $anonymize Whether to anonymize IP
+	 * @param  bool $anonymize Whether to anonymize IP.
 	 * @return string|null IP address
 	 */
 	private function get_ip_address( $anonymize = false ) {
@@ -301,13 +324,13 @@ class NBUF_Version_History {
 	/**
 	 * Anonymize IP address (remove last octet for IPv4, last 80 bits for IPv6)
 	 *
-	 * @param string $ip IP address
-	 * @return string Anonymized IP
+	 * @param  string $ip IP address.
+	 * @return string Anonymized IP.
 	 */
 	private function anonymize_ip( $ip ) {
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			/* IPv4: Replace last octet with 0 */
-			$parts = explode( '.', $ip );
+			$parts    = explode( '.', $ip );
 			$parts[3] = '0';
 			return implode( '.', $parts );
 		} elseif ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
@@ -323,30 +346,33 @@ class NBUF_Version_History {
 	/**
 	 * Get version history for a user (timeline)
 	 *
-	 * @param int $user_id User ID
-	 * @param int $limit Number of versions to retrieve (default: 50)
-	 * @param int $offset Offset for pagination
-	 * @return array Version history records
+	 * @param  int $user_id User ID.
+	 * @param  int $limit   Number of versions to retrieve (default: 50).
+	 * @param  int $offset  Offset for pagination.
+	 * @return array Version history records.
 	 */
 	public function get_user_versions( $user_id, $limit = 50, $offset = 0 ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
-		$versions = $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM $table_name
+		$versions = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i
 			WHERE user_id = %d
 			ORDER BY changed_at DESC
-			LIMIT %d OFFSET %d",
-			$user_id,
-			$limit,
-			$offset
-		) );
+			LIMIT %d OFFSET %d',
+				$table_name,
+				$user_id,
+				$limit,
+				$offset
+			)
+		);
 
 		/* Decode JSON fields */
 		foreach ( $versions as &$version ) {
 			$version->fields_changed = json_decode( $version->fields_changed, true );
-			$version->snapshot_data = json_decode( $version->snapshot_data, true );
+			$version->snapshot_data  = json_decode( $version->snapshot_data, true );
 		}
 
 		return $versions;
@@ -355,39 +381,45 @@ class NBUF_Version_History {
 	/**
 	 * Get total version count for a user
 	 *
-	 * @param int $user_id User ID
-	 * @return int Total versions
+	 * @param  int $user_id User ID.
+	 * @return int Total versions.
 	 */
 	public function get_user_version_count( $user_id ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
-		return (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM $table_name WHERE user_id = %d",
-			$user_id
-		) );
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
 	}
 
 	/**
 	 * Get a specific version by ID
 	 *
-	 * @param int $version_id Version ID
-	 * @return object|null Version record
+	 * @param  int $version_id Version ID.
+	 * @return object|null Version record.
 	 */
 	public function get_version_by_id( $version_id ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
-		$version = $wpdb->get_row( $wpdb->prepare(
-			"SELECT * FROM $table_name WHERE id = %d",
-			$version_id
-		) );
+		$version = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE id = %d',
+				$table_name,
+				$version_id
+			)
+		);
 
 		if ( $version ) {
 			$version->fields_changed = json_decode( $version->fields_changed, true );
-			$version->snapshot_data = json_decode( $version->snapshot_data, true );
+			$version->snapshot_data  = json_decode( $version->snapshot_data, true );
 		}
 
 		return $version;
@@ -396,9 +428,9 @@ class NBUF_Version_History {
 	/**
 	 * Compare two versions (for diff view)
 	 *
-	 * @param int $version_id_1 First version ID (older)
-	 * @param int $version_id_2 Second version ID (newer)
-	 * @return array Diff data
+	 * @param  int $version_id_1 First version ID (older).
+	 * @param  int $version_id_2 Second version ID (newer).
+	 * @return array Diff data.
 	 */
 	public function compare_versions( $version_id_1, $version_id_2 ) {
 		$version1 = $this->get_version_by_id( $version_id_1 );
@@ -431,9 +463,9 @@ class NBUF_Version_History {
 			/* Determine change status */
 			$status = 'unchanged';
 			if ( $value1 !== $value2 ) {
-				if ( $value1 === null ) {
+				if ( null === $value1 ) {
 					$status = 'added';
-				} elseif ( $value2 === null ) {
+				} elseif ( null === $value2 ) {
 					$status = 'removed';
 				} else {
 					$status = 'changed';
@@ -454,16 +486,16 @@ class NBUF_Version_History {
 	/**
 	 * Revert user profile to a specific version
 	 *
-	 * @param int $user_id User ID
-	 * @param int $version_id Version ID to revert to
-	 * @return bool Success
+	 * @param  int $user_id    User ID.
+	 * @param  int $version_id Version ID to revert to.
+	 * @return bool Success.
 	 */
 	public function revert_to_version( $user_id, $version_id ) {
 		global $wpdb;
 
 		/* Get the version */
 		$version = $this->get_version_by_id( $version_id );
-		if ( ! $version || $version->user_id != $user_id ) {
+		if ( ! $version || $version->user_id !== $user_id ) {
 			return false;
 		}
 
@@ -504,12 +536,15 @@ class NBUF_Version_History {
 			$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 
 			/* Check if row exists */
-			$exists = $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM $user_data_table WHERE user_id = %d",
-				$user_id
-			) );
+			$exists = $wpdb->get_var(
+				$wpdb->prepare(
+           // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
+					"SELECT COUNT(*) FROM $user_data_table WHERE user_id = %d",
+					$user_id
+				)
+			);
 
-			$data = $snapshot['nbuf_user_data'];
+			$data            = $snapshot['nbuf_user_data'];
 			$data['user_id'] = $user_id;
 
 			if ( $exists ) {
@@ -524,12 +559,15 @@ class NBUF_Version_History {
 			$profile_table = $wpdb->prefix . 'nbuf_user_profile';
 
 			/* Check if row exists */
-			$exists = $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM $profile_table WHERE user_id = %d",
-				$user_id
-			) );
+			$exists = $wpdb->get_var(
+				$wpdb->prepare(
+           // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
+					"SELECT COUNT(*) FROM $profile_table WHERE user_id = %d",
+					$user_id
+				)
+			);
 
-			$data = $snapshot['nbuf_profile'];
+			$data            = $snapshot['nbuf_profile'];
 			$data['user_id'] = $user_id;
 
 			if ( $exists ) {
@@ -541,7 +579,7 @@ class NBUF_Version_History {
 
 		/* Create a new version entry for the revert */
 		$current_snapshot = $this->get_user_snapshot( $user_id );
-		$all_fields = array_keys( $snapshot );
+		$all_fields       = array_keys( $snapshot );
 
 		$this->save_version(
 			$user_id,
@@ -557,13 +595,13 @@ class NBUF_Version_History {
 	/**
 	 * Enforce maximum versions per user
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 */
 	private function enforce_max_versions( $user_id ) {
 		global $wpdb;
 
 		$max_versions = (int) NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );
-		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
+		$table_name   = $wpdb->prefix . 'nbuf_profile_versions';
 
 		/* Get current count */
 		$count = $this->get_user_version_count( $user_id );
@@ -572,14 +610,17 @@ class NBUF_Version_History {
 			/* Delete oldest versions */
 			$delete_count = $count - $max_versions;
 
-			$wpdb->query( $wpdb->prepare(
-				"DELETE FROM $table_name
+			$wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM %i
 				WHERE user_id = %d
 				ORDER BY changed_at ASC
-				LIMIT %d",
-				$user_id,
-				$delete_count
-			) );
+				LIMIT %d',
+					$table_name,
+					$user_id,
+					$delete_count
+				)
+			);
 		}
 	}
 
@@ -590,15 +631,18 @@ class NBUF_Version_History {
 		global $wpdb;
 
 		$retention_days = (int) NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
-		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
+		$table_name     = $wpdb->prefix . 'nbuf_profile_versions';
 
 		/* Delete versions older than retention period */
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$retention_days} days" ) );
 
-		$deleted = $wpdb->query( $wpdb->prepare(
-			"DELETE FROM $table_name WHERE changed_at < %s",
-			$cutoff_date
-		) );
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE changed_at < %s',
+				$table_name,
+				$cutoff_date
+			)
+		);
 
 		return $deleted;
 	}
@@ -609,10 +653,10 @@ class NBUF_Version_History {
 	public function ajax_get_version_timeline() {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
-		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
-		$page = isset( $_POST['page'] ) ? absint( $_POST['page'] ) : 1;
+		$user_id  = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+		$page     = isset( $_POST['page'] ) ? absint( $_POST['page'] ) : 1;
 		$per_page = 20;
-		$offset = ( $page - 1 ) * $per_page;
+		$offset   = ( $page - 1 ) * $per_page;
 
 		/* Check permissions */
 		if ( ! $this->can_view_version_history( $user_id ) ) {
@@ -620,14 +664,16 @@ class NBUF_Version_History {
 		}
 
 		$versions = $this->get_user_versions( $user_id, $per_page, $offset );
-		$total = $this->get_user_version_count( $user_id );
+		$total    = $this->get_user_version_count( $user_id );
 
-		wp_send_json_success( array(
-			'versions' => $versions,
-			'total'    => $total,
-			'page'     => $page,
-			'per_page' => $per_page,
-		) );
+		wp_send_json_success(
+			array(
+				'versions' => $versions,
+				'total'    => $total,
+				'page'     => $page,
+				'per_page' => $per_page,
+			)
+		);
 	}
 
 	/**
@@ -653,11 +699,13 @@ class NBUF_Version_History {
 
 		$diff = $this->compare_versions( $version_id_1, $version_id_2 );
 
-		wp_send_json_success( array(
-			'diff'     => $diff,
-			'version1' => $version1,
-			'version2' => $version2,
-		) );
+		wp_send_json_success(
+			array(
+				'diff'     => $diff,
+				'version1' => $version1,
+				'version2' => $version2,
+			)
+		);
 	}
 
 	/**
@@ -667,7 +715,7 @@ class NBUF_Version_History {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
 		$version_id = isset( $_POST['version_id'] ) ? absint( $_POST['version_id'] ) : 0;
-		$version = $this->get_version_by_id( $version_id );
+		$version    = $this->get_version_by_id( $version_id );
 
 		if ( ! $version ) {
 			wp_send_json_error( array( 'message' => 'Version not found.' ) );
@@ -690,8 +738,8 @@ class NBUF_Version_History {
 	/**
 	 * Check if current user can view version history
 	 *
-	 * @param int $user_id User ID whose history to view
-	 * @return bool Can view
+	 * @param  int $user_id User ID whose history to view.
+	 * @return bool Can view.
 	 */
 	private function can_view_version_history( $user_id ) {
 		$current_user_id = get_current_user_id();
@@ -713,8 +761,8 @@ class NBUF_Version_History {
 	/**
 	 * Check if current user can revert a version
 	 *
-	 * @param int $user_id User ID to revert
-	 * @return bool Can revert
+	 * @param  int $user_id User ID to revert.
+	 * @return bool Can revert.
 	 */
 	private function can_revert_version( $user_id ) {
 		$current_user_id = get_current_user_id();
@@ -736,8 +784,8 @@ class NBUF_Version_History {
 	/**
 	 * Delete all versions for a user (for GDPR compliance)
 	 *
-	 * @param int $user_id User ID
-	 * @return bool Success
+	 * @param  int $user_id User ID.
+	 * @return bool Success.
 	 */
 	public function delete_user_versions( $user_id ) {
 		global $wpdb;
@@ -754,7 +802,7 @@ class NBUF_Version_History {
 	/**
 	 * Render version history section on account page
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 */
 	public function render_account_section( $user_id ) {
 		/* Only show for current user */
@@ -764,58 +812,63 @@ class NBUF_Version_History {
 
 		/* Check if user can revert */
 		$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-		$can_revert = $allow_user_revert;
+		$can_revert        = $allow_user_revert;
 
 		/* Enqueue version history CSS */
 		wp_enqueue_style(
 			'nbuf-version-history',
-			plugin_dir_url( dirname( __FILE__ ) ) . 'assets/css/admin/version-history.css',
+			plugin_dir_url( __DIR__ ) . 'assets/css/admin/version-history.css',
 			array(),
 			'1.4.0'
 		);
 
-	/* Enqueue version history JS */
-	wp_enqueue_script( 'nbuf-version-history', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/admin/version-history.js', array( 'jquery' ), '1.4.0', true );
-	wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', array(
-		'ajax_url'   => admin_url( 'admin-ajax.php' ),
-		'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-		'can_revert' => $can_revert ? true : false,
-		'i18n'       => array(
-			'registration'      => __( 'Registration', 'nobloat-user-foundry' ),
-			'profile_update'    => __( 'Profile Update', 'nobloat-user-foundry' ),
-			'admin_update'      => __( 'Admin Update', 'nobloat-user-foundry' ),
-			'import'            => __( 'Import', 'nobloat-user-foundry' ),
-			'reverted'          => __( 'Reverted', 'nobloat-user-foundry' ),
-			'self'              => __( 'Self', 'nobloat-user-foundry' ),
-			'admin'             => __( 'Admin', 'nobloat-user-foundry' ),
-			'confirm_revert'    => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-			'revert_success'    => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-			'revert_failed'     => __( 'Revert failed.', 'nobloat-user-foundry' ),
-			'error'             => __( 'An error occurred.', 'nobloat-user-foundry' ),
-			'before'            => __( 'Before:', 'nobloat-user-foundry' ),
-			'after'             => __( 'After:', 'nobloat-user-foundry' ),
-			'field'             => __( 'Field', 'nobloat-user-foundry' ),
-			'before_value'      => __( 'Before', 'nobloat-user-foundry' ),
-			'after_value'       => __( 'After', 'nobloat-user-foundry' ),
-		),
-	) );
+		/* Enqueue version history JS */
+		wp_enqueue_script( 'nbuf-version-history', plugin_dir_url( __DIR__ ) . 'assets/js/admin/version-history.js', array( 'jquery' ), '1.4.0', true );
+		wp_localize_script(
+			'nbuf-version-history',
+			'NBUF_VersionHistory',
+			array(
+				'ajax_url'   => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
+				'can_revert' => $can_revert ? true : false,
+				'i18n'       => array(
+					'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
+					'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
+					'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
+					'import'         => __( 'Import', 'nobloat-user-foundry' ),
+					'reverted'       => __( 'Reverted', 'nobloat-user-foundry' ),
+					'self'           => __( 'Self', 'nobloat-user-foundry' ),
+					'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
+					'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
+					'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
+					'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
+					'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
+					'before'         => __( 'Before:', 'nobloat-user-foundry' ),
+					'after'          => __( 'After:', 'nobloat-user-foundry' ),
+					'field'          => __( 'Field', 'nobloat-user-foundry' ),
+					'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
+					'after_value'    => __( 'After', 'nobloat-user-foundry' ),
+				),
+			)
+		);
 
 		?>
 		<div class="nbuf-account-section nbuf-vh-account">
 			<h2 class="nbuf-section-title"><?php esc_html_e( 'Profile History', 'nobloat-user-foundry' ); ?></h2>
 
-			<?php if ( ! $allow_user_revert ) : ?>
+		<?php if ( ! $allow_user_revert ) : ?>
 				<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">
-					<?php esc_html_e( 'You can view your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'You can view your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
 				</div>
-			<?php endif; ?>
+		<?php endif; ?>
 
-			<?php
-			/* Include the version history viewer template */
-			$context = 'account';
-			include plugin_dir_path( dirname( __FILE__ ) ) . 'templates/version-history-viewer.php';
-			?>
+		<?php
+		/* Include the version history viewer template */
+		$context = 'account';
+		include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+		?>
 		</div>
 		<?php
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

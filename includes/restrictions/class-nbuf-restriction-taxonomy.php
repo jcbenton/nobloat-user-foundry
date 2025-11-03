@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restriction_Taxonomy
+ *
+ * Handles taxonomy term visibility restrictions.
+ */
 class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
+
 
 	/**
 	 * Initialize taxonomy restrictions
@@ -64,7 +70,7 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 			return;
 		}
 
-		$term_id = $queried_object->term_id;
+		$term_id  = $queried_object->term_id;
 		$taxonomy = $queried_object->taxonomy;
 
 		/* Get restriction settings */
@@ -108,14 +114,14 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 						'restrictions',
 						'taxonomy_access_denied_redirect',
 						sprintf(
-							/* translators: 1: Term name, 2: Taxonomy */
+						/* translators: 1: Term name, 2: Taxonomy */
 							__( 'Access denied to %1$s (%2$s) - redirected', 'nobloat-user-foundry' ),
 							$queried_object->name,
 							$taxonomy
 						),
 						array(
-							'term_id'  => $term_id,
-							'taxonomy' => $taxonomy,
+							'term_id'    => $term_id,
+							'taxonomy'   => $taxonomy,
 							'visibility' => $visibility,
 						)
 					);
@@ -133,14 +139,14 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 						'restrictions',
 						'taxonomy_access_denied_404',
 						sprintf(
-							/* translators: 1: Term name, 2: Taxonomy */
+						/* translators: 1: Term name, 2: Taxonomy */
 							__( 'Access denied to %1$s (%2$s) - 404 shown', 'nobloat-user-foundry' ),
 							$queried_object->name,
 							$taxonomy
 						),
 						array(
-							'term_id'  => $term_id,
-							'taxonomy' => $taxonomy,
+							'term_id'    => $term_id,
+							'taxonomy'   => $taxonomy,
 							'visibility' => $visibility,
 						)
 					);
@@ -161,9 +167,9 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 	/**
 	 * Filter terms query to exclude restricted terms (optional)
 	 *
-	 * @param array $args Term query arguments
-	 * @param array $taxonomies Taxonomies being queried
-	 * @return array Modified arguments
+	 * @param  array $args       Term query arguments.
+	 * @param  array $taxonomies Taxonomies being queried.
+	 * @return array Modified arguments.
 	 */
 	public static function filter_terms_query( $args, $taxonomies ) {
 		/* Skip in admin */
@@ -176,7 +182,7 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 
 		if ( ! empty( $excluded_ids ) ) {
 			/* Merge with existing exclude */
-			$existing = isset( $args['exclude'] ) ? (array) $args['exclude'] : array();
+			$existing        = isset( $args['exclude'] ) ? (array) $args['exclude'] : array();
 			$args['exclude'] = array_merge( $existing, $excluded_ids );
 		}
 
@@ -186,13 +192,17 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 	/**
 	 * Get list of term IDs to exclude from queries
 	 *
-	 * @param array $taxonomies Taxonomies being queried
-	 * @return array Array of term IDs to exclude
+	 * @param  array $taxonomies Taxonomies being queried.
+	 * @return array Array of term IDs to exclude.
 	 */
 	private static function get_excluded_term_ids( $taxonomies ) {
-		/* Try to get from cache */
+		/*
+		 * Try to get from cache
+		 *
+		 */
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Storing role arrays in termmeta, used only for cache key generation.
 		$cache_key = 'nbuf_excluded_terms_' . md5( serialize( $taxonomies ) ) . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' );
-		$cached = wp_cache_get( $cache_key, 'nbuf_restrictions' );
+		$cached    = wp_cache_get( $cache_key, 'nbuf_restrictions' );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -203,8 +213,11 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 		/* Build query for term meta */
 		$placeholders = implode( ',', array_fill( 0, count( $taxonomies ), '%s' ) );
 
-		/* Get all terms with restrictions in these taxonomies */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/*
+		* Get all terms with restrictions in these taxonomies
+		*/
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN clause
 		$restricted_terms = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT t.term_id, tm1.meta_value as visibility, tm2.meta_value as allowed_roles
@@ -212,10 +225,12 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 				INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
 				INNER JOIN {$wpdb->termmeta} tm1 ON t.term_id = tm1.term_id AND tm1.meta_key = '_nbuf_visibility'
 				LEFT JOIN {$wpdb->termmeta} tm2 ON t.term_id = tm2.term_id AND tm2.meta_key = '_nbuf_allowed_roles'
-				WHERE tt.taxonomy IN ($placeholders) AND tm1.meta_value != 'everyone'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			WHERE tt.taxonomy IN ($placeholders) AND tm1.meta_value != 'everyone'",
 				...$taxonomies
 			)
 		);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$excluded = array();
 
@@ -247,7 +262,7 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 	/**
 	 * Add restriction fields to new term form
 	 *
-	 * @param string $taxonomy Current taxonomy slug
+	 * @param string $taxonomy Current taxonomy slug.
 	 */
 	public static function add_term_fields_new( $taxonomy ) {
 		wp_nonce_field( 'nbuf_term_restriction', 'nbuf_term_restriction_nonce' );
@@ -265,17 +280,17 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 
 		<div class="form-field nbuf-term-roles-wrap" id="nbuf_term_roles_wrap" style="display:none;">
 			<label><?php esc_html_e( 'Allowed Roles', 'nobloat-user-foundry' ); ?></label>
-			<?php
-			$wp_roles = wp_roles()->get_names();
-			foreach ( $wp_roles as $role_slug => $role_name ) {
-				?>
+		<?php
+		$wp_roles = wp_roles()->get_names();
+		foreach ( $wp_roles as $role_slug => $role_name ) {
+			?>
 				<label style="display: block; margin: 5px 0;">
 					<input type="checkbox" name="nbuf_term_allowed_roles[]" value="<?php echo esc_attr( $role_slug ); ?>">
-					<?php echo esc_html( $role_name ); ?>
+			<?php echo esc_html( $role_name ); ?>
 				</label>
-				<?php
-			}
-			?>
+			<?php
+		}
+		?>
 			<p><?php esc_html_e( 'Select which roles can access this term.', 'nobloat-user-foundry' ); ?></p>
 		</div>
 
@@ -311,8 +326,8 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 	/**
 	 * Add restriction fields to edit term form
 	 *
-	 * @param WP_Term $term Current term object
-	 * @param string  $taxonomy Current taxonomy slug
+	 * @param WP_Term $term     Current term object.
+	 * @param string  $taxonomy Current taxonomy slug.
 	 */
 	public static function add_term_fields_edit( $term, $taxonomy ) {
 		/* Get current values */
@@ -351,18 +366,18 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 				<label><?php esc_html_e( 'Allowed Roles', 'nobloat-user-foundry' ); ?></label>
 			</th>
 			<td>
-				<?php
-				$wp_roles = wp_roles()->get_names();
-				foreach ( $wp_roles as $role_slug => $role_name ) {
-					$checked = in_array( $role_slug, $allowed_roles, true );
-					?>
+		<?php
+		$wp_roles = wp_roles()->get_names();
+		foreach ( $wp_roles as $role_slug => $role_name ) {
+			$checked = in_array( $role_slug, $allowed_roles, true );
+			?>
 					<label style="display: block; margin: 5px 0;">
 						<input type="checkbox" name="nbuf_term_allowed_roles[]" value="<?php echo esc_attr( $role_slug ); ?>" <?php checked( $checked ); ?>>
-						<?php echo esc_html( $role_name ); ?>
+			<?php echo esc_html( $role_name ); ?>
 					</label>
-					<?php
-				}
-				?>
+			<?php
+		}
+		?>
 				<p class="description"><?php esc_html_e( 'Select which roles can access this term.', 'nobloat-user-foundry' ); ?></p>
 			</td>
 		</tr>
@@ -407,8 +422,8 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 	/**
 	 * Save term restriction fields
 	 *
-	 * @param int    $term_id Term ID
-	 * @param string $taxonomy Taxonomy slug
+	 * @param int    $term_id  Term ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 */
 	public static function save_term_fields( $term_id, $taxonomy ) {
 		/* Verify nonce */
@@ -439,14 +454,14 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 		/* Save allowed roles */
 		$allowed_roles = array();
 		if ( 'role_based' === $visibility && ! empty( $_POST['nbuf_term_allowed_roles'] ) ) {
-			$raw_roles = array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_term_allowed_roles'] ) );
+			$raw_roles     = array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_term_allowed_roles'] ) );
 			$allowed_roles = self::sanitize_roles( $raw_roles );
 		}
 		update_term_meta( $term_id, '_nbuf_allowed_roles', $allowed_roles );
 
 		/* Save restriction action */
 		$restriction_action = isset( $_POST['nbuf_term_restriction_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_term_restriction_action'] ) ) : '404';
-		$allowed_actions = array( '404', 'redirect' );
+		$allowed_actions    = array( '404', 'redirect' );
 		if ( ! in_array( $restriction_action, $allowed_actions, true ) ) {
 			$restriction_action = '404';
 		}

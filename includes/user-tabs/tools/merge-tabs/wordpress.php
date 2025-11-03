@@ -14,16 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Get preselected accounts from bulk action */
 $preselected_accounts = array();
-if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) ) {
-	$users_param = sanitize_text_field( wp_unslash( $_GET['users'] ) );
+if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bulk_action_nonce' ) ) {
+	$users_param          = sanitize_text_field( wp_unslash( $_GET['users'] ) );
 	$preselected_accounts = array_map( 'intval', explode( ',', $users_param ) );
 }
 
 /* Get all users for selection */
-$all_users = get_users( array(
-	'orderby' => 'display_name',
-	'order'   => 'ASC',
-) );
+$all_users = get_users(
+	array(
+		'orderby' => 'display_name',
+		'order'   => 'ASC',
+	)
+);
 ?>
 
 <div class="nbuf-wordpress-merge">
@@ -49,15 +51,15 @@ $all_users = get_users( array(
 						<select id="nbuf-merge-accounts" name="nbuf_merge_accounts[]" multiple="multiple" style="width: 100%; min-height: 200px;">
 							<?php foreach ( $all_users as $user ) : ?>
 								<option value="<?php echo esc_attr( $user->ID ); ?>"
-									<?php echo in_array( $user->ID, $preselected_accounts, true ) ? 'selected' : ''; ?>>
-									<?php
-									printf(
-										'%s (%s) - ID: %d',
-										esc_html( $user->display_name ),
-										esc_html( $user->user_email ),
-										(int) $user->ID
-									);
-									?>
+								<?php echo in_array( $user->ID, $preselected_accounts, true ) ? 'selected' : ''; ?>>
+								<?php
+								printf(
+									'%s (%s) - ID: %d',
+									esc_html( $user->display_name ),
+									esc_html( $user->user_email ),
+									(int) $user->ID
+								);
+								?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -248,23 +250,23 @@ wp_localize_script(
 		'nonce'       => wp_create_nonce( 'nbuf_merge_load' ),
 		'preselected' => $preselected_accounts,
 		'i18n'        => array(
-			'minimum_users'         => __( 'Please select at least 2 accounts to merge.', 'nobloat-user-foundry' ),
-			'loading'               => __( 'Loading...', 'nobloat-user-foundry' ),
-			'load_accounts'         => __( 'Load Selected Accounts', 'nobloat-user-foundry' ),
-			'error_loading'         => __( 'Error loading accounts', 'nobloat-user-foundry' ),
-			'email'                 => __( 'Email', 'nobloat-user-foundry' ),
-			'username'              => __( 'Username', 'nobloat-user-foundry' ),
-			'user_id'               => __( 'User ID', 'nobloat-user-foundry' ),
-			'posts'                 => __( 'Posts', 'nobloat-user-foundry' ),
-			'comments'              => __( 'Comments', 'nobloat-user-foundry' ),
-			'primary_email'         => __( 'Primary Email', 'nobloat-user-foundry' ),
-			'secondary_email'       => __( 'Secondary Email', 'nobloat-user-foundry' ),
-			'tertiary_email'        => __( 'Tertiary Email', 'nobloat-user-foundry' ),
-			'none'                  => __( '(none)', 'nobloat-user-foundry' ),
-			'email_limit_warning'   => __( 'Warning: Only 3 email addresses can be stored. Additional emails will not be saved.', 'nobloat-user-foundry' ),
-			'no_conflicts'          => __( 'No conflicts found! All profile data can be merged automatically.', 'nobloat-user-foundry' ),
-			'conflict_instruction'  => __( 'The following fields have different values across accounts. Please select which value to keep:', 'nobloat-user-foundry' ),
-			'confirm_cancel'        => __( 'Are you sure you want to cancel? All selections will be lost.', 'nobloat-user-foundry' ),
+			'minimum_users'        => __( 'Please select at least 2 accounts to merge.', 'nobloat-user-foundry' ),
+			'loading'              => __( 'Loading...', 'nobloat-user-foundry' ),
+			'load_accounts'        => __( 'Load Selected Accounts', 'nobloat-user-foundry' ),
+			'error_loading'        => __( 'Error loading accounts', 'nobloat-user-foundry' ),
+			'email'                => __( 'Email', 'nobloat-user-foundry' ),
+			'username'             => __( 'Username', 'nobloat-user-foundry' ),
+			'user_id'              => __( 'User ID', 'nobloat-user-foundry' ),
+			'posts'                => __( 'Posts', 'nobloat-user-foundry' ),
+			'comments'             => __( 'Comments', 'nobloat-user-foundry' ),
+			'primary_email'        => __( 'Primary Email', 'nobloat-user-foundry' ),
+			'secondary_email'      => __( 'Secondary Email', 'nobloat-user-foundry' ),
+			'tertiary_email'       => __( 'Tertiary Email', 'nobloat-user-foundry' ),
+			'none'                 => __( '(none)', 'nobloat-user-foundry' ),
+			'email_limit_warning'  => __( 'Warning: Only 3 email addresses can be stored. Additional emails will not be saved.', 'nobloat-user-foundry' ),
+			'no_conflicts'         => __( 'No conflicts found! All profile data can be merged automatically.', 'nobloat-user-foundry' ),
+			'conflict_instruction' => __( 'The following fields have different values across accounts. Please select which value to keep:', 'nobloat-user-foundry' ),
+			'confirm_cancel'       => __( 'Are you sure you want to cancel? All selections will be lost.', 'nobloat-user-foundry' ),
 		),
 	)
 );

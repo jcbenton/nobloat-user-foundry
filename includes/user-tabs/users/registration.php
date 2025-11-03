@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$reg_settings = NBUF_Options::get('nbuf_registration_fields', array());
+$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 /* Default values if not set */
 $username_method = $reg_settings['username_method'] ?? 'auto_random';
@@ -98,7 +98,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 	$all_categories = array_merge(
 		array(
 			'core' => array(
-				'label' => __( 'Core Fields', 'nobloat-user-foundry' ),
+				'label'  => __( 'Core Fields', 'nobloat-user-foundry' ),
 				'fields' => array(
 					'first_name' => __( 'First Name', 'nobloat-user-foundry' ),
 					'last_name'  => __( 'Last Name', 'nobloat-user-foundry' ),
@@ -109,7 +109,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 	);
 
 	foreach ( $all_categories as $category_key => $category_data ) :
-	?>
+		?>
 		<h3><?php echo esc_html( $category_data['label'] ); ?></h3>
 		<table class="wp-list-table widefat fixed striped" style="margin-bottom: 30px;">
 			<thead>
@@ -123,17 +123,18 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $category_data['fields'] as $field_key => $field_label ) :
-					$enabled  = $reg_settings[ $field_key . '_enabled' ] ?? false;
-					$required = $reg_settings[ $field_key . '_required' ] ?? false;
-					$label    = $reg_settings[ $field_key . '_label' ] ?? '';
-				?>
+		<?php
+		foreach ( $category_data['fields'] as $field_key => $field_label ) :
+			$enabled  = $reg_settings[ $field_key . '_enabled' ] ?? false;
+			$required = $reg_settings[ $field_key . '_required' ] ?? false;
+			$label    = $reg_settings[ $field_key . '_label' ] ?? '';
+			?>
 					<tr>
 						<td style="text-align: center;">
 							<input type="checkbox"
 								name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_enabled]"
 								value="1"
-								<?php checked( $enabled, true ); ?>
+			<?php checked( $enabled, true ); ?>
 								class="nbuf-field-enabled"
 								data-field="<?php echo esc_attr( $field_key ); ?>"
 								data-category="<?php echo esc_attr( $category_key ); ?>">
@@ -143,7 +144,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 							<input type="checkbox"
 								name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_required]"
 								value="1"
-								<?php checked( $required, true ); ?>
+			<?php checked( $required, true ); ?>
 								class="nbuf-field-required"
 								data-field="<?php echo esc_attr( $field_key ); ?>">
 						</td>
@@ -155,7 +156,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 								placeholder="<?php echo esc_attr( $field_label ); ?>">
 						</td>
 					</tr>
-				<?php endforeach; ?>
+		<?php endforeach; ?>
 			</tbody>
 		</table>
 	<?php endforeach; ?>

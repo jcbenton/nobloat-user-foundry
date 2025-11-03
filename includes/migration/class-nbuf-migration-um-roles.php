@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Migration_UM_Roles
+ *
+ * Migrates custom roles from Ultimate Member to NBUF.
+ */
 class NBUF_Migration_UM_Roles {
+
 
 	/**
 	 * Migrate Ultimate Member roles to NBUF
@@ -23,10 +29,10 @@ class NBUF_Migration_UM_Roles {
 	 */
 	public static function migrate_roles() {
 		$results = array(
-			'total'     => 0,
-			'migrated'  => 0,
-			'skipped'   => 0,
-			'errors'    => array(),
+			'total'    => 0,
+			'migrated' => 0,
+			'skipped'  => 0,
+			'errors'   => array(),
 		);
 
 		/* Check if Ultimate Member is active */
@@ -52,7 +58,7 @@ class NBUF_Migration_UM_Roles {
 			try {
 				/* Skip WordPress native roles */
 				if ( in_array( $role_key, $native_roles, true ) ) {
-					$results['skipped']++;
+					++$results['skipped'];
 					continue;
 				}
 
@@ -60,7 +66,7 @@ class NBUF_Migration_UM_Roles {
 				$um_meta = get_option( "um_role_{$role_key}_meta", array() );
 
 				if ( empty( $um_meta ) ) {
-					$results['skipped']++;
+					++$results['skipped'];
 					continue;
 				}
 
@@ -70,36 +76,38 @@ class NBUF_Migration_UM_Roles {
 				/* Check if role already exists in NBUF */
 				if ( NBUF_Role_Manager::role_exists( $role_key ) ) {
 					/* Update existing role */
-					$result = NBUF_Role_Manager::update_role( $role_key, array(
-						'role_name'    => $nbuf_role['role_name'],
-						'capabilities' => $nbuf_role['capabilities'],
-						'priority'     => $nbuf_role['priority'],
-					) );
+					$result = NBUF_Role_Manager::update_role(
+						$role_key,
+						array(
+							'role_name'    => $nbuf_role['role_name'],
+							'capabilities' => $nbuf_role['capabilities'],
+							'priority'     => $nbuf_role['priority'],
+						)
+					);
 				} else {
 					/* Create new role */
 					$result = NBUF_Role_Manager::create_role(
 						$role_key,
 						$nbuf_role['role_name'],
 						$nbuf_role['capabilities'],
-						null, // No parent role for UM migrations
+						null, // No parent role for UM migrations.
 						$nbuf_role['priority']
 					);
 				}
 
 				if ( is_wp_error( $result ) ) {
 					$results['errors'][] = sprintf(
-						/* translators: 1: Role key, 2: Error message */
+					/* translators: 1: Role key, 2: Error message */
 						__( 'Role %1$s: %2$s', 'nobloat-user-foundry' ),
 						$role_key,
 						$result->get_error_message()
 					);
 				} else {
-					$results['migrated']++;
+					++$results['migrated'];
 				}
-
 			} catch ( Exception $e ) {
 				$results['errors'][] = sprintf(
-					/* translators: 1: Role key, 2: Error message */
+				/* translators: 1: Role key, 2: Error message */
 					__( 'Role %1$s: %2$s', 'nobloat-user-foundry' ),
 					$role_key,
 					$e->getMessage()
@@ -114,7 +122,7 @@ class NBUF_Migration_UM_Roles {
 				'roles',
 				'um_roles_migrated',
 				sprintf(
-					/* translators: %d: Number of roles migrated */
+				/* translators: %d: Number of roles migrated */
 					__( 'Migrated %d roles from Ultimate Member', 'nobloat-user-foundry' ),
 					$results['migrated']
 				),
@@ -128,9 +136,9 @@ class NBUF_Migration_UM_Roles {
 	/**
 	 * Map Ultimate Member role data to NBUF format
 	 *
-	 * @param string $role_key Role key
-	 * @param array  $um_meta  UM role metadata
-	 * @return array NBUF role data
+	 * @param  string $role_key Role key.
+	 * @param  array  $um_meta  UM role metadata.
+	 * @return array NBUF role data.
 	 */
 	private static function map_um_to_nbuf( $role_key, $um_meta ) {
 		$nbuf = array(
@@ -163,8 +171,8 @@ class NBUF_Migration_UM_Roles {
 	/**
 	 * Get migration preview (first N roles)
 	 *
-	 * @param int $limit Number of roles to preview
-	 * @return array Preview data
+	 * @param  int $limit Number of roles to preview.
+	 * @return array Preview data.
 	 */
 	public static function get_migration_preview( $limit = 10 ) {
 		$um_role_keys = get_option( 'um_roles', array() );
@@ -197,14 +205,14 @@ class NBUF_Migration_UM_Roles {
 			$user_count = NBUF_Role_Manager::get_user_count( $role_key );
 
 			$preview[] = array(
-				'role_key'      => $role_key,
-				'role_name'     => $nbuf_data['role_name'],
-				'capabilities'  => count( $nbuf_data['capabilities'] ),
-				'priority'      => $nbuf_data['priority'],
-				'users'         => $user_count,
+				'role_key'     => $role_key,
+				'role_name'    => $nbuf_data['role_name'],
+				'capabilities' => count( $nbuf_data['capabilities'] ),
+				'priority'     => $nbuf_data['priority'],
+				'users'        => $user_count,
 			);
 
-			$count++;
+			++$count;
 		}
 
 		return $preview;
@@ -251,7 +259,7 @@ class NBUF_Migration_UM_Roles {
 				if ( NBUF_Role_Manager::role_exists( $role_key ) ) {
 					$result = NBUF_Role_Manager::delete_role( $role_key );
 					if ( ! is_wp_error( $result ) ) {
-						$deleted++;
+						++$deleted;
 					}
 				}
 			}
@@ -264,7 +272,7 @@ class NBUF_Migration_UM_Roles {
 				'roles',
 				'um_roles_rollback',
 				sprintf(
-					/* translators: %d: Number of roles deleted */
+				/* translators: %d: Number of roles deleted */
 					__( 'Rolled back migration - deleted %d custom roles', 'nobloat-user-foundry' ),
 					$deleted
 				),

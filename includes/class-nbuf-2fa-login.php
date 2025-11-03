@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_2FA_Login {
 
+
 	/**
 	 * Cookie name for 2FA token
 	 */
@@ -49,12 +50,12 @@ class NBUF_2FA_Login {
 	 * Runs after WordPress validates the password. If 2FA is required,
 	 * we prevent immediate login and redirect to 2FA verification page.
 	 *
-	 * @param WP_User|WP_Error|null $user WP_User if authenticated, WP_Error if failed.
-	 * @param string                $username Username or email address.
-	 * @param string                $password User password.
+	 * @param  WP_User|WP_Error|null $user     WP_User if authenticated, WP_Error if failed.
+	 * @param  string                $username Username or email address.
+	 * @param  string                $password User password.
 	 * @return WP_User|WP_Error Modified authentication result.
 	 */
-	public static function intercept_login( $user, $username, $password ) {
+	public static function intercept_login( $user, $username, $password ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $username, $password required by WordPress authenticate filter signature
 		/* Only proceed if password authentication succeeded */
 		if ( ! $user instanceof WP_User ) {
 			return $user;
@@ -90,12 +91,12 @@ class NBUF_2FA_Login {
 			COOKIEPATH,
 			COOKIE_DOMAIN,
 			is_ssl(),
-			true // httponly
+			true // httponly.
 		);
 
 		/* Send email code if user has email 2FA */
 		$method = NBUF_2FA::get_user_method( $user->ID );
-		if ( $method === 'email' || $method === 'both' ) {
+		if ( 'email' === $method || 'both' === $method ) {
 			NBUF_2FA::send_email_code( $user->ID );
 		}
 
@@ -114,7 +115,7 @@ class NBUF_2FA_Login {
 	 *
 	 * @param int $user_id User ID.
 	 */
-	private static function redirect_to_2fa_page( $user_id ) {
+	private static function redirect_to_2fa_page( $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $user_id parameter kept for potential future use in redirect customization
 		/* Get 2FA verification page */
 		$page_id = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 
@@ -161,38 +162,39 @@ class NBUF_2FA_Login {
 
 		$user_id = absint( $pending_data['user_id'] );
 
-		/* Get submitted code */
+		/*
+		 * Get submitted code
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification on line 144
 		$code = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
 
 		if ( empty( $code ) ) {
 			return;
 		}
 
-		$verified     = false;
-		$method       = NBUF_2FA::get_user_method( $user_id );
-		$code_type    = isset( $_POST['code_type'] ) ? sanitize_text_field( wp_unslash( $_POST['code_type'] ) ) : 'auto';
+		$verified = false;
+		$method   = NBUF_2FA::get_user_method( $user_id );
+     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification on line 144
+		$code_type = isset( $_POST['code_type'] ) ? sanitize_text_field( wp_unslash( $_POST['code_type'] ) ) : 'auto';
 
 		/* Try backup code first if explicitly selected */
-		if ( $code_type === 'backup' ) {
+		if ( 'backup' === $code_type ) {
 			$result   = NBUF_2FA::verify_backup_code( $user_id, $code );
 			$verified = ! is_wp_error( $result );
-		} else {
-			/* Auto-detect code type based on user's method */
-			if ( $method === 'email' ) {
+		} elseif ( 'email' === $method ) {
+			$result   = NBUF_2FA::verify_email_code( $user_id, $code );
+			$verified = ! is_wp_error( $result );
+		} elseif ( 'totp' === $method ) {
+			$result   = NBUF_2FA::verify_totp_code( $user_id, $code );
+			$verified = ! is_wp_error( $result );
+		} elseif ( 'both' === $method ) {
+			/* Try TOTP first (more common), then email */
+			$result = NBUF_2FA::verify_totp_code( $user_id, $code );
+			if ( ! is_wp_error( $result ) ) {
+				$verified = true;
+			} else {
 				$result   = NBUF_2FA::verify_email_code( $user_id, $code );
 				$verified = ! is_wp_error( $result );
-			} elseif ( $method === 'totp' ) {
-				$result   = NBUF_2FA::verify_totp_code( $user_id, $code );
-				$verified = ! is_wp_error( $result );
-			} elseif ( $method === 'both' ) {
-				/* Try TOTP first (more common), then email */
-				$result = NBUF_2FA::verify_totp_code( $user_id, $code );
-				if ( ! is_wp_error( $result ) ) {
-					$verified = true;
-				} else {
-					$result   = NBUF_2FA::verify_email_code( $user_id, $code );
-					$verified = ! is_wp_error( $result );
-				}
 			}
 		}
 
@@ -204,7 +206,10 @@ class NBUF_2FA_Login {
 				'2fa_failed',
 				'failure',
 				'2FA verification failed - incorrect code',
-				array( 'method' => $method, 'code_type' => $code_type )
+				array(
+					'method'    => $method,
+					'code_type' => $code_type,
+				)
 			);
 
 			wp_safe_redirect( add_query_arg( 'error', '1', wp_get_referer() ) );
@@ -217,11 +222,17 @@ class NBUF_2FA_Login {
 			'2fa_verified',
 			'success',
 			'2FA verification successful',
-			array( 'method' => $method, 'code_type' => $code_type )
+			array(
+				'method'    => $method,
+				'code_type' => $code_type,
+			)
 		);
 
-		/* Check if user wants to trust this device */
-		$trust_device = isset( $_POST['trust_device'] ) && $_POST['trust_device'] === '1';
+		/*
+		 * Check if user wants to trust this device
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification on line 144
+		$trust_device = isset( $_POST['trust_device'] ) && '1' === $_POST['trust_device'];
 		if ( $trust_device ) {
 			NBUF_2FA::trust_device( $user_id );
 
@@ -270,7 +281,9 @@ class NBUF_2FA_Login {
 		/* Redirect to admin dashboard or intended page */
 		$redirect_to = admin_url();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 145
 		if ( isset( $_REQUEST['redirect_to'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 145
 			$redirect_to = sanitize_text_field( wp_unslash( $_REQUEST['redirect_to'] ) );
 		}
 
@@ -336,26 +349,27 @@ class NBUF_2FA_Login {
 
 			if ( $grace_days <= 0 ) {
 				return '<div class="nbuf-2fa-setup-required">' .
-					   '<p><strong>' . esc_html__( '2FA Setup Required', 'nobloat-user-foundry' ) . '</strong></p>' .
-					   '<p>' . esc_html__( 'Two-factor authentication is required for your account. Please set it up to continue.', 'nobloat-user-foundry' ) . '</p>' .
-					   '</div>';
+				'<p><strong>' . esc_html__( '2FA Setup Required', 'nobloat-user-foundry' ) . '</strong></p>' .
+				'<p>' . esc_html__( 'Two-factor authentication is required for your account. Please set it up to continue.', 'nobloat-user-foundry' ) . '</p>' .
+				'</div>';
 			}
 		}
 
 		/* Get instructions based on method */
 		$instructions = '';
-		if ( $method === 'email' ) {
+		if ( 'email' === $method ) {
 			$instructions = __( 'A verification code has been sent to your email address. Enter it below to continue.', 'nobloat-user-foundry' );
-		} elseif ( $method === 'totp' ) {
+		} elseif ( 'totp' === $method ) {
 			$instructions = __( 'Enter the 6-digit code from your authenticator app.', 'nobloat-user-foundry' );
-		} elseif ( $method === 'both' ) {
+		} elseif ( 'both' === $method ) {
 			$instructions = __( 'Enter the code from your authenticator app or email.', 'nobloat-user-foundry' );
 		}
 
 		/* Check for error */
 		$error_message = '';
-		$error_param   = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
-		if ( $error_param === '1' ) {
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only error message display
+		$error_param = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
+		if ( '1' === $error_param ) {
 			$error_message = '<div class="nbuf-error">' . esc_html__( 'Invalid code. Please try again.', 'nobloat-user-foundry' ) . '</div>';
 		}
 
@@ -386,7 +400,7 @@ class NBUF_2FA_Login {
 		$html .= '</form>';
 
 		/* Resend email link if applicable */
-		if ( $method === 'email' || $method === 'both' ) {
+		if ( 'email' === $method || 'both' === $method ) {
 			$html .= '<p class="nbuf-2fa-resend"><a href="?resend=1">' . esc_html__( 'Resend code', 'nobloat-user-foundry' ) . '</a></p>';
 		}
 

@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audit log admin page handler
+ *
+ * @since 1.0.0
+ */
 class NBUF_Audit_Log_Page {
+
 
 	/**
 	 * Initialize audit log page
@@ -62,30 +68,30 @@ class NBUF_Audit_Log_Page {
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'User Audit Log', 'nobloat-user-foundry' ); ?></h1>
 
-			<?php if ( NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
+		<?php if ( NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
 				<a href="<?php echo esc_url( self::get_export_url() ); ?>" class="page-title-action">
-					<?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
 				</a>
 				<a href="<?php echo esc_url( self::get_purge_url() ); ?>" class="page-title-action" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete ALL audit logs? This action cannot be undone.', 'nobloat-user-foundry' ); ?>');">
-					<?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
 				</a>
-			<?php endif; ?>
+		<?php endif; ?>
 
 			<hr class="wp-header-end">
 
-			<?php if ( ! NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
+		<?php if ( ! NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
 				<div class="notice notice-warning">
 					<p>
-						<?php
-						printf(
-							/* translators: %s: Settings page URL */
-							esc_html__( 'Audit logging is currently disabled. Enable it in %s to start tracking user activity.', 'nobloat-user-foundry' ),
-							'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings > Tools > Audit Log', 'nobloat-user-foundry' ) . '</a>'
-						);
-						?>
+			<?php
+			printf(
+			/* translators: %s: Settings page URL */
+				esc_html__( 'Audit logging is currently disabled. Enable it in %s to start tracking user activity.', 'nobloat-user-foundry' ),
+				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings > Tools > Audit Log', 'nobloat-user-foundry' ) . '</a>'
+			);
+			?>
 					</p>
 				</div>
-			<?php endif; ?>
+		<?php endif; ?>
 
 			<!-- Statistics -->
 			<div class="nbuf-stats-box" style="background: #fff; border: 1px solid #ccd0d4; padding: 15px; margin: 20px 0; border-radius: 4px;">
@@ -119,10 +125,10 @@ class NBUF_Audit_Log_Page {
 			<!-- List table -->
 			<form method="get">
 				<input type="hidden" name="page" value="nobloat-foundry-user-log">
-				<?php
-				$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'audit-log-search' );
-				$list_table->display();
-				?>
+		<?php
+		$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'audit-log-search' );
+		$list_table->display();
+		?>
 			</form>
 		</div>
 		<?php
@@ -132,8 +138,12 @@ class NBUF_Audit_Log_Page {
 	 * Display admin notices
 	 */
 	private static function display_notices() {
-		/* Success messages */
+		/*
+		 * Success messages
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['deleted'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 			$count = intval( $_GET['deleted'] );
 			printf(
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
@@ -142,15 +152,20 @@ class NBUF_Audit_Log_Page {
 			);
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['exported'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Audit logs exported successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['purged'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'All audit logs have been purged.', 'nobloat-user-foundry' ) . '</p></div>';
 		}
 
-		/* Error messages */
+		/*
+		 * Error messages
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only error message display
 		if ( ! empty( $_GET['error'] ) ) {
 			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'An error occurred. Please try again.', 'nobloat-user-foundry' ) . '</p></div>';
 		}
@@ -165,7 +180,7 @@ class NBUF_Audit_Log_Page {
 		}
 
 		/* Check nonce */
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'nbuf_export_logs' ) ) {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_export_logs' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
 		}
 
@@ -190,12 +205,13 @@ class NBUF_Audit_Log_Page {
 		$csv = NBUF_Audit_Log::export_to_csv( $filters );
 
 		/* Set headers for download */
-		$filename = 'audit-log-' . date( 'Y-m-d-His' ) . '.csv';
+		$filename = 'audit-log-' . gmdate( 'Y-m-d-His' ) . '.csv';
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
+     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV export data from NBUF_Audit_Log::export_to_csv().
 		echo $csv;
 		exit;
 	}
@@ -209,7 +225,7 @@ class NBUF_Audit_Log_Page {
 		}
 
 		/* Check nonce */
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'nbuf_purge_logs' ) ) {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_purge_logs' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
 		}
 
@@ -236,17 +252,23 @@ class NBUF_Audit_Log_Page {
 	/**
 	 * Get export URL with nonce
 	 *
-	 * @return string Export URL
+	 * @return string Export URL.
 	 */
 	private static function get_export_url() {
 		$url = admin_url( 'admin.php' );
 		$url = add_query_arg( 'action', 'nbuf_export_logs', $url );
 
-		/* Preserve current filters */
+		/*
+		 * Preserve current filters
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 		if ( ! empty( $_GET['event_type'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 			$url = add_query_arg( 'event_type', sanitize_text_field( wp_unslash( $_GET['event_type'] ) ), $url );
 		}
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 		if ( ! empty( $_GET['event_status'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 			$url = add_query_arg( 'event_status', sanitize_text_field( wp_unslash( $_GET['event_status'] ) ), $url );
 		}
 
@@ -256,7 +278,7 @@ class NBUF_Audit_Log_Page {
 	/**
 	 * Get purge URL with nonce
 	 *
-	 * @return string Purge URL
+	 * @return string Purge URL.
 	 */
 	private static function get_purge_url() {
 		$url = admin_url( 'admin.php?page=nobloat-foundry-user-log' );
@@ -267,7 +289,7 @@ class NBUF_Audit_Log_Page {
 	/**
 	 * Get retention period label
 	 *
-	 * @return string Retention label
+	 * @return string Retention label.
 	 */
 	private static function get_retention_label() {
 		$retention = NBUF_Options::get( 'nbuf_audit_log_retention', '90days' );

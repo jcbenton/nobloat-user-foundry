@@ -14,7 +14,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/**
+ * Direct database access is architectural for login attempt tracking.
+ * Custom nbuf_login_attempts table stores security data and cannot use
+ * WordPress's standard APIs. Time-sensitive data not suitable for caching.
+ */
+
+/**
+ * Class NBUF_Login_Limiting
+ *
+ * Handles login attempt limiting.
+ */
 class NBUF_Login_Limiting {
+
 
 	/**
 	 * Initialize login limiting hooks.
@@ -28,12 +42,12 @@ class NBUF_Login_Limiting {
 	/**
 	 * Check if login attempts should be limited before authentication.
 	 *
-	 * @param WP_User|WP_Error|null $user     User object or error.
-	 * @param string                $username Username.
-	 * @param string                $password Password.
+	 * @param  WP_User|WP_Error|null $user     User object or error.
+	 * @param  string                $username Username.
+	 * @param  string                $password Password.
 	 * @return WP_User|WP_Error Modified user object or error.
 	 */
-	public static function check_login_attempts( $user, $username, $password ) {
+	public static function check_login_attempts( $user, $username, $password ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $password required by WordPress authenticate filter signature
 		/* Check if login limiting is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
 		if ( ! $enabled ) {
@@ -46,7 +60,7 @@ class NBUF_Login_Limiting {
 		}
 
 		/* Get settings */
-		$max_attempts = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
+		$max_attempts     = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
 		$lockout_duration = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
 
 		/* Get IP address */
@@ -59,7 +73,7 @@ class NBUF_Login_Limiting {
 			return new WP_Error(
 				'too_many_attempts',
 				sprintf(
-					/* translators: %d: number of minutes */
+				/* translators: %d: number of minutes */
 					__( 'Too many failed login attempts. Please try again in %d minutes.', 'nobloat-user-foundry' ),
 					$lockout_duration
 				)
@@ -110,15 +124,23 @@ class NBUF_Login_Limiting {
 				'login_failed',
 				'failure',
 				'Failed login attempt',
-				array( 'username' => $username, 'attempt_count' => $attempt_count )
+				array(
+					'username'      => $username,
+					'attempt_count' => $attempt_count,
+				)
 			);
 		}
 
-		/* Clean up old attempts (older than 24 hours) */
+		/*
+		Clean up old attempts (older than 24 hours)
+		*/
+		/* NOTE: gmdate() is server-generated so this is safe, but pre-calculate for best practice */
+		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table_name} WHERE attempt_time < %s",
-				gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) )
+				'DELETE FROM %i WHERE attempt_time < %s',
+				$table_name,
+				$cutoff_time
 			)
 		);
 	}
@@ -129,7 +151,7 @@ class NBUF_Login_Limiting {
 	 * @param string  $username Username.
 	 * @param WP_User $user     User object.
 	 */
-	public static function clear_attempts_on_success( $username, $user ) {
+	public static function clear_attempts_on_success( $username, $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $user required by WordPress wp_login action signature
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
@@ -149,9 +171,9 @@ class NBUF_Login_Limiting {
 	/**
 	 * Check if IP/username is locked out.
 	 *
-	 * @param string $ip_address       IP address to check.
-	 * @param string $username         Username to check.
-	 * @param int    $lockout_duration Lockout duration in minutes.
+	 * @param  string $ip_address       IP address to check.
+	 * @param  string $username         Username to check.
+	 * @param  int    $lockout_duration Lockout duration in minutes.
 	 * @return bool True if locked out, false otherwise.
 	 */
 	private static function is_locked_out( $ip_address, $username, $lockout_duration ) {
@@ -164,9 +186,14 @@ class NBUF_Login_Limiting {
 	/**
 	 * Get count of recent failed login attempts.
 	 *
-	 * @param string $ip_address       IP address to check.
-	 * @param string $username         Username to check.
-	 * @param int    $lockout_duration Lockout duration in minutes.
+	 * SECURITY NOTE: Uses OR logic for IP and username checks.
+	 * This protects against single-IP attacks but allows distributed brute force
+	 * using multiple IPs. For enhanced protection against distributed attacks,
+	 * consider implementing per-username rate limiting with stricter thresholds.
+	 *
+	 * @param  string $ip_address       IP address to check.
+	 * @param  string $username         Username to check.
+	 * @param  int    $lockout_duration Lockout duration in minutes.
 	 * @return int Number of recent attempts.
 	 */
 	private static function get_recent_attempt_count( $ip_address, $username, $lockout_duration ) {
@@ -175,12 +202,19 @@ class NBUF_Login_Limiting {
 
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
 
-		/* Count attempts for this IP OR username within lockout window */
+		/*
+		* SECURITY: Count attempts for this IP OR username within lockout window
+		*
+		* Future enhancement: Add separate per-username global rate limiting
+		* to prevent distributed brute force attacks across multiple IPs.
+		* Suggested: MAX 10 attempts per username per hour regardless of IP.
+		*/
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table_name}
+				'SELECT COUNT(*) FROM %i
 				WHERE (ip_address = %s OR username = %s)
-				AND attempt_time > %s",
+				AND attempt_time > %s',
+				$table_name,
 				$ip_address,
 				sanitize_text_field( $username ),
 				$cutoff_time
@@ -199,14 +233,14 @@ class NBUF_Login_Limiting {
 		$ip = '';
 
 		/*
-		 * SECURITY: Prevent IP spoofing via X-Forwarded-For header
-		 *
-		 * Only trust proxy headers if request originates from a trusted proxy.
-		 * This prevents attackers from bypassing rate limiting by sending fake
-		 * X-Forwarded-For headers.
-		 *
-		 * To configure trusted proxies, add them to plugin settings (empty = don't trust proxies).
-		 */
+		* SECURITY: Prevent IP spoofing via X-Forwarded-For header
+		*
+		* Only trust proxy headers if request originates from a trusted proxy.
+		* This prevents attackers from bypassing rate limiting by sending fake
+		* X-Forwarded-For headers.
+		*
+		* To configure trusted proxies, add them to plugin settings (empty = don't trust proxies).
+		*/
 		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
 		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 
@@ -242,9 +276,9 @@ class NBUF_Login_Limiting {
 	/**
 	 * Get remaining lockout time for IP/username.
 	 *
-	 * @param string $ip_address       IP address to check.
-	 * @param string $username         Username to check.
-	 * @param int    $lockout_duration Lockout duration in minutes.
+	 * @param  string $ip_address       IP address to check.
+	 * @param  string $username         Username to check.
+	 * @param  int    $lockout_duration Lockout duration in minutes.
 	 * @return int Minutes remaining in lockout, 0 if not locked out.
 	 */
 	public static function get_lockout_time_remaining( $ip_address, $username, $lockout_duration ) {
@@ -252,13 +286,13 @@ class NBUF_Login_Limiting {
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
-
 		/* Get most recent attempt within lockout window */
 		$last_attempt = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT MAX(attempt_time) FROM {$table_name}
+				'SELECT MAX(attempt_time) FROM %i
 				WHERE (ip_address = %s OR username = %s)
-				AND attempt_time > %s",
+				AND attempt_time > %s',
+				$table_name,
 				$ip_address,
 				sanitize_text_field( $username ),
 				$cutoff_time
@@ -275,5 +309,6 @@ class NBUF_Login_Limiting {
 		return $remaining > 0 ? ceil( $remaining / 60 ) : 0;
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 /* Note: Initialization now handled in main plugin file for performance optimization */

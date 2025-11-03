@@ -3,7 +3,7 @@
  * Users Tab - Profile Change Notifications
  *
  * @package NoBloat_User_Foundry
- * @since 1.3.0
+ * @since   1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,11 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$notify_enabled = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
+$notify_enabled   = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
 $notify_new_users = NBUF_Options::get( 'nbuf_notify_new_registrations', false );
-$notify_to = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
-$notify_fields = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
-$notify_digest = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
+$notify_to        = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
+$notify_fields    = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
+$notify_digest    = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
 /* Convert to array if string */
 if ( is_string( $notify_to ) ) {
@@ -38,16 +38,16 @@ $available_fields = array(
 		'last_name'    => 'Last Name',
 		'description'  => 'Bio / Description',
 	),
-	'Profile Fields' => array(
-		'bio'         => 'Bio',
-		'phone'       => 'Phone',
-		'city'        => 'City',
-		'state'       => 'State',
-		'country'     => 'Country',
-		'company'     => 'Company',
-		'job_title'   => 'Job Title',
+	'Profile Fields'        => array(
+		'bio'       => 'Bio',
+		'phone'     => 'Phone',
+		'city'      => 'City',
+		'state'     => 'State',
+		'country'   => 'Country',
+		'company'   => 'Company',
+		'job_title' => 'Job Title',
 	),
-	'Security & Privacy' => array(
+	'Security & Privacy'    => array(
 		'2fa_status'      => '2FA Enabled/Disabled',
 		'profile_privacy' => 'Profile Privacy Setting',
 	),
@@ -70,10 +70,10 @@ $available_fields = array(
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_notify_profile_changes"
-							   id="nbuf_notify_profile_changes"
-							   value="1"
-							   <?php checked( $notify_enabled ); ?> />
+								name="nbuf_notify_profile_changes"
+								id="nbuf_notify_profile_changes"
+								value="1"
+								<?php checked( $notify_enabled ); ?> />
 						Enable profile change notifications
 					</label>
 					<p class="description">When enabled, admins will be notified of profile changes.</p>
@@ -87,10 +87,10 @@ $available_fields = array(
 				<td>
 					<label>
 						<input type="checkbox"
-							   name="nbuf_notify_new_registrations"
-							   id="nbuf_notify_new_registrations"
-							   value="1"
-							   <?php checked( $notify_new_users ); ?> />
+								name="nbuf_notify_new_registrations"
+								id="nbuf_notify_new_registrations"
+								value="1"
+								<?php checked( $notify_new_users ); ?> />
 						Notify when new users register
 					</label>
 					<p class="description">Get notified immediately when a new user registers.</p>
@@ -110,10 +110,10 @@ $available_fields = array(
 				</th>
 				<td>
 					<input type="text"
-						   name="nbuf_notify_profile_changes_to"
-						   id="nbuf_notify_profile_changes_to"
-						   value="<?php echo esc_attr( $notify_to ); ?>"
-						   class="regular-text" />
+							name="nbuf_notify_profile_changes_to"
+							id="nbuf_notify_profile_changes_to"
+							value="<?php echo esc_attr( $notify_to ); ?>"
+							class="regular-text" />
 					<p class="description">
 						Email addresses to receive notifications. Separate multiple addresses with commas.<br/>
 						Default: Site admin email (<?php echo esc_html( get_option( 'admin_email' ) ); ?>)
@@ -135,15 +135,15 @@ $available_fields = array(
 					<?php foreach ( $available_fields as $group_name => $fields ) : ?>
 						<fieldset style="margin-bottom: 20px;">
 							<legend style="font-weight: 600; margin-bottom: 8px;"><?php echo esc_html( $group_name ); ?></legend>
-							<?php foreach ( $fields as $field_key => $field_label ) : ?>
+						<?php foreach ( $fields as $field_key => $field_label ) : ?>
 								<label style="display: block; margin-bottom: 5px;">
 									<input type="checkbox"
-										   name="nbuf_notify_profile_changes_fields[]"
-										   value="<?php echo esc_attr( $field_key ); ?>"
-										   <?php checked( in_array( $field_key, $notify_fields ) ); ?> />
-									<?php echo esc_html( $field_label ); ?>
+											name="nbuf_notify_profile_changes_fields[]"
+											value="<?php echo esc_attr( $field_key ); ?>"
+							<?php checked( in_array( $field_key, $notify_fields, true ) ); ?> />
+							<?php echo esc_html( $field_label ); ?>
 								</label>
-							<?php endforeach; ?>
+						<?php endforeach; ?>
 						</fieldset>
 					<?php endforeach; ?>
 
@@ -186,11 +186,11 @@ $available_fields = array(
 			</tr>
 		</table>
 
-		<?php if ( $notify_digest === 'hourly' || $notify_digest === 'daily' ) : ?>
+		<?php if ( 'hourly' === $notify_digest || 'daily' === $notify_digest ) : ?>
 			<div style="margin-top: 15px; padding: 15px; background: #d1ecf1; border-left: 4px solid #0c5460;">
 				<p style="margin: 0;">
 					<strong>Note:</strong> Digest emails are sent via WordPress cron.
-					<?php if ( $notify_digest === 'hourly' ) : ?>
+			<?php if ( 'hourly' === $notify_digest ) : ?>
 						Hourly digests run every hour on the hour.
 					<?php else : ?>
 						Daily digests run once per day at midnight (server time).
@@ -239,20 +239,20 @@ Changes:
 --------------------------------------------------
 
 Email Address:
-  Old: old-email@example.com
-  New: john@example.com
+	Old: old-email@example.com
+	New: john@example.com
 
 Display Name:
-  Old: J. Doe
-  New: John Doe
+	Old: J. Doe
+	New: John Doe
 
 City:
-  Old: (empty)
-  New: Boston
+	Old: (empty)
+	New: Boston
 
 --------------------------------------------------
 
-View user profile: <?php echo admin_url( 'user-edit.php?user_id=123' ); ?></pre>
+View user profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=123' ) ); ?></pre>
 
 				<h4 style="margin-top: 20px;">Digest Notification (Hourly/Daily Mode)</h4>
 				<pre style="background: #fff; padding: 15px; border: 1px solid #ddd; overflow-x: auto; font-size: 12px; line-height: 1.5;">Subject: Profile Changes Digest (Daily)
@@ -264,26 +264,26 @@ Generated: 2025-11-01 23:59:00
 
 User: John Doe (johndoe)
 Email: john@example.com
-Profile: <?php echo admin_url( 'user-edit.php?user_id=123' ); ?>
+Profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=123' ) ); ?>
 
 ----------------------------------------------------------------------
 
 Changed at: 2025-11-01 14:30:00
-  Email Address: old-email@example.com → john@example.com
-  Display Name: J. Doe → John Doe
+	Email Address: old-email@example.com → john@example.com
+	Display Name: J. Doe → John Doe
 
 Changed at: 2025-11-01 18:45:00
-  City: (empty) → Boston
+	City: (empty) → Boston
 
 
 User: Jane Smith (janesmith)
 Email: jane@example.com
-Profile: <?php echo admin_url( 'user-edit.php?user_id=456' ); ?>
+Profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=456' ) ); ?>
 
 ----------------------------------------------------------------------
 
 Changed at: 2025-11-01 10:15:00
-  2FA Status: disabled → enabled
+	2FA Status: disabled → enabled
 
 
 ======================================================================
@@ -370,7 +370,7 @@ jQuery(document).ready(function($) {
 			type: 'POST',
 			data: {
 				action: 'nbuf_test_change_notification',
-				nonce: '<?php echo wp_create_nonce( 'nbuf_test_notification' ); ?>'
+				nonce: '<?php echo esc_attr( wp_create_nonce( 'nbuf_test_notification' ) ); ?>'
 			},
 			success: function(response) {
 				if (response.success) {

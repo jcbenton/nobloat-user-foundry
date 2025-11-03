@@ -50,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td>
 						<?php
 						global $wpdb;
-						$tables = array(
+						$tables       = array(
 							$wpdb->prefix . 'nbuf_tokens',
 							$wpdb->prefix . 'nbuf_user_data',
 							$wpdb->prefix . 'nbuf_options',
@@ -59,8 +59,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 						);
 						$tables_exist = 0;
 						foreach ( $tables as $table ) {
-							if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
-								$tables_exist++;
+							// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+							if ( $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+								++$tables_exist;
 							}
 						}
 						echo esc_html( $tables_exist . ' / 5 tables exist' );
@@ -71,6 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td><strong><?php esc_html_e( 'Total Options:', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
 						<?php
+						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 						$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}nbuf_options" );
 						echo esc_html( $count . ' options in custom table' );
 						?>

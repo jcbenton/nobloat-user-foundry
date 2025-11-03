@@ -31,9 +31,9 @@ if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_settings' ) ) 
 }
 
 /* Get current settings */
-$delete_audit_logs = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
-$include_audit_logs = NBUF_Options::get( 'nbuf_gdpr_include_audit_logs', true );
-$include_2fa_data = NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true );
+$delete_audit_logs      = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
+$include_audit_logs     = NBUF_Options::get( 'nbuf_gdpr_include_audit_logs', true );
+$include_2fa_data       = NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true );
 $include_login_attempts = NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false );
 ?>
 

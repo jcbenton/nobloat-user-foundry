@@ -245,10 +245,10 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 	<h3><?php esc_html_e( 'Email-Based 2FA', 'nobloat-user-foundry' ); ?></h3>
 	<table class="form-table">
 		<?php
-		$email_method     = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
-		$email_length     = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
-		$email_expiration = NBUF_Options::get( 'nbuf_2fa_email_expiration', 5 );
-		$email_rate_limit = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
+		$email_method      = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
+		$email_length      = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
+		$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 5 );
+		$email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
 		$email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 		?>
 		<tr>
@@ -310,12 +310,12 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 	<h3><?php esc_html_e( 'Authenticator App (TOTP)', 'nobloat-user-foundry' ); ?></h3>
 	<table class="form-table">
 		<?php
-		$totp_method      = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
-		$totp_length      = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
-		$totp_window      = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
-		$totp_tolerance   = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
-		$totp_qr_size     = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
-		$totp_qr_method   = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
+		$totp_method    = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+		$totp_length    = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+		$totp_window    = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+		$totp_tolerance = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
+		$totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
+		$totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 		?>
 		<tr>
 			<th><?php esc_html_e( 'TOTP Method', 'nobloat-user-foundry' ); ?></th>
@@ -451,10 +451,10 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 	<h3><?php esc_html_e( 'General 2FA Options', 'nobloat-user-foundry' ); ?></h3>
 	<table class="form-table">
 		<?php
-		$device_trust      = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
-		$admin_bypass      = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
-		$lockout_attempts  = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
-		$grace_period      = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
+		$device_trust     = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
+		$admin_bypass     = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
+		$lockout_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
+		$grace_period     = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
 		?>
 		<tr>
 			<th><?php esc_html_e( 'Device Trust', 'nobloat-user-foundry' ); ?></th>

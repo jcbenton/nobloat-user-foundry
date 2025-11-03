@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restriction_Metabox
+ *
+ * Provides metabox UI for post/page editor to set access restrictions.
+ */
 class NBUF_Restriction_Metabox {
+
 
 	/**
 	 * Initialize metabox
@@ -54,18 +60,18 @@ class NBUF_Restriction_Metabox {
 	/**
 	 * Render metabox (LEAN - only 4-5 fields)
 	 *
-	 * @param WP_Post $post Post object
+	 * @param WP_Post $post Post object.
 	 */
 	public static function render_metabox( $post ) {
 		/* Get existing restriction */
 		$restriction = NBUF_Restrictions::get_content_restriction( $post->ID, $post->post_type );
 
 		/* Current values */
-		$visibility = $restriction ? $restriction['visibility'] : 'everyone';
-		$allowed_roles = $restriction && ! empty( $restriction['allowed_roles'] ) ? $restriction['allowed_roles'] : array();
+		$visibility         = $restriction ? $restriction['visibility'] : 'everyone';
+		$allowed_roles      = $restriction && ! empty( $restriction['allowed_roles'] ) ? $restriction['allowed_roles'] : array();
 		$restriction_action = $restriction && ! empty( $restriction['restriction_action'] ) ? $restriction['restriction_action'] : 'message';
-		$custom_message = $restriction && ! empty( $restriction['custom_message'] ) ? $restriction['custom_message'] : '';
-		$redirect_url = $restriction && ! empty( $restriction['redirect_url'] ) ? $restriction['redirect_url'] : '';
+		$custom_message     = $restriction && ! empty( $restriction['custom_message'] ) ? $restriction['custom_message'] : '';
+		$redirect_url       = $restriction && ! empty( $restriction['redirect_url'] ) ? $restriction['redirect_url'] : '';
 
 		/* Nonce field */
 		wp_nonce_field( 'nbuf_restriction_metabox', 'nbuf_restriction_nonce' );
@@ -85,18 +91,18 @@ class NBUF_Restriction_Metabox {
 			<!-- Field 2: Roles (conditional - only shown if role_based selected) -->
 			<p id="nbuf_roles_wrap" style="display: <?php echo 'role_based' === $visibility ? 'block' : 'none'; ?>;">
 				<label><?php esc_html_e( 'Allowed Roles:', 'nobloat-user-foundry' ); ?></label><br>
-				<?php
-				$wp_roles = wp_roles()->get_names();
-				foreach ( $wp_roles as $role_slug => $role_name ) {
-					$checked = in_array( $role_slug, $allowed_roles, true );
-					?>
+		<?php
+		$wp_roles = wp_roles()->get_names();
+		foreach ( $wp_roles as $role_slug => $role_name ) {
+			$checked = in_array( $role_slug, $allowed_roles, true );
+			?>
 					<label style="display: block; margin: 5px 0;">
 						<input type="checkbox" name="nbuf_allowed_roles[]" value="<?php echo esc_attr( $role_slug ); ?>" <?php checked( $checked ); ?>>
-						<?php echo esc_html( $role_name ); ?>
+			<?php echo esc_html( $role_name ); ?>
 					</label>
-					<?php
-				}
-				?>
+			<?php
+		}
+		?>
 			</p>
 
 			<!-- Field 3: Restriction Action -->
@@ -140,18 +146,7 @@ class NBUF_Restriction_Metabox {
 			})(jQuery);
 			</script>
 
-			<style>
-			.nbuf-restriction-metabox label {
-				font-weight: 600;
-				display: block;
-				margin-bottom: 5px;
-			}
-			.nbuf-restriction-metabox .description {
-				font-size: 12px;
-				font-style: italic;
-				color: #666;
-			}
-			</style>
+			
 		</div>
 		<?php
 	}
@@ -159,8 +154,8 @@ class NBUF_Restriction_Metabox {
 	/**
 	 * Save metabox data
 	 *
-	 * @param int     $post_id Post ID
-	 * @param WP_Post $post Post object
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
 	 */
 	public static function save_metabox( $post_id, $post ) {
 		/* Security checks */
@@ -190,7 +185,7 @@ class NBUF_Restriction_Metabox {
 
 		/* If visibility is "everyone", delete restriction and return */
 		if ( 'everyone' === $visibility ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->delete(
 				$table,
 				array(
@@ -207,7 +202,7 @@ class NBUF_Restriction_Metabox {
 					'restrictions',
 					'restriction_removed',
 					sprintf(
-						/* translators: 1: Post type, 2: Post title */
+					/* translators: 1: Post type, 2: Post title */
 						__( 'Removed access restriction from %1$s "%2$s"', 'nobloat-user-foundry' ),
 						$post->post_type,
 						$post->post_title
@@ -265,10 +260,13 @@ class NBUF_Restriction_Metabox {
 			'updated_at'         => current_time( 'mysql' ),
 		);
 
-		/* Check if restriction exists */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/*
+		* Check if restriction exists
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT content_id FROM {$table} WHERE content_id = %d AND content_type = %s",
 				$post_id,
 				$post->post_type
@@ -276,8 +274,10 @@ class NBUF_Restriction_Metabox {
 		);
 
 		if ( $exists ) {
-			/* Update existing */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			/*
+			* Update existing
+			*/
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->update(
 				$table,
 				$data,
@@ -290,11 +290,12 @@ class NBUF_Restriction_Metabox {
 			);
 
 			$action = 'restriction_updated';
+			/* translators: 1: Post type, 2: Post title */
 			$action_text = __( 'Updated access restriction for %1$s "%2$s"', 'nobloat-user-foundry' );
 		} else {
 			/* Insert new */
 			$data['created_at'] = current_time( 'mysql' );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
 				$table,
 				$data,
@@ -302,6 +303,7 @@ class NBUF_Restriction_Metabox {
 			);
 
 			$action = 'restriction_added';
+			/* translators: 1: Post type, 2: Post title */
 			$action_text = __( 'Added access restriction to %1$s "%2$s"', 'nobloat-user-foundry' );
 		}
 
@@ -312,7 +314,7 @@ class NBUF_Restriction_Metabox {
 				'restrictions',
 				$action,
 				sprintf(
-					/* translators: 1: Post type, 2: Post title */
+				/* translators: 1: Post type, 2: Post title */
 					$action_text,
 					$post->post_type,
 					$post->post_title

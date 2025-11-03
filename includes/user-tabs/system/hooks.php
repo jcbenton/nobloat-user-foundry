@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = NBUF_Options::get('nbuf_settings', array() );
+$settings = NBUF_Options::get( 'nbuf_settings', array() );
 $hooks    = (array) ( $settings['hooks'] ?? array() );
 $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 ?>

@@ -13,7 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Cron
+ *
+ * Manages WordPress cron jobs for maintenance tasks.
+ */
 class NBUF_Cron {
+
 
 	/**
 	 * Activate cron.
@@ -103,7 +109,7 @@ class NBUF_Cron {
 
 		/* Run cleanup if class exists */
 		if ( class_exists( 'NBUF_Version_History' ) ) {
-			$vh = new NBUF_Version_History();
+			$vh      = new NBUF_Version_History();
 			$deleted = $vh->cleanup_old_versions();
 
 			/* Log cleanup result */
@@ -128,14 +134,20 @@ class NBUF_Cron {
 	public static function run_transient_cleanup() {
 		global $wpdb;
 
-		/* Delete expired transient timeouts */
+		/*
+		 * Delete expired transient timeouts
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transient cleanup requires direct database query for performance.
 		$deleted_timeouts = $wpdb->query(
 			"DELETE FROM {$wpdb->options}
 			 WHERE option_name LIKE '_transient_timeout_nbuf_%'
 			 AND option_value < UNIX_TIMESTAMP()"
 		);
 
-		/* Delete corresponding transient values (orphaned after timeout deletion) */
+		/*
+		 * Delete corresponding transient values (orphaned after timeout deletion)
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Orphaned transient cleanup requires direct database query for efficiency.
 		$deleted_values = $wpdb->query(
 			"DELETE FROM {$wpdb->options}
 			 WHERE option_name LIKE '_transient_nbuf_%'

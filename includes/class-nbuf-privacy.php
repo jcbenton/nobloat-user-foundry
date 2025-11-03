@@ -14,7 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Privacy
+ *
+ * WordPress privacy tools integration for GDPR compliance.
+ */
 class NBUF_Privacy {
+
 
 	/**
 	 * Initialize privacy hooks
@@ -36,7 +42,7 @@ class NBUF_Privacy {
 	/**
 	 * Register personal data exporters
 	 *
-	 * @param array $exporters Existing exporters.
+	 * @param  array $exporters Existing exporters.
 	 * @return array Modified exporters array.
 	 */
 	public static function register_exporters( $exporters ) {
@@ -61,7 +67,7 @@ class NBUF_Privacy {
 	/**
 	 * Register personal data erasers
 	 *
-	 * @param array $erasers Existing erasers.
+	 * @param  array $erasers Existing erasers.
 	 * @return array Modified erasers array.
 	 */
 	public static function register_erasers( $erasers ) {
@@ -81,11 +87,11 @@ class NBUF_Privacy {
 	/**
 	 * Export user data
 	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
 	 * @return array Export data.
 	 */
-	public static function export_user_data( $email_address, $page = 1 ) {
+	public static function export_user_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -179,8 +185,8 @@ class NBUF_Privacy {
 	/**
 	 * Export audit logs
 	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
 	 * @return array Export data.
 	 */
 	public static function export_audit_logs( $email_address, $page = 1 ) {
@@ -202,8 +208,8 @@ class NBUF_Privacy {
 		}
 
 		$data_to_export = array();
-		$per_page = 500;
-		$offset = ( $page - 1 ) * $per_page;
+		$per_page       = 500;
+		$offset         = ( $page - 1 ) * $per_page;
 
 		/* Get audit logs for this user */
 		$logs = NBUF_Audit_Log::get_logs(
@@ -255,11 +261,11 @@ class NBUF_Privacy {
 	/**
 	 * Export 2FA data
 	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
 	 * @return array Export data.
 	 */
-	public static function export_2fa_data( $email_address, $page = 1 ) {
+	public static function export_2fa_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
 		/* Check if 2FA data should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true ) ) {
 			return array(
@@ -278,7 +284,7 @@ class NBUF_Privacy {
 		}
 
 		$data_to_export = array();
-		$twofa_data = NBUF_User_2FA_Data::get( $user->ID );
+		$twofa_data     = NBUF_User_2FA_Data::get( $user->ID );
 
 		if ( $twofa_data && $twofa_data->enabled ) {
 			$data_to_export[] = array(
@@ -292,7 +298,7 @@ class NBUF_Privacy {
 					),
 					array(
 						'name'  => __( 'Method', 'nobloat-user-foundry' ),
-						'value' => $twofa_data->method === 'email' ? __( 'Email', 'nobloat-user-foundry' ) : __( 'Authenticator App', 'nobloat-user-foundry' ),
+						'value' => 'email' === $twofa_data->method ? __( 'Email', 'nobloat-user-foundry' ) : __( 'Authenticator App', 'nobloat-user-foundry' ),
 					),
 					array(
 						'name'  => __( 'Setup Date', 'nobloat-user-foundry' ),
@@ -315,11 +321,11 @@ class NBUF_Privacy {
 	/**
 	 * Erase user data
 	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
 	 * @return array Erasure result.
 	 */
-	public static function erase_user_data( $email_address, $page = 1 ) {
+	public static function erase_user_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -332,38 +338,41 @@ class NBUF_Privacy {
 		}
 
 		$items_removed = false;
-		$messages = array();
+		$messages      = array();
 
 		/* Anonymize user data */
 		$user_data = NBUF_User_Data::get( $user->ID );
 		if ( $user_data ) {
-			NBUF_User_Data::update( $user->ID, array(
-				'verified_date'          => null,
-				'expiration_warned_at'   => null,
-				'weak_password_flagged_at' => null,
-			) );
+			NBUF_User_Data::update(
+				$user->ID,
+				array(
+					'verified_date'            => null,
+					'expiration_warned_at'     => null,
+					'weak_password_flagged_at' => null,
+				)
+			);
 			$items_removed = true;
-			$messages[] = __( 'User verification and expiration data anonymized.', 'nobloat-user-foundry' );
+			$messages[]    = __( 'User verification and expiration data anonymized.', 'nobloat-user-foundry' );
 		}
 
 		/* Anonymize profile data - Set all fields to NULL */
 		$profile_data = NBUF_Profile_Data::get( $user->ID );
 		if ( $profile_data ) {
-			$all_fields = NBUF_Profile_Data::get_all_field_keys();
+			$all_fields     = NBUF_Profile_Data::get_all_field_keys();
 			$anonymize_data = array();
 			foreach ( $all_fields as $field ) {
 				$anonymize_data[ $field ] = null;
 			}
 			NBUF_Profile_Data::update( $user->ID, $anonymize_data );
 			$items_removed = true;
-			$messages[] = __( 'Extended profile data erased.', 'nobloat-user-foundry' );
+			$messages[]    = __( 'Extended profile data erased.', 'nobloat-user-foundry' );
 		}
 
 		/* Disable 2FA */
 		if ( NBUF_User_2FA_Data::is_enabled( $user->ID ) ) {
 			NBUF_User_2FA_Data::update( $user->ID, array( 'enabled' => 0 ) );
 			$items_removed = true;
-			$messages[] = __( '2FA disabled.', 'nobloat-user-foundry' );
+			$messages[]    = __( '2FA disabled.', 'nobloat-user-foundry' );
 		}
 
 		return array(
@@ -377,11 +386,11 @@ class NBUF_Privacy {
 	/**
 	 * Erase audit logs
 	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
 	 * @return array Erasure result.
 	 */
-	public static function erase_audit_logs( $email_address, $page = 1 ) {
+	public static function erase_audit_logs( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -393,25 +402,25 @@ class NBUF_Privacy {
 			);
 		}
 
-		$delete_mode = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
-		$items_removed = false;
+		$delete_mode    = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
+		$items_removed  = false;
 		$items_retained = false;
-		$messages = array();
+		$messages       = array();
 
-		if ( $delete_mode === 'delete' ) {
+		if ( 'delete' === $delete_mode ) {
 			/* Permanently delete all audit logs */
 			NBUF_Audit_Log::delete_user_logs( $user->ID );
 			$items_removed = true;
-			$messages[] = __( 'All audit logs permanently deleted.', 'nobloat-user-foundry' );
-		} elseif ( $delete_mode === 'anonymize' ) {
+			$messages[]    = __( 'All audit logs permanently deleted.', 'nobloat-user-foundry' );
+		} elseif ( 'anonymize' === $delete_mode ) {
 			/* Anonymize audit logs */
 			NBUF_Audit_Log::anonymize_user_logs( $user->ID );
 			$items_removed = true;
-			$messages[] = __( 'Audit logs anonymized (personal data removed, logs retained for security).', 'nobloat-user-foundry' );
+			$messages[]    = __( 'Audit logs anonymized (personal data removed, logs retained for security).', 'nobloat-user-foundry' );
 		} else {
 			/* Keep logs unchanged */
 			$items_retained = true;
-			$messages[] = __( 'Audit logs retained per GDPR settings.', 'nobloat-user-foundry' );
+			$messages[]     = __( 'Audit logs retained per GDPR settings.', 'nobloat-user-foundry' );
 		}
 
 		return array(
@@ -432,11 +441,12 @@ class NBUF_Privacy {
 	public static function handle_user_deletion( $user_id ) {
 		$delete_mode = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
 
-		if ( $delete_mode === 'delete' ) {
+		if ( 'delete' === $delete_mode ) {
 			NBUF_Audit_Log::delete_user_logs( $user_id );
-		} elseif ( $delete_mode === 'anonymize' ) {
+		} elseif ( 'anonymize' === $delete_mode ) {
 			NBUF_Audit_Log::anonymize_user_logs( $user_id );
 		}
+		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Intentional documentation comment for 'keep' mode, not commented code.
 		/* If 'keep', do nothing */
 	}
 

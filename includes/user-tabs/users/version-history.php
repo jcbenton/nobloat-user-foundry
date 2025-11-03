@@ -5,7 +5,7 @@
  * Configure profile change tracking, timeline viewing, diff comparison, and revert capabilities.
  *
  * @package NoBloat_User_Foundry
- * @since 1.4.0
+ * @since   1.4.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -13,13 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$enabled            = NBUF_Options::get( 'nbuf_version_history_enabled', true );
-$user_visible       = NBUF_Options::get( 'nbuf_version_history_user_visible', true );
-$allow_user_revert  = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-$retention_days     = NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
-$max_versions       = NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );
-$ip_tracking        = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'off' );
-$auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', true );
+$enabled           = NBUF_Options::get( 'nbuf_version_history_enabled', true );
+$user_visible      = NBUF_Options::get( 'nbuf_version_history_user_visible', true );
+$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
+$retention_days    = NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
+$max_versions      = NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );
+$ip_tracking       = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'off' );
+$auto_cleanup      = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', true );
 
 ?>
 
@@ -52,14 +52,14 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 						<div style="background: #d4edda; border-left: 4px solid #28a745; padding: 12px; margin-top: 10px;">
 							<strong style="color: #155724;">✅ <?php esc_html_e( 'Version History Enabled', 'nobloat-user-foundry' ); ?></strong>
 							<p style="margin: 5px 0 0 0; color: #155724;">
-								<?php esc_html_e( 'All profile changes are being tracked. Users and admins can view timeline history, compare versions, and revert changes based on your settings below.', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'All profile changes are being tracked. Users and admins can view timeline history, compare versions, and revert changes based on your settings below.', 'nobloat-user-foundry' ); ?>
 							</p>
 						</div>
 					<?php else : ?>
 						<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 10px;">
 							<strong style="color: #856404;">⚠️ <?php esc_html_e( 'Version History Disabled', 'nobloat-user-foundry' ); ?></strong>
 							<p style="margin: 5px 0 0 0; color: #856404;">
-								<?php esc_html_e( 'Profile changes are not being tracked. Enable this feature to maintain audit trails and allow version comparison/revert.', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'Profile changes are not being tracked. Enable this feature to maintain audit trails and allow version comparison/revert.', 'nobloat-user-foundry' ); ?>
 							</p>
 						</div>
 					<?php endif; ?>
@@ -74,10 +74,10 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 					<td>
 						<label>
 							<input type="checkbox" name="nbuf_version_history_user_visible" value="1" <?php checked( $user_visible, true ); ?>>
-							<?php esc_html_e( 'Show "Profile History" tab in user account page', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Show "Profile History" tab in user account page', 'nobloat-user-foundry' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'When enabled, users can see their profile change history in a dedicated tab on their account page. When disabled, only admins can view version history. Default: OFF (admin-only).', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'When enabled, users can see their profile change history in a dedicated tab on their account page. When disabled, only admins can view version history. Default: OFF (admin-only).', 'nobloat-user-foundry' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -88,20 +88,20 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 					<td>
 						<label>
 							<input type="checkbox" name="nbuf_version_history_allow_user_revert" value="1" <?php checked( $allow_user_revert, true ); ?>>
-							<?php esc_html_e( 'Allow users to revert their own profiles to previous versions', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Allow users to revert their own profiles to previous versions', 'nobloat-user-foundry' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'When enabled, users can restore their profile to any previous version. When disabled, only admins can revert profiles. Default: OFF (admin-only).', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'When enabled, users can restore their profile to any previous version. When disabled, only admins can revert profiles. Default: OFF (admin-only).', 'nobloat-user-foundry' ); ?>
 						</p>
 
-						<?php if ( ! $allow_user_revert ) : ?>
+				<?php if ( ! $allow_user_revert ) : ?>
 							<div style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px; margin-top: 10px;">
 								<strong style="color: #0c5460;">ℹ️ <?php esc_html_e( 'Admin-Only Revert', 'nobloat-user-foundry' ); ?></strong>
 								<p style="margin: 5px 0 0 0; color: #0c5460;">
-									<?php esc_html_e( 'Currently, only administrators can revert user profiles. Users can view their history but cannot restore previous versions.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Currently, only administrators can revert user profiles. Users can view their history but cannot restore previous versions.', 'nobloat-user-foundry' ); ?>
 								</p>
 							</div>
-						<?php endif; ?>
+				<?php endif; ?>
 					</td>
 				</tr>
 
@@ -110,9 +110,9 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 					<th><?php esc_html_e( 'Retention Period', 'nobloat-user-foundry' ); ?></th>
 					<td>
 						<input type="number" name="nbuf_version_history_retention_days" value="<?php echo esc_attr( $retention_days ); ?>" min="1" max="3650" class="small-text">
-						<?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?>
 						<p class="description">
-							<?php esc_html_e( 'Automatically delete version history older than this many days. Recommended: 365 days (1 year). Maximum: 3650 days (10 years).', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Automatically delete version history older than this many days. Recommended: 365 days (1 year). Maximum: 3650 days (10 years).', 'nobloat-user-foundry' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -122,9 +122,9 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 					<th><?php esc_html_e( 'Maximum Versions Per User', 'nobloat-user-foundry' ); ?></th>
 					<td>
 						<input type="number" name="nbuf_version_history_max_versions" value="<?php echo esc_attr( $max_versions ); ?>" min="10" max="500" class="small-text">
-						<?php esc_html_e( 'versions', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'versions', 'nobloat-user-foundry' ); ?>
 						<p class="description">
-							<?php esc_html_e( 'Maximum number of versions to keep per user. When exceeded, oldest versions are deleted. Recommended: 50 versions. Range: 10-500.', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Maximum number of versions to keep per user. When exceeded, oldest versions are deleted. Recommended: 50 versions. Range: 10-500.', 'nobloat-user-foundry' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -145,7 +145,7 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 							</option>
 						</select>
 						<p class="description">
-							<?php esc_html_e( 'Choose whether to track IP addresses when profile changes occur. Default: OFF (privacy-first).', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Choose whether to track IP addresses when profile changes occur. Default: OFF (privacy-first).', 'nobloat-user-foundry' ); ?>
 						</p>
 
 						<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 10px;">
@@ -168,10 +168,10 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 					<td>
 						<label>
 							<input type="checkbox" name="nbuf_version_history_auto_cleanup" value="1" <?php checked( $auto_cleanup, true ); ?>>
-							<?php esc_html_e( 'Automatically delete old versions based on retention period', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Automatically delete old versions based on retention period', 'nobloat-user-foundry' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'When enabled, a daily cleanup task removes versions older than your retention period. Recommended: ON to prevent database bloat.', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'When enabled, a daily cleanup task removes versions older than your retention period. Recommended: ON to prevent database bloat.', 'nobloat-user-foundry' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -184,15 +184,15 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 			<hr>
 			<h3><?php esc_html_e( 'Access Points', 'nobloat-user-foundry' ); ?></h3>
 			<p class="description">
-				<?php esc_html_e( 'Version history can be accessed from multiple locations:', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'Version history can be accessed from multiple locations:', 'nobloat-user-foundry' ); ?>
 			</p>
 			<ul style="list-style: disc; margin-left: 30px;">
 				<li><strong><?php esc_html_e( 'User Edit Screen:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Meta box on admin user edit page (admins only)', 'nobloat-user-foundry' ); ?></li>
 				<li><strong><?php esc_html_e( 'Users List:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( '"History" link under username (admins only)', 'nobloat-user-foundry' ); ?></li>
 				<li><strong><?php esc_html_e( 'Dedicated Page:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'NoBloat User Foundry → Version History (admins only)', 'nobloat-user-foundry' ); ?></li>
-				<?php if ( $user_visible ) : ?>
+			<?php if ( $user_visible ) : ?>
 					<li><strong><?php esc_html_e( 'User Account:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( '"Profile History" tab in user account page (users see their own)', 'nobloat-user-foundry' ); ?></li>
-				<?php endif; ?>
+			<?php endif; ?>
 			</ul>
 
 			<hr>
@@ -222,15 +222,4 @@ $auto_cleanup       = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tr
 	</form>
 </div>
 
-<style>
-.nbuf-version-history-tab h2 {
-	margin-bottom: 10px;
-}
-.nbuf-version-history-tab h3 {
-	margin-top: 20px;
-	margin-bottom: 10px;
-}
-.nbuf-version-history-tab ul {
-	line-height: 1.8;
-}
-</style>
+

@@ -14,16 +14,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$restrictions_enabled      = NBUF_Options::get( 'nbuf_restrictions_enabled', false );
-$menu_enabled              = NBUF_Options::get( 'nbuf_restrictions_menu_enabled', false );
-$content_enabled           = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
-$shortcode_enabled         = NBUF_Options::get( 'nbuf_restrict_content_shortcode_enabled', false );
-$widgets_enabled           = NBUF_Options::get( 'nbuf_restrict_widgets_enabled', false );
-$taxonomies_enabled        = NBUF_Options::get( 'nbuf_restrict_taxonomies_enabled', false );
-$post_types                = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
-$taxonomies_list           = NBUF_Options::get( 'nbuf_restrict_taxonomies_list', array( 'category', 'post_tag' ) );
-$hide_from_queries         = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
-$filter_taxonomy_queries   = NBUF_Options::get( 'nbuf_restrict_taxonomies_filter_queries', false );
+$restrictions_enabled    = NBUF_Options::get( 'nbuf_restrictions_enabled', false );
+$menu_enabled            = NBUF_Options::get( 'nbuf_restrictions_menu_enabled', false );
+$content_enabled         = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
+$shortcode_enabled       = NBUF_Options::get( 'nbuf_restrict_content_shortcode_enabled', false );
+$widgets_enabled         = NBUF_Options::get( 'nbuf_restrict_widgets_enabled', false );
+$taxonomies_enabled      = NBUF_Options::get( 'nbuf_restrict_taxonomies_enabled', false );
+$post_types              = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
+$taxonomies_list         = NBUF_Options::get( 'nbuf_restrict_taxonomies_list', array( 'category', 'post_tag' ) );
+$hide_from_queries       = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
+$filter_taxonomy_queries = NBUF_Options::get( 'nbuf_restrict_taxonomies_filter_queries', false );
 
 /* Ensure post_types is an array */
 if ( ! is_array( $post_types ) ) {
@@ -96,13 +96,13 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					<fieldset>
 						<legend class="screen-reader-text"><?php esc_html_e( 'Select which post types can have content restrictions', 'nobloat-user-foundry' ); ?></legend>
 						<?php
-						foreach ( $all_post_types as $post_type ) {
-							$checked = in_array( $post_type->name, $post_types, true );
+						foreach ( $all_post_types as $pt ) {
+							$checked = in_array( $pt->name, $post_types, true );
 							?>
 							<label style="display: block; margin: 5px 0;">
-								<input type="checkbox" name="nbuf_restrictions_post_types[]" value="<?php echo esc_attr( $post_type->name ); ?>" <?php checked( $checked ); ?>>
-								<?php echo esc_html( $post_type->label ); ?>
-								<span class="description">(<?php echo esc_html( $post_type->name ); ?>)</span>
+								<input type="checkbox" name="nbuf_restrictions_post_types[]" value="<?php echo esc_attr( $pt->name ); ?>" <?php checked( $checked ); ?>>
+							<?php echo esc_html( $pt->label ); ?>
+								<span class="description">(<?php echo esc_html( $pt->name ); ?>)</span>
 							</label>
 							<?php
 						}
@@ -231,13 +231,13 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 						<legend class="screen-reader-text"><?php esc_html_e( 'Select which taxonomies can have restrictions', 'nobloat-user-foundry' ); ?></legend>
 						<?php
 						$all_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
-						foreach ( $all_taxonomies as $taxonomy ) {
-							$checked = in_array( $taxonomy->name, $taxonomies_list, true );
+						foreach ( $all_taxonomies as $taxonomy_obj ) {
+							$checked = in_array( $taxonomy_obj->name, $taxonomies_list, true );
 							?>
 							<label style="display: block; margin: 5px 0;">
-								<input type="checkbox" name="nbuf_restrict_taxonomies_list[]" value="<?php echo esc_attr( $taxonomy->name ); ?>" <?php checked( $checked ); ?>>
-								<?php echo esc_html( $taxonomy->label ); ?>
-								<span class="description">(<?php echo esc_html( $taxonomy->name ); ?>)</span>
+								<input type="checkbox" name="nbuf_restrict_taxonomies_list[]" value="<?php echo esc_attr( $taxonomy_obj->name ); ?>" <?php checked( $checked ); ?>>
+							<?php echo esc_html( $taxonomy_obj->label ); ?>
+								<span class="description">(<?php echo esc_html( $taxonomy_obj->name ); ?>)</span>
 							</label>
 							<?php
 						}
@@ -332,10 +332,10 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		<div class="nbuf-um-migration-notice" style="background: #e7f5fe; border-left: 4px solid #0073aa; padding: 1.5rem; margin-top: 2rem;">
 			<h3><?php esc_html_e( 'Ultimate Member Detected', 'nobloat-user-foundry' ); ?></h3>
 			<p>
-				<?php esc_html_e( 'We detected that Ultimate Member is installed. You can migrate your existing content restrictions from Ultimate Member to NoBloat User Foundry using the migration tool in the Tools → Migration tab.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'We detected that Ultimate Member is installed. You can migrate your existing content restrictions from Ultimate Member to NoBloat User Foundry using the migration tool in the Tools → Migration tab.', 'nobloat-user-foundry' ); ?>
 			</p>
 			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=migration' ) ); ?>" class="button button-primary">
-				<?php esc_html_e( 'Go to Migration Tool', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Go to Migration Tool', 'nobloat-user-foundry' ); ?>
 			</a>
 		</div>
 	<?php endif; ?>

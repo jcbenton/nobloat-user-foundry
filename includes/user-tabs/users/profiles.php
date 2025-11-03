@@ -12,15 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$profiles_enabled      = NBUF_Options::get( 'nbuf_enable_profiles', false );
-$public_profiles       = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
-$gravatar_enabled      = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-$profile_custom_css    = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
-$profile_page_slug     = NBUF_Options::get( 'nbuf_profile_page_slug', 'profile' );
-$default_privacy       = NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
-$allow_cover_photos    = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
-$max_photo_size        = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
-$max_cover_size        = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
+$profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
+$public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
+$gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
+$profile_custom_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
+$profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'profile' );
+$default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
+$allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
+$max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
+$max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 
 ?>
 
@@ -72,7 +72,7 @@ $max_cover_size        = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 					<p class="description">
 						<?php
 						printf(
-							/* translators: %s: Example profile URL */
+						/* translators: %s: Example profile URL */
 							esc_html__( 'Base URL for profile pages. Example: %s', 'nobloat-user-foundry' ),
 							'<code>' . esc_html( home_url( '/' . $profile_page_slug . '/username' ) ) . '</code>'
 						);
@@ -195,25 +195,25 @@ $max_cover_size        = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 							<h4 style="margin-top: 20px;"><?php esc_html_e( 'Example Custom CSS:', 'nobloat-user-foundry' ); ?></h4>
 							<pre style="background: #fff; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">/* Business-like styling */
 .nbuf-profile-page {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
 }
 
 .nbuf-profile-cover {
-    height: 300px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	height: 300px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .nbuf-profile-name {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1a202c;
+	font-size: 2rem;
+	font-weight: 700;
+	color: #1a202c;
 }
 
 .nbuf-profile-bio {
-    color: #4a5568;
-    line-height: 1.6;
+	color: #4a5568;
+	line-height: 1.6;
 }</pre>
 						</div>
 					</details>

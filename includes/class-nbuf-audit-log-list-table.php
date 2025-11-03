@@ -16,20 +16,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Load WP_List_Table if not already loaded */
 if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
+	include_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
+/**
+ * Audit log list table
+ *
+ * @since 1.0.0
+ */
 class NBUF_Audit_Log_List_Table extends WP_List_Table {
+
 
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		parent::__construct( array(
-			'singular' => 'audit_log',
-			'plural'   => 'audit_logs',
-			'ajax'     => false,
-		) );
+		parent::__construct(
+			array(
+				'singular' => 'audit_log',
+				'plural'   => 'audit_logs',
+				'ajax'     => false,
+			)
+		);
 	}
 
 	/**
@@ -57,7 +65,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 */
 	public function get_sortable_columns() {
 		return array(
-			'created_at'   => array( 'created_at', true ), // true = already sorted
+			'created_at'   => array( 'created_at', true ), // true = already sorted.
 			'username'     => array( 'username', false ),
 			'event_type'   => array( 'event_type', false ),
 			'event_status' => array( 'event_status', false ),
@@ -78,7 +86,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render checkbox column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Checkbox HTML
 	 */
 	public function column_cb( $item ) {
@@ -88,7 +96,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render date/time column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Formatted date/time
 	 */
 	public function column_created_at( $item ) {
@@ -99,7 +107,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render username column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Username with link
 	 */
 	public function column_username( $item ) {
@@ -125,7 +133,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render event type column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Formatted event type
 	 */
 	public function column_event_type( $item ) {
@@ -165,7 +173,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render event status column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Formatted status with color coding
 	 */
 	public function column_event_status( $item ) {
@@ -180,7 +188,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 
 		/* Only use red color for failures */
 		$style = '';
-		if ( $item->event_status === 'failure' ) {
+		if ( 'failure' === $item->event_status ) {
 			$style = 'color: #dc3232; font-weight: bold;';
 		}
 
@@ -190,7 +198,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render event message column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string Event message
 	 */
 	public function column_event_message( $item ) {
@@ -200,7 +208,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render IP address column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string IP address
 	 */
 	public function column_ip_address( $item ) {
@@ -213,7 +221,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render user agent column
 	 *
-	 * @param object $item Log entry
+	 * @param  object $item Log entry.
 	 * @return string User agent (truncated)
 	 */
 	public function column_user_agent( $item ) {
@@ -241,11 +249,11 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Parse user agent string to get browser/device info
 	 *
-	 * @param string $user_agent User agent string
+	 * @param  string $user_agent User agent string.
 	 * @return string Parsed browser/device info
 	 */
 	private static function parse_user_agent( $user_agent ) {
-		$browser = '';
+		$browser  = '';
 		$platform = '';
 
 		/* Detect browser */
@@ -290,7 +298,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		/* Set columns */
 		$this->_column_headers = array(
 			$this->get_columns(),
-			array(), // Hidden columns
+			array(), // Hidden columns.
 			$this->get_sortable_columns(),
 		);
 
@@ -300,30 +308,42 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		/* Get filters from request */
 		$filters = array();
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 		if ( ! empty( $_REQUEST['user_id'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 			$filters['user_id'] = intval( $_REQUEST['user_id'] );
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 		if ( ! empty( $_REQUEST['event_type'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 			$filters['event_type'] = sanitize_text_field( wp_unslash( $_REQUEST['event_type'] ) );
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 		if ( ! empty( $_REQUEST['event_status'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 			$filters['event_status'] = sanitize_text_field( wp_unslash( $_REQUEST['event_status'] ) );
 		}
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 		if ( ! empty( $_REQUEST['s'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table filtering
 			$filters['search'] = sanitize_text_field( wp_unslash( $_REQUEST['s'] ) );
 		}
 
-		/* Get sorting */
+		/*
+		 * Get sorting
+		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table sorting
 		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) ) : 'created_at';
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list table sorting
 		$order = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['order'] ) ) : 'DESC';
 
 		/* Get pagination */
-		$per_page = $this->get_items_per_page( 'audit_logs_per_page', 25 );
+		$per_page     = $this->get_items_per_page( 'audit_logs_per_page', 25 );
 		$current_page = $this->get_pagenum();
-		$offset = ( $current_page - 1 ) * $per_page;
+		$offset       = ( $current_page - 1 ) * $per_page;
 
 		/* Get logs */
 		$this->items = NBUF_Audit_Log::get_logs( $filters, $per_page, $offset, $orderby, $order );
@@ -332,11 +352,13 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		$total_items = NBUF_Audit_Log::get_logs_count( $filters );
 
 		/* Set pagination */
-		$this->set_pagination_args( array(
-			'total_items' => $total_items,
-			'per_page'    => $per_page,
-			'total_pages' => ceil( $total_items / $per_page ),
-		) );
+		$this->set_pagination_args(
+			array(
+				'total_items' => $total_items,
+				'per_page'    => $per_page,
+				'total_pages' => ceil( $total_items / $per_page ),
+			)
+		);
 	}
 
 	/**
@@ -346,7 +368,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		/* Check for bulk delete action */
 		if ( 'delete' === $this->current_action() ) {
 			/* Verify nonce */
-			if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( wp_unslash( $_REQUEST['_wpnonce'] ), 'bulk-audit_logs' ) ) {
+			if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-audit_logs' ) ) {
 				wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
 			}
 
@@ -355,8 +377,12 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 				wp_die( esc_html__( 'You do not have permission to delete logs', 'nobloat-user-foundry' ) );
 			}
 
-			/* Get selected log IDs */
+			/*
+			 * Get selected log IDs
+			 */
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 358
 			if ( ! empty( $_REQUEST['log_id'] ) && is_array( $_REQUEST['log_id'] ) ) {
+             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 358
 				$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
 				NBUF_Audit_Log::delete_logs( $log_ids );
 
@@ -379,7 +405,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Extra table navigation (filters)
 	 *
-	 * @param string $which Top or bottom
+	 * @param string $which Top or bottom.
 	 */
 	public function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
@@ -387,9 +413,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		}
 		?>
 		<div class="alignleft actions">
-			<?php $this->event_type_dropdown(); ?>
-			<?php $this->event_status_dropdown(); ?>
-			<?php submit_button( __( 'Filter', 'nobloat-user-foundry' ), '', 'filter_action', false ); ?>
+		<?php $this->event_type_dropdown(); ?>
+		<?php $this->event_status_dropdown(); ?>
+		<?php submit_button( __( 'Filter', 'nobloat-user-foundry' ), '', 'filter_action', false ); ?>
 		</div>
 		<?php
 	}
@@ -399,22 +425,23 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 */
 	private function event_type_dropdown() {
 		$event_types = array(
-			''                           => __( 'All Event Types', 'nobloat-user-foundry' ),
-			'login_success'              => __( 'Login Success', 'nobloat-user-foundry' ),
-			'login_failed'               => __( 'Login Failed', 'nobloat-user-foundry' ),
-			'logout'                     => __( 'Logout', 'nobloat-user-foundry' ),
-			'email_verified'             => __( 'Email Verified', 'nobloat-user-foundry' ),
-			'password_changed'           => __( 'Password Changed', 'nobloat-user-foundry' ),
-			'password_reset_requested'   => __( 'Password Reset Requested', 'nobloat-user-foundry' ),
-			'2fa_enabled'                => __( '2FA Enabled', 'nobloat-user-foundry' ),
-			'2fa_disabled'               => __( '2FA Disabled', 'nobloat-user-foundry' ),
-			'2fa_verified'               => __( '2FA Verified', 'nobloat-user-foundry' ),
-			'2fa_failed'                 => __( '2FA Failed', 'nobloat-user-foundry' ),
-			'user_registered'            => __( 'User Registered', 'nobloat-user-foundry' ),
-			'account_disabled'           => __( 'Account Disabled', 'nobloat-user-foundry' ),
-			'account_expired'            => __( 'Account Expired', 'nobloat-user-foundry' ),
+			''                         => __( 'All Event Types', 'nobloat-user-foundry' ),
+			'login_success'            => __( 'Login Success', 'nobloat-user-foundry' ),
+			'login_failed'             => __( 'Login Failed', 'nobloat-user-foundry' ),
+			'logout'                   => __( 'Logout', 'nobloat-user-foundry' ),
+			'email_verified'           => __( 'Email Verified', 'nobloat-user-foundry' ),
+			'password_changed'         => __( 'Password Changed', 'nobloat-user-foundry' ),
+			'password_reset_requested' => __( 'Password Reset Requested', 'nobloat-user-foundry' ),
+			'2fa_enabled'              => __( '2FA Enabled', 'nobloat-user-foundry' ),
+			'2fa_disabled'             => __( '2FA Disabled', 'nobloat-user-foundry' ),
+			'2fa_verified'             => __( '2FA Verified', 'nobloat-user-foundry' ),
+			'2fa_failed'               => __( '2FA Failed', 'nobloat-user-foundry' ),
+			'user_registered'          => __( 'User Registered', 'nobloat-user-foundry' ),
+			'account_disabled'         => __( 'Account Disabled', 'nobloat-user-foundry' ),
+			'account_expired'          => __( 'Account Expired', 'nobloat-user-foundry' ),
 		);
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only dropdown filter display
 		$current = isset( $_REQUEST['event_type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['event_type'] ) ) : '';
 
 		echo '<select name="event_type" id="event-type-filter">';
@@ -441,6 +468,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 			'warning' => __( 'Warning', 'nobloat-user-foundry' ),
 		);
 
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only dropdown filter display
 		$current = isset( $_REQUEST['event_status'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['event_status'] ) ) : '';
 
 		echo '<select name="event_status" id="event-status-filter">';

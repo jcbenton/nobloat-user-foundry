@@ -6,6 +6,7 @@
  * Can be overridden by theme: nbuf-templates/member-directory.php
  *
  * Available variables:
+ *
  * @var array  $members      Array of member objects
  * @var int    $total         Total member count
  * @var int    $per_page      Members per page
@@ -21,8 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( $_GET['member_search'] ) : '';
-$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( $_GET['member_role'] ) : '';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
+$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
+$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
 ?>
 
 <div class="nbuf-member-directory" data-view="grid">
@@ -31,8 +34,11 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( $_GET['memb
 		<div class="nbuf-directory-controls">
 			<form method="get" action="" class="nbuf-directory-form">
 				<?php /* Preserve existing query vars */ ?>
-				<?php foreach ( $_GET as $key => $value ) : ?>
-					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ) ) ) : ?>
+				<?php
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
+				foreach ( $_GET as $key => $value ) :
+					?>
+					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
 						<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
 					<?php endif; ?>
 				<?php endforeach; ?>
@@ -91,7 +97,10 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( $_GET['memb
 	<?php if ( ! empty( $members ) ) : ?>
 		<div class="nbuf-members-grid">
 			<?php foreach ( $members as $member ) : ?>
-				<?php echo NBUF_Member_Directory::get_member_card( $member ); ?>
+				<?php
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_member_card() returns escaped HTML.
+				echo NBUF_Member_Directory::get_member_card( $member );
+				?>
 			<?php endforeach; ?>
 		</div>
 
@@ -113,7 +122,7 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( $_GET['memb
 					<?php
 					/* Show page numbers */
 					for ( $i = 1; $i <= $total_pages; $i++ ) :
-						if ( $i === $current_page ) :
+						if ( $current_page === $i ) :
 							?>
 							<span class="nbuf-page-number current"><?php echo (int) $i; ?></span>
 						<?php else : ?>

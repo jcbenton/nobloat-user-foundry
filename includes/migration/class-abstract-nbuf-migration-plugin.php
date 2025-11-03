@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class Abstract_NBUF_Migration_Plugin {
 
+
 	/**
 	 * Get plugin display name
 	 *
@@ -87,8 +88,8 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	/**
 	 * Get preview data for first N users
 	 *
-	 * @param int   $limit Number of users to preview.
-	 * @param array $field_mapping Optional custom field mapping.
+	 * @param  int   $limit         Number of users to preview.
+	 * @param  array $field_mapping Optional custom field mapping.
 	 * @return array Preview data
 	 */
 	abstract public function preview_import( $limit = 10, $field_mapping = array() );
@@ -96,9 +97,9 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	/**
 	 * Import single user data
 	 *
-	 * @param int   $user_id User ID to import.
-	 * @param array $options Import options.
-	 * @param array $field_mapping Optional custom field mapping.
+	 * @param  int   $user_id       User ID to import.
+	 * @param  array $options       Import options.
+	 * @param  array $field_mapping Optional custom field mapping.
 	 * @return bool Success
 	 */
 	abstract public function import_user( $user_id, $options = array(), $field_mapping = array() );
@@ -106,8 +107,8 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	/**
 	 * Batch import users
 	 *
-	 * @param array $options Import options.
-	 * @param array $field_mapping Optional custom field mapping.
+	 * @param  array $options       Import options.
+	 * @param  array $field_mapping Optional custom field mapping.
 	 * @return array Import results
 	 */
 	public function batch_import( $options = array(), $field_mapping = array() ) {
@@ -140,14 +141,14 @@ abstract class Abstract_NBUF_Migration_Plugin {
 
 		/* Import each user */
 		foreach ( $user_ids as $user_id ) {
-			$results['total']++;
+			++$results['total'];
 
 			try {
 				/* Check if already imported */
 				if ( $options['skip_existing'] ) {
 					$existing = NBUF_User_Data::get( $user_id );
 					if ( $existing && $existing->is_verified ) {
-						$results['skipped']++;
+						++$results['skipped'];
 						continue;
 					}
 				}
@@ -156,13 +157,13 @@ abstract class Abstract_NBUF_Migration_Plugin {
 				$imported = $this->import_user( $user_id, $options, $field_mapping );
 
 				if ( $imported ) {
-					$results['imported']++;
+					++$results['imported'];
 				} else {
-					$results['skipped']++;
+					++$results['skipped'];
 				}
 			} catch ( Exception $e ) {
 				$results['errors'][] = sprintf(
-					/* translators: %1$d: User ID, %2$s: Error message */
+				/* translators: %1$d: User ID, %2$s: Error message */
 					__( 'User ID %1$d: %2$s', 'nobloat-user-foundry' ),
 					$user_id,
 					$e->getMessage()
@@ -178,8 +179,8 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	 *
 	 * Override this method in child classes for plugin-specific user discovery.
 	 *
-	 * @param int $limit Batch size.
-	 * @param int $offset Batch offset.
+	 * @param  int $limit  Batch size.
+	 * @param  int $offset Batch offset.
 	 * @return array User IDs
 	 */
 	abstract protected function get_user_ids_for_batch( $limit, $offset );
@@ -189,8 +190,8 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	 *
 	 * Common helper method for sanitizing imported data.
 	 *
-	 * @param mixed  $value Field value.
-	 * @param string $type  Field type (text, email, url, textarea, date, etc.).
+	 * @param  mixed  $value Field value.
+	 * @param  string $type  Field type (text, email, url, textarea, date, etc.).
 	 * @return mixed Sanitized value
 	 */
 	protected function sanitize_field( $value, $type = 'text' ) {
@@ -232,8 +233,8 @@ abstract class Abstract_NBUF_Migration_Plugin {
 	/**
 	 * Get user metadata in batch for performance
 	 *
-	 * @param array $user_ids User IDs.
-	 * @param array $meta_keys Meta keys to fetch.
+	 * @param  array $user_ids  User IDs.
+	 * @param  array $meta_keys Meta keys to fetch.
 	 * @return array User metadata keyed by user_id => meta_key => meta_value
 	 */
 	protected function get_user_meta_batch( $user_ids, $meta_keys = array() ) {
@@ -244,21 +245,28 @@ abstract class Abstract_NBUF_Migration_Plugin {
 		}
 
 		$placeholders = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
-		$where_meta = '';
+		$where_meta   = '';
+		$query_params = array( $wpdb->usermeta );
 
 		if ( ! empty( $meta_keys ) ) {
 			$key_placeholders = implode( ',', array_fill( 0, count( $meta_keys ), '%s' ) );
-			$where_meta = $wpdb->prepare( " AND meta_key IN ($key_placeholders)", $meta_keys );
+			$where_meta       = " AND meta_key IN ($key_placeholders)";
+			$query_params     = array_merge( $query_params, $user_ids, $meta_keys );
+		} else {
+			$query_params = array_merge( $query_params, $user_ids );
 		}
 
+     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic placeholders for IN clause.
 		$query = $wpdb->prepare(
 			"SELECT user_id, meta_key, meta_value
-			FROM {$wpdb->usermeta}
+			FROM %i
 			WHERE user_id IN ($placeholders)
 			{$where_meta}",
-			$user_ids
+			...$query_params
 		);
+     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query built with $wpdb->prepare() above.
 		$results = $wpdb->get_results( $query );
 
 		/* Organize by user_id => meta_key => meta_value */

@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$reg_settings = NBUF_Options::get('nbuf_registration_fields', array());
+$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 /* Default values if not set */
 $username_method = $reg_settings['username_method'] ?? 'auto_random';
@@ -127,7 +127,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 						<input type="checkbox"
 							name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_enabled]"
 							value="1"
-							<?php checked( $enabled, true ); ?>
+				<?php checked( $enabled, true ); ?>
 							class="nbuf-field-enabled"
 							data-field="<?php echo esc_attr( $field_key ); ?>">
 					</td>
@@ -135,7 +135,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 						<input type="checkbox"
 							name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_required]"
 							value="1"
-							<?php checked( $required, true ); ?>
+				<?php checked( $required, true ); ?>
 							class="nbuf-field-required"
 							data-field="<?php echo esc_attr( $field_key ); ?>">
 					</td>

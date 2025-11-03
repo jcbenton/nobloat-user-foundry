@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* Handle form submission */
 if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_profile_fields_settings', 'nbuf_profile_fields_nonce' ) ) {
 	$enabled_fields = isset( $_POST['nbuf_enabled_profile_fields'] ) && is_array( $_POST['nbuf_enabled_profile_fields'] )
-		? array_map( 'sanitize_text_field', $_POST['nbuf_enabled_profile_fields'] )
-		: array();
+	? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_enabled_profile_fields'] ) )
+	: array();
 
 	NBUF_Options::update( 'nbuf_enabled_profile_fields', $enabled_fields );
 
@@ -51,23 +51,24 @@ $field_registry = NBUF_Profile_Data::get_field_registry();
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $category_data['fields'] as $field_key => $field_label ) :
-					$is_enabled = in_array( $field_key, $enabled_fields, true );
-					$description = self::get_field_description( $field_key );
-				?>
+		<?php
+		foreach ( $category_data['fields'] as $field_key => $field_label ) :
+			$is_enabled  = in_array( $field_key, $enabled_fields, true );
+			$description = self::get_field_description( $field_key );
+			?>
 					<tr>
 						<td style="text-align: center;">
 							<input type="checkbox"
 								name="nbuf_enabled_profile_fields[]"
 								value="<?php echo esc_attr( $field_key ); ?>"
-								<?php checked( $is_enabled, true ); ?>
+			<?php checked( $is_enabled, true ); ?>
 								class="nbuf-field-toggle"
 								data-category="<?php echo esc_attr( $category_key ); ?>">
 						</td>
 						<td><strong><?php echo esc_html( $field_label ); ?></strong></td>
 						<td><?php echo esc_html( $description ); ?></td>
 					</tr>
-				<?php endforeach; ?>
+		<?php endforeach; ?>
 			</tbody>
 		</table>
 	<?php endforeach; ?>
@@ -113,62 +114,65 @@ jQuery(document).ready(function($) {
 <?php
 /**
  * Get field description for UI display
+ *
+ * @param  string $field_key Field key.
+ * @return string Field description.
  */
 function get_field_description( $field_key ) {
 	$descriptions = array(
-		'phone' => __( 'Primary phone number', 'nobloat-user-foundry' ),
-		'mobile_phone' => __( 'Mobile/cell phone number', 'nobloat-user-foundry' ),
-		'work_phone' => __( 'Work/office phone number', 'nobloat-user-foundry' ),
-		'fax' => __( 'Fax number', 'nobloat-user-foundry' ),
-		'preferred_name' => __( 'Name the user prefers to be called', 'nobloat-user-foundry' ),
-		'pronouns' => __( 'Preferred pronouns (e.g., he/him, she/her, they/them)', 'nobloat-user-foundry' ),
-		'date_of_birth' => __( 'Date of birth (format: YYYY-MM-DD)', 'nobloat-user-foundry' ),
-		'timezone' => __( 'User timezone (e.g., America/New_York)', 'nobloat-user-foundry' ),
-		'address' => __( 'Full address (single field)', 'nobloat-user-foundry' ),
-		'address_line1' => __( 'Address line 1 (street address)', 'nobloat-user-foundry' ),
-		'address_line2' => __( 'Address line 2 (apt, suite, etc.)', 'nobloat-user-foundry' ),
-		'city' => __( 'City', 'nobloat-user-foundry' ),
-		'state' => __( 'State, province, or region', 'nobloat-user-foundry' ),
-		'postal_code' => __( 'ZIP or postal code', 'nobloat-user-foundry' ),
-		'country' => __( 'Country', 'nobloat-user-foundry' ),
-		'company' => __( 'Company or organization name', 'nobloat-user-foundry' ),
-		'job_title' => __( 'Job title or position', 'nobloat-user-foundry' ),
-		'department' => __( 'Department or division', 'nobloat-user-foundry' ),
-		'division' => __( 'Division or business unit', 'nobloat-user-foundry' ),
-		'employee_id' => __( 'Employee ID or staff number', 'nobloat-user-foundry' ),
-		'badge_number' => __( 'Badge or ID card number', 'nobloat-user-foundry' ),
-		'manager_name' => __( 'Direct manager or supervisor name', 'nobloat-user-foundry' ),
-		'supervisor_email' => __( 'Supervisor email address', 'nobloat-user-foundry' ),
-		'office_location' => __( 'Office location or building', 'nobloat-user-foundry' ),
-		'hire_date' => __( 'Employment start date', 'nobloat-user-foundry' ),
-		'termination_date' => __( 'Employment end date', 'nobloat-user-foundry' ),
-		'work_email' => __( 'Work email address (separate from login)', 'nobloat-user-foundry' ),
-		'employment_type' => __( 'Full-time, part-time, contractor, etc.', 'nobloat-user-foundry' ),
-		'license_number' => __( 'Professional license number', 'nobloat-user-foundry' ),
+		'phone'                    => __( 'Primary phone number', 'nobloat-user-foundry' ),
+		'mobile_phone'             => __( 'Mobile/cell phone number', 'nobloat-user-foundry' ),
+		'work_phone'               => __( 'Work/office phone number', 'nobloat-user-foundry' ),
+		'fax'                      => __( 'Fax number', 'nobloat-user-foundry' ),
+		'preferred_name'           => __( 'Name the user prefers to be called', 'nobloat-user-foundry' ),
+		'pronouns'                 => __( 'Preferred pronouns (e.g., he/him, she/her, they/them)', 'nobloat-user-foundry' ),
+		'date_of_birth'            => __( 'Date of birth (format: YYYY-MM-DD)', 'nobloat-user-foundry' ),
+		'timezone'                 => __( 'User timezone (e.g., America/New_York)', 'nobloat-user-foundry' ),
+		'address'                  => __( 'Full address (single field)', 'nobloat-user-foundry' ),
+		'address_line1'            => __( 'Address line 1 (street address)', 'nobloat-user-foundry' ),
+		'address_line2'            => __( 'Address line 2 (apt, suite, etc.)', 'nobloat-user-foundry' ),
+		'city'                     => __( 'City', 'nobloat-user-foundry' ),
+		'state'                    => __( 'State, province, or region', 'nobloat-user-foundry' ),
+		'postal_code'              => __( 'ZIP or postal code', 'nobloat-user-foundry' ),
+		'country'                  => __( 'Country', 'nobloat-user-foundry' ),
+		'company'                  => __( 'Company or organization name', 'nobloat-user-foundry' ),
+		'job_title'                => __( 'Job title or position', 'nobloat-user-foundry' ),
+		'department'               => __( 'Department or division', 'nobloat-user-foundry' ),
+		'division'                 => __( 'Division or business unit', 'nobloat-user-foundry' ),
+		'employee_id'              => __( 'Employee ID or staff number', 'nobloat-user-foundry' ),
+		'badge_number'             => __( 'Badge or ID card number', 'nobloat-user-foundry' ),
+		'manager_name'             => __( 'Direct manager or supervisor name', 'nobloat-user-foundry' ),
+		'supervisor_email'         => __( 'Supervisor email address', 'nobloat-user-foundry' ),
+		'office_location'          => __( 'Office location or building', 'nobloat-user-foundry' ),
+		'hire_date'                => __( 'Employment start date', 'nobloat-user-foundry' ),
+		'termination_date'         => __( 'Employment end date', 'nobloat-user-foundry' ),
+		'work_email'               => __( 'Work email address (separate from login)', 'nobloat-user-foundry' ),
+		'employment_type'          => __( 'Full-time, part-time, contractor, etc.', 'nobloat-user-foundry' ),
+		'license_number'           => __( 'Professional license number', 'nobloat-user-foundry' ),
 		'professional_memberships' => __( 'Professional associations and memberships', 'nobloat-user-foundry' ),
-		'security_clearance' => __( 'Security clearance level', 'nobloat-user-foundry' ),
-		'shift' => __( 'Work shift (day, night, swing)', 'nobloat-user-foundry' ),
-		'remote_status' => __( 'Remote, hybrid, or on-site', 'nobloat-user-foundry' ),
-		'student_id' => __( 'Student ID number', 'nobloat-user-foundry' ),
-		'school_name' => __( 'School or university name', 'nobloat-user-foundry' ),
-		'degree' => __( 'Degree or diploma earned', 'nobloat-user-foundry' ),
-		'major' => __( 'Major or field of study', 'nobloat-user-foundry' ),
-		'graduation_year' => __( 'Year graduated', 'nobloat-user-foundry' ),
-		'gpa' => __( 'Grade point average', 'nobloat-user-foundry' ),
-		'certifications' => __( 'Professional certifications', 'nobloat-user-foundry' ),
-		'twitter' => __( 'Twitter/X handle or profile URL', 'nobloat-user-foundry' ),
-		'facebook' => __( 'Facebook profile URL', 'nobloat-user-foundry' ),
-		'linkedin' => __( 'LinkedIn profile URL', 'nobloat-user-foundry' ),
-		'instagram' => __( 'Instagram handle or profile URL', 'nobloat-user-foundry' ),
-		'github' => __( 'GitHub username or profile URL', 'nobloat-user-foundry' ),
-		'youtube' => __( 'YouTube channel URL', 'nobloat-user-foundry' ),
-		'tiktok' => __( 'TikTok handle or profile URL', 'nobloat-user-foundry' ),
-		'discord_username' => __( 'Discord username', 'nobloat-user-foundry' ),
-		'bio' => __( 'User biography or about section', 'nobloat-user-foundry' ),
-		'website' => __( 'Personal or professional website URL', 'nobloat-user-foundry' ),
-		'nationality' => __( 'Nationality or citizenship', 'nobloat-user-foundry' ),
-		'languages' => __( 'Languages spoken', 'nobloat-user-foundry' ),
-		'emergency_contact' => __( 'Emergency contact information', 'nobloat-user-foundry' ),
+		'security_clearance'       => __( 'Security clearance level', 'nobloat-user-foundry' ),
+		'shift'                    => __( 'Work shift (day, night, swing)', 'nobloat-user-foundry' ),
+		'remote_status'            => __( 'Remote, hybrid, or on-site', 'nobloat-user-foundry' ),
+		'student_id'               => __( 'Student ID number', 'nobloat-user-foundry' ),
+		'school_name'              => __( 'School or university name', 'nobloat-user-foundry' ),
+		'degree'                   => __( 'Degree or diploma earned', 'nobloat-user-foundry' ),
+		'major'                    => __( 'Major or field of study', 'nobloat-user-foundry' ),
+		'graduation_year'          => __( 'Year graduated', 'nobloat-user-foundry' ),
+		'gpa'                      => __( 'Grade point average', 'nobloat-user-foundry' ),
+		'certifications'           => __( 'Professional certifications', 'nobloat-user-foundry' ),
+		'twitter'                  => __( 'Twitter/X handle or profile URL', 'nobloat-user-foundry' ),
+		'facebook'                 => __( 'Facebook profile URL', 'nobloat-user-foundry' ),
+		'linkedin'                 => __( 'LinkedIn profile URL', 'nobloat-user-foundry' ),
+		'instagram'                => __( 'Instagram handle or profile URL', 'nobloat-user-foundry' ),
+		'github'                   => __( 'GitHub username or profile URL', 'nobloat-user-foundry' ),
+		'youtube'                  => __( 'YouTube channel URL', 'nobloat-user-foundry' ),
+		'tiktok'                   => __( 'TikTok handle or profile URL', 'nobloat-user-foundry' ),
+		'discord_username'         => __( 'Discord username', 'nobloat-user-foundry' ),
+		'bio'                      => __( 'User biography or about section', 'nobloat-user-foundry' ),
+		'website'                  => __( 'Personal or professional website URL', 'nobloat-user-foundry' ),
+		'nationality'              => __( 'Nationality or citizenship', 'nobloat-user-foundry' ),
+		'languages'                => __( 'Languages spoken', 'nobloat-user-foundry' ),
+		'emergency_contact'        => __( 'Emergency contact information', 'nobloat-user-foundry' ),
 	);
 
 	return isset( $descriptions[ $field_key ] ) ? $descriptions[ $field_key ] : '';

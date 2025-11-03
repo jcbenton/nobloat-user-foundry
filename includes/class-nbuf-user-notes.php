@@ -14,6 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+/*
+ * Direct database access is architectural for user notes management.
+ * Custom nbuf_user_notes table stores admin notes and cannot use
+ * WordPress's standard meta APIs.
+ */
+
 /**
  * User notes data management class.
  *
@@ -26,14 +34,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_User_Notes {
 
+
 	/**
 	 * Get all notes for a specific user.
 	 *
-	 * @since    1.0.0
-	 * @param    int    $user_id    User ID
-	 * @param    string $order_by   Order by column (default: 'created_at')
-	 * @param    string $order      Sort order (ASC or DESC, default: DESC)
-	 * @return   array               Array of note objects
+	 * @since  1.0.0
+	 * @param  int    $user_id  User ID.
+	 * @param  string $order_by Order by column (default: 'created_at').
+	 * @param  string $order    Sort order (ASC or DESC, default: DESC).
+	 * @return array               Array of note objects.
 	 */
 	public static function get_user_notes( $user_id, $order_by = 'created_at', $order = 'DESC' ) {
 		global $wpdb;
@@ -61,9 +70,9 @@ class NBUF_User_Notes {
 	/**
 	 * Get a specific note by ID.
 	 *
-	 * @since    1.0.0
-	 * @param    int          $note_id    Note ID
-	 * @return   object|null              Note object or null if not found
+	 * @since  1.0.0
+	 * @param  int $note_id Note ID.
+	 * @return object|null              Note object or null if not found.
 	 */
 	public static function get_note( $note_id ) {
 		global $wpdb;
@@ -71,6 +80,7 @@ class NBUF_User_Notes {
 
 		$note = $wpdb->get_row(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT * FROM $table_name WHERE id = %d",
 				$note_id
 			)
@@ -82,11 +92,11 @@ class NBUF_User_Notes {
 	/**
 	 * Add a new note for a user.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $user_id        User ID the note is about
-	 * @param    string  $note_content   Note content
-	 * @param    int     $created_by     Admin user ID creating the note
-	 * @return   int|false                Note ID on success, false on failure
+	 * @since  1.0.0
+	 * @param  int    $user_id      User ID the note is about.
+	 * @param  string $note_content Note content.
+	 * @param  int    $created_by   Admin user ID creating the note.
+	 * @return int|false                Note ID on success, false on failure.
 	 */
 	public static function add_note( $user_id, $note_content, $created_by ) {
 		global $wpdb;
@@ -107,14 +117,17 @@ class NBUF_User_Notes {
 		if ( $inserted ) {
 			/* Log note creation */
 			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				$user = get_user_by( 'id', $user_id );
+				$user  = get_user_by( 'id', $user_id );
 				$admin = get_user_by( 'id', $created_by );
 				NBUF_Audit_Log::log(
 					$user_id,
 					'user_note_added',
 					'info',
 					sprintf( 'Admin note added by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array( 'note_id' => $wpdb->insert_id, 'admin_id' => $created_by )
+					array(
+						'note_id'  => $wpdb->insert_id,
+						'admin_id' => $created_by,
+					)
 				);
 			}
 
@@ -127,10 +140,10 @@ class NBUF_User_Notes {
 	/**
 	 * Update an existing note.
 	 *
-	 * @since    1.0.0
-	 * @param    int     $note_id        Note ID to update
-	 * @param    string  $note_content   New note content
-	 * @return   bool                     True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int    $note_id      Note ID to update.
+	 * @param  string $note_content New note content.
+	 * @return bool                     True on success, false on failure.
 	 */
 	public static function update_note( $note_id, $note_content ) {
 		global $wpdb;
@@ -150,17 +163,20 @@ class NBUF_User_Notes {
 			array( '%d' )
 		);
 
-		if ( $updated !== false && $note ) {
+		if ( false !== $updated && $note ) {
 			/* Log note update */
 			if ( class_exists( 'NBUF_Audit_Log' ) ) {
 				$admin_id = get_current_user_id();
-				$admin = get_user_by( 'id', $admin_id );
+				$admin    = get_user_by( 'id', $admin_id );
 				NBUF_Audit_Log::log(
 					$note->user_id,
 					'user_note_updated',
 					'info',
 					sprintf( 'Admin note updated by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array( 'note_id' => $note_id, 'admin_id' => $admin_id )
+					array(
+						'note_id'  => $note_id,
+						'admin_id' => $admin_id,
+					)
 				);
 			}
 
@@ -173,9 +189,9 @@ class NBUF_User_Notes {
 	/**
 	 * Delete a note.
 	 *
-	 * @since    1.0.0
-	 * @param    int   $note_id    Note ID to delete
-	 * @return   bool               True on success, false on failure
+	 * @since  1.0.0
+	 * @param  int $note_id Note ID to delete.
+	 * @return bool               True on success, false on failure.
 	 */
 	public static function delete_note( $note_id ) {
 		global $wpdb;
@@ -194,13 +210,16 @@ class NBUF_User_Notes {
 			/* Log note deletion */
 			if ( class_exists( 'NBUF_Audit_Log' ) ) {
 				$admin_id = get_current_user_id();
-				$admin = get_user_by( 'id', $admin_id );
+				$admin    = get_user_by( 'id', $admin_id );
 				NBUF_Audit_Log::log(
 					$note->user_id,
 					'user_note_deleted',
 					'info',
 					sprintf( 'Admin note deleted by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array( 'note_id' => $note_id, 'admin_id' => $admin_id )
+					array(
+						'note_id'  => $note_id,
+						'admin_id' => $admin_id,
+					)
 				);
 			}
 
@@ -213,9 +232,9 @@ class NBUF_User_Notes {
 	/**
 	 * Get count of notes for a user.
 	 *
-	 * @since    1.0.0
-	 * @param    int    $user_id    User ID
-	 * @return   int                 Number of notes
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return int                 Number of notes.
 	 */
 	public static function get_note_count( $user_id ) {
 		global $wpdb;
@@ -223,6 +242,7 @@ class NBUF_User_Notes {
 
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT COUNT(*) FROM $table_name WHERE user_id = %d",
 				$user_id
 			)
@@ -236,9 +256,9 @@ class NBUF_User_Notes {
 	 *
 	 * Used when a user is deleted from WordPress.
 	 *
-	 * @since    1.0.0
-	 * @param    int   $user_id    User ID
-	 * @return   int|false          Number of rows deleted or false on failure
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return int|false          Number of rows deleted or false on failure.
 	 */
 	public static function delete_user_notes( $user_id ) {
 		global $wpdb;
@@ -256,10 +276,10 @@ class NBUF_User_Notes {
 	/**
 	 * Search for users with notes containing specific text.
 	 *
-	 * @since    1.0.0
-	 * @param    string $search_term    Search term
-	 * @param    int    $limit          Maximum results (default: 50)
-	 * @return   array                   Array of user IDs with matching notes
+	 * @since  1.0.0
+	 * @param  string $search_term Search term.
+	 * @param  int    $limit       Maximum results (default: 50).
+	 * @return array                   Array of user IDs with matching notes.
 	 */
 	public static function search_notes( $search_term, $limit = 50 ) {
 		global $wpdb;
@@ -267,6 +287,7 @@ class NBUF_User_Notes {
 
 		$user_ids = $wpdb->get_col(
 			$wpdb->prepare(
+       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
 				"SELECT DISTINCT user_id FROM $table_name WHERE note_content LIKE %s LIMIT %d",
 				'%' . $wpdb->esc_like( $search_term ) . '%',
 				$limit
@@ -281,7 +302,7 @@ class NBUF_User_Notes {
 	 *
 	 * Adds a link to the user notes page in the WordPress user editor.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function init_profile_link() {
 		if ( is_admin() ) {
@@ -293,8 +314,8 @@ class NBUF_User_Notes {
 	/**
 	 * Render user notes link in user profile.
 	 *
-	 * @since    1.0.0
-	 * @param    WP_User $user    User object
+	 * @since 1.0.0
+	 * @param WP_User $user User object.
 	 */
 	public static function render_profile_link( $user ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -302,7 +323,7 @@ class NBUF_User_Notes {
 		}
 
 		$note_count = self::get_note_count( $user->ID );
-		$notes_url = add_query_arg(
+		$notes_url  = add_query_arg(
 			array(
 				'page'    => 'nobloat-foundry-notes',
 				'user_id' => $user->ID,
@@ -317,14 +338,14 @@ class NBUF_User_Notes {
 				<td>
 					<p>
 						<a href="<?php echo esc_url( $notes_url ); ?>" class="button button-secondary">
-							<?php
-							/* translators: %d: number of notes */
-							printf( esc_html__( 'View Notes (%d)', 'nobloat-user-foundry' ), (int) $note_count );
-							?>
+		<?php
+			/* translators: %d: number of notes */
+			printf( esc_html__( 'View Notes (%d)', 'nobloat-user-foundry' ), (int) $note_count );
+		?>
 						</a>
 					</p>
 					<p class="description">
-						<?php esc_html_e( 'View and manage administrative notes for this user.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'View and manage administrative notes for this user.', 'nobloat-user-foundry' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -332,6 +353,7 @@ class NBUF_User_Notes {
 		<?php
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 /* Initialize profile link */
 NBUF_User_Notes::init_profile_link();

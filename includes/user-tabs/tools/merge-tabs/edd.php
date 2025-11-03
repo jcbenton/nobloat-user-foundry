@@ -22,7 +22,7 @@ $edd_active = class_exists( 'Easy_Digital_Downloads' );
 		<div class="notice notice-warning inline">
 			<p>
 				<strong><?php esc_html_e( 'Easy Digital Downloads Not Detected', 'nobloat-user-foundry' ); ?></strong><br>
-				<?php esc_html_e( 'This feature requires Easy Digital Downloads to be installed and activated.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'This feature requires Easy Digital Downloads to be installed and activated.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 	<?php else : ?>
@@ -33,7 +33,7 @@ $edd_active = class_exists( 'Easy_Digital_Downloads' );
 				<strong><?php esc_html_e( 'Easy Digital Downloads Account Merging - Coming Soon!', 'nobloat-user-foundry' ); ?></strong>
 			</p>
 			<p>
-				<?php esc_html_e( 'This feature is currently under development and will be available in a future update.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'This feature is currently under development and will be available in a future update.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 
@@ -52,18 +52,18 @@ $edd_active = class_exists( 'Easy_Digital_Downloads' );
 			<p>
 				<span class="dashicons dashicons-info" style="font-size: 18px; vertical-align: middle;"></span>
 				<strong><?php esc_html_e( 'Good News!', 'nobloat-user-foundry' ); ?></strong><br>
-				<?php esc_html_e( 'Easy Digital Downloads has excellent multi-email support built-in, which makes account merging much cleaner than WooCommerce. This feature will be able to properly consolidate all customer email addresses into the EDD email management system.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Easy Digital Downloads has excellent multi-email support built-in, which makes account merging much cleaner than WooCommerce. This feature will be able to properly consolidate all customer email addresses into the EDD email management system.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 
 		<p style="margin-top: 20px;">
-			<?php
-			printf(
-				/* translators: %s: URL to WordPress merge tab */
-				esc_html__( 'In the meantime, you can merge WordPress core data on the %s tab.', 'nobloat-user-foundry' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=merge-accounts&merge_tab=wordpress' ) ) . '">' . esc_html__( 'WordPress Accounts', 'nobloat-user-foundry' ) . '</a>'
-			);
-			?>
+		<?php
+		printf(
+		/* translators: %s: URL to WordPress merge tab */
+			esc_html__( 'In the meantime, you can merge WordPress core data on the %s tab.', 'nobloat-user-foundry' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=merge-accounts&merge_tab=WordPress' ) ) . '">' . esc_html__( 'WordPress Accounts', 'nobloat-user-foundry' ) . '</a>'
+		);
+		?>
 		</p>
 	<?php endif; ?>
 </div>

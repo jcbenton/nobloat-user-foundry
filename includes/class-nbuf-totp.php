@@ -19,13 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_TOTP {
 
+
 	/**
 	 * Generate cryptographically secure random secret
 	 *
 	 * Creates a random secret suitable for TOTP authentication.
 	 * The secret is Base32 encoded for compatibility with authenticator apps.
 	 *
-	 * @param int $length Number of bytes for the secret (default 20 for 160-bit).
+	 * @param  int $length Number of bytes for the secret (default 20 for 160-bit).
 	 * @return string Base32 encoded secret.
 	 */
 	public static function generate_secret( $length = 20 ) {
@@ -42,15 +43,15 @@ class NBUF_TOTP {
 	 * Generates a 6 or 8 digit TOTP code based on the secret and timestamp.
 	 * Follows RFC 6238 specification.
 	 *
-	 * @param string   $secret Base32 encoded secret.
-	 * @param int|null $timestamp Unix timestamp (null = current time).
-	 * @param int      $code_length Length of code (6 or 8 digits).
-	 * @param int      $time_step Time window in seconds (default 30).
+	 * @param  string   $secret      Base32 encoded secret.
+	 * @param  int|null $timestamp   Unix timestamp (null = current time).
+	 * @param  int      $code_length Length of code (6 or 8 digits).
+	 * @param  int      $time_step   Time window in seconds (default 30).
 	 * @return string TOTP code padded with zeros.
 	 */
 	public static function get_code( $secret, $timestamp = null, $code_length = 6, $time_step = 30 ) {
 		/* Use current time if not specified */
-		if ( $timestamp === null ) {
+		if ( null === $timestamp ) {
 			$timestamp = time();
 		}
 
@@ -89,11 +90,12 @@ class NBUF_TOTP {
 	 * Checks if the provided code matches the expected TOTP code within
 	 * a specified tolerance window to account for clock drift.
 	 *
-	 * @param string $secret Base32 encoded secret.
-	 * @param string $code User-entered code.
-	 * @param int    $tolerance Number of time windows to check (±N).
-	 * @param int    $code_length Length of code (6 or 8 digits).
-	 * @param int    $time_step Time window in seconds (default 30).
+	 * @param  string $secret      Base32 encoded secret.
+	 * @param  string $code        User-entered code.
+	 * @param  int    $tolerance   Number of time windows to check
+	 *                             (±N).
+	 * @param  int    $code_length Length of code (6 or 8 digits).
+	 * @param  int    $time_step   Time window in seconds (default 30).
 	 * @return bool True if code matches within tolerance.
 	 */
 	public static function verify_code( $secret, $code, $tolerance = 1, $code_length = 6, $time_step = 30 ) {
@@ -128,11 +130,11 @@ class NBUF_TOTP {
 	 * Generates the otpauth:// URI used by authenticator apps to set up TOTP.
 	 * This URI is typically encoded in a QR code for easy scanning.
 	 *
-	 * @param string $secret Base32 encoded secret.
-	 * @param string $username User's username or email.
-	 * @param string $issuer Site name.
-	 * @param int    $code_length Length of code (6 or 8 digits).
-	 * @param int    $time_step Time window in seconds (default 30).
+	 * @param  string $secret      Base32 encoded secret.
+	 * @param  string $username    User's username or email.
+	 * @param  string $issuer      Site name.
+	 * @param  int    $code_length Length of code (6 or 8 digits).
+	 * @param  int    $time_step   Time window in seconds (default 30).
 	 * @return string otpauth:// URI.
 	 */
 	public static function get_provisioning_uri( $secret, $username, $issuer, $code_length = 6, $time_step = 30 ) {
@@ -159,7 +161,7 @@ class NBUF_TOTP {
 	 *
 	 * Encodes binary data to Base32 string for TOTP compatibility.
 	 *
-	 * @param string $data Raw bytes.
+	 * @param  string $data Raw bytes.
 	 * @return string Base32 encoded string.
 	 */
 	private static function base32_encode( $data ) {
@@ -169,7 +171,8 @@ class NBUF_TOTP {
 		$bits     = '';
 
 		/* Convert each byte to binary string */
-		for ( $i = 0; $i < strlen( $data ); $i++ ) {
+		$data_length = strlen( $data );
+		for ( $i = 0; $i < $data_length; $i++ ) {
 			$bits .= str_pad( decbin( ord( $data[ $i ] ) ), 8, '0', STR_PAD_LEFT );
 		}
 
@@ -195,7 +198,7 @@ class NBUF_TOTP {
 	 *
 	 * Decodes Base32 string back to binary data.
 	 *
-	 * @param string $data Base32 encoded string.
+	 * @param  string $data Base32 encoded string.
 	 * @return string Raw bytes.
 	 */
 	private static function base32_decode( $data ) {
@@ -212,7 +215,8 @@ class NBUF_TOTP {
 		$output = '';
 
 		/* Convert each character to 5-bit binary */
-		for ( $i = 0; $i < strlen( $data ); $i++ ) {
+		$data_length = strlen( $data );
+		for ( $i = 0; $i < $data_length; $i++ ) {
 			if ( ! isset( $lookup[ $data[ $i ] ] ) ) {
 				/* Invalid character, skip */
 				continue;
@@ -237,8 +241,8 @@ class NBUF_TOTP {
 	 * Calculates the time counter based on Unix timestamp and time step.
 	 * This counter is used as the moving factor in TOTP generation.
 	 *
-	 * @param int $timestamp Unix timestamp.
-	 * @param int $time_step Time window in seconds (30 or 60).
+	 * @param  int $timestamp Unix timestamp.
+	 * @param  int $time_step Time window in seconds (30 or 60).
 	 * @return int Time counter.
 	 */
 	private static function get_time_counter( $timestamp, $time_step = 30 ) {

@@ -18,22 +18,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Public_Profiles
+ *
+ * Handles public-facing user profile pages with customizable privacy.
+ */
 class NBUF_Public_Profiles {
+
 
 	/**
 	 * Initialize public profiles
 	 */
 	public static function init() {
-		// Register rewrite rules
+		// Register rewrite rules.
 		add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ) );
 
-		// Add query vars
+		// Add query vars.
 		add_filter( 'query_vars', array( __CLASS__, 'add_query_vars' ) );
 
-		// Handle profile page requests
+		// Handle profile page requests.
 		add_action( 'template_redirect', array( __CLASS__, 'handle_profile_request' ) );
 
-		// Enqueue profile page CSS
+		// Enqueue profile page CSS.
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_profile_css' ) );
 	}
 
@@ -53,7 +59,7 @@ class NBUF_Public_Profiles {
 	/**
 	 * Add custom query vars
 	 *
-	 * @param array $vars Existing query vars.
+	 * @param  array $vars Existing query vars.
 	 * @return array Modified query vars.
 	 */
 	public static function add_query_vars( $vars ) {
@@ -71,11 +77,11 @@ class NBUF_Public_Profiles {
 			return;
 		}
 
-		// Get user by username
+		// Get user by username.
 		$user = get_user_by( 'login', $username );
 
 		if ( ! $user ) {
-			// Try by nicename (slug)
+			// Try by nicename (slug).
 			$user = get_user_by( 'slug', $username );
 		}
 
@@ -87,25 +93,28 @@ class NBUF_Public_Profiles {
 			exit;
 		}
 
-		// Check privacy settings
+		// Check privacy settings.
 		if ( ! self::can_view_profile( $user->ID ) ) {
-			// Redirect to login or show access denied
+			// Redirect to login or show access denied.
 			$login_page_id = NBUF_Options::get( 'nbuf_page_login' );
 
 			if ( $login_page_id ) {
-				/* Sanitize and validate redirect_to to prevent header injection */
+				/*
+				* Sanitize and validate redirect_to to prevent header injection
+				*/
+             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by remove_query_arg() and rawurlencode() below.
 				$redirect_to = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 				$redirect_to = remove_query_arg( array( '_wpnonce', 'action' ), $redirect_to );
-				wp_safe_redirect( add_query_arg( 'redirect_to', urlencode( $redirect_to ), get_permalink( $login_page_id ) ) );
+				wp_safe_redirect( add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), get_permalink( $login_page_id ) ) );
 				exit;
 			} else {
-				// Show 403 or redirect to home
+				// Show 403 or redirect to home.
 				wp_safe_redirect( home_url() );
 				exit;
 			}
 		}
 
-		// Render the profile page
+		// Render the profile page.
 		self::render_profile_page( $user );
 		exit;
 	}
@@ -113,24 +122,24 @@ class NBUF_Public_Profiles {
 	/**
 	 * Check if current user can view a profile
 	 *
-	 * @param int $user_id User ID to check.
+	 * @param  int $user_id User ID to check.
 	 * @return bool True if can view, false otherwise.
 	 */
 	public static function can_view_profile( $user_id ) {
 		$user_data = NBUF_User_Data::get( $user_id );
-		$privacy = ! empty( $user_data['profile_privacy'] ) ? $user_data['profile_privacy'] : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
+		$privacy   = ! empty( $user_data['profile_privacy'] ) ? $user_data['profile_privacy'] : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
 
-		// Public profiles are visible to everyone
+		// Public profiles are visible to everyone.
 		if ( 'public' === $privacy ) {
 			return true;
 		}
 
-		// Private profiles are only visible to the owner
+		// Private profiles are only visible to the owner.
 		if ( 'private' === $privacy ) {
 			return is_user_logged_in() && get_current_user_id() === $user_id;
 		}
 
-		// Members-only profiles require login
+		// Members-only profiles require login.
 		if ( 'members_only' === $privacy ) {
 			return is_user_logged_in();
 		}
@@ -144,30 +153,30 @@ class NBUF_Public_Profiles {
 	 * @param WP_User $user User object.
 	 */
 	public static function render_profile_page( $user ) {
-		// Get user data
+		// Get user data.
 		$user_data = NBUF_User_Data::get( $user->ID );
 
-		// Get profile photo
+		// Get profile photo.
 		$profile_photo = NBUF_Profile_Photos::get_profile_photo( $user->ID, 150 );
 
-		// Get cover photo
+		// Get cover photo.
 		$cover_photo = ! empty( $user_data['cover_photo_url'] ) ? $user_data['cover_photo_url'] : '';
 		$allow_cover = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 
-		// Get bio and other info
-		$bio = get_user_meta( $user->ID, 'description', true );
+		// Get bio and other info.
+		$bio          = get_user_meta( $user->ID, 'description', true );
 		$display_name = ! empty( $user->display_name ) ? $user->display_name : $user->user_login;
-		$first_name = get_user_meta( $user->ID, 'first_name', true );
-		$last_name = get_user_meta( $user->ID, 'last_name', true );
+		$first_name   = get_user_meta( $user->ID, 'first_name', true );
+		$last_name    = get_user_meta( $user->ID, 'last_name', true );
 
-		// Get user registration date
-		$registered = $user->user_registered;
+		// Get user registration date.
+		$registered      = $user->user_registered;
 		$registered_date = mysql2date( get_option( 'date_format' ), $registered );
 
-		// Start output buffering
+		// Start output buffering.
 		ob_start();
 
-		// Output HTML head
+		// Output HTML head.
 		?>
 		<!DOCTYPE html>
 		<html <?php language_attributes(); ?>>
@@ -175,14 +184,14 @@ class NBUF_Public_Profiles {
 			<meta charset="<?php bloginfo( 'charset' ); ?>">
 			<meta name="viewport" content="width=device-width, initial-scale=1">
 			<title><?php echo esc_html( $display_name ); ?> - <?php bloginfo( 'name' ); ?></title>
-			<?php wp_head(); ?>
+		<?php wp_head(); ?>
 		</head>
 		<body <?php body_class( 'nbuf-profile-page-body' ); ?>>
 
 		<div class="nbuf-profile-page">
 			<!-- Profile Header with Cover Photo -->
 			<div class="nbuf-profile-header">
-				<?php if ( $allow_cover && ! empty( $cover_photo ) ) : ?>
+		<?php if ( $allow_cover && ! empty( $cover_photo ) ) : ?>
 					<div class="nbuf-profile-cover" style="background-image: url('<?php echo esc_url( $cover_photo ); ?>');">
 						<div class="nbuf-profile-cover-overlay"></div>
 					</div>
@@ -203,47 +212,47 @@ class NBUF_Public_Profiles {
 					<h1 class="nbuf-profile-name"><?php echo esc_html( $display_name ); ?></h1>
 					<p class="nbuf-profile-username">@<?php echo esc_html( $user->user_login ); ?></p>
 
-					<?php if ( ! empty( $bio ) ) : ?>
+		<?php if ( ! empty( $bio ) ) : ?>
 						<div class="nbuf-profile-bio">
-							<?php echo wpautop( wp_kses_post( $bio ) ); ?>
+			<?php echo wpautop( wp_kses_post( $bio ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Content sanitized by wp_kses_post(). ?>
 						</div>
-					<?php endif; ?>
+		<?php endif; ?>
 
 					<div class="nbuf-profile-meta">
 						<span class="nbuf-profile-meta-item">
 							<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
 							</svg>
-							<?php
-							/* translators: %s: User registration date */
-							printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
-							?>
+		<?php
+			/* translators: %s: User registration date */
+			printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
+		?>
 						</span>
 					</div>
 				</div>
 
-				<?php
-				/**
-				 * Hook for adding custom content to profile page
-				 *
-				 * @param WP_User $user User object.
-				 * @param array   $user_data User data from custom table.
-				 */
-				do_action( 'nbuf_public_profile_content', $user, $user_data );
-				?>
+		<?php
+		/**
+		 * Hook for adding custom content to profile page
+		 *
+		 * @param WP_User $user User object.
+		 * @param array   $user_data User data from custom table.
+		 */
+		do_action( 'nbuf_public_profile_content', $user, $user_data );
+		?>
 
-				<?php if ( is_user_logged_in() && get_current_user_id() === $user->ID ) : ?>
+		<?php if ( is_user_logged_in() && get_current_user_id() === $user->ID ) : ?>
 					<div class="nbuf-profile-actions">
-						<?php
-						$account_page_id = NBUF_Options::get( 'nbuf_page_account' );
-						if ( $account_page_id ) :
-							?>
+			<?php
+			$account_page_id = NBUF_Options::get( 'nbuf_page_account' );
+			if ( $account_page_id ) :
+				?>
 							<a href="<?php echo esc_url( get_permalink( $account_page_id ) ); ?>" class="nbuf-button nbuf-button-primary">
-								<?php esc_html_e( 'Edit Profile', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Edit Profile', 'nobloat-user-foundry' ); ?>
 							</a>
-						<?php endif; ?>
+			<?php endif; ?>
 					</div>
-				<?php endif; ?>
+		<?php endif; ?>
 			</div>
 		</div>
 
@@ -252,8 +261,8 @@ class NBUF_Public_Profiles {
 		</html>
 		<?php
 
-		// Output the buffer
-		echo ob_get_clean();
+		// Output the buffer.
+		echo ob_get_clean(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template output with escaped content.
 	}
 
 	/**
@@ -266,10 +275,10 @@ class NBUF_Public_Profiles {
 			return;
 		}
 
-		// Enqueue default profile CSS
+		// Enqueue default profile CSS.
 		wp_add_inline_style( 'wp-block-library', self::get_default_css() );
 
-		// Enqueue custom CSS if set
+		// Enqueue custom CSS if set.
 		$custom_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
 		if ( ! empty( $custom_css ) ) {
 			wp_add_inline_style( 'wp-block-library', wp_strip_all_tags( $custom_css ) );
@@ -282,7 +291,7 @@ class NBUF_Public_Profiles {
 	 * @return string CSS code.
 	 */
 	public static function get_default_css() {
-		return "
+		return '
 		/* NoBloat User Foundry - Profile Page CSS */
 
 		/* Reset and Layout */
@@ -471,13 +480,13 @@ class NBUF_Public_Profiles {
 				gap: 10px;
 			}
 		}
-		";
+		';
 	}
 
 	/**
 	 * Get profile URL for a user
 	 *
-	 * @param int|string $user User ID or username.
+	 * @param  int|string $user User ID or username.
 	 * @return string Profile URL.
 	 */
 	public static function get_profile_url( $user ) {

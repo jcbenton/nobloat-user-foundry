@@ -12,73 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<style>
-.nbuf-shortcode-list {
-	max-width: 1200px;
-}
-.nbuf-shortcode-item {
-	background: #fff;
-	border: 1px solid #ccd0d4;
-	border-radius: 4px;
-	padding: 20px;
-	margin-bottom: 20px;
-}
-.nbuf-shortcode-item h3 {
-	margin-top: 0;
-	margin-bottom: 10px;
-	color: #1d2327;
-}
-.nbuf-shortcode-code {
-	background: #f6f7f7;
-	border: 1px solid #dcdcde;
-	border-radius: 3px;
-	padding: 12px;
-	font-family: 'Courier New', Courier, monospace;
-	font-size: 14px;
-	color: #d63638;
-	margin: 10px 0;
-	display: inline-block;
-}
-.nbuf-shortcode-description {
-	margin: 15px 0;
-	line-height: 1.6;
-}
-.nbuf-shortcode-usage {
-	margin-top: 15px;
-	padding: 15px;
-	background: #f0f6fc;
-	border-left: 4px solid #2271b1;
-	border-radius: 3px;
-}
-.nbuf-shortcode-usage h4 {
-	margin-top: 0;
-	margin-bottom: 10px;
-	font-size: 14px;
-	color: #1d2327;
-}
-.nbuf-shortcode-category {
-	display: inline-block;
-	background: #2271b1;
-	color: #fff;
-	padding: 4px 10px;
-	border-radius: 3px;
-	font-size: 12px;
-	font-weight: 600;
-	margin-bottom: 10px;
-}
-.nbuf-shortcode-category.auth {
-	background: #00a32a;
-}
-.nbuf-shortcode-category.account {
-	background: #d63638;
-}
-.nbuf-shortcode-category.security {
-	background: #8c8f94;
-}
-.nbuf-shortcode-category.utility {
-	background: #f0b849;
-}
-</style>
+
 
 <h2><?php esc_html_e( 'Available Shortcodes', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">

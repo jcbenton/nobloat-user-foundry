@@ -24,10 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_User_Notes_Page {
 
+
 	/**
 	 * Initialize the class.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
@@ -42,7 +43,7 @@ class NBUF_User_Notes_Page {
 	/**
 	 * Add user notes menu page.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function add_menu_page() {
 		add_submenu_page(
@@ -58,16 +59,18 @@ class NBUF_User_Notes_Page {
 	/**
 	 * Enqueue admin assets.
 	 *
-	 * @since    1.0.0
-	 * @param    string $hook    Current admin page hook
+	 * @since 1.0.0
+	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_assets( $hook ) {
 		/* Only load on user notes page */
-		if ( $hook !== 'nobloat-foundry_page_nobloat-foundry-notes' ) {
+		if ( 'nobloat-foundry_page_nobloat-foundry-notes' !== $hook ) {
 			return;
 		}
 
-		/* No external dependencies - using native HTML with AJAX */
+		/*
+		* No external dependencies - using native HTML with AJAX
+		*/
 		/* Enqueue custom styles */
 		wp_add_inline_style( 'wp-admin', self::get_custom_css() );
 
@@ -75,20 +78,24 @@ class NBUF_User_Notes_Page {
 		wp_enqueue_script( 'nbuf-user-notes', NBUF_PLUGIN_URL . 'assets/js/admin/user-notes.js', array( 'jquery' ), NBUF_VERSION, true );
 
 		/* Pass AJAX URL and nonce to JavaScript */
-		wp_localize_script( 'nbuf-user-notes', 'NBUF_UserNotes', array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'nbuf_user_notes_nonce' ),
-		) );
+		wp_localize_script(
+			'nbuf-user-notes',
+			'NBUF_UserNotes',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'nbuf_user_notes_nonce' ),
+			)
+		);
 	}
 
 	/**
 	 * Get custom CSS for user notes page.
 	 *
-	 * @since    1.0.0
-	 * @return   string    CSS code
+	 * @since  1.0.0
+	 * @return string    CSS code.
 	 */
 	private static function get_custom_css() {
-		return "
+		return '
 		.nbuf-user-notes-container {
 			max-width: 1200px;
 			margin: 20px 0;
@@ -179,14 +186,14 @@ class NBUF_User_Notes_Page {
 		.nbuf-note-meta {
 			font-style: italic;
 		}
-		";
+		';
 	}
 
 
 	/**
 	 * Render the user notes page.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function render_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -196,7 +203,7 @@ class NBUF_User_Notes_Page {
 		<div class="wrap">
 			<h1><?php esc_html_e( 'User Notes', 'nobloat-user-foundry' ); ?></h1>
 			<p class="description">
-				<?php esc_html_e( 'Manage administrative notes about users. Search for a user below to view and manage their notes.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Manage administrative notes about users. Search for a user below to view and manage their notes.', 'nobloat-user-foundry' ); ?>
 			</p>
 
 			<div class="nbuf-user-notes-container">
@@ -204,7 +211,7 @@ class NBUF_User_Notes_Page {
 				<div class="nbuf-user-selector">
 					<h2><?php esc_html_e( 'Select User', 'nobloat-user-foundry' ); ?></h2>
 					<p class="description">
-						<?php esc_html_e( 'Search by username, email, or display name (minimum 2 characters).', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Search by username, email, or display name (minimum 2 characters).', 'nobloat-user-foundry' ); ?>
 					</p>
 					<div style="position: relative;">
 						<input type="text" id="nbuf-user-search-input" placeholder="<?php esc_attr_e( 'Search for a user...', 'nobloat-user-foundry' ); ?>" autocomplete="off">
@@ -219,7 +226,7 @@ class NBUF_User_Notes_Page {
 				<!-- Notes List -->
 				<div id="nbuf-notes-list" class="nbuf-notes-section">
 					<h2>
-						<?php esc_html_e( 'Notes for:', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Notes for:', 'nobloat-user-foundry' ); ?>
 						<span id="nbuf-selected-user-name"></span>
 					</h2>
 
@@ -242,7 +249,7 @@ class NBUF_User_Notes_Page {
 	/**
 	 * AJAX: Search users.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function ajax_search_users() {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
@@ -254,15 +261,17 @@ class NBUF_User_Notes_Page {
 		/* Handle pre-selected user (direct ID) */
 		if ( isset( $_POST['user_id'] ) ) {
 			$user_id = intval( $_POST['user_id'] );
-			$user = get_user_by( 'id', $user_id );
+			$user    = get_user_by( 'id', $user_id );
 
 			if ( $user ) {
-				wp_send_json_success( array(
-					'user' => array(
-						'id' => $user->ID,
-						'text' => sprintf( '%s (%s)', $user->display_name, $user->user_email ),
-					),
-				) );
+				wp_send_json_success(
+					array(
+						'user' => array(
+							'id'   => $user->ID,
+							'text' => sprintf( '%s (%s)', $user->display_name, $user->user_email ),
+						),
+					)
+				);
 			}
 
 			wp_send_json_error( array( 'message' => 'User not found' ) );
@@ -275,13 +284,15 @@ class NBUF_User_Notes_Page {
 		}
 
 		/* Search users */
-		$users = get_users( array(
-			'search'         => '*' . $search . '*',
-			'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
-			'number'         => 20,
-			'orderby'        => 'display_name',
-			'order'          => 'ASC',
-		) );
+		$users = get_users(
+			array(
+				'search'         => '*' . $search . '*',
+				'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+				'number'         => 20,
+				'orderby'        => 'display_name',
+				'order'          => 'ASC',
+			)
+		);
 
 		$results = array();
 		foreach ( $users as $user ) {
@@ -297,7 +308,7 @@ class NBUF_User_Notes_Page {
 	/**
 	 * AJAX: Get user notes.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function ajax_get_user_notes() {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
@@ -322,7 +333,7 @@ class NBUF_User_Notes_Page {
 		/* Format notes for display */
 		$formatted_notes = array();
 		foreach ( $notes as $note ) {
-			$author = get_user_by( 'id', $note->created_by );
+			$author            = get_user_by( 'id', $note->created_by );
 			$formatted_notes[] = array(
 				'id'                   => $note->id,
 				'note_content'         => $note->note_content,
@@ -333,20 +344,22 @@ class NBUF_User_Notes_Page {
 			);
 		}
 
-		wp_send_json_success( array(
-			'notes' => $formatted_notes,
-			'user'  => array(
-				'id'           => $user->ID,
-				'display_name' => $user->display_name,
-				'user_email'   => $user->user_email,
-			),
-		) );
+		wp_send_json_success(
+			array(
+				'notes' => $formatted_notes,
+				'user'  => array(
+					'id'           => $user->ID,
+					'display_name' => $user->display_name,
+					'user_email'   => $user->user_email,
+				),
+			)
+		);
 	}
 
 	/**
 	 * AJAX: Add note.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function ajax_add_note() {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
@@ -368,7 +381,7 @@ class NBUF_User_Notes_Page {
 		}
 
 		$current_user_id = get_current_user_id();
-		$note_id = NBUF_User_Notes::add_note( $user_id, $content, $current_user_id );
+		$note_id         = NBUF_User_Notes::add_note( $user_id, $content, $current_user_id );
 
 		if ( $note_id ) {
 			wp_send_json_success( array( 'note_id' => $note_id ) );
@@ -380,7 +393,7 @@ class NBUF_User_Notes_Page {
 	/**
 	 * AJAX: Update note.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function ajax_update_note() {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
@@ -408,7 +421,7 @@ class NBUF_User_Notes_Page {
 	/**
 	 * AJAX: Delete note.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
 	 */
 	public static function ajax_delete_note() {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );

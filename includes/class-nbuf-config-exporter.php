@@ -5,14 +5,20 @@
  * Exports plugin settings and templates to JSON
  *
  * @package NoBloat_User_Foundry
- * @since 1.3.0
+ * @since   1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Config_Exporter
+ *
+ * Handles exporting plugin configuration to JSON.
+ */
 class NBUF_Config_Exporter {
+
 
 	/**
 	 * Constructor
@@ -32,10 +38,10 @@ class NBUF_Config_Exporter {
 		}
 
 		/* Get export options */
-		$export_settings = isset( $_POST['export_settings'] ) && $_POST['export_settings'] === '1';
-		$export_templates = isset( $_POST['export_templates'] ) && $_POST['export_templates'] === '1';
-		$export_sensitive = isset( $_POST['export_sensitive'] ) && $_POST['export_sensitive'] === '1';
-		$pretty_print = isset( $_POST['pretty_print'] ) && $_POST['pretty_print'] === '1';
+		$export_settings  = isset( $_POST['export_settings'] ) && '1' === $_POST['export_settings'];
+		$export_templates = isset( $_POST['export_templates'] ) && '1' === $_POST['export_templates'];
+		$export_sensitive = isset( $_POST['export_sensitive'] ) && '1' === $_POST['export_sensitive'];
+		$pretty_print     = isset( $_POST['pretty_print'] ) && '1' === $_POST['pretty_print'];
 
 		/* Build export data */
 		$export_data = array(
@@ -61,35 +67,43 @@ class NBUF_Config_Exporter {
 
 		$json = wp_json_encode( $export_data, $json_flags );
 
-		if ( $json === false ) {
+		if ( false === $json ) {
 			wp_send_json_error( array( 'message' => 'Failed to generate JSON' ) );
 		}
 
 		/* Generate filename */
-		$filename = 'nobloat-config-' . date( 'Y-m-d-His' ) . '.json';
+		$filename = 'nobloat-config-' . gmdate( 'Y-m-d-His' ) . '.json';
 
 		/* Return download URL via data URI */
-		wp_send_json_success( array(
-			'json'     => $json,
-			'filename' => $filename,
-			'size'     => strlen( $json ),
-		) );
+		wp_send_json_success(
+			array(
+				'json'     => $json,
+				'filename' => $filename,
+				'size'     => strlen( $json ),
+			)
+		);
 	}
 
 	/**
 	 * Export all settings
 	 *
-	 * @param bool $include_sensitive Include sensitive data
-	 * @return array Settings organized by category
+	 * @param  bool $include_sensitive Include sensitive data.
+	 * @return array Settings organized by category.
 	 */
 	private function export_settings( $include_sensitive = false ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_options';
 
-		/* Get all options from database */
+		/*
+		Get all options from database
+		*/
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Export operation.
 		$results = $wpdb->get_results(
-			"SELECT option_name, option_value FROM $table_name ORDER BY option_name",
+			$wpdb->prepare(
+				'SELECT option_name, option_value FROM %i ORDER BY option_name',
+				$table_name
+			),
 			ARRAY_A
 		);
 
@@ -120,14 +134,14 @@ class NBUF_Config_Exporter {
 		);
 
 		foreach ( $results as $row ) {
-			$option_name = $row['option_name'];
+			$option_name  = $row['option_name'];
 			$option_value = $row['option_value'];
 
 			/* Skip sensitive data if not included */
 			if ( ! $include_sensitive ) {
 				$is_sensitive = false;
 				foreach ( $sensitive_patterns as $pattern ) {
-					if ( stripos( $option_name, $pattern ) !== false ) {
+					if ( false !== stripos( $option_name, $pattern ) ) {
 						$is_sensitive = true;
 						break;
 					}
@@ -144,7 +158,7 @@ class NBUF_Config_Exporter {
 			}
 
 			/* Categorize setting */
-			$category = $this->categorize_setting( $option_name );
+			$category                              = $this->categorize_setting( $option_name );
 			$settings[ $category ][ $option_name ] = $option_value;
 		}
 
@@ -161,7 +175,7 @@ class NBUF_Config_Exporter {
 	/**
 	 * Export templates (CSS and Email)
 	 *
-	 * @return array Templates
+	 * @return array Templates.
 	 */
 	private function export_templates() {
 		$templates = array(
@@ -227,62 +241,69 @@ class NBUF_Config_Exporter {
 	/**
 	 * Categorize setting by prefix
 	 *
-	 * @param string $option_name Option name
-	 * @return string Category name
+	 * @param  string $option_name Option name.
+	 * @return string Category name.
 	 */
 	private function categorize_setting( $option_name ) {
 		/* System settings */
-		if ( strpos( $option_name, 'nbuf_master_toggle' ) === 0 ||
-		     strpos( $option_name, 'nbuf_page_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_enable_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_master_toggle' )
+			|| 0 === strpos( $option_name, 'nbuf_page_' )
+			|| 0 === strpos( $option_name, 'nbuf_enable_' )
+		) {
 			return 'system';
 		}
 
 		/* User settings */
-		if ( strpos( $option_name, 'nbuf_registration_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_profile_field_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_expiration_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_verification_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_registration_' )
+			|| 0 === strpos( $option_name, 'nbuf_profile_field_' )
+			|| 0 === strpos( $option_name, 'nbuf_expiration_' )
+			|| 0 === strpos( $option_name, 'nbuf_verification_' )
+		) {
 			return 'users';
 		}
 
 		/* Security settings */
-		if ( strpos( $option_name, 'nbuf_2fa_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_login_limit_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_password_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_security_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_2fa_' )
+			|| 0 === strpos( $option_name, 'nbuf_login_limit_' )
+			|| 0 === strpos( $option_name, 'nbuf_password_' )
+			|| 0 === strpos( $option_name, 'nbuf_security_' )
+		) {
 			return 'security';
 		}
 
 		/* Template settings */
-		if ( strpos( $option_name, 'nbuf_email_' ) === 0 ||
-		     strpos( $option_name, '_css' ) !== false ||
-		     strpos( $option_name, '_template' ) !== false ) {
+		if ( 0 === strpos( $option_name, 'nbuf_email_' )
+			|| false !== strpos( $option_name, '_css' )
+			|| false !== strpos( $option_name, '_template' )
+		) {
 			return 'templates';
 		}
 
 		/* Restriction settings */
-		if ( strpos( $option_name, 'nbuf_restrict' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_restrict' ) ) {
 			return 'restrictions';
 		}
 
 		/* Profile settings */
-		if ( strpos( $option_name, 'nbuf_profile_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_avatar_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_cover_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_profile_' )
+			|| 0 === strpos( $option_name, 'nbuf_avatar_' )
+			|| 0 === strpos( $option_name, 'nbuf_cover_' )
+		) {
 			return 'profiles';
 		}
 
 		/* Integration settings */
-		if ( strpos( $option_name, 'nbuf_woocommerce_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_integration_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_woocommerce_' )
+			|| 0 === strpos( $option_name, 'nbuf_integration_' )
+		) {
 			return 'integration';
 		}
 
 		/* Tools settings */
-		if ( strpos( $option_name, 'nbuf_import_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_export_' ) === 0 ||
-		     strpos( $option_name, 'nbuf_migration_' ) === 0 ) {
+		if ( 0 === strpos( $option_name, 'nbuf_import_' )
+			|| 0 === strpos( $option_name, 'nbuf_export_' )
+			|| 0 === strpos( $option_name, 'nbuf_migration_' )
+		) {
 			return 'tools';
 		}
 
@@ -292,14 +313,14 @@ class NBUF_Config_Exporter {
 	/**
 	 * Get plugin version
 	 *
-	 * @return string Plugin version
+	 * @return string Plugin version.
 	 */
 	private function get_plugin_version() {
 		if ( ! function_exists( 'get_plugin_data' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		$plugin_file = dirname( dirname( __FILE__ ) ) . '/nobloat-user-foundry.php';
+		$plugin_file = dirname( __DIR__ ) . '/nobloat-user-foundry.php';
 		$plugin_data = get_plugin_data( $plugin_file );
 
 		return $plugin_data['Version'] ?? '1.3.0';
@@ -308,13 +329,14 @@ class NBUF_Config_Exporter {
 	/**
 	 * Get export statistics
 	 *
-	 * @return array Statistics
+	 * @return array Statistics.
 	 */
 	public function get_export_stats() {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_options';
 
+     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name from $wpdb->prefix, stats query.
 		$total_settings = $wpdb->get_var( "SELECT COUNT(*) FROM $table_name" );
 
 		return array(

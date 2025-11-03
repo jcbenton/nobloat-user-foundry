@@ -2,107 +2,216 @@
    NoBloat User Foundry - Account Page Styling
    ----------------------------------------------------------
    Custom styling for user account management page.
+
+   Class Strategy: Dual-class system for maximum flexibility
+   - Shared classes (.nbuf-button) for consistent base styles
+   - Page-specific classes (.nbuf-account-button) for customization
+   ========================================================== */
+
+/* ==========================================================
+   CSS CUSTOM PROPERTIES
+   ----------------------------------------------------------
+   Centralized design tokens for easy customization and
+   theme consistency. Users can override these in admin settings.
+   ========================================================== */
+
+:root {
+    /* Brand Colors */
+    --nbuf-primary: #0073aa;
+    --nbuf-primary-hover: #005177;
+    --nbuf-primary-focus: rgba(0, 115, 170, 0.2);
+
+    /* Status Colors */
+    --nbuf-success: #155724;
+    --nbuf-success-bg: #d4edda;
+    --nbuf-success-border: #c3e6cb;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
+    --nbuf-info: #0c5460;
+    --nbuf-info-bg: #d1ecf1;
+    --nbuf-info-border: #bee5eb;
+    --nbuf-warning: #856404;
+    --nbuf-warning-bg: #fff3cd;
+    --nbuf-warning-border: #ffeaa7;
+    --nbuf-expired: #721c24;
+    --nbuf-expired-bg: #f8d7da;
+
+    /* Neutral Colors */
+    --nbuf-text-primary: #333;
+    --nbuf-text-secondary: #555;
+    --nbuf-text-tertiary: #666;
+    --nbuf-border: #ddd;
+    --nbuf-border-light: #e0e0e0;
+    --nbuf-background: #f9f9f9;
+    --nbuf-surface: #fff;
+
+    /* Spacing Scale (rem-based for accessibility) */
+    --nbuf-space-xs: 0.25rem;   /* 4px */
+    --nbuf-space-sm: 0.313rem;  /* 5px */
+    --nbuf-space-md: 0.625rem;  /* 10px */
+    --nbuf-space-lg: 0.75rem;   /* 12px */
+    --nbuf-space-xl: 0.938rem;  /* 15px */
+    --nbuf-space-2xl: 1.25rem;  /* 20px */
+    --nbuf-space-3xl: 1.563rem; /* 25px */
+    --nbuf-space-4xl: 1.875rem; /* 30px */
+    --nbuf-space-5xl: 2.5rem;   /* 40px */
+
+    /* Typography */
+    --nbuf-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --nbuf-font-size-xs: 0.75rem;    /* 12px */
+    --nbuf-font-size-sm: 0.813rem;   /* 13px */
+    --nbuf-font-size-base: 0.875rem; /* 14px */
+    --nbuf-font-size-lg: 1.125rem;   /* 18px */
+    --nbuf-font-size-xl: 1.25rem;    /* 20px */
+    --nbuf-font-size-2xl: 1.375rem;  /* 22px */
+    --nbuf-font-size-3xl: 1.75rem;   /* 28px */
+
+    /* Border Radius */
+    --nbuf-radius-sm: 4px;
+    --nbuf-radius-md: 6px;
+
+    /* Shadows */
+    --nbuf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --nbuf-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --nbuf-shadow-focus: 0 0 0 3px var(--nbuf-primary-focus);
+
+    /* Transitions */
+    --nbuf-transition-fast: 150ms ease-in-out;
+    --nbuf-transition-base: 200ms ease-in-out;
+}
+
+/* ==========================================================
+   PAGE LAYOUT
    ========================================================== */
 
 .nbuf-account-wrapper {
     max-width: 800px;
-    margin: 40px auto;
-    padding: 20px;
+    margin: var(--nbuf-space-5xl) auto;
+    padding: var(--nbuf-space-2xl);
 }
 
 .nbuf-account-header {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: var(--nbuf-space-4xl);
+    padding-bottom: var(--nbuf-space-2xl);
+    border-bottom: 2px solid var(--nbuf-border-light);
     position: relative;
 }
 
 .nbuf-account-title {
-    margin: 0 0 10px 0;
-    font-size: 28px;
-    color: #333;
+    margin: 0 0 var(--nbuf-space-md) 0;
+    font-size: var(--nbuf-font-size-3xl);
+    color: var(--nbuf-text-primary);
+    font-weight: 600;
 }
 
 .nbuf-logout-link {
     position: absolute;
     top: 0;
     right: 0;
-    color: #0073aa;
+    color: var(--nbuf-primary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--nbuf-font-size-base);
+    transition: text-decoration-color var(--nbuf-transition-base);
 }
 
 .nbuf-logout-link:hover {
     text-decoration: underline;
 }
 
+/* Enhanced keyboard focus for logout link */
+.nbuf-logout-link:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* ==========================================================
+   STATUS BADGES
+   ========================================================== */
+
 .nbuf-account-status-badges {
-    margin-top: 10px;
+    margin-top: var(--nbuf-space-md);
 }
 
 .nbuf-account-status {
     display: inline-block;
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-size: 13px;
+    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-sm);
     font-weight: 600;
-    margin-right: 10px;
+    margin-right: var(--nbuf-space-md);
 }
 
 .nbuf-status-verified {
-    background: #d4edda;
-    color: #155724;
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
 }
 
 .nbuf-status-unverified {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--nbuf-warning-bg);
+    color: var(--nbuf-warning);
+    border: 1px solid var(--nbuf-warning-border);
 }
 
 .nbuf-status-expired {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--nbuf-expired-bg);
+    color: var(--nbuf-expired);
+    border: 1px solid var(--nbuf-error-border);
 }
+
+/* ==========================================================
+   SECTIONS
+   ========================================================== */
 
 .nbuf-account-sections {
     display: grid;
-    gap: 25px;
+    gap: var(--nbuf-space-3xl);
 }
 
 .nbuf-account-section {
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 20px;
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border-light);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-2xl);
 }
 
 .nbuf-section-title {
-    margin: 0 0 15px 0;
-    font-size: 20px;
-    color: #333;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 10px;
+    margin: 0 0 var(--nbuf-space-xl) 0;
+    font-size: var(--nbuf-font-size-xl);
+    color: var(--nbuf-text-primary);
+    border-bottom: 1px solid var(--nbuf-border);
+    padding-bottom: var(--nbuf-space-md);
+    font-weight: 600;
 }
 
 .nbuf-info-grid {
     display: grid;
     grid-template-columns: 150px 1fr;
-    gap: 12px 20px;
+    gap: var(--nbuf-space-lg) var(--nbuf-space-2xl);
+    align-items: baseline;
 }
 
 .nbuf-info-label {
     font-weight: 600;
-    color: #555;
+    color: var(--nbuf-text-secondary);
+    font-size: var(--nbuf-font-size-base);
 }
 
 .nbuf-info-value {
-    color: #333;
+    color: var(--nbuf-text-primary);
+    font-size: var(--nbuf-font-size-base);
 }
+
+/* ==========================================================
+   FORM ELEMENTS
+   ========================================================== */
 
 .nbuf-account-form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--nbuf-space-xl);
 }
 
 .nbuf-form-group {
@@ -110,39 +219,61 @@
     flex-direction: column;
 }
 
-.nbuf-form-label {
+/* Shared form label base + page-specific override target */
+.nbuf-form-label,
+.nbuf-account-label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
-    color: #333;
-    font-size: 14px;
+    margin-bottom: var(--nbuf-space-sm);
+    color: var(--nbuf-text-primary);
+    font-size: var(--nbuf-font-size-base);
 }
 
-.nbuf-form-input {
+/* Shared form input base + page-specific override target */
+.nbuf-form-input,
+.nbuf-account-input {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: var(--nbuf-space-md);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-base);
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    /* Specific transitions for better performance */
+    transition: border-color var(--nbuf-transition-base),
+                box-shadow var(--nbuf-transition-base);
 }
 
-.nbuf-form-input:focus {
-    border-color: #0073aa;
-    box-shadow: 0 0 0 3px rgba(0,115,170,0.2);
+.nbuf-form-input:focus,
+.nbuf-account-input:focus {
+    border-color: var(--nbuf-primary);
+    box-shadow: var(--nbuf-shadow-focus);
     outline: none;
 }
 
+/* Ensure keyboard users see clear focus indication */
+.nbuf-form-input:focus-visible,
+.nbuf-account-input:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+}
+
+/* Explicit font inheritance for text-type inputs */
 .nbuf-form-input[type="text"],
 .nbuf-form-input[type="email"],
 .nbuf-form-input[type="tel"],
 .nbuf-form-input[type="url"],
-.nbuf-form-input[type="password"] {
+.nbuf-form-input[type="password"],
+.nbuf-account-input[type="text"],
+.nbuf-account-input[type="email"],
+.nbuf-account-input[type="tel"],
+.nbuf-account-input[type="url"],
+.nbuf-account-input[type="password"] {
     font-family: inherit;
 }
 
-textarea.nbuf-form-input {
+textarea.nbuf-form-input,
+textarea.nbuf-account-input {
     min-height: 80px;
     resize: vertical;
     font-family: inherit;
@@ -150,76 +281,130 @@ textarea.nbuf-form-input {
 
 .nbuf-form-help {
     display: block;
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
+    font-size: var(--nbuf-font-size-xs);
+    color: var(--nbuf-text-tertiary);
+    margin-top: var(--nbuf-space-xs);
+    line-height: 1.4;
 }
 
+/* ==========================================================
+   BUTTONS
+   ========================================================== */
+
+/* Shared button base styles */
 .nbuf-button {
-    padding: 10px 20px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-2xl);
     border: none;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-base);
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
+    font-family: inherit;
+    /* Specific transition properties for better performance */
+    transition: background-color var(--nbuf-transition-base),
+                transform var(--nbuf-transition-fast);
 }
 
+/* Shared primary button color */
 .nbuf-button-primary {
-    background: #0073aa;
-    color: #fff;
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
 }
 
 .nbuf-button-primary:hover {
-    background: #005177;
+    background: var(--nbuf-primary-hover);
 }
 
+/* Subtle press effect for tactile feedback */
+.nbuf-button-primary:active {
+    transform: translateY(1px);
+}
+
+/* Enhanced focus state for accessibility */
+.nbuf-button-primary:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    box-shadow: var(--nbuf-shadow-focus);
+}
+
+/* Page-specific button override target */
+.nbuf-account-button {
+    /* Override styles here for account button only */
+}
+
+/* ==========================================================
+   MESSAGES
+   ========================================================== */
+
+/* Shared message base */
 .nbuf-message {
-    padding: 12px 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    font-size: 14px;
+    padding: var(--nbuf-space-lg) var(--nbuf-space-xl);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-2xl);
+    font-size: var(--nbuf-font-size-base);
+    line-height: 1.5;
 }
 
+/* Shared message types */
 .nbuf-message-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
 }
 
 .nbuf-message-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--nbuf-error-bg);
+    color: var(--nbuf-error);
+    border: 1px solid var(--nbuf-error-border);
 }
 
 .nbuf-message-info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
+    background: var(--nbuf-info-bg);
+    color: var(--nbuf-info);
+    border: 1px solid var(--nbuf-info-border);
 }
 
-/* Responsive Design */
-@media (max-width: 600px) {
+/* Page-specific message override targets */
+.nbuf-account-message {
+    /* Override styles here for account messages only */
+}
+
+.nbuf-account-error {
+    /* Override styles here for account error messages only */
+}
+
+.nbuf-account-success {
+    /* Override styles here for account success messages only */
+}
+
+/* ==========================================================
+   RESPONSIVE DESIGN
+   ========================================================== */
+
+@media (max-width: 768px) {
     .nbuf-account-wrapper {
-        padding: 10px;
-        margin: 20px auto;
-    }
-
-    .nbuf-info-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-
-    .nbuf-info-label {
-        font-size: 13px;
+        padding: var(--nbuf-space-md);
+        margin: var(--nbuf-space-2xl) auto;
     }
 
     .nbuf-account-title {
-        font-size: 22px;
+        font-size: var(--nbuf-font-size-2xl);
+        padding-right: 80px; /* Space for logout link */
     }
 
     .nbuf-section-title {
-        font-size: 18px;
+        font-size: var(--nbuf-font-size-lg);
+    }
+}
+
+@media (max-width: 600px) {
+    .nbuf-info-grid {
+        grid-template-columns: 1fr;
+        gap: var(--nbuf-space-sm);
+    }
+
+    .nbuf-info-label {
+        font-size: var(--nbuf-font-size-sm);
+        margin-bottom: var(--nbuf-space-xs);
     }
 }

@@ -13,7 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * CSS management and optimization
+ *
+ * @since 1.0.0
+ */
 class NBUF_CSS_Manager {
+
 
 	/**
 	 * Minify CSS.
@@ -21,7 +27,7 @@ class NBUF_CSS_Manager {
 	 * Strips whitespace and comments from CSS.
 	 * No external library needed - pure PHP regex.
 	 *
-	 * @param string $css CSS content to minify.
+	 * @param  string $css CSS content to minify.
 	 * @return string Minified CSS.
 	 */
 	public static function minify( $css ) {
@@ -48,8 +54,8 @@ class NBUF_CSS_Manager {
 	 * Removes potentially dangerous CSS while preserving valid styles.
 	 * Blocks: javascript: URLs, @import, data URIs, expressions
 	 *
-	 * @param string $css Raw CSS input
-	 * @return string Sanitized CSS
+	 * @param  string $css Raw CSS input.
+	 * @return string Sanitized CSS.
 	 */
 	public static function sanitize_css( $css ) {
 		if ( empty( $css ) ) {
@@ -80,235 +86,245 @@ class NBUF_CSS_Manager {
 		return $css;
 	}
 
-    /* ==========================================================
-       SAVE CSS TO DISK
-       ----------------------------------------------------------
-       Writes CSS to both .css and .min.css files.
-       Updates or removes write failure token based on success.
+	/**
+	 * Save CSS to disk
+	 *
+	 * Writes CSS to both .css and .min.css files.
+	 * Updates or removes write failure token based on success.
+	 *
+	 * @param  string $css       CSS content to save.
+	 * @param  string $filename  Base filename (e.g., 'reset-page').
+	 * @param  string $token_key Option name for write failure token.
+	 * @return bool True if write successful, false otherwise.
+	 */
+	public static function save_css_to_disk( $css, $filename, $token_key = 'nbuf_css_write_failed' ) {
+		$ui_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
 
-       @param string $css      - CSS content to save
-       @param string $filename - Base filename (e.g., 'reset-page')
-       @param string $token_key - Option name for write failure token
-       @return bool - True if write successful, false otherwise
-       ========================================================== */
-    public static function save_css_to_disk($css, $filename, $token_key = 'nbuf_css_write_failed') {
-        $ui_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		/* Ensure directory exists */
+		if ( ! is_dir( $ui_dir ) ) {
+			if ( ! wp_mkdir_p( $ui_dir ) ) {
+				NBUF_Options::update( $token_key, 1, true, 'system' );
+				return false;
+			}
+		}
 
-        /* Ensure directory exists */
-        if (!is_dir($ui_dir)) {
-            if (!wp_mkdir_p($ui_dir)) {
-                NBUF_Options::update($token_key, 1, true, 'system');
-                error_log('NBUF CSS: Failed to create directory: ' . $ui_dir);
-                return false;
-            }
-        }
+		$live_path = $ui_dir . $filename . '-live.css';
+		$min_path  = $ui_dir . $filename . '-live.min.css';
 
-        $live_path = $ui_dir . $filename . '-live.css';
-        $min_path = $ui_dir . $filename . '-live.min.css';
+		/* Check if CSS actually changed (hash comparison) */
+		$new_hash = md5( $css );
+		$old_hash = '';
 
-        /* Check if CSS actually changed (hash comparison) */
-        $new_hash = md5($css);
-        $old_hash = '';
+		if ( file_exists( $live_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			$old_content = file_get_contents( $live_path );
+			$old_hash    = md5( $old_content );
+		}
 
-        if (file_exists($live_path)) {
-            $old_content = file_get_contents($live_path);
-            $old_hash = md5($old_content);
-        }
+		/* Skip write if CSS unchanged */
+		if ( $new_hash === $old_hash ) {
+			return true;
+		}
 
-        /* Skip write if CSS unchanged */
-        if ($new_hash === $old_hash) {
-            return true;
-        }
+		/*
+		 * CSS changed - write live file
+		 */
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing CSS to assets directory; WP_Filesystem not practical for dynamic CSS generation.
+		$wrote_css = file_put_contents( $live_path, $css );
 
-        /* CSS changed - write live file */
-        $wrote_css = file_put_contents($live_path, $css);
+		if ( false === $wrote_css ) {
+			/* Write failed - set token */
+			NBUF_Options::update( $token_key, 1, true, 'system' );
+			return false;
+		}
 
-        if ($wrote_css === false) {
-            /* Write failed - set token */
-            NBUF_Options::update($token_key, 1, true, 'system');
-            error_log('NBUF CSS: Failed to write file: ' . $live_path);
-            return false;
-        }
+		/* Minify and write minified version */
+		$minified = self::minify( $css );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing CSS to assets directory
+		$wrote_min = file_put_contents( $min_path, $minified );
 
-        /* Minify and write minified version */
-        $minified = self::minify($css);
-        $wrote_min = file_put_contents($min_path, $minified);
+		if ( false === $wrote_min ) {
+			/* Minified write failed - set token */
+			NBUF_Options::update( $token_key, 1, true, 'system' );
 
-        if ($wrote_min === false) {
-            /* Minified write failed - set token */
-            NBUF_Options::update($token_key, 1, true, 'system');
-            error_log('NBUF CSS: Failed to write minified file: ' . $min_path);
-            /* Delete the CSS file we just wrote to keep them in sync */
-            unlink($live_path);
-            return false;
-        }
+			/*
+			 * Delete the CSS file we just wrote to keep them in sync
+			 */
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup after failed CSS write; WP_Filesystem not practical here.
+			unlink( $live_path );
+			return false;
+		}
 
-        /* Both writes successful - clear token */
-        NBUF_Options::delete($token_key);
-        return true;
-    }
+		/* Both writes successful - clear token */
+		NBUF_Options::delete( $token_key );
+		return true;
+	}
 
-    /* ==========================================================
-       LOAD CSS
-       ----------------------------------------------------------
-       Loads CSS with token-based performance optimization.
-       Priority: -live.min.css → -live.css → default → DB fallback
+	/**
+	 * Load CSS
+	 *
+	 * Loads CSS with token-based performance optimization.
+	 * Priority: -live.min.css → -live.css → default → DB fallback.
+	 *
+	 * @param  string $filename  Base filename (e.g., 'reset-page').
+	 * @param  string $db_option Option name for DB fallback.
+	 * @param  string $token_key Option name for write failure token.
+	 * @return string CSS content.
+	 */
+	public static function load_css( $filename, $db_option, $token_key = 'nbuf_css_write_failed' ) {
+		/* Check token first - if write failed, skip disk and use DB */
+		if ( NBUF_Options::get( $token_key ) ) {
+			$css = NBUF_Options::get( $db_option );
+			if ( $css ) {
+				return $css;
+			}
+			/* DB empty too - fallback to default template */
+			return self::load_default_css( $filename );
+		}
 
-       @param string $filename    - Base filename (e.g., 'reset-page')
-       @param string $db_option   - Option name for DB fallback
-       @param string $token_key   - Option name for write failure token
-       @return string - CSS content
-       ========================================================== */
-    public static function load_css($filename, $db_option, $token_key = 'nbuf_css_write_failed') {
-        /* Check token first - if write failed, skip disk and use DB */
-        if (NBUF_Options::get($token_key)) {
-            $css = NBUF_Options::get($db_option);
-            if ($css) {
-                return $css;
-            }
-            /* DB empty too - fallback to default template */
-            return self::load_default_css($filename);
-        }
+		/* Token doesn't exist - check disk files */
+		$ui_dir        = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		$templates_dir = NBUF_TEMPLATES_DIR;
 
-        /* Token doesn't exist - check disk files */
-        $ui_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
-        $templates_dir = NBUF_TEMPLATES_DIR;
+		/* Priority 1: Minified live file */
+		$min_path = $ui_dir . $filename . '-live.min.css';
+		if ( file_exists( $min_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			return file_get_contents( $min_path );
+		}
 
-        /* Priority 1: Minified live file */
-        $min_path = $ui_dir . $filename . '-live.min.css';
-        if (file_exists($min_path)) {
-            return file_get_contents($min_path);
-        }
+		/* Priority 2: Live CSS file */
+		$live_path = $ui_dir . $filename . '-live.css';
+		if ( file_exists( $live_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			return file_get_contents( $live_path );
+		}
 
-        /* Priority 2: Live CSS file */
-        $live_path = $ui_dir . $filename . '-live.css';
-        if (file_exists($live_path)) {
-            return file_get_contents($live_path);
-        }
+		/* Priority 3: Default template from /templates/ */
+		$default_path = $templates_dir . $filename . '.css';
+		if ( file_exists( $default_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			return file_get_contents( $default_path );
+		}
 
-        /* Priority 3: Default template from /templates/ */
-        $default_path = $templates_dir . $filename . '.css';
-        if (file_exists($default_path)) {
-            return file_get_contents($default_path);
-        }
+		/* Priority 4: Database fallback */
+		$css = NBUF_Options::get( $db_option );
+		if ( $css ) {
+			return $css;
+		}
 
-        /* Priority 4: Database fallback */
-        $css = NBUF_Options::get($db_option);
-        if ($css) {
-            return $css;
-        }
+		/* Nothing found - return empty */
+		return '';
+	}
 
-        /* Nothing found - return empty */
-        return '';
-    }
+	/**
+	 * Load default CSS
+	 *
+	 * Loads CSS from /templates/ directory.
+	 *
+	 * @param  string $filename Base filename (e.g., 'reset-page').
+	 * @return string CSS content or empty string.
+	 */
+	public static function load_default_css( $filename ) {
+		$path = NBUF_TEMPLATES_DIR . $filename . '.css';
+		if ( file_exists( $path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			return file_get_contents( $path );
+		}
+		return '';
+	}
 
-    /* ==========================================================
-       LOAD DEFAULT CSS
-       ----------------------------------------------------------
-       Loads CSS from /templates/ directory.
+	/**
+	 * Enqueue CSS
+	 *
+	 * Enqueues CSS inline or as file based on token status.
+	 *
+	 * @param string $handle    Handle for wp_enqueue_style.
+	 * @param string $filename  Base filename (e.g., 'reset-page').
+	 * @param string $db_option Option name for DB fallback.
+	 * @param string $token_key Option name for write failure token.
+	 */
+	public static function enqueue_css( $handle, $filename, $db_option, $token_key = 'nbuf_css_write_failed' ) {
+		/* If token exists, load from DB and inline it */
+		if ( NBUF_Options::get( $token_key ) ) {
+			$css = NBUF_Options::get( $db_option );
+			if ( ! $css ) {
+				$css = self::load_default_css( $filename );
+			}
+			if ( $css ) {
+				wp_register_style( $handle, false, array(), md5( $css ) );
+				wp_enqueue_style( $handle );
+				wp_add_inline_style( $handle, $css );
+			}
+			return;
+		}
 
-       @param string $filename - Base filename (e.g., 'reset-page')
-       @return string - CSS content or empty string
-       ========================================================== */
-    public static function load_default_css($filename) {
-        $path = NBUF_TEMPLATES_DIR . $filename . '.css';
-        if (file_exists($path)) {
-            return file_get_contents($path);
-        }
-        return '';
-    }
+		/* No token - try to load from disk */
+		$ui_dir_url        = NBUF_PLUGIN_URL . 'assets/css/frontend/';
+		$templates_dir_url = NBUF_PLUGIN_URL . 'templates/';
+		$ui_dir            = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		$templates_dir     = NBUF_TEMPLATES_DIR;
 
-    /* ==========================================================
-       ENQUEUE CSS
-       ----------------------------------------------------------
-       Enqueues CSS inline or as file based on token status.
+		/* Check minified preference */
+		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
 
-       @param string $handle      - Handle for wp_enqueue_style
-       @param string $filename    - Base filename (e.g., 'reset-page')
-       @param string $db_option   - Option name for DB fallback
-       @param string $token_key   - Option name for write failure token
-       ========================================================== */
-    public static function enqueue_css($handle, $filename, $db_option, $token_key = 'nbuf_css_write_failed') {
-        /* If token exists, load from DB and inline it */
-        if (NBUF_Options::get($token_key)) {
-            $css = NBUF_Options::get($db_option);
-            if (!$css) {
-                $css = self::load_default_css($filename);
-            }
-            if ($css) {
-                wp_register_style($handle, false);
-                wp_enqueue_style($handle);
-                wp_add_inline_style($handle, $css);
-            }
-            return;
-        }
+		/* Check for minified live file (if minified enabled) */
+		if ( $use_minified ) {
+			$min_path = $ui_dir . $filename . '-live.min.css';
+			if ( file_exists( $min_path ) ) {
+				$version = filemtime( $min_path );
+				wp_enqueue_style( $handle, $ui_dir_url . $filename . '-live.min.css', array(), $version );
+				return;
+			}
+		}
 
-        /* No token - try to load from disk */
-        $ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
-        $templates_dir_url = NBUF_PLUGIN_URL . 'templates/';
-        $ui_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
-        $templates_dir = NBUF_TEMPLATES_DIR;
+		/* Check for live file */
+		$live_path = $ui_dir . $filename . '-live.css';
+		if ( file_exists( $live_path ) ) {
+			$version = filemtime( $live_path );
+			wp_enqueue_style( $handle, $ui_dir_url . $filename . '-live.css', array(), $version );
+			return;
+		}
 
-        /* Check minified preference */
-        $use_minified = NBUF_Options::get('nbuf_css_use_minified', true);
+		/* Check for default template */
+		$default_path = $templates_dir . $filename . '.css';
+		if ( file_exists( $default_path ) ) {
+			$version = filemtime( $default_path );
+			wp_enqueue_style( $handle, $templates_dir_url . $filename . '.css', array(), $version );
+			return;
+		}
 
-        /* Check for minified live file (if minified enabled) */
-        if ($use_minified) {
-            $min_path = $ui_dir . $filename . '-live.min.css';
-            if (file_exists($min_path)) {
-                $version = filemtime($min_path);
-                wp_enqueue_style($handle, $ui_dir_url . $filename . '-live.min.css', [], $version);
-                return;
-            }
-        }
+		/* Last resort - inline from DB */
+		$css = NBUF_Options::get( $db_option );
+		if ( $css ) {
+			wp_register_style( $handle, false, array(), md5( $css ) );
+			wp_enqueue_style( $handle );
+			wp_add_inline_style( $handle, $css );
+		}
+	}
 
-        /* Check for live file */
-        $live_path = $ui_dir . $filename . '-live.css';
-        if (file_exists($live_path)) {
-            $version = filemtime($live_path);
-            wp_enqueue_style($handle, $ui_dir_url . $filename . '-live.css', [], $version);
-            return;
-        }
+	/**
+	 * Get write failure status
+	 *
+	 * Checks if there's a write failure token set.
+	 * Used for displaying admin notices.
+	 *
+	 * @param  string $token_key Option name for write failure token.
+	 * @return bool True if write failures detected.
+	 */
+	public static function has_write_failure( $token_key = 'nbuf_css_write_failed' ) {
+		return (bool) NBUF_Options::get( $token_key );
+	}
 
-        /* Check for default template */
-        $default_path = $templates_dir . $filename . '.css';
-        if (file_exists($default_path)) {
-            $version = filemtime($default_path);
-            wp_enqueue_style($handle, $templates_dir_url . $filename . '.css', [], $version);
-            return;
-        }
-
-        /* Last resort - inline from DB */
-        $css = NBUF_Options::get($db_option);
-        if ($css) {
-            wp_register_style($handle, false);
-            wp_enqueue_style($handle);
-            wp_add_inline_style($handle, $css);
-        }
-    }
-
-    /* ==========================================================
-       GET WRITE FAILURE STATUS
-       ----------------------------------------------------------
-       Checks if there's a write failure token set.
-       Used for displaying admin notices.
-
-       @param string $token_key - Option name for write failure token
-       @return bool - True if write failures detected
-       ========================================================== */
-    public static function has_write_failure($token_key = 'nbuf_css_write_failed') {
-        return (bool) NBUF_Options::get($token_key);
-    }
-
-    /* ==========================================================
-       CLEAR WRITE FAILURE TOKEN
-       ----------------------------------------------------------
-       Manually clears the write failure token.
-       Useful for retry operations.
-
-       @param string $token_key - Option name for write failure token
-       ========================================================== */
-    public static function clear_write_failure_token($token_key = 'nbuf_css_write_failed') {
-        NBUF_Options::delete($token_key);
-    }
+	/**
+	 * Clear write failure token
+	 *
+	 * Manually clears the write failure token.
+	 * Useful for retry operations.
+	 *
+	 * @param string $token_key Option name for write failure token.
+	 */
+	public static function clear_write_failure_token( $token_key = 'nbuf_css_write_failed' ) {
+		NBUF_Options::delete( $token_key );
+	}
 }

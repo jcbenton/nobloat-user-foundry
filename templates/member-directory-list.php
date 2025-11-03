@@ -6,6 +6,7 @@
  * Can be overridden by theme: nbuf-templates/member-directory-list.php
  *
  * Available variables:
+ *
  * @var array  $members      Array of member objects
  * @var int    $total         Total member count
  * @var int    $per_page      Members per page
@@ -21,9 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( $_GET['member_search'] ) : '';
-$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( $_GET['member_role'] ) : '';
-$viewer_id = get_current_user_id();
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
+$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
+$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
+$viewer_id    = get_current_user_id();
 ?>
 
 <div class="nbuf-member-directory" data-view="list">
@@ -32,8 +35,11 @@ $viewer_id = get_current_user_id();
 		<div class="nbuf-directory-controls">
 			<form method="get" action="" class="nbuf-directory-form">
 				<?php /* Preserve existing query vars */ ?>
-				<?php foreach ( $_GET as $key => $value ) : ?>
-					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ) ) ) : ?>
+				<?php
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
+				foreach ( $_GET as $key => $value ) :
+					?>
+					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
 						<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
 					<?php endif; ?>
 				<?php endforeach; ?>
@@ -159,7 +165,7 @@ $viewer_id = get_current_user_id();
 					<?php
 					/* Show page numbers */
 					for ( $i = 1; $i <= $total_pages; $i++ ) :
-						if ( $i === $current_page ) :
+						if ( $current_page === $i ) :
 							?>
 							<span class="nbuf-page-number current"><?php echo (int) $i; ?></span>
 						<?php else : ?>

@@ -2,177 +2,341 @@
    NoBloat User Foundry - Registration Page Styling
    ----------------------------------------------------------
    Custom styling for user registration page.
+
+   Class Strategy: Dual-class system for maximum flexibility
+   - Shared classes (.nbuf-button) for consistent base styles
+   - Page-specific classes (.nbuf-registration-button) for customization
+   ========================================================== */
+
+/* ==========================================================
+   CSS CUSTOM PROPERTIES
+   ----------------------------------------------------------
+   Centralized design tokens for easy customization and
+   theme consistency. Users can override these in admin settings.
+   ========================================================== */
+
+:root {
+    /* Brand Colors */
+    --nbuf-primary: #0073aa;
+    --nbuf-primary-hover: #005177;
+    --nbuf-primary-focus: rgba(0, 115, 170, 0.2);
+
+    /* Status Colors */
+    --nbuf-success: #155724;
+    --nbuf-success-bg: #d4edda;
+    --nbuf-success-border: #c3e6cb;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
+    --nbuf-info: #0c5460;
+    --nbuf-info-bg: #d1ecf1;
+    --nbuf-info-border: #bee5eb;
+    --nbuf-required: #d63638;
+
+    /* Neutral Colors */
+    --nbuf-text-primary: #333;
+    --nbuf-text-secondary: #666;
+    --nbuf-border: #ddd;
+    --nbuf-background: #fff;
+    --nbuf-surface: #fff;
+
+    /* Spacing Scale (rem-based for accessibility) */
+    --nbuf-space-xs: 0.25rem;   /* 4px */
+    --nbuf-space-sm: 0.375rem;  /* 6px */
+    --nbuf-space-md: 0.625rem;  /* 10px */
+    --nbuf-space-lg: 0.875rem;  /* 14px */
+    --nbuf-space-xl: 1.25rem;   /* 20px */
+    --nbuf-space-2xl: 1.875rem; /* 30px */
+    --nbuf-space-3xl: 2.5rem;   /* 40px */
+
+    /* Typography */
+    --nbuf-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --nbuf-font-size-xs: 0.75rem;    /* 12px */
+    --nbuf-font-size-sm: 0.875rem;   /* 14px */
+    --nbuf-font-size-base: 1rem;     /* 16px */
+    --nbuf-font-size-lg: 1.125rem;   /* 18px */
+    --nbuf-font-size-xl: 1.375rem;   /* 22px */
+    --nbuf-font-size-2xl: 1.75rem;   /* 28px */
+
+    /* Border Radius */
+    --nbuf-radius-sm: 4px;
+    --nbuf-radius-md: 8px;
+
+    /* Shadows */
+    --nbuf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --nbuf-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --nbuf-shadow-focus: 0 0 0 3px var(--nbuf-primary-focus);
+
+    /* Transitions */
+    --nbuf-transition-fast: 150ms ease-in-out;
+    --nbuf-transition-base: 200ms ease-in-out;
+}
+
+/* ==========================================================
+   PAGE LAYOUT
    ========================================================== */
 
 .nbuf-registration-wrapper {
     max-width: 600px;
-    margin: 40px auto;
-    padding: 20px;
+    margin: var(--nbuf-space-3xl) auto;
+    padding: var(--nbuf-space-xl);
 }
 
 .nbuf-registration-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: var(--nbuf-space-2xl);
 }
 
 .nbuf-registration-title {
-    font-size: 28px;
-    margin: 0 0 10px 0;
-    color: #333;
+    font-size: var(--nbuf-font-size-2xl);
+    margin: 0 0 var(--nbuf-space-md) 0;
+    color: var(--nbuf-text-primary);
+    font-weight: 600;
 }
 
 .nbuf-registration-subtitle {
-    font-size: 14px;
-    color: #666;
+    font-size: var(--nbuf-font-size-sm);
+    color: var(--nbuf-text-secondary);
     margin: 0;
 }
 
 .nbuf-registration-form {
-    background: #fff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--nbuf-surface);
+    padding: var(--nbuf-space-2xl);
+    border-radius: var(--nbuf-radius-md);
+    box-shadow: var(--nbuf-shadow-md);
 }
+
+/* ==========================================================
+   FORM ELEMENTS
+   ========================================================== */
 
 .nbuf-form-group {
-    margin-bottom: 20px;
+    margin-bottom: var(--nbuf-space-xl);
 }
 
-.nbuf-form-label {
+/* Shared form label base + page-specific override target */
+.nbuf-form-label,
+.nbuf-registration-label {
     display: block;
     font-weight: 600;
-    margin-bottom: 6px;
-    color: #333;
-    font-size: 14px;
+    margin-bottom: var(--nbuf-space-sm);
+    color: var(--nbuf-text-primary);
+    font-size: var(--nbuf-font-size-sm);
 }
 
-.nbuf-form-label .required {
-    color: #d63638;
+.nbuf-form-label .required,
+.nbuf-registration-label .required {
+    color: var(--nbuf-required);
     margin-left: 2px;
 }
 
-.nbuf-form-input {
+/* Shared form input base + page-specific override target */
+.nbuf-form-input,
+.nbuf-registration-input {
     width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-md);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-sm);
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
     font-family: inherit;
+    /* Specific transitions for better performance */
+    transition: border-color var(--nbuf-transition-base),
+                box-shadow var(--nbuf-transition-base);
 }
 
-.nbuf-form-input:focus {
-    border-color: #0073aa;
-    box-shadow: 0 0 0 3px rgba(0,115,170,0.2);
+.nbuf-form-input:focus,
+.nbuf-registration-input:focus {
+    border-color: var(--nbuf-primary);
+    box-shadow: var(--nbuf-shadow-focus);
     outline: none;
 }
 
+/* Ensure keyboard users see clear focus indication */
+.nbuf-form-input:focus-visible,
+.nbuf-registration-input:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+}
+
+/* Explicit font inheritance for text-type inputs */
 .nbuf-form-input[type="text"],
 .nbuf-form-input[type="email"],
 .nbuf-form-input[type="tel"],
 .nbuf-form-input[type="url"],
-.nbuf-form-input[type="password"] {
+.nbuf-form-input[type="password"],
+.nbuf-registration-input[type="text"],
+.nbuf-registration-input[type="email"],
+.nbuf-registration-input[type="tel"],
+.nbuf-registration-input[type="url"],
+.nbuf-registration-input[type="password"] {
     font-family: inherit;
 }
 
-textarea.nbuf-form-input {
+textarea.nbuf-form-input,
+textarea.nbuf-registration-input {
     min-height: 100px;
     resize: vertical;
 }
 
 .nbuf-form-help {
     display: block;
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
+    font-size: var(--nbuf-font-size-xs);
+    color: var(--nbuf-text-secondary);
+    margin-top: var(--nbuf-space-xs);
+    line-height: 1.4;
 }
 
+/* Two-column layout for related fields */
+.nbuf-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--nbuf-space-lg);
+}
+
+/* ==========================================================
+   BUTTONS
+   ========================================================== */
+
+/* Shared button base styles */
 .nbuf-button {
     width: 100%;
-    padding: 12px 20px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-xl);
     border: none;
-    border-radius: 4px;
-    font-size: 16px;
+    border-radius: var(--nbuf-radius-sm);
+    font-size: var(--nbuf-font-size-base);
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
-    margin-top: 10px;
+    font-family: inherit;
+    margin-top: var(--nbuf-space-md);
+    /* Specific transition properties for better performance */
+    transition: background-color var(--nbuf-transition-base),
+                transform var(--nbuf-transition-fast);
 }
 
+/* Shared primary button color */
 .nbuf-button-primary {
-    background: #0073aa;
-    color: #fff;
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
 }
 
 .nbuf-button-primary:hover {
-    background: #005177;
+    background: var(--nbuf-primary-hover);
 }
 
-.nbuf-registration-message {
-    padding: 12px 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    font-size: 14px;
+/* Subtle press effect for tactile feedback */
+.nbuf-button-primary:active {
+    transform: translateY(1px);
 }
 
+/* Enhanced focus state for accessibility */
+.nbuf-button-primary:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    box-shadow: var(--nbuf-shadow-focus);
+}
+
+/* Page-specific button override target */
+.nbuf-registration-button {
+    /* Override styles here for registration button only */
+}
+
+/* ==========================================================
+   MESSAGES
+   ========================================================== */
+
+/* Shared message base */
+.nbuf-message {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-xl);
+    font-size: var(--nbuf-font-size-sm);
+    line-height: 1.5;
+}
+
+/* Shared message types */
 .nbuf-message-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
 }
 
 .nbuf-message-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--nbuf-error-bg);
+    color: var(--nbuf-error);
+    border: 1px solid var(--nbuf-error-border);
 }
 
 .nbuf-message-info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
+    background: var(--nbuf-info-bg);
+    color: var(--nbuf-info);
+    border: 1px solid var(--nbuf-info-border);
 }
+
+/* Page-specific message override targets */
+.nbuf-registration-message {
+    /* Override styles here for registration messages only */
+}
+
+.nbuf-registration-error {
+    /* Override styles here for registration error messages only */
+}
+
+.nbuf-registration-success {
+    /* Override styles here for registration success messages only */
+}
+
+/* ==========================================================
+   FOOTER
+   ========================================================== */
 
 .nbuf-registration-footer {
     text-align: center;
-    margin-top: 20px;
-    font-size: 14px;
-    color: #666;
+    margin-top: var(--nbuf-space-xl);
+    font-size: var(--nbuf-font-size-sm);
+    color: var(--nbuf-text-secondary);
 }
 
 .nbuf-registration-footer a {
-    color: #0073aa;
+    color: var(--nbuf-primary);
     text-decoration: none;
+    /* Smooth underline transition */
+    transition: text-decoration-color var(--nbuf-transition-base);
 }
 
 .nbuf-registration-footer a:hover {
     text-decoration: underline;
 }
 
-.nbuf-form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+/* Enhanced keyboard focus for links */
+.nbuf-registration-footer a:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
-/* Responsive Design */
+/* ==========================================================
+   RESPONSIVE DESIGN
+   ========================================================== */
+
 @media (max-width: 600px) {
     .nbuf-registration-wrapper {
-        padding: 10px;
-        margin: 20px auto;
+        padding: var(--nbuf-space-md);
+        margin: var(--nbuf-space-xl) auto;
     }
 
     .nbuf-registration-form {
-        padding: 20px;
+        padding: var(--nbuf-space-xl);
     }
 
     .nbuf-registration-title {
-        font-size: 22px;
+        font-size: var(--nbuf-font-size-xl);
     }
 
+    /* Stack form rows on mobile */
     .nbuf-form-row {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: var(--nbuf-space-xl);
     }
 }

@@ -15,7 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class NBUF_Restrictions
+ *
+ * Manages content, menu, widget, and taxonomy restrictions.
+ */
 class NBUF_Restrictions {
+
 
 	/**
 	 * Initialize restrictions system
@@ -67,7 +73,7 @@ class NBUF_Restrictions {
 
 		/* Create menu restrictions table */
 		$menu_table = $wpdb->prefix . 'nbuf_menu_restrictions';
-		$menu_sql = "CREATE TABLE IF NOT EXISTS `{$menu_table}` (
+		$menu_sql   = "CREATE TABLE IF NOT EXISTS `{$menu_table}` (
 			menu_item_id BIGINT(20) UNSIGNED NOT NULL,
 			visibility VARCHAR(20) NOT NULL DEFAULT 'everyone',
 			allowed_roles TEXT,
@@ -79,7 +85,7 @@ class NBUF_Restrictions {
 
 		/* Create content restrictions table */
 		$content_table = $wpdb->prefix . 'nbuf_content_restrictions';
-		$content_sql = "CREATE TABLE IF NOT EXISTS `{$content_table}` (
+		$content_sql   = "CREATE TABLE IF NOT EXISTS `{$content_table}` (
 			content_id BIGINT(20) UNSIGNED NOT NULL,
 			content_type VARCHAR(20) NOT NULL DEFAULT 'post',
 			visibility VARCHAR(20) NOT NULL DEFAULT 'everyone',
@@ -96,7 +102,7 @@ class NBUF_Restrictions {
 		) {$charset_collate};";
 
 		/* Execute table creation */
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $menu_sql );
 		dbDelta( $content_sql );
 	}
@@ -104,10 +110,10 @@ class NBUF_Restrictions {
 	/**
 	 * Check if user can access content
 	 *
-	 * @param int    $content_id Content ID (post/page ID)
-	 * @param string $content_type Content type (post, page, etc.)
-	 * @param int    $user_id Optional user ID (defaults to current user)
-	 * @return bool True if user has access, false otherwise
+	 * @param  int    $content_id   Content ID (post/page ID).
+	 * @param  string $content_type Content type (post, page, etc.).
+	 * @param  int    $user_id      Optional user ID (defaults to current user).
+	 * @return bool True if user has access, false otherwise.
 	 */
 	public static function can_access_content( $content_id, $content_type = 'post', $user_id = null ) {
 		/* Get restriction */
@@ -129,18 +135,20 @@ class NBUF_Restrictions {
 	/**
 	 * Get content restriction details
 	 *
-	 * @param int    $content_id Content ID
-	 * @param string $content_type Content type
-	 * @return array|null Restriction data or null if no restrictions
+	 * @param  int    $content_id   Content ID.
+	 * @param  string $content_type Content type.
+	 * @return array|null Restriction data or null if no restrictions.
 	 */
 	public static function get_content_restriction( $content_id, $content_type = 'post' ) {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 		$restriction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE content_id = %d AND content_type = %s",
+				'SELECT * FROM %i WHERE content_id = %d AND content_type = %s',
+				$table,
 				$content_id,
 				$content_type
 			),
@@ -168,17 +176,19 @@ class NBUF_Restrictions {
 	/**
 	 * Get menu item restriction
 	 *
-	 * @param int $menu_item_id Menu item ID
-	 * @return array|null Restriction data or null if no restrictions
+	 * @param  int $menu_item_id Menu item ID.
+	 * @return array|null Restriction data or null if no restrictions.
 	 */
 	public static function get_menu_restriction( $menu_item_id ) {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
 		$restriction = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE menu_item_id = %d",
+				'SELECT * FROM %i WHERE menu_item_id = %d',
+				$table,
 				$menu_item_id
 			),
 			ARRAY_A
@@ -208,10 +218,12 @@ class NBUF_Restrictions {
 	public static function delete_all_data() {
 		global $wpdb;
 
-		$menu_table = $wpdb->prefix . 'nbuf_menu_restrictions';
+		$menu_table    = $wpdb->prefix . 'nbuf_menu_restrictions';
 		$content_table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		$wpdb->query( "DROP TABLE IF EXISTS {$menu_table}" );
-		$wpdb->query( "DROP TABLE IF EXISTS {$content_table}" );
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall operation.
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $menu_table ) );
+     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall operation.
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $content_table ) );
 	}
 }

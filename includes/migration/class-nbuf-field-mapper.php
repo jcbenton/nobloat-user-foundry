@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Field_Mapper {
 
+
 	/**
 	 * Field mappings (source_field => target_field)
 	 *
@@ -100,7 +101,7 @@ class NBUF_Field_Mapper {
 	/**
 	 * Get target field for source field
 	 *
-	 * @param string $source_field Source field name.
+	 * @param  string $source_field Source field name.
 	 * @return string|null Target field name or null if not mapped
 	 */
 	public function get_target_field( $source_field ) {
@@ -112,8 +113,8 @@ class NBUF_Field_Mapper {
 	 *
 	 * Applies any transformations and returns the mapped value.
 	 *
-	 * @param string $source_field Source field name.
-	 * @param mixed  $source_value Source field value.
+	 * @param  string $source_field Source field name.
+	 * @param  mixed  $source_value Source field value.
 	 * @return array Array with 'target' and 'value' keys, or null if not mapped
 	 */
 	public function map_field( $source_field, $source_value ) {
@@ -122,9 +123,9 @@ class NBUF_Field_Mapper {
 			return null;
 		}
 
-		$mapping = $this->mappings[ $source_field ];
+		$mapping      = $this->mappings[ $source_field ];
 		$target_field = $mapping['target'];
-		$value = $source_value;
+		$value        = $source_value;
 
 		/* Apply transformation if specified */
 		if ( ! empty( $mapping['transform'] ) ) {
@@ -140,8 +141,8 @@ class NBUF_Field_Mapper {
 	/**
 	 * Apply transformation to value
 	 *
-	 * @param string $transform_name Transformation name/callback.
-	 * @param mixed  $value          Value to transform.
+	 * @param  string $transform_name Transformation name/callback.
+	 * @param  mixed  $value          Value to transform.
 	 * @return mixed Transformed value
 	 */
 	private function apply_transformation( $transform_name, $value ) {
@@ -180,7 +181,7 @@ class NBUF_Field_Mapper {
 	 *
 	 * Returns list of source fields that don't have mappings.
 	 *
-	 * @param array $source_fields All source field names.
+	 * @param  array $source_fields All source field names.
 	 * @return array Unmapped field names
 	 */
 	public function get_unmapped_fields( $source_fields ) {
@@ -200,12 +201,11 @@ class NBUF_Field_Mapper {
 	 *
 	 * Uses fuzzy matching to suggest the best target field.
 	 *
-	 * @param string $source_field Source field name.
-	 * @param mixed  $sample_value Optional sample value for type detection.
+	 * @param  string $source_field Source field name.
 	 * @return array Suggested mappings with confidence scores
 	 */
-	public function suggest_mapping( $source_field, $sample_value = null ) {
-		$suggestions = array();
+	public function suggest_mapping( $source_field ) {
+		$suggestions      = array();
 		$available_fields = $this->get_available_target_fields();
 
 		/* Normalize source field name for comparison */
@@ -222,12 +222,12 @@ class NBUF_Field_Mapper {
 				$similarity = 100;
 			} else {
 				/* Partial match using levenshtein distance */
-				$distance = levenshtein( $source_normalized, $target_normalized );
-				$max_len = max( strlen( $source_normalized ), strlen( $target_normalized ) );
+				$distance   = levenshtein( $source_normalized, $target_normalized );
+				$max_len    = max( strlen( $source_normalized ), strlen( $target_normalized ) );
 				$similarity = (int) ( ( 1 - ( $distance / $max_len ) ) * 100 );
 
 				/* Boost similarity if source contains target or vice versa */
-				if ( strpos( $source_normalized, $target_normalized ) !== false || strpos( $target_normalized, $source_normalized ) !== false ) {
+				if ( false !== strpos( $source_normalized, $target_normalized ) || false !== strpos( $target_normalized, $source_normalized ) ) {
 					$similarity += 20;
 				}
 			}
@@ -256,7 +256,7 @@ class NBUF_Field_Mapper {
 	/**
 	 * Normalize field name for comparison
 	 *
-	 * @param string $field_name Field name.
+	 * @param  string $field_name Field name.
 	 * @return string Normalized name
 	 */
 	private function normalize_field_name( $field_name ) {
@@ -282,7 +282,7 @@ class NBUF_Field_Mapper {
 	 */
 	private function get_available_target_fields() {
 		$registry = NBUF_Profile_Data::get_field_registry();
-		$fields = array();
+		$fields   = array();
 
 		foreach ( $registry as $category ) {
 			$fields = array_merge( $fields, $category['fields'] );
@@ -296,8 +296,8 @@ class NBUF_Field_Mapper {
 	 *
 	 * Saves current mappings as a reusable preset.
 	 *
-	 * @param string $preset_name Preset name.
-	 * @param string $plugin_slug Source plugin slug.
+	 * @param  string $preset_name Preset name.
+	 * @param  string $plugin_slug Source plugin slug.
 	 * @return bool Success
 	 */
 	public function save_mapping_preset( $preset_name, $plugin_slug ) {
@@ -315,8 +315,8 @@ class NBUF_Field_Mapper {
 	/**
 	 * Load mapping preset
 	 *
-	 * @param string $preset_name Preset name.
-	 * @param string $plugin_slug Source plugin slug.
+	 * @param  string $preset_name Preset name.
+	 * @param  string $plugin_slug Source plugin slug.
 	 * @return bool Success
 	 */
 	public function load_mapping_preset( $preset_name, $plugin_slug ) {
@@ -333,7 +333,7 @@ class NBUF_Field_Mapper {
 	/**
 	 * Get saved presets for plugin
 	 *
-	 * @param string $plugin_slug Source plugin slug.
+	 * @param  string $plugin_slug Source plugin slug.
 	 * @return array Saved presets
 	 */
 	public function get_saved_presets( $plugin_slug ) {

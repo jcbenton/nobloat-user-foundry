@@ -58,9 +58,14 @@ class NBUF_Config_Importer {
      // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File validation performed below.
 		$file = $_FILES['config_file'];
 
-		/* Validate file type */
-		if ( ! preg_match( '/\.json$/i', $file['name'] ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid file type. Please upload a JSON file.' ) );
+		/* SECURITY: Validate file type using WordPress core function to prevent spoofing */
+		$filetype      = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'] );
+		$allowed_exts  = array( 'json' );
+		$allowed_types = array( 'application/json', 'text/plain' );
+
+		if ( ! in_array( $filetype['ext'], $allowed_exts, true ) ||
+			! in_array( $filetype['type'], $allowed_types, true ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid file type. Only JSON files are allowed.' ) );
 		}
 
 		/* Validate file size (5MB max) */

@@ -104,14 +104,12 @@ class NBUF_Registration {
 		 * Without this, attackers could measure response time to determine if email exists.
 		 */
 		if ( ! $email_exists ) {
-			static $dummy_hash = null;
-			if ( null === $dummy_hash ) {
-				$dummy_hash = wp_hash_password( 'timing_protection_' . wp_salt() );
-			}
-			/* Execute password check to consume similar time as real registration path */
-			if ( ! empty( $data['password'] ) ) {
-				wp_check_password( $data['password'], $dummy_hash );
-			}
+			/* SECURITY: Generate fresh dummy hash to match timing of real registrations */
+			$dummy_hash = wp_hash_password( 'timing_protection_' . wp_rand() . microtime() );
+
+			/* Always execute password check regardless of password presence */
+			$check_password = ! empty( $data['password'] ) ? $data['password'] : wp_generate_password();
+			wp_check_password( $check_password, $dummy_hash );
 		}
 
 		if ( $email_exists ) {

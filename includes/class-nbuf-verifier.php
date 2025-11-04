@@ -78,7 +78,7 @@ class NBUF_Verifier {
 		$table = $wpdb->prefix . NBUF_DB_TABLE;
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$entry = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE token = %s', $table, $token )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE token = %s FOR UPDATE', $table, $token )
 		);
     // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 

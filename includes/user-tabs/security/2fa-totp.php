@@ -52,6 +52,10 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 				<p class="description">
 					<?php esc_html_e( 'Control TOTP availability. When set to "User Configurable", users can enable authenticator apps (Google Authenticator, Authy, etc.) in their account settings.', 'nobloat-user-foundry' ); ?>
 				</p>
+				<p class="description" style="color: #d63638; font-weight: 500;">
+					<strong><?php esc_html_e( 'Security Notice:', 'nobloat-user-foundry' ); ?></strong>
+					<?php esc_html_e( 'HTTPS is required for authenticator-based two-factor authentication. TOTP secrets must be transmitted over a secure connection to prevent interception.', 'nobloat-user-foundry' ); ?>
+				</p>
 			</td>
 		</tr>
 		<tr>

@@ -169,15 +169,21 @@ class NBUF_Bulk_Import {
 		$first_char      = substr( $sanitized, 0, 1 );
 
 		if ( in_array( $first_char, $dangerous_chars, true ) ) {
-			return new WP_Error(
-				'csv_injection',
-				sprintf(
-					/* translators: 1: line number, 2: field name */
-					__( 'Line %1$d: Field "%2$s" starts with forbidden character (CSV injection prevention)', 'nobloat-user-foundry' ),
-					$line_number,
-					$field_name
-				)
-			);
+			/* SECURITY: Prefix with single quote to neutralize formula execution */
+			$sanitized = "'" . $sanitized;
+
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'csv_injection_prevented',
+					'warning',
+					'CSV field prefixed to prevent injection',
+					array(
+						'field'    => $field_name,
+						'line'     => $line_number,
+						'original' => $value,
+					)
+				);
+			}
 		}
 
 		/*

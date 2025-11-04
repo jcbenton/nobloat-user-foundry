@@ -184,6 +184,19 @@ class NBUF_2FA {
 			);
 		}
 
+		global $wpdb;
+
+		/* SECURITY: Atomic lock using MySQL GET_LOCK() to prevent race conditions */
+		$lock_name = 'nbuf_2fa_' . $user_id;
+		$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock_name ) );
+
+		if ( ! $locked ) {
+			return new WP_Error(
+				'nbuf_2fa_rate_limited',
+				__( 'Please wait before requesting another verification code.', 'nobloat-user-foundry' )
+			);
+		}
+
 		/*
 		* SECURITY: Atomic rate limiting check using add_transient()
 		*
@@ -193,6 +206,8 @@ class NBUF_2FA {
 		*/
 		$rate_limit_key = 'nbuf_2fa_email_rate_limit_' . $user_id;
 		if ( ! add_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN ) ) {
+			/* Release lock before returning */
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 			/* Transient already exists - user is rate limited */
 			return new WP_Error(
 				'nbuf_2fa_rate_limited',
@@ -238,7 +253,8 @@ class NBUF_2FA {
 			);
 		}
 
-		/* Rate limit already set atomically at beginning with add_transient() */
+		/* Release lock after successful generation */
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 
 		/* Send email with plain text code (user needs to read it) */
 		$subject = sprintf(
@@ -567,8 +583,10 @@ If you did not request this code, please ignore this email.
 
 			if ( $expires > time() ) {
 				/* Rotate token for enhanced security (prevents long-term token theft). */
-				$new_token   = bin2hex( random_bytes( 32 ) );
-				$new_expires = time() + ( $expires - time() ); // Maintain same duration.
+				$new_token = bin2hex( random_bytes( 32 ) );
+				/* SECURITY: Calculate remaining time from old token and apply to new one */
+				$remaining_time = max( 0, $expires - time() );
+				$new_expires    = time() + $remaining_time;
 
 				/* Remove old token and add new one */
 				NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
@@ -743,6 +761,14 @@ If you did not request this code, please ignore this email.
 
 		if ( ! in_array( $method, $valid_methods, true ) ) {
 			return new WP_Error( '2fa_invalid_method', __( 'Invalid 2FA method.', 'nobloat-user-foundry' ) );
+		}
+
+		/* SECURITY: TOTP secrets must only be transmitted over HTTPS to prevent MITM attacks */
+		if ( ( 'totp' === $method || 'both' === $method ) && ! is_ssl() ) {
+			return new WP_Error(
+				'2fa_https_required',
+				__( 'Two-Factor Authentication (Authenticator) requires HTTPS to be enabled on your site for secure transmission of authentication secrets.', 'nobloat-user-foundry' )
+			);
 		}
 
 		/* If TOTP is included, secret is required */

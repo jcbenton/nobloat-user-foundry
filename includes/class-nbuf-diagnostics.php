@@ -120,8 +120,8 @@ class NBUF_Diagnostics {
 		$report[]          = '-------------------------------------------';
 		$report[]          = 'ZERO BLOAT VERIFICATION';
 		$report[]          = '-------------------------------------------';
-		$wp_options_bloat  = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'nbuf_%'" );
-		$wp_usermeta_bloat = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE meta_key LIKE 'nbuf_%'" );
+		$wp_options_bloat  = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s', $wpdb->options, 'nbuf_%' ) );
+		$wp_usermeta_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
 		$custom_options    = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['options'] ) );
 
 		$report[] = 'wp_options bloat: ' . ( 0 === $wp_options_bloat ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_options_bloat . ' entries found (WARNING)' );
@@ -133,7 +133,7 @@ class NBUF_Diagnostics {
 		$report[]              = '-------------------------------------------';
 		$report[]              = 'USER STATISTICS';
 		$report[]              = '-------------------------------------------';
-		$total_users           = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
+		$total_users           = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $wpdb->users ) );
 		$verified_users        = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 1', $tables['user_data'] ) );
 		$unverified_users      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 0', $tables['user_data'] ) );
 		$users_with_expiration = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL', $tables['user_data'] ) );

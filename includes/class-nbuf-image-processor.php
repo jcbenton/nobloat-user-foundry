@@ -786,6 +786,14 @@ class NBUF_Image_Processor {
 		$nobloat_dir = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/';
 		$user_dir    = $nobloat_dir . absint( $user_id ) . '/';
 
+		/* SECURITY: Verify path is within expected directory (prevent traversal) */
+		$real_nobloat = realpath( $nobloat_dir );
+		$real_user    = realpath( dirname( $user_dir ) );  // Check parent since user_dir may not exist yet.
+
+		if ( false !== $real_user && false !== $real_nobloat && 0 !== strpos( $real_user, $real_nobloat ) ) {
+			return new WP_Error( 'path_traversal', __( 'Invalid upload directory path.', 'nobloat-user-foundry' ) );
+		}
+
 		/*
 		 * SECURITY: Create directories with restrictive permissions.
 		 * 0750 = owner + group only, no world access.

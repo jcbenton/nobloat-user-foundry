@@ -108,8 +108,8 @@ class NBUF_User_Notes {
 				'user_id'      => (int) $user_id,
 				'note_content' => sanitize_textarea_field( $note_content ),
 				'created_by'   => (int) $created_by,
-				'created_at'   => current_time( 'mysql' ),
-				'updated_at'   => current_time( 'mysql' ),
+				'created_at'   => current_time( 'mysql', true ),
+				'updated_at'   => current_time( 'mysql', true ),
 			),
 			array( '%d', '%s', '%d', '%s', '%s' )
 		);
@@ -156,7 +156,7 @@ class NBUF_User_Notes {
 			$table_name,
 			array(
 				'note_content' => sanitize_textarea_field( $note_content ),
-				'updated_at'   => current_time( 'mysql' ),
+				'updated_at'   => current_time( 'mysql', true ),
 			),
 			array( 'id' => (int) $note_id ),
 			array( '%s', '%s' ),

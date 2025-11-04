@@ -344,7 +344,7 @@ class NBUF_Change_Notifications {
 		$message  = sprintf( "Profile changes detected for user: %s (%s)\n\n", $user->display_name, $user->user_login );
 		$message .= sprintf( "User ID: %d\n", $user->ID );
 		$message .= sprintf( "Email: %s\n", $user->user_email );
-		$message .= sprintf( "Date: %s\n\n", current_time( 'mysql' ) );
+		$message .= sprintf( "Date: %s\n\n", current_time( 'mysql', true ) );
 		$message .= "Changes:\n";
 		$message .= str_repeat( '-', 50 ) . "\n\n";
 
@@ -502,7 +502,7 @@ class NBUF_Change_Notifications {
 	 */
 	private function build_digest_email( $pending, $frequency ) {
 		$message  = sprintf( "Profile Changes Digest - %s\n", ucfirst( $frequency ) );
-		$message .= sprintf( "Generated: %s\n\n", current_time( 'mysql' ) );
+		$message .= sprintf( "Generated: %s\n\n", current_time( 'mysql', true ) );
 		$message .= str_repeat( '=', 70 ) . "\n\n";
 
 		$total_changes = 0;

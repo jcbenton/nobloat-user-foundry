@@ -101,7 +101,7 @@ if ( in_array( 'usermeta', $cleanup, true ) ) {
  * GDPR: Delete all user photos (if requested)
  *
  * Checks nbuf_gdpr_delete_on_uninstall setting. If enabled, permanently
- * deletes the entire /uploads/nobloat/ directory and all user photos.
+ * deletes the entire /uploads/nobloat/ directory (including /nobloat/users/) and all user photos.
  * This action cannot be undone. Disabled by default for safety.
  */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -187,16 +187,8 @@ foreach ( $cron_hooks as $hook ) {
 	}
 }
 
-/**
- * Remove migration flag from wp_options
- *
- * The nbuf_options_migrated flag is kept in wp_options as
- * a marker. Remove it during uninstall.
- */
-delete_option( 'nbuf_options_migrated' );
-
 /*
- * NOTE: All other plugin options (settings, templates, CSS, etc.)
+ * NOTE: All plugin options (settings, templates, CSS, migration flags, etc.)
  * are stored in the nbuf_options custom table and are removed
- * when that table is dropped above.
+ * when that table is dropped above. No plugin data remains in wp_options.
  */

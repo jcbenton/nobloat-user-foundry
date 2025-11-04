@@ -777,7 +777,7 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Check 4: Verify it's within the specific user's nobloat directory */
-		$expected_dir = trailingslashit( $real_base ) . 'nobloat/' . absint( $user_id ) . '/';
+		$expected_dir = trailingslashit( $real_base ) . 'nobloat/users/' . absint( $user_id ) . '/';
 		if ( 0 !== strpos( $real_path, $expected_dir ) ) {
 			return new WP_Error(
 				'path_wrong_user',

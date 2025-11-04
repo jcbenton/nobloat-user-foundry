@@ -150,24 +150,25 @@ class NBUF_Image_Processor {
 		}
 
 		/*
-		 * Generate filename with random token for privacy
-		 * Token prevents enumeration of user photos by sequential ID guessing
+		 * Generate fully random filename for maximum privacy
+		 * Fully random token prevents enumeration of user photos
 		 * GDPR: Implements "appropriate technical measures" (Article 32)
+		 * SECURITY: No predictable prefixes to reduce attack surface
 		 */
-		$filename_base = ( self::TYPE_PROFILE === $type ) ? 'profile-photo' : 'cover-photo';
 
 		/*
 		 * SECURITY: Generate cryptographically secure random token.
 		 * Use random_bytes() instead of wp_generate_password() for security tokens.
+		 * 20 bytes = 40 hex characters = 160 bits of entropy (exceeds NIST recommendations)
 		 */
-		$random_token = bin2hex( random_bytes( 16 ) ); /* 32 hex characters, cryptographically secure */
+		$random_token = bin2hex( random_bytes( 20 ) ); /* 40 hex characters, cryptographically secure */
 
 		/* Delete old photo if exists (before creating new one with different token) */
 		self::delete_photo( $user_id, $type );
 
 		/* Try WebP conversion if enabled */
 		if ( $convert_to_webp && self::webp_supported() ) {
-			$filename    = $filename_base . '-' . $random_token . '.webp';
+			$filename    = $random_token . '.webp';
 			$output_path = $upload_dir['path'] . $filename;
 			$result      = self::convert_to_webp( $source_path, $output_path, $webp_quality, $max_width, $max_height, $strip_exif );
 
@@ -200,7 +201,7 @@ class NBUF_Image_Processor {
 			return new WP_Error( 'unknown_format', __( 'Could not determine image format.', 'nobloat-user-foundry' ) );
 		}
 
-		$filename    = $filename_base . '-' . $random_token . '.' . $extension;
+		$filename    = $random_token . '.' . $extension;
 		$output_path = $upload_dir['path'] . $filename;
 
 		/* Process based on mime type */
@@ -771,7 +772,7 @@ class NBUF_Image_Processor {
 	/**
 	 * Get upload directory for user
 	 *
-	 * Creates /wp-content/uploads/nobloat/{user_id}/ directory.
+	 * Creates /wp-content/uploads/nobloat/users/{user_id}/ directory.
 	 *
 	 * @param  int $user_id User ID.
 	 * @return array|WP_Error Array with 'path' and 'url' keys, or WP_Error.
@@ -784,13 +785,14 @@ class NBUF_Image_Processor {
 		}
 
 		$nobloat_dir = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/';
-		$user_dir    = $nobloat_dir . absint( $user_id ) . '/';
+		$users_dir   = $nobloat_dir . 'users/';
+		$user_dir    = $users_dir . absint( $user_id ) . '/';
 
 		/* SECURITY: Verify path is within expected directory (prevent traversal) */
 		$real_nobloat = realpath( $nobloat_dir );
-		$real_user    = realpath( dirname( $user_dir ) );  // Check parent since user_dir may not exist yet.
+		$real_users   = realpath( dirname( $user_dir ) );  // Check parent since user_dir may not exist yet.
 
-		if ( false !== $real_user && false !== $real_nobloat && 0 !== strpos( $real_user, $real_nobloat ) ) {
+		if ( false !== $real_users && false !== $real_nobloat && 0 !== strpos( $real_users, $real_nobloat ) ) {
 			return new WP_Error( 'path_traversal', __( 'Invalid upload directory path.', 'nobloat-user-foundry' ) );
 		}
 
@@ -857,6 +859,27 @@ class NBUF_Image_Processor {
 			}
 		}
 
+		/* Create users/ subdirectory if needed */
+		if ( ! file_exists( $users_dir ) ) {
+			if ( ! wp_mkdir_p( $users_dir ) ) {
+				return new WP_Error( 'mkdir_failed', __( 'Could not create users directory.', 'nobloat-user-foundry' ) );
+			}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Required for security: restrictive permissions (0750).
+			$users_chmod = chmod( $users_dir, 0750 );
+			if ( false === $users_chmod ) {
+				NBUF_Security_Log::log(
+					'chmod_failed',
+					'critical',
+					'Failed to set restrictive permissions on users upload directory',
+					array(
+						'directory'            => $users_dir,
+						'intended_permissions' => '0750',
+					)
+				);
+				return new WP_Error( 'chmod_failed', __( 'Could not secure users directory.', 'nobloat-user-foundry' ) );
+			}
+		}
+
 		if ( ! file_exists( $user_dir ) ) {
 			if ( ! wp_mkdir_p( $user_dir ) ) {
 				return new WP_Error( 'mkdir_failed', __( 'Could not create user upload directory.', 'nobloat-user-foundry' ) );
@@ -887,7 +910,8 @@ class NBUF_Image_Processor {
 		}
 
 		$nobloat_url = trailingslashit( $upload_dir['baseurl'] ) . 'nobloat/';
-		$user_url    = $nobloat_url . absint( $user_id ) . '/';
+		$users_url   = $nobloat_url . 'users/';
+		$user_url    = $users_url . absint( $user_id ) . '/';
 
 		return array(
 			'path' => $user_dir,
@@ -956,7 +980,7 @@ class NBUF_Image_Processor {
 	/**
 	 * Cleanup all photos for a user
 	 *
-	 * Deletes the entire user photo directory (/uploads/nobloat/{user_id}/).
+	 * Deletes the entire user photo directory (/uploads/nobloat/users/{user_id}/).
 	 * Called when user account is deleted (if GDPR setting enabled).
 	 *
 	 * @param  int $user_id User ID.
@@ -976,7 +1000,7 @@ class NBUF_Image_Processor {
 
 		/* Get user directory */
 		$upload_dir = wp_upload_dir();
-		$user_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/' . $user_id . '/';
+		$user_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/users/' . $user_id . '/';
 
 		if ( ! file_exists( $user_dir ) ) {
 			return false; /* Directory doesn't exist, nothing to delete */

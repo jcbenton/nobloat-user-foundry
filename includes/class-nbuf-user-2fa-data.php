@@ -324,7 +324,7 @@ class NBUF_User_2FA_Data {
 		return self::update(
 			$user_id,
 			array(
-				'last_used' => current_time( 'mysql' ),
+				'last_used' => current_time( 'mysql', true ),
 			)
 		);
 	}

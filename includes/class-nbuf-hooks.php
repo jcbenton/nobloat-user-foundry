@@ -399,7 +399,7 @@ class NBUF_Hooks {
 			'{site_url}'          => home_url(),
 			'{username}'          => sanitize_text_field( $user->user_login ),
 			'{user_email}'        => sanitize_email( $user->user_email ),
-			'{registration_date}' => current_time( 'mysql' ),
+			'{registration_date}' => current_time( 'mysql', true ),
 			'{user_profile_link}' => esc_url( admin_url( 'user-edit.php?user_id=' . $user_id ) ),
 		);
 

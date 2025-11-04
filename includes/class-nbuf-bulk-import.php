@@ -162,6 +162,36 @@ class NBUF_Bulk_Import {
 		}
 
 		/*
+		 * SECURITY: Unicode normalization to prevent homoglyph attacks.
+		 * Normalize to NFKC form (compatibility decomposition + canonical composition).
+		 * This converts fullwidth and other Unicode variants to ASCII equivalents.
+		 */
+		if ( function_exists( 'normalizer_normalize' ) ) {
+			$sanitized = normalizer_normalize( $sanitized, Normalizer::FORM_KC );
+		}
+
+		/*
+		 * SECURITY: Remove Unicode control characters and zero-width characters.
+		 * These can be used to hide dangerous characters or manipulate display.
+		 * \p{C} = Other (control, format, surrogate, private use, unassigned)
+		 * \p{Z} = Separator (space, line, paragraph)
+		 */
+		$sanitized = preg_replace( '/[\x00-\x1F\x7F\p{C}\p{Zl}\p{Zp}]/u', '', $sanitized );
+
+		/*
+		 * SECURITY: Convert fullwidth dangerous characters to ASCII.
+		 * Attackers may use Unicode lookalikes to bypass ASCII-only checks.
+		 */
+		$unicode_dangerous = array(
+			'＝' => '=', // U+FF1D Fullwidth Equals Sign.
+			'＋' => '+', // U+FF0B Fullwidth Plus Sign.
+			'－' => '-', // U+FF0D Fullwidth Hyphen-Minus.
+			'＠' => '@', // U+FF20 Fullwidth Commercial At.
+			'｜' => '|', // U+FF5C Fullwidth Vertical Line.
+		);
+		$sanitized         = str_replace( array_keys( $unicode_dangerous ), array_values( $unicode_dangerous ), $sanitized );
+
+		/*
 		 * SECURITY: Block CSV formula injection characters.
 		 * These characters at the start of a field can trigger formula/command execution in Excel/LibreOffice.
 		 */
@@ -713,7 +743,7 @@ class NBUF_Bulk_Import {
 		);
 
 		$status      = $verified ? 'verified' : 'pending';
-		$verified_at = $verified ? current_time( 'mysql' ) : null;
+		$verified_at = $verified ? current_time( 'mysql', true ) : null;
 
 		if ( $exists ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations

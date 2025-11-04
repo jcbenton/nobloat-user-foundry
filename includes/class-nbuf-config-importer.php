@@ -96,8 +96,13 @@ class NBUF_Config_Importer {
 			wp_send_json_error( array( 'message' => $validation->get_error_message() ) );
 		}
 
-		/* Store config data in transient */
-		$transient_key = 'nbuf_import_config_' . get_current_user_id() . '_' . time();
+		/*
+		 * Store config data in transient with random token.
+		 * SECURITY: Use cryptographically secure random token to prevent replay attacks.
+		 * Timestamp-based keys are predictable and could be guessed by attackers.
+		 */
+		$random_token  = bin2hex( random_bytes( 16 ) ); // 32 hex characters.
+		$transient_key = 'nbuf_import_config_' . get_current_user_id() . '_' . $random_token;
 		set_transient( $transient_key, $config_data, HOUR_IN_SECONDS );
 
 		/* Generate preview */

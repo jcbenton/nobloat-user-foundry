@@ -257,7 +257,7 @@ class NBUF_Restriction_Metabox {
 			'restriction_action' => $restriction_action,
 			'custom_message'     => $custom_message,
 			'redirect_url'       => $redirect_url,
-			'updated_at'         => current_time( 'mysql' ),
+			'updated_at'         => current_time( 'mysql', true ),
 		);
 
 		/*
@@ -294,7 +294,7 @@ class NBUF_Restriction_Metabox {
 			$action_text = __( 'Updated access restriction for %1$s "%2$s"', 'nobloat-user-foundry' );
 		} else {
 			/* Insert new */
-			$data['created_at'] = current_time( 'mysql' );
+			$data['created_at'] = current_time( 'mysql', true );
          // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
 				$table,

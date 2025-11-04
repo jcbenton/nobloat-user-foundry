@@ -324,15 +324,15 @@ class NBUF_Field_Mapper {
 	 * @return bool Success
 	 */
 	public function save_mapping_preset( $preset_name, $plugin_slug ) {
-		$presets = get_option( 'nbuf_field_mapping_presets', array() );
+		$presets = NBUF_Options::get( 'nbuf_field_mapping_presets', array() );
 
 		$presets[ $plugin_slug ][ $preset_name ] = array(
 			'name'     => $preset_name,
 			'mappings' => $this->mappings,
-			'created'  => current_time( 'mysql' ),
+			'created'  => current_time( 'mysql', true ), // Store in GMT.
 		);
 
-		return update_option( 'nbuf_field_mapping_presets', $presets );
+		return NBUF_Options::update( 'nbuf_field_mapping_presets', $presets, false, 'settings' );
 	}
 
 	/**
@@ -343,7 +343,7 @@ class NBUF_Field_Mapper {
 	 * @return bool Success
 	 */
 	public function load_mapping_preset( $preset_name, $plugin_slug ) {
-		$presets = get_option( 'nbuf_field_mapping_presets', array() );
+		$presets = NBUF_Options::get( 'nbuf_field_mapping_presets', array() );
 
 		if ( isset( $presets[ $plugin_slug ][ $preset_name ] ) ) {
 			$this->mappings = $presets[ $plugin_slug ][ $preset_name ]['mappings'];
@@ -360,7 +360,7 @@ class NBUF_Field_Mapper {
 	 * @return array Saved presets
 	 */
 	public function get_saved_presets( $plugin_slug ) {
-		$presets = get_option( 'nbuf_field_mapping_presets', array() );
+		$presets = NBUF_Options::get( 'nbuf_field_mapping_presets', array() );
 
 		return isset( $presets[ $plugin_slug ] ) ? $presets[ $plugin_slug ] : array();
 	}

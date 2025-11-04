@@ -910,7 +910,7 @@ class NBUF_Activator {
 			}
 		}
 
-		/* Mark migration as complete (keep this in wp_options as a flag) */
-		add_option( 'nbuf_options_migrated', 1, '', 'no' );
+		/* Mark migration as complete */
+		NBUF_Options::update( 'nbuf_options_migrated', 1, false, 'system' );
 	}
 }

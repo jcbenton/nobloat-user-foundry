@@ -124,7 +124,7 @@ abstract class Abstract_NBUF_Restriction {
 	 * @return string MySQL formatted datetime
 	 */
 	protected static function get_current_timestamp() {
-		return current_time( 'mysql' );
+		return current_time( 'mysql', true );
 	}
 
 	/**

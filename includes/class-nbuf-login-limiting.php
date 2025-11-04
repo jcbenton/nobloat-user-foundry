@@ -327,13 +327,27 @@ class NBUF_Login_Limiting {
 			$ip       = trim( $ip_array[0] );
 		}
 
-		/* Validate IP address */
-		if ( filter_var( $ip, FILTER_VALIDATE_IP ) === false ) {
-			/* Use REMOTE_ADDR as last resort */
+		/* Validate and normalize IP address */
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			/* Invalid IP - use REMOTE_ADDR as fallback */
 			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
 		}
 
-		return $ip;
+		/* Normalize IPv6 addresses to canonical form */
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			/*
+			 * SECURITY: Normalize IPv6 to canonical form.
+			 * Prevents rate limit bypass via IPv6 representation variations.
+			 * Example: 2001:0db8::1 and 2001:db8::1 and 2001:DB8::1 are the same address.
+			 */
+			$normalized = inet_ntop( inet_pton( $ip ) );
+			if ( false !== $normalized ) {
+				$ip = $normalized;
+			}
+		}
+
+		/* Lowercase for consistency */
+		return strtolower( $ip );
 	}
 
 	/**

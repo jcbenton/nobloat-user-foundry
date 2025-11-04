@@ -275,7 +275,7 @@ class NBUF_Version_History {
 			$table_name,
 			array(
 				'user_id'        => $user_id,
-				'changed_at'     => current_time( 'mysql' ),
+				'changed_at'     => current_time( 'mysql', true ),
 				'changed_by'     => $changed_by,
 				'change_type'    => $change_type,
 				'fields_changed' => wp_json_encode( $changed_fields ),

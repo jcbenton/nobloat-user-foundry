@@ -125,7 +125,7 @@ class NBUF_User_Data {
 			$user_id,
 			array(
 				'is_verified'   => 1,
-				'verified_date' => current_time( 'mysql' ),
+				'verified_date' => current_time( 'mysql', true ),
 			)
 		);
 	}
@@ -236,7 +236,7 @@ class NBUF_User_Data {
 		return self::update(
 			$user_id,
 			array(
-				'expiration_warned_at' => current_time( 'mysql' ),
+				'expiration_warned_at' => current_time( 'mysql', true ),
 			)
 		);
 	}
@@ -320,7 +320,7 @@ class NBUF_User_Data {
 			array(
 				'is_approved'    => 1,
 				'approved_by'    => $admin_id,
-				'approved_date'  => current_time( 'mysql' ),
+				'approved_date'  => current_time( 'mysql', true ),
 				'approval_notes' => sanitize_textarea_field( $notes ),
 			)
 		);
@@ -569,7 +569,7 @@ class NBUF_User_Data {
 				$where = "AND (d.expires_at IS NULL OR d.expires_at = '0000-00-00 00:00:00')";
 				break;
 			case 'expired':
-				$current_time = current_time( 'mysql' );
+				$current_time = current_time( 'mysql', true );
 				$where        = $wpdb->prepare(
 					"AND d.expires_at IS NOT NULL AND d.expires_at != '0000-00-00 00:00:00' AND d.expires_at <= %s",
 					$current_time
@@ -625,7 +625,7 @@ class NBUF_User_Data {
 		return self::update(
 			$user_id,
 			array(
-				'weak_password_flagged_at' => current_time( 'mysql' ),
+				'weak_password_flagged_at' => current_time( 'mysql', true ),
 			)
 		);
 	}
@@ -657,7 +657,7 @@ class NBUF_User_Data {
 		return self::update(
 			$user_id,
 			array(
-				'password_changed_at'      => current_time( 'mysql' ),
+				'password_changed_at'      => current_time( 'mysql', true ),
 				'weak_password_flagged_at' => null, // Clear flag when password changes.
 			)
 		);

@@ -827,7 +827,7 @@ class NBUF_Security_Log {
 		$oldest_entry = $oldest ? mysql2date( 'F j, Y g:i A', $oldest ) : __( 'No entries', 'nobloat-user-foundry' );
 
 		// Get last cleanup time.
-		$last_cleanup = get_option( 'nbuf_security_log_last_cleanup', '' );
+		$last_cleanup = NBUF_Options::get( 'nbuf_security_log_last_cleanup', '' );
 		$last_cleanup = $last_cleanup ? mysql2date( 'F j, Y g:i A', $last_cleanup ) : __( 'Never', 'nobloat-user-foundry' );
 
 		return array(
@@ -913,7 +913,7 @@ class NBUF_Security_Log {
 
 		if ( false !== $result ) {
 			// Update last cleanup time (stored in UTC).
-			update_option( 'nbuf_security_log_last_cleanup', current_time( 'mysql', true ) );
+			NBUF_Options::update( 'nbuf_security_log_last_cleanup', current_time( 'mysql', true ), false, 'system' );
 			return true;
 		}
 

@@ -230,7 +230,7 @@ class NBUF_Migration {
 			'failed'        => count( $results['errors'] ),
 			'skipped'       => $results['skipped'],
 			'error_log'     => wp_json_encode( $results['errors'] ),
-			'imported_at'   => current_time( 'mysql' ),
+			'imported_at'   => current_time( 'mysql', true ),
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations

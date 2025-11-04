@@ -926,7 +926,7 @@ class NBUF_Database {
 		$migration_key = 'nbuf_audit_log_indexes_v1';
 
 		/* Check if migration already run */
-		if ( get_option( $migration_key ) ) {
+		if ( NBUF_Options::get( $migration_key ) ) {
 			return true;
 		}
 
@@ -940,7 +940,7 @@ class NBUF_Database {
 
 		if ( ! $table_exists ) {
 			/* Table doesn't exist yet - indexes will be created during table creation */
-			update_option( $migration_key, time() );
+			NBUF_Options::update( $migration_key, time(), false, 'system' );
 			return true;
 		}
 
@@ -998,7 +998,7 @@ class NBUF_Database {
 		/* Log results */
 		if ( $migration_success ) {
 			error_log( '[NoBloat User Foundry] Audit log indexes migration completed successfully' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration logging only, not debug code.
-			update_option( $migration_key, time() );
+			NBUF_Options::update( $migration_key, time(), false, 'system' );
 		} else {
 			error_log( '[NoBloat User Foundry] Audit log indexes migration failed: ' . implode( '; ', $errors ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
 			/* Don't mark as complete if migration failed - allow retry */

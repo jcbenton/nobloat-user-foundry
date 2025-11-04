@@ -122,7 +122,7 @@ $delete_on_uninstall    = NBUF_Options::get( 'nbuf_gdpr_delete_on_uninstall', fa
 					<?php esc_html_e( 'Delete user photos when user account is deleted', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
-					<?php esc_html_e( 'When enabled, all photos in /uploads/nobloat/{user_id}/ will be permanently deleted when the user account is removed. Recommended for GDPR compliance.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'When enabled, all photos in /uploads/nobloat/users/{user_id}/ will be permanently deleted when the user account is removed. Recommended for GDPR compliance.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

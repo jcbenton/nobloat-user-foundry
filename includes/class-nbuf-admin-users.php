@@ -894,7 +894,7 @@ class NBUF_Admin_Users {
 		}
 
 		$table_name   = $wpdb->prefix . 'nbuf_user_data';
-		$current_time = current_time( 'mysql' );
+		$current_time = current_time( 'mysql', true );
 
      // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Admin list table filtering.
 

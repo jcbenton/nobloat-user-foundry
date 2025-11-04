@@ -315,10 +315,29 @@ class NBUF_Migration_Ultimate_Member extends Abstract_NBUF_Migration_Plugin {
 	private function get_user_preview_data( $user_id, $field_mapping = array() ) {
 		$data = array();
 
-		/* Get account status */
+		/* Get account status and show mapping preview */
 		$account_status         = get_user_meta( $user_id, 'account_status', true );
 		$data['account_status'] = $account_status ? $account_status : 'unknown';
-		$data['will_verify']    = ( 'approved' === $account_status ) ? 'Yes' : 'No';
+
+		/* Show what the status will map to */
+		switch ( $account_status ) {
+			case 'approved':
+				$data['will_map_to'] = 'Verified + Approved';
+				break;
+			case 'awaiting_email_confirmation':
+				$data['will_map_to'] = 'Unverified';
+				break;
+			case 'awaiting_admin_review':
+				$data['will_map_to'] = 'Verified, Awaiting Approval';
+				break;
+			case 'inactive':
+			case 'rejected':
+				$data['will_map_to'] = 'Disabled (Rejected)';
+				break;
+			default:
+				$data['will_map_to'] = 'Unverified';
+				break;
+		}
 
 		/* Get profile fields with sample values */
 		$default_mapping = $this->get_default_field_mapping();
@@ -355,22 +374,233 @@ class NBUF_Migration_Ultimate_Member extends Abstract_NBUF_Migration_Plugin {
 		$default_mapping = $this->get_default_field_mapping();
 		$all_mappings    = array_merge( $default_mapping, $field_mapping );
 
-		/* Get account status and import to user_data */
+		/*
+		 * Get account status and import to user_data
+		 * Map UM statuses to NoBloat's account status system
+		 */
 		$account_status = get_user_meta( $user_id, 'account_status', true );
-		$is_verified    = ( 'approved' === $account_status ) ? 1 : 0;
+
+		/* Initialize user_data fields based on UM account status */
+		$user_data = array(
+			'user_id'           => $user_id,
+			'is_verified'       => 0,
+			'verified_date'     => null,
+			'requires_approval' => 0,
+			'is_approved'       => 1,
+			'approved_by'       => null,
+			'approved_date'     => null,
+			'approval_notes'    => null,
+			'is_disabled'       => 0,
+			'disabled_reason'   => null,
+		);
+
+		/* Map UM status to NoBloat status */
+		switch ( $account_status ) {
+			case 'approved':
+				/* User is fully approved and verified */
+				$user_data['is_verified']   = 1;
+				$user_data['verified_date'] = current_time( 'mysql' );
+				$user_data['is_approved']   = 1;
+				$user_data['approved_date'] = current_time( 'mysql' );
+				break;
+
+			case 'awaiting_email_confirmation':
+				/* User needs to verify email */
+				$user_data['is_verified'] = 0;
+				break;
+
+			case 'awaiting_admin_review':
+				/* User verified email but awaiting admin approval */
+				$user_data['is_verified']       = 1;
+				$user_data['verified_date']     = current_time( 'mysql' );
+				$user_data['requires_approval'] = 1;
+				$user_data['is_approved']       = 0;
+				$user_data['approval_notes']    = 'Migrated from Ultimate Member - awaiting review';
+				break;
+
+			case 'inactive':
+			case 'rejected':
+				/* User was rejected or inactive */
+				$user_data['is_disabled']     = 1;
+				$user_data['disabled_reason'] = 'rejected';
+				break;
+
+			default:
+				/* Unknown status - treat as needing verification */
+				$user_data['is_verified'] = 0;
+				break;
+		}
+
+		/*
+		 * Migrate profile and cover photos
+		 * Copy photos from UM directory to NoBloat directory with optional WebP conversion
+		 *
+		 * Security: Uses realpath() validation and basename() sanitization to prevent path traversal attacks
+		 */
+		$copy_photos = isset( $options['copy_photos'] ) ? $options['copy_photos'] : true;
+
+		if ( $copy_photos ) {
+			/* Validate user_id is a positive integer */
+			$user_id_safe = absint( $user_id );
+			if ( $user_id_safe <= 0 ) {
+				/* Invalid user ID, skip photo migration */
+				if ( class_exists( 'NBUF_Audit_Log' ) ) {
+					NBUF_Audit_Log::log(
+						0,
+						'security',
+						'invalid_user_id_photo_migration',
+						array( 'attempted_user_id' => $user_id )
+					);
+				}
+				$user_id_safe = 0;
+			}
+
+			if ( $user_id_safe > 0 ) {
+				$profile_photo_filename = get_user_meta( $user_id_safe, 'profile_photo', true );
+				$cover_photo_filename   = get_user_meta( $user_id_safe, 'cover_photo', true );
+
+				/* Sanitize filenames to prevent path traversal */
+				$profile_photo_filename = ! empty( $profile_photo_filename ) ? basename( $profile_photo_filename ) : '';
+				$cover_photo_filename   = ! empty( $cover_photo_filename ) ? basename( $cover_photo_filename ) : '';
+
+				/* Get UM upload directory (handle case where UM might not be active) */
+				$upload_dir  = wp_upload_dir();
+				$um_base_dir = trailingslashit( $upload_dir['basedir'] ) . 'ultimatemember/';
+				$um_user_dir = trailingslashit( $um_base_dir ) . $user_id_safe . '/';
+
+				/*
+				 * Validate directory path using realpath()
+				 */
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+				$um_user_dir_real = realpath( $um_user_dir );
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+				$um_base_dir_real = realpath( $um_base_dir );
+
+				if ( ! $um_user_dir_real || ! $um_base_dir_real || 0 !== strpos( $um_user_dir_real, $um_base_dir_real ) ) {
+					/* Directory validation failed, log security event */
+					if ( class_exists( 'NBUF_Audit_Log' ) ) {
+						NBUF_Audit_Log::log(
+							$user_id_safe,
+							'security',
+							'path_traversal_attempt',
+							array(
+								'um_user_dir' => $um_user_dir,
+								'context'     => 'photo_migration_directory',
+							)
+						);
+					}
+					$um_user_dir_real = false;
+				}
+
+				/* Copy and convert profile photo */
+				if ( $um_user_dir_real && ! empty( $profile_photo_filename ) ) {
+					$source_path = $um_user_dir_real . '/' . $profile_photo_filename;
+
+					/*
+					 * Verify path is within allowed directory
+					 */
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+					$source_path_real = realpath( $source_path );
+					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
+						/* Log path traversal attempt */
+						if ( class_exists( 'NBUF_Audit_Log' ) ) {
+							NBUF_Audit_Log::log(
+								$user_id_safe,
+								'security',
+								'path_traversal_attempt',
+								array(
+									'filename'    => $profile_photo_filename,
+									'source_path' => $source_path,
+									'context'     => 'profile_photo_migration',
+								)
+							);
+						}
+					} else {
+						/* Path is safe, proceed with processing */
+						$processed = NBUF_Image_Processor::process_image(
+							$source_path_real,
+							$user_id_safe,
+							NBUF_Image_Processor::TYPE_PROFILE
+						);
+
+						if ( ! is_wp_error( $processed ) ) {
+							$user_data['profile_photo_url']  = $processed['url'];
+							$user_data['profile_photo_path'] = $processed['path'];
+						}
+					}
+				}
+
+				/* Copy and convert cover photo */
+				if ( $um_user_dir_real && ! empty( $cover_photo_filename ) ) {
+					$source_path = $um_user_dir_real . '/' . $cover_photo_filename;
+
+					/*
+					 * Verify path is within allowed directory
+					 */
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+					$source_path_real = realpath( $source_path );
+					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
+						/* Log path traversal attempt */
+						if ( class_exists( 'NBUF_Audit_Log' ) ) {
+							NBUF_Audit_Log::log(
+								$user_id_safe,
+								'security',
+								'path_traversal_attempt',
+								array(
+									'filename'    => $cover_photo_filename,
+									'source_path' => $source_path,
+									'context'     => 'cover_photo_migration',
+								)
+							);
+						}
+					} else {
+						/* Path is safe, proceed with processing */
+						$processed = NBUF_Image_Processor::process_image(
+							$source_path_real,
+							$user_id_safe,
+							NBUF_Image_Processor::TYPE_COVER
+						);
+
+						if ( ! is_wp_error( $processed ) ) {
+							$user_data['cover_photo_url']  = $processed['url'];
+							$user_data['cover_photo_path'] = $processed['path'];
+						}
+					}
+				}
+			}
+		}
+
+		/*
+		 * Migrate profile privacy setting
+		 * UM values: 'Everyone', 'Only me'
+		 * NoBloat values: 'public', 'members_only', 'private'
+		 */
+		$um_privacy = get_user_meta( $user_id, 'profile_privacy', true );
+		if ( ! empty( $um_privacy ) ) {
+			/* Map UM privacy to NoBloat privacy */
+			switch ( $um_privacy ) {
+				case 'Everyone':
+					$user_data['profile_privacy'] = 'public';
+					break;
+
+				case 'Only me':
+					$user_data['profile_privacy'] = 'private';
+					break;
+
+				default:
+					/* If unknown value, default to public */
+					$user_data['profile_privacy'] = 'public';
+					break;
+			}
+		}
 
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration requires direct database query for bulk operations.
 		$wpdb->replace(
 			$user_data_table,
-			array(
-				'user_id'       => $user_id,
-				'is_verified'   => $is_verified,
-				'verified_date' => $is_verified ? current_time( 'mysql' ) : null,
-				'is_disabled'   => ( 'inactive' === $account_status || 'rejected' === $account_status ) ? 1 : 0,
-			),
-			array( '%d', '%d', '%s', '%d' )
+			$user_data,
+			array( '%d', '%d', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		/* Import profile data */

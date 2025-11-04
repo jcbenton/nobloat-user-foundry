@@ -113,6 +113,76 @@ class NBUF_Transients {
 	}
 
 	/**
+	 * Atomically increment a transient counter
+	 *
+	 * Uses database-level UPDATE with WHERE clause to prevent race conditions.
+	 * If transient doesn't exist, creates it with initial value.
+	 *
+	 * @param  string $category   Category/type of transient.
+	 * @param  string $identifier Unique identifier.
+	 * @param  int    $increment  Amount to increment by (default 1).
+	 * @param  int    $expiration Expiration in seconds (default 0 = no expiration).
+	 * @return int|false New counter value on success, false on failure.
+	 */
+	public static function increment( string $category, $identifier, int $increment = 1, int $expiration = 0 ) {
+		global $wpdb;
+
+		$key         = self::get_key( $category, $identifier );
+		$option_name = '_transient_' . $key;
+		$timeout_key = '_transient_timeout_' . $key;
+
+		/* Try to get current value */
+		$current = get_transient( $key );
+
+		if ( false === $current ) {
+			/* Transient doesn't exist - try to create it atomically */
+			$success = add_option( $option_name, $increment, '', 'no' );
+
+			if ( $success && $expiration > 0 ) {
+				add_option( $timeout_key, time() + $expiration, '', 'no' );
+			}
+
+			return $success ? $increment : false;
+		}
+
+		/* Transient exists - increment atomically using database UPDATE */
+		$new_value = intval( $current ) + $increment;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment operation requires direct query.
+		$updated = $wpdb->update(
+			$wpdb->options,
+			array( 'option_value' => $new_value ),
+			array(
+				'option_name'  => $option_name,
+				'option_value' => $current, // WHERE clause ensures we only update if value hasn't changed.
+			),
+			array( '%d' ),
+			array( '%s', '%d' )
+		);
+
+		if ( $updated ) {
+			/* Update timeout if expiration specified */
+			if ( $expiration > 0 ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic operation for transient timeout.
+				$wpdb->replace(
+					$wpdb->options,
+					array(
+						'option_name'  => $timeout_key,
+						'option_value' => time() + $expiration,
+						'autoload'     => 'no',
+					),
+					array( '%s', '%d', '%s' )
+				);
+			}
+
+			return $new_value;
+		}
+
+		/* Update failed (value changed by another process) - retry once */
+		return self::increment( $category, $identifier, $increment, $expiration );
+	}
+
+	/**
 	 * Delete all plugin transients (useful for cleanup/debugging)
 	 *
 	 * @return int Number of transients deleted.

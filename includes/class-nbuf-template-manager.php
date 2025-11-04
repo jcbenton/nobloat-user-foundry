@@ -35,30 +35,31 @@ class NBUF_Template_Manager {
 	 */
 	private static $template_map = array(
 		// Email templates.
-		'email-verification-html' => 'nbuf_email_template_html',
-		'email-verification-text' => 'nbuf_email_template_text',
-		'welcome-email-html'      => 'nbuf_welcome_email_html',
-		'welcome-email-text'      => 'nbuf_welcome_email_text',
-		'expiration-warning-html' => 'nbuf_expiration_warning_html',
-		'expiration-warning-text' => 'nbuf_expiration_warning_text',
-		'2fa-email-code-html'     => 'nbuf_2fa_email_code_html',
-		'2fa-email-code-text'     => 'nbuf_2fa_email_code_text',
-		'password-reset-html'     => 'nbuf_password_reset_html',
-		'password-reset-text'     => 'nbuf_password_reset_text',
-		'admin-new-user-html'     => 'nbuf_admin_new_user_html',
-		'admin-new-user-text'     => 'nbuf_admin_new_user_text',
+		'email-verification-html'   => 'nbuf_email_template_html',
+		'email-verification-text'   => 'nbuf_email_template_text',
+		'welcome-email-html'        => 'nbuf_welcome_email_html',
+		'welcome-email-text'        => 'nbuf_welcome_email_text',
+		'expiration-warning-html'   => 'nbuf_expiration_warning_html',
+		'expiration-warning-text'   => 'nbuf_expiration_warning_text',
+		'2fa-email-code-html'       => 'nbuf_2fa_email_code_html',
+		'2fa-email-code-text'       => 'nbuf_2fa_email_code_text',
+		'password-reset-html'       => 'nbuf_password_reset_html',
+		'password-reset-text'       => 'nbuf_password_reset_text',
+		'admin-new-user-html'       => 'nbuf_admin_new_user_html',
+		'admin-new-user-text'       => 'nbuf_admin_new_user_text',
+		'security-alert-email-html' => 'nbuf_security_alert_email_html',
 
 		// Form templates.
-		'login-form'              => 'nbuf_login_form_template',
-		'registration-form'       => 'nbuf_registration_form_template',
-		'account-page'            => 'nbuf_account_page_template',
-		'request-reset-form'      => 'nbuf_request_reset_form_template',
-		'reset-form'              => 'nbuf_reset_form_template',
+		'login-form'                => 'nbuf_login_form_template',
+		'registration-form'         => 'nbuf_registration_form_template',
+		'account-page'              => 'nbuf_account_page_template',
+		'request-reset-form'        => 'nbuf_request_reset_form_template',
+		'reset-form'                => 'nbuf_reset_form_template',
 
 		// 2FA page templates.
-		'2fa-verify'              => 'nbuf_2fa_verify_template',
-		'2fa-setup-totp'          => 'nbuf_2fa_setup_totp_template',
-		'2fa-backup-codes'        => 'nbuf_2fa_backup_codes_template',
+		'2fa-verify'                => 'nbuf_2fa_verify_template',
+		'2fa-setup-totp'            => 'nbuf_2fa_setup_totp_template',
+		'2fa-backup-codes'          => 'nbuf_2fa_backup_codes_template',
 	);
 
 	/**
@@ -67,26 +68,27 @@ class NBUF_Template_Manager {
 	 * @var array
 	 */
 	private static $file_map = array(
-		'email-verification-html' => 'email-verification.html',
-		'email-verification-text' => 'email-verification.txt',
-		'welcome-email-html'      => 'welcome-email.html',
-		'welcome-email-text'      => 'welcome-email.txt',
-		'expiration-warning-html' => 'expiration-warning.html',
-		'expiration-warning-text' => 'expiration-warning.txt',
-		'2fa-email-code-html'     => '2fa-email-code.html',
-		'2fa-email-code-text'     => '2fa-email-code.txt',
-		'password-reset-html'     => 'password-reset.html',
-		'password-reset-text'     => 'password-reset.txt',
-		'admin-new-user-html'     => 'admin-new-user.html',
-		'admin-new-user-text'     => 'admin-new-user.txt',
-		'login-form'              => 'login-form.html',
-		'registration-form'       => 'registration-form.html',
-		'account-page'            => 'account-page.html',
-		'request-reset-form'      => 'request-reset-form.html',
-		'reset-form'              => 'reset-form.html',
-		'2fa-verify'              => '2fa-verify.html',
-		'2fa-setup-totp'          => '2fa-setup-totp.html',
-		'2fa-backup-codes'        => '2fa-backup-codes.html',
+		'email-verification-html'   => 'email-verification.html',
+		'email-verification-text'   => 'email-verification.txt',
+		'welcome-email-html'        => 'welcome-email.html',
+		'welcome-email-text'        => 'welcome-email.txt',
+		'expiration-warning-html'   => 'expiration-warning.html',
+		'expiration-warning-text'   => 'expiration-warning.txt',
+		'2fa-email-code-html'       => '2fa-email-code.html',
+		'2fa-email-code-text'       => '2fa-email-code.txt',
+		'password-reset-html'       => 'password-reset.html',
+		'password-reset-text'       => 'password-reset.txt',
+		'admin-new-user-html'       => 'admin-new-user.html',
+		'admin-new-user-text'       => 'admin-new-user.txt',
+		'security-alert-email-html' => 'security-alert-email.html',
+		'login-form'                => 'login-form.html',
+		'registration-form'         => 'registration-form.html',
+		'account-page'              => 'account-page.html',
+		'request-reset-form'        => 'request-reset-form.html',
+		'reset-form'                => 'reset-form.html',
+		'2fa-verify'                => '2fa-verify.html',
+		'2fa-setup-totp'            => '2fa-setup-totp.html',
+		'2fa-backup-codes'          => '2fa-backup-codes.html',
 	);
 
 	/**
@@ -404,46 +406,49 @@ class NBUF_Template_Manager {
 	public static function get_placeholders( $template_name ) {
 		$placeholders = array(
 			// Email verification.
-			'email-verification-html' => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
-			'email-verification-text' => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
+			'email-verification-html'   => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
+			'email-verification-text'   => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
 
 			// Welcome email.
-			'welcome-email-html'      => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
-			'welcome-email-text'      => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
+			'welcome-email-html'        => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
+			'welcome-email-text'        => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
 
 			// Expiration warning.
-			'expiration-warning-html' => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
-			'expiration-warning-text' => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
+			'expiration-warning-html'   => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
+			'expiration-warning-text'   => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
 
 			// 2FA email code.
-			'2fa-email-code-html'     => '{site_name}, {display_name}, {code}, {user_email}',
-			'2fa-email-code-text'     => '{site_name}, {display_name}, {code}, {user_email}',
+			'2fa-email-code-html'       => '{site_name}, {display_name}, {code}, {user_email}',
+			'2fa-email-code-text'       => '{site_name}, {display_name}, {code}, {user_email}',
 
 			// Password reset.
-			'password-reset-html'     => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
-			'password-reset-text'     => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
+			'password-reset-html'       => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
+			'password-reset-text'       => '{site_name}, {display_name}, {username}, {reset_link}, {site_url}',
 
 			// Admin new user notification.
-			'admin-new-user-html'     => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
-			'admin-new-user-text'     => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
+			'admin-new-user-html'       => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
+			'admin-new-user-text'       => '{site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}',
+
+			// Security alert.
+			'security-alert-email-html' => '{site_name}, {site_url}, {event_type}, {message}, {username}, {user_email}, {user_id}, {ip_address}, {timestamp}, {log_url}, {context}',
 
 			// Login form.
-			'login-form'              => '{action_url}, {nonce_field}, {redirect_to}, {reset_url}, {register_link}, {error_message}',
+			'login-form'                => '{action_url}, {nonce_field}, {redirect_to}, {reset_url}, {register_link}, {error_message}',
 
 			// Registration form.
-			'registration-form'       => '{action_url}, {nonce_field}, {registration_fields}, {error_message}, {login_link}',
+			'registration-form'         => '{action_url}, {nonce_field}, {registration_fields}, {error_message}, {login_link}',
 
 			// Account page.
-			'account-page'            => '{messages}, {status_badges}, {username}, {email}, {display_name}, {registered_date}, {expiration_info}, {action_url}, {nonce_field}, {nonce_field_password}, {profile_fields}, {logout_url}',
+			'account-page'              => '{messages}, {status_badges}, {username}, {email}, {display_name}, {registered_date}, {expiration_info}, {action_url}, {nonce_field}, {nonce_field_password}, {profile_fields}, {logout_url}',
 
 			// Reset forms.
-			'request-reset-form'      => '{action_url}, {nonce_field}, {error_message}, {success_message}, {login_url}, {register_link}',
-			'reset-form'              => '{action_url}, {nonce_field}, {error_message}, {password_requirements}, {login_url}',
+			'request-reset-form'        => '{action_url}, {nonce_field}, {error_message}, {success_message}, {login_url}, {register_link}',
+			'reset-form'                => '{action_url}, {nonce_field}, {error_message}, {password_requirements}, {login_url}',
 
 			// 2FA pages.
-			'2fa-verify'              => '{action_url}, {nonce_field}, {error_message}, {method}, {resend_link}',
-			'2fa-setup-totp'          => '{qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}',
-			'2fa-backup-codes'        => '{backup_codes}, {action_url}, {nonce_field}, {error_message}',
+			'2fa-verify'                => '{action_url}, {nonce_field}, {error_message}, {method}, {resend_link}',
+			'2fa-setup-totp'            => '{qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}',
+			'2fa-backup-codes'          => '{backup_codes}, {action_url}, {nonce_field}, {error_message}',
 		);
 
 		return isset( $placeholders[ $template_name ] ) ? $placeholders[ $template_name ] : '';

@@ -141,6 +141,65 @@ class NBUF_Bulk_Import {
 	}
 
 	/**
+	 * Sanitize and validate field value for CSV injection prevention
+	 *
+	 * SECURITY: Prevents CSV formula injection attacks via comprehensive character blocking.
+	 * Blocks: = + - @ | (formula/command injection)
+	 * Blocks: Tab, CR, LF characters (control character injection)
+	 * Blocks: Escaped formulas like '\t=' or "=" (quote-escaped injection)
+	 *
+	 * @param  string $value       Field value to sanitize.
+	 * @param  string $field_name  Field name for error messages.
+	 * @param  int    $line_number Line number for error messages.
+	 * @return string|WP_Error Sanitized value or WP_Error on injection attempt.
+	 */
+	private function sanitize_csv_field( $value, $field_name, $line_number ) {
+		$sanitized = sanitize_text_field( $value );
+
+		/* Skip empty values */
+		if ( empty( $sanitized ) ) {
+			return $sanitized;
+		}
+
+		/*
+		 * SECURITY: Block CSV formula injection characters.
+		 * These characters at the start of a field can trigger formula/command execution in Excel/LibreOffice.
+		 */
+		$dangerous_chars = array( '=', '+', '-', '@', '|', "\t", "\r", "\n" );
+		$first_char      = substr( $sanitized, 0, 1 );
+
+		if ( in_array( $first_char, $dangerous_chars, true ) ) {
+			return new WP_Error(
+				'csv_injection',
+				sprintf(
+					/* translators: 1: line number, 2: field name */
+					__( 'Line %1$d: Field "%2$s" starts with forbidden character (CSV injection prevention)', 'nobloat-user-foundry' ),
+					$line_number,
+					$field_name
+				)
+			);
+		}
+
+		/*
+		 * SECURITY: Block escaped formula injection.
+		 * Patterns like '\t=', '"=', or "'=" can bypass simple first-character checks.
+		 */
+		if ( preg_match( '/^[\\\'"]*[=+\-@|]/', $sanitized ) ) {
+			return new WP_Error(
+				'csv_injection',
+				sprintf(
+					/* translators: 1: line number, 2: field name */
+					__( 'Line %1$d: Field "%2$s" contains escaped formula pattern (CSV injection prevention)', 'nobloat-user-foundry' ),
+					$line_number,
+					$field_name
+				)
+			);
+		}
+
+		return $sanitized;
+	}
+
+	/**
 	 * AJAX: Upload and validate CSV file
 	 */
 	public function ajax_upload_csv() {
@@ -380,29 +439,26 @@ class NBUF_Bulk_Import {
 
 		/* Optional: Display name */
 		if ( ! empty( $row['display_name'] ) ) {
-			$display_name = sanitize_text_field( $row['display_name'] );
-			/* Prevent CSV injection */
-			if ( strlen( $display_name ) > 0 && in_array( substr( $display_name, 0, 1 ), array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
-				return new WP_Error( 'csv_injection', sprintf( 'Line %d: Invalid display_name format', $line_number ) );
+			$display_name = $this->sanitize_csv_field( $row['display_name'], 'display_name', $line_number );
+			if ( is_wp_error( $display_name ) ) {
+				return $display_name;
 			}
 			$validated['display_name'] = $display_name;
 		}
 
 		/* Optional: First/Last name */
 		if ( ! empty( $row['first_name'] ) ) {
-			$first_name = sanitize_text_field( $row['first_name'] );
-			/* Prevent CSV injection */
-			if ( strlen( $first_name ) > 0 && in_array( substr( $first_name, 0, 1 ), array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
-				return new WP_Error( 'csv_injection', sprintf( 'Line %d: Invalid first_name format', $line_number ) );
+			$first_name = $this->sanitize_csv_field( $row['first_name'], 'first_name', $line_number );
+			if ( is_wp_error( $first_name ) ) {
+				return $first_name;
 			}
 			$validated['first_name'] = $first_name;
 		}
 
 		if ( ! empty( $row['last_name'] ) ) {
-			$last_name = sanitize_text_field( $row['last_name'] );
-			/* Prevent CSV injection */
-			if ( strlen( $last_name ) > 0 && in_array( substr( $last_name, 0, 1 ), array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
-				return new WP_Error( 'csv_injection', sprintf( 'Line %d: Invalid last_name format', $line_number ) );
+			$last_name = $this->sanitize_csv_field( $row['last_name'], 'last_name', $line_number );
+			if ( is_wp_error( $last_name ) ) {
+				return $last_name;
 			}
 			$validated['last_name'] = $last_name;
 		}
@@ -418,17 +474,17 @@ class NBUF_Bulk_Import {
 			$validated['role'] = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
 		}
 
-		/* Process all other fields */
+		/* Process all other fields with comprehensive CSV injection prevention */
 		foreach ( $row as $key => $value ) {
 			if ( in_array( $key, array( 'user_email', 'user_login', 'user_pass', 'display_name', 'first_name', 'last_name', 'role' ), true ) ) {
 				continue; // Already processed.
 			}
 
 			if ( in_array( $key, $this->valid_profile_fields, true ) && ! empty( $value ) ) {
-				/* Prevent CSV injection (formulas) */
-				$sanitized = sanitize_text_field( $value );
-				if ( strlen( $sanitized ) > 0 && in_array( substr( $sanitized, 0, 1 ), array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
-					return new WP_Error( 'csv_injection', sprintf( 'Line %d: Invalid data format detected in field "%s"', $line_number, $key ) );
+				/* SECURITY: Comprehensive CSV injection prevention */
+				$sanitized = $this->sanitize_csv_field( $value, $key, $line_number );
+				if ( is_wp_error( $sanitized ) ) {
+					return $sanitized;
 				}
 				$validated[ $key ] = $sanitized;
 			}
@@ -726,6 +782,17 @@ class NBUF_Bulk_Import {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV output requires direct file access
 		$output = fopen( 'php://output', 'w' );
+		if ( false === $output ) {
+			NBUF_Security_Log::log(
+				'csv_output_failed',
+				'critical',
+				'Failed to open php://output stream for CSV error report export',
+				array(
+					'error_key' => $error_key,
+				)
+			);
+			wp_die( esc_html__( 'Failed to generate CSV report. Please try again or contact support.', 'nobloat-user-foundry' ) );
+		}
 		fputcsv( $output, array( 'Line Number', 'Error Message' ) );
 
 		foreach ( $errors as $error ) {

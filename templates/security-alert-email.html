@@ -1,0 +1,110 @@
+<html>
+<body style="font-family: Arial, sans-serif; background: #f8f8f8; padding: 20px;">
+  <table width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="padding: 30px;">
+        <!-- Header with security icon -->
+        <table width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="text-align: center; padding-bottom: 20px;">
+              <div style="width: 60px; height: 60px; background: #d63638; border-radius: 50%; display: inline-block; line-height: 60px; font-size: 32px;">
+                🛡️
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <h2 style="color: #d63638; margin-top: 0; text-align: center;">Security Alert</h2>
+        <p style="text-align: center; color: #666; font-size: 14px;">A critical security event was detected on your site</p>
+
+        <!-- Alert Box -->
+        <div style="background: #fff3cd; border-left: 4px solid #d63638; padding: 20px; margin: 25px 0; border-radius: 4px;">
+          <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="font-weight: 600; color: #d63638; padding-bottom: 10px;">Event Type:</td>
+            </tr>
+            <tr>
+              <td style="color: #333; padding-bottom: 15px; font-size: 16px;">{event_type}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600; color: #d63638; padding-bottom: 10px;">Message:</td>
+            </tr>
+            <tr>
+              <td style="color: #333;">{message}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Event Details Table -->
+        <h3 style="color: #333; margin-top: 30px; margin-bottom: 15px; font-size: 16px;">Event Details</h3>
+        <table style="width: 100%; border-collapse: collapse; background: #f9f9f9; border-radius: 4px;">
+          <tr style="border-bottom: 1px solid #e5e5e5;">
+            <td style="padding: 12px 15px; font-weight: 600; color: #666; width: 30%;">User:</td>
+            <td style="padding: 12px 15px; color: #333;">{username} <span style="color: #999;">(ID: {user_id})</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e5e5e5;">
+            <td style="padding: 12px 15px; font-weight: 600; color: #666;">Email:</td>
+            <td style="padding: 12px 15px; color: #333;">{user_email}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e5e5e5;">
+            <td style="padding: 12px 15px; font-weight: 600; color: #666;">IP Address:</td>
+            <td style="padding: 12px 15px; color: #333; font-family: monospace;">{ip_address}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 15px; font-weight: 600; color: #666;">Timestamp:</td>
+            <td style="padding: 12px 15px; color: #333; font-family: monospace;">{timestamp}</td>
+          </tr>
+        </table>
+
+        <!-- Context Details -->
+        <div style="background: #f0f0f1; padding: 20px; margin: 25px 0; border-radius: 4px; border: 1px solid #ddd;">
+          <strong style="color: #666; font-size: 14px;">Additional Context:</strong>
+          <pre style="margin: 12px 0 0 0; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; color: #333; font-family: monospace;">{context}</pre>
+        </div>
+
+        <!-- Action Button -->
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin: 30px 0;">
+          <tr>
+            <td style="text-align: center;">
+              <a href="{log_url}" style="background-color: #d63638; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 14px;">View Full Security Log</a>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Information Box -->
+        <div style="background: #e7f5fe; border-left: 4px solid #2271b1; padding: 15px; margin: 25px 0; border-radius: 4px;">
+          <p style="margin: 0; color: #1d2327; font-size: 13px;">
+            <strong>What should I do?</strong><br>
+            Review the security log to understand the nature of this event. If this was an attack attempt, consider:
+          </p>
+          <ul style="margin: 10px 0 0 15px; padding: 0; color: #1d2327; font-size: 13px;">
+            <li style="margin-bottom: 5px;">Reviewing user permissions and access levels</li>
+            <li style="margin-bottom: 5px;">Checking for suspicious file modifications</li>
+            <li style="margin-bottom: 5px;">Implementing additional security measures</li>
+            <li>Contacting your security team if this appears malicious</li>
+          </ul>
+        </div>
+
+        <!-- Footer -->
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e5e5;">
+        <table width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="text-align: center; padding-top: 10px;">
+              <p style="font-size: 12px; color: #999; margin: 5px 0;">
+                This is an automated security alert from <strong style="color: #666;">{site_name}</strong>
+              </p>
+              <p style="font-size: 12px; color: #999; margin: 5px 0;">
+                <a href="{site_url}" style="color: #2271b1; text-decoration: none;">{site_url}</a>
+              </p>
+              <p style="font-size: 11px; color: #bbb; margin: 15px 0 0 0;">
+                You received this email because critical security alerts are enabled for your site.<br>
+                To modify these settings, visit Security Log Settings in your WordPress admin.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

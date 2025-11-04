@@ -276,21 +276,20 @@ class NBUF_Shortcodes {
 		/*
 		Rate limiting: 3 requests per 15 minutes per email.
 		*/
-		/* SECURITY: Use atomic transient operation to prevent race condition */
-		$rate_key = 'nbuf_password_reset_rate_' . md5( strtolower( $user_login ) );
 
-		/* Try to create transient atomically - if it doesn't exist, this succeeds */
-		if ( ! add_transient( $rate_key, 1, 15 * MINUTE_IN_SECONDS ) ) {
-			/* Transient already exists - check and increment */
-			$attempts = (int) get_transient( $rate_key );
+		/*
+		 * SECURITY: Use SHA-256 instead of MD5 for rate limiting identifier.
+		 * MD5 is cryptographically broken and vulnerable to collision attacks.
+		 * SHA-256 prevents attackers from finding collisions to bypass rate limits.
+		 */
+		$rate_identifier = hash( 'sha256', strtolower( $user_login ) );
 
-			if ( $attempts >= 3 ) {
-				wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Too many password reset attempts. Please try again later.', 'nobloat-user-foundry' ) ), get_permalink( $page_id ) ) );
-				exit;
-			}
+		/* Atomically increment attempt counter */
+		$attempts = NBUF_Transients::increment( 'password_reset_rate', $rate_identifier, 1, 15 * MINUTE_IN_SECONDS );
 
-			/* Increment rate limit counter */
-			set_transient( $rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS );
+		if ( $attempts >= 3 ) {
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Too many password reset attempts. Please try again later.', 'nobloat-user-foundry' ) ), get_permalink( $page_id ) ) );
+			exit;
 		}
 
 		/* Get user by email */
@@ -607,14 +606,44 @@ class NBUF_Shortcodes {
 		$remember = isset( $_POST['rememberme'] ) && 'forever' === $_POST['rememberme'];
 
 		/*
-		* Validate redirect_to - prevent open redirect vulnerability.
-		* SECURITY: wp_validate_redirect returns default if validation fails.
-		*/
+		 * SECURITY: Prevent open redirect vulnerability with whitelist-based validation.
+		 * Only allow redirects to internal URLs within the same domain.
+		 * wp_validate_redirect() alone has known bypass vectors (protocol-relative URLs, punycode).
+		 */
 		$redirect = home_url();
 		if ( isset( $_POST['redirect_to'] ) ) {
 			$redirect_candidate = esc_url_raw( wp_unslash( $_POST['redirect_to'] ) );
-			/* wp_validate_redirect returns home_url() for invalid/external URLs */
-			$redirect = wp_validate_redirect( $redirect_candidate, home_url() );
+
+			/* Parse URL components to validate host */
+			$parsed       = wp_parse_url( $redirect_candidate );
+			$current_host = wp_parse_url( home_url(), PHP_URL_HOST );
+
+			/*
+			 * Only allow internal redirects:
+			 * - No host specified (relative URLs like /my-account)
+			 * - Host matches current site domain
+			 */
+			if ( empty( $parsed['host'] ) || $parsed['host'] === $current_host ) {
+				/* Additional validation with WordPress function */
+				$redirect = wp_validate_redirect( esc_url_raw( $redirect_candidate ), home_url() );
+			} else {
+				/* External redirect attempted - log security event and block */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'open_redirect_blocked',
+						'warning',
+						'Blocked external redirect attempt during login',
+						array(
+							'attempted_url' => $redirect_candidate,
+							'parsed_host'   => $parsed['host'] ?? 'none',
+							'current_host'  => $current_host,
+							'username'      => $username,
+						)
+					);
+				}
+				/* Fallback to home_url() for external redirects */
+				$redirect = home_url();
+			}
 		}
 
 		// Validate inputs.

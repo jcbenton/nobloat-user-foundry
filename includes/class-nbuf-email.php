@@ -121,6 +121,111 @@ class NBUF_Email {
 	}
 
 	/**
+	 * Send account approved email.
+	 *
+	 * Notifies user their account has been approved by an administrator.
+	 *
+	 * @param  string $user_email User email address.
+	 * @param  string $username   Username.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function send_account_approved_email( $user_email, $username ) {
+		$subject = sprintf(
+			/* translators: %s: Site name */
+			__( 'Your account has been approved on %s', 'nobloat-user-foundry' ),
+			wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES )
+		);
+
+		/* translators: 1: username, 2: site name, 3: login URL */
+		$message_template = __(
+			'Hello %1$s,
+
+Your account on %2$s has been approved by an administrator.
+
+You can now log in to your account:
+%3$s
+
+Thank you!',
+			'nobloat-user-foundry'
+		);
+
+		$message = sprintf(
+			$message_template,
+			sanitize_text_field( $username ),
+			wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			wp_login_url()
+		);
+
+		$sent = wp_mail( $user_email, $subject, $message );
+
+		if ( ! $sent ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical production logging for email failures.
+				sprintf(
+					'[NoBloat User Foundry] CRITICAL: Failed to send approval email to %s',
+					$user_email
+				)
+			);
+		}
+
+		return $sent;
+	}
+
+	/**
+	 * Send account rejected email.
+	 *
+	 * Notifies user their account has been rejected by an administrator.
+	 *
+	 * @param  string $user_email User email address.
+	 * @param  string $reason     Rejection reason (optional).
+	 * @return bool True on success, false on failure.
+	 */
+	public static function send_account_rejected_email( $user_email, $reason = '' ) {
+		$subject = sprintf(
+			/* translators: %s: Site name */
+			__( 'Account registration update from %s', 'nobloat-user-foundry' ),
+			wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES )
+		);
+
+		$message_parts = array(
+			sprintf(
+				/* translators: %s: Site name */
+				__( 'Your account registration on %s has been reviewed.', 'nobloat-user-foundry' ),
+				wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES )
+			),
+			'',
+			__( 'Unfortunately, your account was not approved at this time.', 'nobloat-user-foundry' ),
+		);
+
+		if ( ! empty( $reason ) && 'Bulk rejection by administrator' !== $reason && 'Rejected by administrator' !== $reason ) {
+			$message_parts[] = '';
+			$message_parts[] = __( 'Reason:', 'nobloat-user-foundry' );
+			$message_parts[] = sanitize_text_field( $reason );
+		}
+
+		$message_parts[] = '';
+		$message_parts[] = sprintf(
+			/* translators: %s: Site contact URL */
+			__( 'If you have questions, please contact us: %s', 'nobloat-user-foundry' ),
+			admin_url( 'admin.php?page=nobloat-foundry-users' )
+		);
+
+		$message = implode( "\n", $message_parts );
+
+		$sent = wp_mail( $user_email, $subject, $message );
+
+		if ( ! $sent ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical production logging for email failures.
+				sprintf(
+					'[NoBloat User Foundry] CRITICAL: Failed to send rejection email to %s',
+					$user_email
+				)
+			);
+		}
+
+		return $sent;
+	}
+
+	/**
 	 * Get template content.
 	 *
 	 * Fetches stored or fallback email template using Template Manager.

@@ -149,7 +149,11 @@ class NBUF_Hooks {
 		if ( strcasecmp( $user->user_email, $old_user_data->user_email ) !== 0 ) {
 			NBUF_User_Data::set_unverified( $user_id );
 
-			$token   = wp_generate_password( 32, false );
+			/*
+			 * SECURITY: Generate cryptographically secure verification token.
+			 * Use random_bytes() instead of wp_generate_password() for security tokens.
+			 */
+			$token   = bin2hex( random_bytes( 32 ) ); /* 64 hex characters, cryptographically secure */
 			$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
 			NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
@@ -241,6 +245,14 @@ class NBUF_Hooks {
 			return new WP_Error(
 				'email_not_verified',
 				__( 'Your email address has not been verified yet. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check admin approval (if user requires it) */
+		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
+			return new WP_Error(
+				'awaiting_approval',
+				__( 'Your account is pending administrator approval. You will receive an email once your account has been reviewed.', 'nobloat-user-foundry' )
 			);
 		}
 

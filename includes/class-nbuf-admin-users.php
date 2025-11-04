@@ -56,6 +56,11 @@ class NBUF_Admin_Users {
 		add_filter( 'user_row_actions', array( __CLASS__, 'add_resend_link' ), 10, 2 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_resend_verification' ) );
 
+		// Handle account status actions.
+		add_action( 'admin_init', array( __CLASS__, 'handle_manual_verify' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_approve_user' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_reject_user' ) );
+
 		// Handle 2FA admin actions.
 		add_action( 'admin_init', array( __CLASS__, 'handle_2fa_admin_actions' ) );
 
@@ -299,6 +304,63 @@ class NBUF_Admin_Users {
 				esc_url( $url ),
 				esc_html__( 'Resend Verification', 'nobloat-user-foundry' )
 			);
+
+			/* Manual verify link */
+			$verify_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'action'  => 'nbuf_manual_verify',
+						'user_id' => $user->ID,
+					),
+					admin_url( 'users.php' )
+				),
+				'nbuf_manual_verify_' . $user->ID
+			);
+
+			$actions['nbuf_manual_verify'] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $verify_url ),
+				esc_html__( 'Manual Verify', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Approval actions for users requiring approval */
+		if ( NBUF_User_Data::requires_approval( $user->ID ) && ! NBUF_User_Data::is_approved( $user->ID ) ) {
+			/* Approve link */
+			$approve_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'action'  => 'nbuf_approve',
+						'user_id' => $user->ID,
+					),
+					admin_url( 'users.php' )
+				),
+				'nbuf_approve_' . $user->ID
+			);
+
+			$actions['nbuf_approve'] = sprintf(
+				'<a href="%s" style="color:#0a0;">%s</a>',
+				esc_url( $approve_url ),
+				esc_html__( 'Approve', 'nobloat-user-foundry' )
+			);
+
+			/* Reject link */
+			$reject_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'action'  => 'nbuf_reject',
+						'user_id' => $user->ID,
+					),
+					admin_url( 'users.php' )
+				),
+				'nbuf_reject_' . $user->ID
+			);
+
+			$actions['nbuf_reject'] = sprintf(
+				'<a href="%s" style="color:#c00;">%s</a>',
+				esc_url( $reject_url ),
+				esc_html__( 'Reject', 'nobloat-user-foundry' )
+			);
 		}
 
 		/* Reset 2FA link for users with 2FA enabled */
@@ -353,6 +415,8 @@ class NBUF_Admin_Users {
 	public static function register_bulk_actions( $bulk_actions ) {
 		$bulk_actions['nbuf_bulk_verify']                = __( 'Mark as Verified', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_unverify']              = __( 'Remove Verification', 'nobloat-user-foundry' );
+		$bulk_actions['nbuf_bulk_approve']               = __( 'Approve Users', 'nobloat-user-foundry' );
+		$bulk_actions['nbuf_bulk_reject']                = __( 'Reject Users', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_disable']               = __( 'Disable User', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_enable']                = __( 'Enable User', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_set_expiration']        = __( 'Set Expiration Date', 'nobloat-user-foundry' );
@@ -396,6 +460,36 @@ class NBUF_Admin_Users {
 				++$count;
 			}
 			return add_query_arg( 'nbuf_bulk_unverified', $count, $redirect_to );
+		}
+
+		/* Approve Users - skip admins */
+		if ( 'nbuf_bulk_approve' === $action ) {
+			$admin_id = get_current_user_id();
+			foreach ( $user_ids as $user_id ) {
+				$user = get_userdata( $user_id );
+				/* Skip admins */
+				if ( $user && user_can( $user, 'manage_options' ) ) {
+					continue;
+				}
+				NBUF_User_Data::approve_user( $user_id, $admin_id, 'Bulk approval by administrator' );
+				++$count;
+			}
+			return add_query_arg( 'nbuf_bulk_approved', $count, $redirect_to );
+		}
+
+		/* Reject Users - skip admins */
+		if ( 'nbuf_bulk_reject' === $action ) {
+			$admin_id = get_current_user_id();
+			foreach ( $user_ids as $user_id ) {
+				$user = get_userdata( $user_id );
+				/* Skip admins */
+				if ( $user && user_can( $user, 'manage_options' ) ) {
+					continue;
+				}
+				NBUF_User_Data::reject_user( $user_id, $admin_id, 'Bulk rejection by administrator' );
+				++$count;
+			}
+			return add_query_arg( 'nbuf_bulk_rejected', $count, $redirect_to );
 		}
 
 		/* Disable User - set in DB + kill all sessions */
@@ -535,8 +629,11 @@ class NBUF_Admin_Users {
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table, array( 'user_id' => $user_id ) );
 
-		/* Generate and store new token */
-		$token   = wp_generate_password( 32, false );
+		/*
+		 * SECURITY: Generate cryptographically secure verification token.
+		 * Use random_bytes() instead of wp_generate_password() for security tokens.
+		 */
+		$token   = bin2hex( random_bytes( 32 ) ); /* 64 hex characters, cryptographically secure */
 		$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 		NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
 
@@ -545,6 +642,105 @@ class NBUF_Admin_Users {
 
 		/* Redirect with admin notice */
 		wp_safe_redirect( add_query_arg( 'nbuf_resend', 'success', admin_url( 'users.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Handle manual verify action.
+	 *
+	 * Allows admin to manually verify a user without email verification.
+	 */
+	public static function handle_manual_verify() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
+		if ( ! isset( $_GET['action'] ) || 'nbuf_manual_verify' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action, capability checked below.
+		$user_id = isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0;
+		if ( ! $user_id || ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to manually verify users.', 'nobloat-user-foundry' ) );
+		}
+
+		check_admin_referer( 'nbuf_manual_verify_' . $user_id );
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Manually verify the user */
+		$admin_id = get_current_user_id();
+		NBUF_User_Data::manually_verify( $user_id, $admin_id );
+
+		/* Redirect with admin notice */
+		wp_safe_redirect( add_query_arg( 'nbuf_manual_verified', 'success', admin_url( 'users.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Handle approve user action.
+	 *
+	 * Approves a user account that requires admin approval.
+	 */
+	public static function handle_approve_user() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
+		if ( ! isset( $_GET['action'] ) || 'nbuf_approve' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action, capability checked below.
+		$user_id = isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0;
+		if ( ! $user_id || ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to approve users.', 'nobloat-user-foundry' ) );
+		}
+
+		check_admin_referer( 'nbuf_approve_' . $user_id );
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Approve the user */
+		$admin_id = get_current_user_id();
+		NBUF_User_Data::approve_user( $user_id, $admin_id, 'Approved by administrator' );
+
+		/* Redirect with admin notice */
+		wp_safe_redirect( add_query_arg( 'nbuf_approved', 'success', admin_url( 'users.php' ) ) );
+		exit;
+	}
+
+	/**
+	 * Handle reject user action.
+	 *
+	 * Rejects a user account that requires admin approval.
+	 */
+	public static function handle_reject_user() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
+		if ( ! isset( $_GET['action'] ) || 'nbuf_reject' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action, capability checked below.
+		$user_id = isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0;
+		if ( ! $user_id || ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to reject users.', 'nobloat-user-foundry' ) );
+		}
+
+		check_admin_referer( 'nbuf_reject_' . $user_id );
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Reject the user */
+		$admin_id = get_current_user_id();
+		NBUF_User_Data::reject_user( $user_id, $admin_id, 'Rejected by administrator' );
+
+		/* Redirect with admin notice */
+		wp_safe_redirect( add_query_arg( 'nbuf_rejected', 'success', admin_url( 'users.php' ) ) );
 		exit;
 	}
 

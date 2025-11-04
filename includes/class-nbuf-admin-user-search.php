@@ -551,6 +551,14 @@ class NBUF_Admin_User_Search {
 		*/
      // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Direct output stream for CSV export.
 		$output = fopen( 'php://output', 'w' );
+		if ( false === $output ) {
+			NBUF_Security_Log::log(
+				'csv_output_failed',
+				'critical',
+				'Failed to open php://output stream for user list CSV export'
+			);
+			wp_die( esc_html__( 'Failed to generate CSV export. Please try again or contact support.', 'nobloat-user-foundry' ) );
+		}
 
 		/*
 		Add UTF-8 BOM for Excel compatibility

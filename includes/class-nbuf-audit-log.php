@@ -480,6 +480,15 @@ class NBUF_Audit_Log {
 		/* Convert to CSV string */
 		ob_start();
 		$output = fopen( 'php://output', 'w' );
+		if ( false === $output ) {
+			NBUF_Security_Log::log(
+				'csv_output_failed',
+				'critical',
+				'Failed to open php://output stream for audit log CSV export'
+			);
+			ob_end_clean();
+			return '';
+		}
 		foreach ( $csv as $row ) {
 			fputcsv( $output, $row );
 		}
@@ -572,7 +581,7 @@ class NBUF_Audit_Log {
 		);
 
 		/* Update last cleanup time */
-		NBUF_Options::update( 'nbuf_audit_log_last_cleanup', current_time( 'mysql' ), true, 'system' );
+		NBUF_Options::update( 'nbuf_audit_log_last_cleanup', current_time( 'mysql', true ), true, 'system' ); // Store in UTC.
 
 		return (int) $deleted;
 	}

@@ -91,7 +91,30 @@ class NBUF_Registration {
 			return new WP_Error( 'invalid_email', __( 'Please provide a valid email address.', 'nobloat-user-foundry' ) );
 		}
 
-		if ( email_exists( $data['email'] ) ) {
+		/*
+		 * SECURITY: Prevent email enumeration via timing attack.
+		 * Always perform the same expensive operations regardless of whether email exists.
+		 * This ensures constant-time response to prevent timing-based user enumeration.
+		 */
+		$email_exists = email_exists( $data['email'] );
+
+		/*
+		 * Perform dummy password hash operation when email doesn't exist.
+		 * This matches the timing of the password hashing that occurs later for valid registrations.
+		 * Without this, attackers could measure response time to determine if email exists.
+		 */
+		if ( ! $email_exists ) {
+			static $dummy_hash = null;
+			if ( null === $dummy_hash ) {
+				$dummy_hash = wp_hash_password( 'timing_protection_' . wp_salt() );
+			}
+			/* Execute password check to consume similar time as real registration path */
+			if ( ! empty( $data['password'] ) ) {
+				wp_check_password( $data['password'], $dummy_hash );
+			}
+		}
+
+		if ( $email_exists ) {
 			/* Use generic message to prevent email enumeration */
 			return new WP_Error( 'registration_error', __( 'Registration could not be completed. Please try again or contact support.', 'nobloat-user-foundry' ) );
 		}
@@ -185,6 +208,11 @@ class NBUF_Registration {
 			return $user_id;
 		}
 
+		/* Assign user role based on settings */
+		$default_role = NBUF_Options::get( 'nbuf_new_user_default_role', 'subscriber' );
+		$user         = new WP_User( $user_id );
+		$user->set_role( $default_role );
+
 		/* Update user meta with first name and last name */
 		if ( ! empty( $data['first_name'] ) ) {
 			update_user_meta( $user_id, 'first_name', sanitize_text_field( $data['first_name'] ) );
@@ -228,6 +256,14 @@ class NBUF_Registration {
 			if ( class_exists( 'NBUF_User_Data' ) ) {
 				NBUF_User_Data::set_verified( $user_id );
 			}
+		}
+
+		/* Check if admin approval is required */
+		$require_approval = NBUF_Options::get( 'nbuf_require_approval', false );
+
+		if ( $require_approval && class_exists( 'NBUF_User_Data' ) ) {
+			/* Set user to require approval */
+			NBUF_User_Data::set_requires_approval( $user_id, true );
 		}
 
 		/* Trigger WordPress registration action (will send verification email if enabled) */

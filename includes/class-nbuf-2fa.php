@@ -302,60 +302,72 @@ If you did not request this code, please ignore this email.
 		$transient_key = 'nbuf_2fa_email_code_' . $user_id;
 		$stored_hash   = get_transient( $transient_key );
 
-		/* Sanitize input - remove all non-numeric characters */
-		$code = preg_replace( '/[^0-9]/', '', $code );
-
-		/* Validate code length before expensive operations */
+		/*
+		 * SECURITY: Sanitize and normalize input for constant-time comparison.
+		 * Remove all non-numeric characters first.
+		 */
+		$code            = preg_replace( '/[^0-9]/', '', $code );
 		$expected_length = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
-		if ( strlen( $code ) !== $expected_length ) {
-			self::record_failed_attempt( $user_id );
-			return new WP_Error(
-				'2fa_invalid_code',
-				__( 'Invalid verification code. Please try again.', 'nobloat-user-foundry' )
-			);
+
+		/*
+		 * SECURITY: Normalize code length to prevent timing attack.
+		 * Pad or truncate to expected length BEFORE bcrypt verification.
+		 * This ensures all code paths perform the expensive bcrypt operation.
+		 */
+		$code_length = strlen( $code );
+		if ( $code_length < $expected_length ) {
+			/* Pad short codes with zeros to expected length */
+			$code = str_pad( $code, $expected_length, '0' );
+		} elseif ( $code_length > $expected_length ) {
+			/* Truncate long codes to expected length */
+			$code = substr( $code, 0, $expected_length );
 		}
 
 		/*
-		* SECURITY: Timing attack protection
-		*
-		* Always perform password check even if code expired. If we return early on
-		* expiration without hashing, the timing difference reveals whether a valid
-		* code exists. bcrypt verification takes ~50-100ms, so early return creates
-		* a measurable timing oracle.
-		*
-		* Solution: Use dummy hash with same bcrypt cost factor as real codes.
-		* This ensures both code paths (expired vs valid) take approximately the
-		* same time (~50-100ms), preventing timing side-channel attacks.
-		*/
-		if ( false === $stored_hash ) {
+		 * SECURITY: Always perform bcrypt operation for timing attack protection.
+		 *
+		 * Both code paths (expired vs valid) must take the same time (~50-100ms).
+		 * If we return early without hashing, timing differences reveal code validity.
+		 *
+		 * Solution: Use dummy hash when code expired, real hash when valid.
+		 * Both paths perform bcrypt verification for constant-time behavior.
+		 */
+		$stored_hash = get_transient( $transient_key );
+		$code_valid  = false;
+		$code_exists = false !== $stored_hash;
+
+		if ( ! $code_exists ) {
 			/*
-			* SECURITY: Dynamic dummy hash for constant-time comparison
-			*
-			* Generate dummy hash with same cost factor as wp_hash_password().
-			* This ensures timing protection remains effective even if WordPress
-			* changes default bcrypt cost factor in future versions.
-			*/
+			 * SECURITY: Generate dummy hash with same bcrypt cost factor.
+			 * Ensures timing protection even if WordPress changes cost in future.
+			 */
 			static $dummy_hash = null;
 			if ( null === $dummy_hash ) {
 				$dummy_hash = wp_hash_password( 'dummy_2fa_timing_protection_' . wp_salt() );
 			}
-			wp_check_password( $code, $dummy_hash );
+			$stored_hash = $dummy_hash;
+		}
 
+		/*
+		 * SECURITY: Always perform bcrypt verification regardless of whether code exists.
+		 * This makes timing identical for both expired and valid codes.
+		 */
+		$code_valid = wp_check_password( $code, $stored_hash );
+
+		/*
+		 * Now check results AFTER timing-consistent operations.
+		 * Return appropriate error based on what actually failed.
+		 */
+		if ( ! $code_exists ) {
+			self::record_failed_attempt( $user_id );
 			return new WP_Error(
 				'2fa_code_expired',
 				__( 'Verification code has expired. Please request a new code.', 'nobloat-user-foundry' )
 			);
 		}
 
-		/*
-		* SECURITY: Verify code using bcrypt password verification
-		*
-		* wp_check_password() uses password_verify() internally, which:
-		* 1. Is constant-time for comparison (timing attack resistant)
-		* 2. Automatically handles bcrypt salt and cost factor
-		* 3. Is consistent with backup code verification logic (line 350)
-		*/
-		if ( ! wp_check_password( $code, $stored_hash ) ) {
+		/* Check if the provided code was invalid (wrong length or wrong digits) */
+		if ( $code_length !== $expected_length || ! $code_valid ) {
 			self::record_failed_attempt( $user_id );
 			return new WP_Error(
 				'2fa_invalid_code',
@@ -363,7 +375,7 @@ If you did not request this code, please ignore this email.
 			);
 		}
 
-		/* Success - delete code immediately (single use) and clear attempts */
+		/* Success - code was valid, delete it immediately (single use) and clear attempts */
 		delete_transient( $transient_key );
 		self::clear_attempts( $user_id );
 

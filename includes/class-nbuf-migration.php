@@ -65,6 +65,7 @@ class NBUF_Migration {
 		add_action( 'wp_ajax_nbuf_get_restrictions_preview', array( __CLASS__, 'ajax_get_restrictions_preview' ) );
 		add_action( 'wp_ajax_nbuf_get_roles_preview', array( __CLASS__, 'ajax_get_roles_preview' ) );
 		add_action( 'wp_ajax_nbuf_execute_migration', array( __CLASS__, 'ajax_execute_migration' ) );
+		add_action( 'wp_ajax_nbuf_execute_migration_batch', array( __CLASS__, 'ajax_execute_migration_batch' ) );
 	}
 
 	/**
@@ -776,5 +777,197 @@ class NBUF_Migration {
 		}
 
 		wp_send_json_success( $results );
+	}
+
+	/**
+	 * AJAX: Execute migration in batches with progress tracking
+	 *
+	 * Processes users in batches to avoid PHP timeout issues
+	 * Returns progress data for real-time UI updates
+	 *
+	 * Security: Implements rate limiting, migration locking, input validation, and whitelisting
+	 */
+	public static function ajax_execute_migration_batch() {
+		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Rate limiting: max 60 requests per minute per user */
+		$user_id  = get_current_user_id();
+		$rate_key = 'nbuf_rate_limit_migration_batch_' . $user_id;
+		$attempts = get_transient( $rate_key );
+
+		if ( false === $attempts ) {
+			set_transient( $rate_key, 1, MINUTE_IN_SECONDS );
+		} else {
+			if ( $attempts >= 60 ) {
+				wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before retrying.', 'nobloat-user-foundry' ) ) );
+			}
+			set_transient( $rate_key, $attempts + 1, MINUTE_IN_SECONDS );
+		}
+
+		/* Migration lock: prevent concurrent migrations by same user */
+		$migration_lock_key = 'nbuf_migration_lock_' . $user_id;
+		$migration_lock     = get_transient( $migration_lock_key );
+
+		if ( $migration_lock ) {
+			wp_send_json_error( array( 'message' => __( 'A migration is already in progress. Please wait for it to complete.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Set migration lock for 5 minutes */
+		set_transient( $migration_lock_key, time(), 5 * MINUTE_IN_SECONDS );
+
+		/* Increase execution time for this batch (only if safe) */
+		if ( ! ini_get( 'safe_mode' ) && function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Error suppression required if disabled in php.ini.
+			@set_time_limit( 120 );
+		}
+
+		/* Validate plugin slug against whitelist */
+		$plugin_slug     = isset( $_POST['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_slug'] ) ) : '';
+		$allowed_plugins = array( 'ultimate-member', 'buddypress' );
+
+		if ( empty( $plugin_slug ) || ! in_array( $plugin_slug, $allowed_plugins, true ) ) {
+			delete_transient( $migration_lock_key );
+			wp_send_json_error( array( 'message' => __( 'Invalid or unauthorized plugin slug', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify mapper exists */
+		$mapper = self::get_mapper( $plugin_slug );
+		if ( ! $mapper && 'buddypress' !== $plugin_slug ) {
+			delete_transient( $migration_lock_key );
+			wp_send_json_error( array( 'message' => __( 'Plugin mapper not found', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Validate batch parameters with enforced limits */
+		$batch_offset   = isset( $_POST['batch_offset'] ) ? absint( $_POST['batch_offset'] ) : 0;
+		$batch_size     = isset( $_POST['batch_size'] ) ? absint( $_POST['batch_size'] ) : 50;
+		$min_batch_size = 1;
+		$max_batch_size = 100;
+
+		if ( $batch_size < $min_batch_size ) {
+			$batch_size = $min_batch_size;
+		}
+
+		if ( $batch_size > $max_batch_size ) {
+			$batch_size = $max_batch_size;
+		}
+
+		/* Parse and validate migration types with whitelist */
+		$migration_types = array();
+		if ( isset( $_POST['migration_types'] ) && ! empty( $_POST['migration_types'] ) ) {
+			$migration_types_json = sanitize_text_field( wp_unslash( $_POST['migration_types'] ) );
+			$decoded              = json_decode( $migration_types_json, true );
+
+			if ( is_array( $decoded ) ) {
+				$allowed_types = array( 'profile_data', 'restrictions', 'roles' );
+
+				foreach ( $decoded as $type ) {
+					/* Ensure each type is a string and in allowed list */
+					if ( is_string( $type ) && in_array( $type, $allowed_types, true ) ) {
+						$migration_types[] = $type;
+					}
+				}
+			}
+		}
+
+		/* Validate we have at least one valid migration type */
+		if ( empty( $migration_types ) ) {
+			delete_transient( $migration_lock_key );
+			wp_send_json_error( array( 'message' => __( 'No valid migration types selected', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Parse and validate field mappings */
+		$field_mappings = array();
+		if ( isset( $_POST['field_mappings'] ) && ! empty( $_POST['field_mappings'] ) ) {
+			$field_mappings_json = sanitize_text_field( wp_unslash( $_POST['field_mappings'] ) );
+			$decoded             = json_decode( $field_mappings_json, true );
+
+			if ( is_array( $decoded ) ) {
+				/* Validate each mapping */
+				foreach ( $decoded as $source_field => $target_field ) {
+					/* Sanitize both source and target */
+					$source_field = sanitize_text_field( $source_field );
+					$target_field = sanitize_text_field( $target_field );
+
+					/* Ensure both are non-empty strings */
+					if ( ! empty( $source_field ) && ! empty( $target_field ) &&
+						is_string( $source_field ) && is_string( $target_field ) ) {
+						$field_mappings[ $source_field ] = $target_field;
+					}
+				}
+			}
+		}
+
+		/* Parse copy_photos option with explicit true value checking */
+		$copy_photos = true; /* Default to true */
+		if ( isset( $_POST['copy_photos'] ) ) {
+			$value       = sanitize_text_field( wp_unslash( $_POST['copy_photos'] ) );
+			$copy_photos = in_array( $value, array( '1', 'true', 'yes', 'on' ), true );
+		}
+
+		$results = array();
+
+		/* Execute profile data migration for this batch */
+		if ( in_array( 'profile_data', $migration_types, true ) ) {
+			if ( 'ultimate-member' === $plugin_slug ) {
+				$mapper = self::get_mapper( $plugin_slug );
+				if ( $mapper ) {
+					$options = array(
+						'send_emails'   => false,
+						'set_verified'  => true,
+						'skip_existing' => false,
+						'batch_size'    => $batch_size,
+						'batch_offset'  => $batch_offset,
+						'copy_photos'   => $copy_photos,
+					);
+
+					$results['profile_data'] = $mapper->batch_import( $options, $field_mappings );
+				}
+			} elseif ( 'buddypress' === $plugin_slug ) {
+				if ( class_exists( 'NBUF_Migration_BP_Profile' ) ) {
+					$options = array(
+						'field_mapping_override' => $field_mappings,
+						'batch_size'             => $batch_size,
+						'batch_offset'           => $batch_offset,
+						'copy_photos'            => $copy_photos,
+					);
+
+					$results['profile_data'] = NBUF_Migration_BP_Profile::migrate_profile_data( $options );
+				}
+			}
+		}
+
+		/* Get total user count for progress calculation */
+		$total_users = count_users();
+		$total_users = $total_users['total_users'];
+
+		/* Calculate if we're done */
+		$processed    = $batch_offset + $batch_size;
+		$is_completed = $processed >= $total_users;
+
+		/* Prepare response */
+		$response = array(
+			'processed'  => min( $processed, $total_users ),
+			'total'      => $total_users,
+			'offset'     => $batch_offset + $batch_size,
+			'completed'  => $is_completed,
+			'batch_size' => $batch_size,
+			'results'    => $results,
+		);
+
+		/* Log to history if completed */
+		if ( $is_completed ) {
+			foreach ( $results as $type => $data ) {
+				self::log_import_history( $plugin_slug . '_' . $type, $data );
+			}
+		}
+
+		/* Clear migration lock */
+		delete_transient( $migration_lock_key );
+
+		wp_send_json_success( $response );
 	}
 }

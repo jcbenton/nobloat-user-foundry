@@ -55,14 +55,32 @@ class NBUF_Account_Merger {
 				continue;
 			}
 
+			/* Get user photos if profile photos feature is enabled */
+			$profile_photo_url = null;
+			$cover_photo_url   = null;
+			if ( class_exists( 'NBUF_Profile_Photos' ) ) {
+				$profile_photo_url = NBUF_Profile_Photos::get_profile_photo( $user_id, 150 );
+				$cover_photo_url   = NBUF_Profile_Photos::get_cover_photo( $user_id );
+			}
+
+			/* Get user data to check for custom uploaded photos */
+			$user_data          = NBUF_User_Data::get( $user_id );
+			$has_custom_profile = ! empty( $user_data['profile_photo_url'] );
+			$has_cover          = ! empty( $user_data['cover_photo_url'] );
+
 			$accounts[ $user_id ] = array(
-				'user_login'    => $user->user_login,
-				'user_email'    => $user->user_email,
-				'display_name'  => $user->display_name,
-				'first_name'    => $user->first_name,
-				'last_name'     => $user->last_name,
-				'post_count'    => count_user_posts( $user_id ),
-				'comment_count' => self::get_user_comment_count( $user_id ),
+				'user_login'         => $user->user_login,
+				'user_email'         => $user->user_email,
+				'display_name'       => $user->display_name,
+				'first_name'         => $user->first_name,
+				'last_name'          => $user->last_name,
+				'post_count'         => count_user_posts( $user_id ),
+				'comment_count'      => self::get_user_comment_count( $user_id ),
+				'profile_photo_url'  => $profile_photo_url,
+				'cover_photo_url'    => $cover_photo_url,
+				'has_custom_profile' => $has_custom_profile,
+				'has_cover'          => $has_cover,
+				'roles'              => $user->roles,
 			);
 		}
 
@@ -116,9 +134,122 @@ class NBUF_Account_Merger {
 			$unique_values = array_unique( $unique_values );
 			if ( count( $unique_values ) > 1 ) {
 				$conflicts[] = array(
+					'type'   => 'profile_field',
 					'field'  => $field,
 					'label'  => $label,
 					'values' => $values,
+				);
+			}
+		}
+
+		/* Detect photo conflicts */
+		$photo_conflicts = self::detect_photo_conflicts( $account_ids );
+		if ( ! empty( $photo_conflicts ) ) {
+			$conflicts = array_merge( $conflicts, $photo_conflicts );
+		}
+
+		/* Detect role conflicts */
+		$role_conflicts = self::detect_role_conflicts( $account_ids );
+		if ( ! empty( $role_conflicts ) ) {
+			$conflicts = array_merge( $conflicts, $role_conflicts );
+		}
+
+		return $conflicts;
+	}
+
+	/**
+	 * Detect photo conflicts across multiple accounts
+	 *
+	 * @param  array $account_ids Array of user IDs.
+	 * @return array Array of photo conflicts.
+	 */
+	private static function detect_photo_conflicts( $account_ids ) {
+		$conflicts = array();
+
+		if ( ! class_exists( 'NBUF_Profile_Photos' ) ) {
+			return $conflicts;
+		}
+
+		/* Check for profile photo conflicts */
+		$profile_photos = array();
+		foreach ( $account_ids as $user_id ) {
+			$user_data = NBUF_User_Data::get( $user_id );
+			if ( ! empty( $user_data['profile_photo_url'] ) ) {
+				$profile_photos[ $user_id ] = array(
+					'url'  => $user_data['profile_photo_url'],
+					'path' => $user_data['profile_photo_path'],
+				);
+			}
+		}
+
+		if ( count( $profile_photos ) > 1 ) {
+			$conflicts[] = array(
+				'type'   => 'photo',
+				'field'  => 'profile_photo',
+				'label'  => __( 'Profile Photo', 'nobloat-user-foundry' ),
+				'values' => $profile_photos,
+			);
+		}
+
+		/* Check for cover photo conflicts */
+		$cover_photos = array();
+		foreach ( $account_ids as $user_id ) {
+			$user_data = NBUF_User_Data::get( $user_id );
+			if ( ! empty( $user_data['cover_photo_url'] ) ) {
+				$cover_photos[ $user_id ] = array(
+					'url'  => $user_data['cover_photo_url'],
+					'path' => $user_data['cover_photo_path'],
+				);
+			}
+		}
+
+		if ( count( $cover_photos ) > 1 ) {
+			$conflicts[] = array(
+				'type'   => 'photo',
+				'field'  => 'cover_photo',
+				'label'  => __( 'Cover Photo', 'nobloat-user-foundry' ),
+				'values' => $cover_photos,
+			);
+		}
+
+		return $conflicts;
+	}
+
+	/**
+	 * Detect role conflicts across multiple accounts
+	 *
+	 * @param  array $account_ids Array of user IDs.
+	 * @return array Array of role conflicts.
+	 */
+	private static function detect_role_conflicts( $account_ids ) {
+		$conflicts  = array();
+		$all_roles  = array();
+		$role_names = wp_roles()->get_names();
+
+		/* Collect all roles from all accounts */
+		foreach ( $account_ids as $user_id ) {
+			$user = get_userdata( $user_id );
+			if ( $user && ! empty( $user->roles ) ) {
+				$all_roles[ $user_id ] = $user->roles;
+			}
+		}
+
+		/* Check if there are role differences */
+		if ( count( $all_roles ) > 1 ) {
+			$role_sets = array();
+			foreach ( $all_roles as $user_id => $roles ) {
+				$role_sets[] = implode( ',', $roles );
+			}
+			$unique_role_sets = array_unique( $role_sets );
+
+			/* Only create conflict if roles are different */
+			if ( count( $unique_role_sets ) > 1 ) {
+				$conflicts[] = array(
+					'type'   => 'role',
+					'field'  => 'user_roles',
+					'label'  => __( 'User Roles', 'nobloat-user-foundry' ),
+					'values' => $all_roles,
+					'names'  => $role_names,
 				);
 			}
 		}
@@ -166,6 +297,18 @@ class NBUF_Account_Merger {
 		$secondary_action = isset( $_POST['nbuf_secondary_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_secondary_action'] ) ) : 'delete';
 		$notify_user      = isset( $_POST['nbuf_notify_user'] );
 
+		/* Collect conflict resolution selections */
+		$conflict_selections = array();
+
+		/* Collect all conflict resolution fields from POST data */
+		foreach ( $_POST as $key => $value ) {
+			/* Look for conflict selection fields (format: nbuf_conflict_{field}) */
+			if ( 0 === strpos( $key, 'nbuf_conflict_' ) ) {
+				$field                         = str_replace( 'nbuf_conflict_', '', $key );
+				$conflict_selections[ $field ] = sanitize_text_field( wp_unslash( $value ) );
+			}
+		}
+
 		/* Validate */
 		if ( count( $account_ids ) < 2 || ! $primary_id || ! in_array( $primary_id, $account_ids, true ) ) {
 			wp_die( esc_html__( 'Invalid merge parameters', 'nobloat-user-foundry' ) );
@@ -174,13 +317,14 @@ class NBUF_Account_Merger {
 		/* Execute merge */
 		$result = self::execute_merge(
 			array(
-				'primary_id'       => $primary_id,
-				'account_ids'      => $account_ids,
-				'merge_posts'      => $merge_posts,
-				'merge_comments'   => $merge_comments,
-				'merge_meta'       => $merge_meta,
-				'secondary_action' => $secondary_action,
-				'notify_user'      => $notify_user,
+				'primary_id'          => $primary_id,
+				'account_ids'         => $account_ids,
+				'merge_posts'         => $merge_posts,
+				'merge_comments'      => $merge_comments,
+				'merge_meta'          => $merge_meta,
+				'secondary_action'    => $secondary_action,
+				'notify_user'         => $notify_user,
+				'conflict_selections' => $conflict_selections,
 			)
 		);
 
@@ -218,16 +362,18 @@ class NBUF_Account_Merger {
 	 *
 	 * @param  array $args Merge parameters.
 	 * @return array Result array with success status and message.
+	 * @throws Exception When merge operations fail (caught internally and returned as error).
 	 */
 	public static function execute_merge( $args ) {
 		$defaults = array(
-			'primary_id'       => 0,
-			'account_ids'      => array(),
-			'merge_posts'      => true,
-			'merge_comments'   => true,
-			'merge_meta'       => true,
-			'secondary_action' => 'delete',
-			'notify_user'      => false,
+			'primary_id'          => 0,
+			'account_ids'         => array(),
+			'merge_posts'         => true,
+			'merge_comments'      => true,
+			'merge_meta'          => true,
+			'secondary_action'    => 'delete',
+			'notify_user'         => false,
+			'conflict_selections' => array(),
 		);
 
 		$args = wp_parse_args( $args, $defaults );
@@ -272,6 +418,9 @@ class NBUF_Account_Merger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction management for atomic account merge operations.
 		$wpdb->query( 'START TRANSACTION' );
 
+		/* Track copied files for cleanup on rollback */
+		$copied_files = array();
+
 		try {
 			/* Consolidate emails */
 			self::consolidate_emails( $args['primary_id'], $secondary_ids );
@@ -291,13 +440,31 @@ class NBUF_Account_Merger {
 				self::merge_user_meta( $args['primary_id'], $secondary_ids );
 			}
 
+			/* Handle photo conflicts - track copied files */
+			if ( ! empty( $args['conflict_selections'] ) ) {
+				self::handle_photo_conflicts( $args['primary_id'], $secondary_ids, $args['conflict_selections'], $copied_files );
+				self::handle_role_conflicts( $args['primary_id'], $args['conflict_selections'] );
+			}
+
 			/* Handle secondary accounts */
 			foreach ( $secondary_ids as $secondary_id ) {
 				if ( 'delete' === $args['secondary_action'] ) {
 					include_once ABSPATH . 'wp-admin/includes/user.php';
-					wp_delete_user( $secondary_id, $args['primary_id'] );
+					$delete_result = wp_delete_user( $secondary_id, $args['primary_id'] );
+
+					/* wp_delete_user returns true on success, false/WP_Error on failure */
+					if ( is_wp_error( $delete_result ) ) {
+						throw new Exception( 'Failed to delete secondary user ' . $secondary_id . ': ' . $delete_result->get_error_message() );
+					} elseif ( false === $delete_result ) {
+						throw new Exception( 'Failed to delete secondary user ' . $secondary_id );
+					}
 				} elseif ( 'disable' === $args['secondary_action'] ) {
-					NBUF_User_Data::disable_user( $secondary_id, 'merged' );
+					$disable_result = NBUF_User_Data::disable_user( $secondary_id, 'merged' );
+
+					/* Check if disable operation failed */
+					if ( false === $disable_result ) {
+						throw new Exception( 'Failed to disable secondary user ' . $secondary_id );
+					}
 				}
 			}
 
@@ -321,7 +488,11 @@ class NBUF_Account_Merger {
 			 * Commit transaction
 			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Commit transaction for atomic account merge.
-			$wpdb->query( 'COMMIT' );
+			$commit_result = $wpdb->query( 'COMMIT' );
+
+			if ( false === $commit_result ) {
+				throw new Exception( 'Transaction commit failed: ' . ( $wpdb->last_error ? $wpdb->last_error : 'Unknown database error' ) );
+			}
 
 			/* Send notification */
 			if ( $args['notify_user'] ) {
@@ -342,7 +513,40 @@ class NBUF_Account_Merger {
 			 * Rollback on error
 			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Rollback transaction on error.
-			$wpdb->query( 'ROLLBACK' );
+			$rollback_result = $wpdb->query( 'ROLLBACK' );
+
+			/* Log if rollback itself failed */
+			$rollback_failed = false;
+			if ( false === $rollback_result ) {
+				$rollback_failed = true;
+				error_log( '[NoBloat User Foundry] CRITICAL: Transaction rollback failed during account merge. Database may be in inconsistent state. Error: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging for failed rollback.
+			}
+
+			/* Cleanup copied files on rollback */
+			foreach ( $copied_files as $file_path ) {
+				if ( file_exists( $file_path ) ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup copied files on transaction rollback.
+					wp_delete_file( $file_path );
+				}
+			}
+
+			/* Log rollback with file cleanup info */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'account_merge_rollback',
+					$rollback_failed ? 'critical' : 'warning',
+					'Account merge rolled back and cleaned up copied files',
+					array(
+						'primary_id'      => $args['primary_id'],
+						'secondary_ids'   => $secondary_ids,
+						'error'           => $e->getMessage(),
+						'files_cleaned'   => count( $copied_files ),
+						'cleaned_files'   => $copied_files,
+						'rollback_failed' => $rollback_failed,
+						'db_error'        => $rollback_failed ? $wpdb->last_error : null,
+					)
+				);
+			}
 
 			return array(
 				'success' => false,
@@ -374,12 +578,12 @@ class NBUF_Account_Merger {
 		/* Remove duplicates */
 		$secondary_emails = array_unique( $secondary_emails );
 
-		/* Store in secondary and tertiary email fields */
-		if ( isset( $secondary_emails[0] ) ) {
+		/* Validate and store in secondary and tertiary email fields */
+		if ( isset( $secondary_emails[0] ) && is_email( $secondary_emails[0] ) ) {
 			NBUF_User_Data::update_profile_field( $primary_id, 'secondary_email', $secondary_emails[0] );
 		}
 
-		if ( isset( $secondary_emails[1] ) ) {
+		if ( isset( $secondary_emails[1] ) && is_email( $secondary_emails[1] ) ) {
 			NBUF_User_Data::update_profile_field( $primary_id, 'tertiary_email', $secondary_emails[1] );
 		}
 	}
@@ -569,5 +773,626 @@ If you did not request this merge or have questions, please contact the site adm
 		}
 
 		return true;
+	}
+
+	/**
+	 * Handle photo conflicts during merge
+	 *
+	 * Processes user photo selections from conflict resolution.
+	 * Copies selected photos to primary account or deletes all if requested.
+	 *
+	 * @param int   $primary_id          Primary user ID.
+	 * @param array $secondary_ids       Secondary user IDs.
+	 * @param array $conflict_selections Conflict resolution selections.
+	 * @param array &$copied_files       Array to track copied files for rollback cleanup (passed by reference).
+	 */
+	private static function handle_photo_conflicts( $primary_id, $secondary_ids, $conflict_selections, &$copied_files = array() ) {
+		if ( ! class_exists( 'NBUF_Profile_Photos' ) || ! class_exists( 'NBUF_Image_Processor' ) ) {
+			return;
+		}
+
+		$all_user_ids = array_merge( array( $primary_id ), $secondary_ids );
+
+		/* Handle profile photo conflict */
+		if ( isset( $conflict_selections['profile_photo'] ) ) {
+			$selected_user_id = sanitize_text_field( $conflict_selections['profile_photo'] );
+
+			/* Validate selection is one of the accounts being merged OR delete_all */
+			$valid_selections = array_merge( array( 'delete_all' ), array_map( 'strval', $all_user_ids ) );
+			if ( ! in_array( $selected_user_id, $valid_selections, true ) ) {
+				NBUF_Security_Log::log(
+					'invalid_photo_selection',
+					'warning',
+					'Invalid profile photo selection during account merge - skipping profile photo',
+					array(
+						'selected_value'   => $selected_user_id,
+						'valid_selections' => $valid_selections,
+						'merge_user_ids'   => $all_user_ids,
+						'photo_type'       => 'profile',
+						'operation'        => 'account_merge',
+					)
+				);
+				/* Skip profile photo but continue to cover photo processing */
+			} elseif ( 'delete_all' === $selected_user_id ) {
+				/* Validation passed - delete all profile photos */
+				foreach ( $all_user_ids as $user_id ) {
+					NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_PROFILE );
+				}
+				/* Clear profile photo from primary user data */
+				$user_data = NBUF_User_Data::get( $primary_id );
+				unset( $user_data['profile_photo_url'] );
+				unset( $user_data['profile_photo_path'] );
+				NBUF_User_Data::update( $primary_id, $user_data );
+
+				/* Log deletion to audit trail */
+				if ( class_exists( 'NBUF_Audit_Log' ) ) {
+					NBUF_Audit_Log::log(
+						$primary_id,
+						'photo_delete',
+						'success',
+						'All profile photos deleted during account merge',
+						array(
+							'photo_type' => 'profile',
+							'delete_all' => true,
+							'user_count' => count( $all_user_ids ),
+						)
+					);
+				}
+			} else {
+				/* Validation passed - copy selected profile photo */
+				$selected_user_id = intval( $selected_user_id );
+
+				/* If selected photo is not from primary account, copy it */
+				if ( $selected_user_id !== $primary_id && in_array( $selected_user_id, $all_user_ids, true ) ) {
+					$source_user_data = NBUF_User_Data::get( $selected_user_id );
+					if ( ! empty( $source_user_data['profile_photo_path'] ) ) {
+						/* SECURITY: Validate source photo path */
+						$source_validation          = NBUF_Profile_Photos::validate_photo_path( $source_user_data['profile_photo_path'], $selected_user_id );
+						$profile_photo_copy_allowed = true;
+
+						if ( is_wp_error( $source_validation ) ) {
+							NBUF_Security_Log::log(
+								'file_validation_failed',
+								'warning',
+								'Invalid source photo path during account merge - skipping profile photo',
+								array(
+									'user_id'       => $selected_user_id,
+									'photo_type'    => 'profile',
+									'file_path'     => $source_user_data['profile_photo_path'],
+									'error_code'    => $source_validation->get_error_code(),
+									'error_message' => $source_validation->get_error_message(),
+									'operation'     => 'account_merge',
+								)
+							);
+								$profile_photo_copy_allowed = false;
+						}
+
+							/* Get destination directory for primary user */
+							$dest_dir = NBUF_Image_Processor::get_upload_directory( $primary_id );
+						if ( $profile_photo_copy_allowed && ! is_wp_error( $dest_dir ) ) {
+							/*
+							 * SECURITY: Validate file immediately before copy to minimize TOCTOU window
+							 * This prevents race conditions where file could be replaced between validation and use
+							 */
+							$source_path = realpath( $source_user_data['profile_photo_path'] );
+							if ( ! $source_path || ! file_exists( $source_path ) || ! is_file( $source_path ) || ! is_readable( $source_path ) ) {
+								NBUF_Security_Log::log(
+									'file_not_found',
+									'warning',
+									'Source photo file does not exist or is not readable during account merge - skipping profile photo',
+									array(
+										'user_id'    => $selected_user_id,
+										'photo_type' => 'profile',
+										'file_path'  => $source_user_data['profile_photo_path'],
+										'operation'  => 'account_merge',
+									)
+								);
+								$profile_photo_copy_allowed = false;
+							}
+
+							/* Verify MIME type immediately before copy to prevent malicious file replacement */
+							if ( $profile_photo_copy_allowed && function_exists( 'finfo_open' ) ) {
+								$finfo         = finfo_open( FILEINFO_MIME_TYPE );
+								$mime          = finfo_file( $finfo, $source_path );
+								$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
+								finfo_close( $finfo );
+
+								if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+									NBUF_Security_Log::log(
+										'invalid_mime_type',
+										'critical',
+										'File type changed or is invalid during account merge - skipping profile photo',
+										array(
+											'user_id'    => $selected_user_id,
+											'photo_type' => 'profile',
+											'detected_mime' => $mime,
+											'file_path'  => $source_path,
+											'operation'  => 'account_merge',
+										)
+									);
+									$profile_photo_copy_allowed = false;
+								}
+							}
+
+							/* Only proceed with copy if all validations passed */
+							if ( $profile_photo_copy_allowed ) {
+
+								/* Copy photo to primary user's directory */
+								$filename  = basename( $source_path );
+								$dest_path = $dest_dir['path'] . $filename;
+
+								/*
+								* Use direct copy() instead of WP_Filesystem API because:
+								* 1. We need synchronous file operations within database transaction
+								* 2. Paths are fully validated and within controlled upload directories
+								* 3. WP_Filesystem requires additional credential handling in admin context
+								*/
+								// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Direct file operation required for transactional photo merging with validated paths.
+								if ( copy( $source_path, $dest_path ) ) {
+									/* Track copied file for rollback cleanup */
+									$copied_files[] = $dest_path;
+
+									/* Verify file integrity after copy using SHA-256 (cryptographically secure) */
+									$source_hash = hash_file( 'sha256', $source_path );
+									$dest_hash   = hash_file( 'sha256', $dest_path );
+
+									if ( $source_hash === $dest_hash ) {
+										/* Update primary user's profile photo */
+										$user_data                       = NBUF_User_Data::get( $primary_id );
+										$user_data['profile_photo_url']  = $dest_dir['url'] . $filename;
+										$user_data['profile_photo_path'] = $dest_path;
+										NBUF_User_Data::update( $primary_id, $user_data );
+
+										/* Log photo copy to audit trail */
+										if ( class_exists( 'NBUF_Audit_Log' ) ) {
+											NBUF_Audit_Log::log(
+												$primary_id,
+												'photo_merge',
+												'success',
+												'Profile photo copied during account merge',
+												array(
+													'photo_type'     => 'profile',
+													'source_user_id' => $selected_user_id,
+												)
+											);
+										}
+									} else {
+										/* Hash mismatch - copy failed or corrupted */
+										wp_delete_file( $dest_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup failed copy.
+										NBUF_Security_Log::log(
+											'file_integrity_failed',
+											'critical',
+											'File copy verification failed during account merge - SHA-256 hash mismatch',
+											array(
+												'user_id' => $selected_user_id,
+												'photo_type' => 'profile',
+												'source_path' => $source_path,
+												'dest_path' => $dest_path,
+												'source_hash' => $source_hash,
+												'dest_hash' => $dest_hash,
+												'operation' => 'account_merge',
+											)
+										);
+									}
+								} else {
+									NBUF_Security_Log::log(
+										'file_copy_failed',
+										'warning',
+										'Failed to copy profile photo during account merge',
+										array(
+											'source_user_id' => $selected_user_id,
+											'target_user_id' => $primary_id,
+											'photo_type'  => 'profile',
+											'source_path' => $source_path,
+											'dest_path'   => $dest_path,
+											'operation'   => 'account_merge',
+										)
+									);
+								}
+							}
+						}
+					}
+
+					/* Delete profile photos from all non-selected accounts */
+					foreach ( $all_user_ids as $user_id ) {
+						if ( $user_id !== $selected_user_id ) {
+							NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_PROFILE );
+						}
+					}
+				}
+			}
+		}
+
+		/* Handle cover photo conflict */
+		if ( isset( $conflict_selections['cover_photo'] ) ) {
+			$selected_user_id = sanitize_text_field( $conflict_selections['cover_photo'] );
+
+			/* Validate selection is one of the accounts being merged OR delete_all */
+			$valid_selections = array_merge( array( 'delete_all' ), array_map( 'strval', $all_user_ids ) );
+			if ( ! in_array( $selected_user_id, $valid_selections, true ) ) {
+				NBUF_Security_Log::log(
+					'invalid_photo_selection',
+					'warning',
+					'Invalid cover photo selection during account merge - skipping cover photo',
+					array(
+						'selected_value'   => $selected_user_id,
+						'valid_selections' => $valid_selections,
+						'merge_user_ids'   => $all_user_ids,
+						'photo_type'       => 'cover',
+						'operation'        => 'account_merge',
+					)
+				);
+				/* Skip cover photo - validation failed */
+			} elseif ( 'delete_all' === $selected_user_id ) {
+				/* Validation passed - delete all cover photos */
+				foreach ( $all_user_ids as $user_id ) {
+					NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_COVER );
+				}
+				/* Clear cover photo from primary user data */
+				$user_data = NBUF_User_Data::get( $primary_id );
+				unset( $user_data['cover_photo_url'] );
+				unset( $user_data['cover_photo_path'] );
+				NBUF_User_Data::update( $primary_id, $user_data );
+
+				/* Log deletion to audit trail */
+				if ( class_exists( 'NBUF_Audit_Log' ) ) {
+					NBUF_Audit_Log::log(
+						$primary_id,
+						'photo_delete',
+						'success',
+						'All cover photos deleted during account merge',
+						array(
+							'photo_type' => 'cover',
+							'delete_all' => true,
+							'user_count' => count( $all_user_ids ),
+						)
+					);
+				}
+			} else {
+				/* Validation passed - copy selected cover photo */
+				$selected_user_id = intval( $selected_user_id );
+
+				/* If selected photo is not from primary account, copy it */
+				if ( $selected_user_id !== $primary_id && in_array( $selected_user_id, $all_user_ids, true ) ) {
+					$source_user_data = NBUF_User_Data::get( $selected_user_id );
+					if ( ! empty( $source_user_data['cover_photo_path'] ) ) {
+						/* SECURITY: Validate source photo path */
+						$source_validation        = NBUF_Profile_Photos::validate_photo_path( $source_user_data['cover_photo_path'], $selected_user_id );
+						$cover_photo_copy_allowed = true;
+
+						if ( is_wp_error( $source_validation ) ) {
+							NBUF_Security_Log::log(
+								'file_validation_failed',
+								'warning',
+								'Invalid source photo path during account merge - skipping cover photo',
+								array(
+									'user_id'       => $selected_user_id,
+									'photo_type'    => 'cover',
+									'file_path'     => $source_user_data['cover_photo_path'],
+									'error_code'    => $source_validation->get_error_code(),
+									'error_message' => $source_validation->get_error_message(),
+									'operation'     => 'account_merge',
+								)
+							);
+							$cover_photo_copy_allowed = false;
+						}
+
+						/* Get destination directory for primary user */
+						$dest_dir = NBUF_Image_Processor::get_upload_directory( $primary_id );
+						if ( $cover_photo_copy_allowed && ! is_wp_error( $dest_dir ) ) {
+							/*
+							 * SECURITY: Validate file immediately before copy to minimize TOCTOU window
+							 * This prevents race conditions where file could be replaced between validation and use
+							 */
+							$source_path = realpath( $source_user_data['cover_photo_path'] );
+							if ( ! $source_path || ! file_exists( $source_path ) || ! is_file( $source_path ) || ! is_readable( $source_path ) ) {
+								NBUF_Security_Log::log(
+									'file_not_found',
+									'warning',
+									'Source photo file does not exist or is not readable during account merge - skipping cover photo',
+									array(
+										'user_id'    => $selected_user_id,
+										'photo_type' => 'cover',
+										'file_path'  => $source_user_data['cover_photo_path'],
+										'operation'  => 'account_merge',
+									)
+								);
+								$cover_photo_copy_allowed = false;
+							}
+
+							/* Verify MIME type immediately before copy to prevent malicious file replacement */
+							if ( $cover_photo_copy_allowed && function_exists( 'finfo_open' ) ) {
+								$finfo         = finfo_open( FILEINFO_MIME_TYPE );
+								$mime          = finfo_file( $finfo, $source_path );
+								$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
+								finfo_close( $finfo );
+
+								if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+									NBUF_Security_Log::log(
+										'invalid_mime_type',
+										'critical',
+										'File type changed or is invalid during account merge - skipping cover photo',
+										array(
+											'user_id'    => $selected_user_id,
+											'photo_type' => 'cover',
+											'detected_mime' => $mime,
+											'file_path'  => $source_path,
+											'operation'  => 'account_merge',
+										)
+									);
+									$cover_photo_copy_allowed = false;
+								}
+							}
+
+							/* Only proceed with copy if all validations passed */
+							if ( $cover_photo_copy_allowed ) {
+
+								/* Copy photo to primary user's directory */
+								$filename  = basename( $source_path );
+								$dest_path = $dest_dir['path'] . $filename;
+
+								/*
+								* Use direct copy() instead of WP_Filesystem API because:
+								* 1. We need synchronous file operations within database transaction
+								* 2. Paths are fully validated and within controlled upload directories
+								* 3. WP_Filesystem requires additional credential handling in admin context
+								*/
+								// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Direct file operation required for transactional photo merging with validated paths.
+								if ( copy( $source_path, $dest_path ) ) {
+									/* Track copied file for rollback cleanup */
+									$copied_files[] = $dest_path;
+
+									/* Verify file integrity after copy using SHA-256 (cryptographically secure) */
+									$source_hash = hash_file( 'sha256', $source_path );
+									$dest_hash   = hash_file( 'sha256', $dest_path );
+
+									if ( $source_hash === $dest_hash ) {
+										/* Update primary user's cover photo */
+										$user_data                     = NBUF_User_Data::get( $primary_id );
+										$user_data['cover_photo_url']  = $dest_dir['url'] . $filename;
+										$user_data['cover_photo_path'] = $dest_path;
+										NBUF_User_Data::update( $primary_id, $user_data );
+
+										/* Log photo copy to audit trail */
+										if ( class_exists( 'NBUF_Audit_Log' ) ) {
+											NBUF_Audit_Log::log(
+												$primary_id,
+												'photo_merge',
+												'success',
+												'Cover photo copied during account merge',
+												array(
+													'photo_type'     => 'cover',
+													'source_user_id' => $selected_user_id,
+												)
+											);
+										}
+									} else {
+										/* Hash mismatch - copy failed or corrupted */
+										wp_delete_file( $dest_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup failed copy.
+										NBUF_Security_Log::log(
+											'file_integrity_failed',
+											'critical',
+											'File copy verification failed during account merge - SHA-256 hash mismatch',
+											array(
+												'user_id' => $selected_user_id,
+												'photo_type' => 'cover',
+												'source_path' => $source_path,
+												'dest_path' => $dest_path,
+												'source_hash' => $source_hash,
+												'dest_hash' => $dest_hash,
+												'operation' => 'account_merge',
+											)
+										);
+									}
+								} else {
+									NBUF_Security_Log::log(
+										'file_copy_failed',
+										'warning',
+										'Failed to copy cover photo during account merge',
+										array(
+											'source_user_id' => $selected_user_id,
+											'target_user_id' => $primary_id,
+											'photo_type'  => 'cover',
+											'source_path' => $source_path,
+											'dest_path'   => $dest_path,
+											'operation'   => 'account_merge',
+										)
+									);
+								}
+							}
+						}
+					}
+
+					/* Delete cover photos from all non-selected accounts */
+					foreach ( $all_user_ids as $user_id ) {
+						if ( $user_id !== $selected_user_id ) {
+							NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_COVER );
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Handle role conflicts during merge
+	 *
+	 * Assigns selected roles to primary account based on conflict resolution.
+	 * Includes security checks to prevent privilege escalation.
+	 *
+	 * @param int   $primary_id          Primary user ID.
+	 * @param array $conflict_selections Conflict resolution selections.
+	 */
+	private static function handle_role_conflicts( $primary_id, $conflict_selections ) {
+		if ( ! isset( $conflict_selections['user_roles'] ) ) {
+			return;
+		}
+
+		$selected_user_id = intval( $conflict_selections['user_roles'] );
+		if ( $selected_user_id <= 0 ) {
+			return;
+		}
+
+		/* Get current user performing the merge */
+		$current_user = wp_get_current_user();
+
+		/* Get roles from selected user */
+		$selected_user = get_userdata( $selected_user_id );
+		if ( ! $selected_user || empty( $selected_user->roles ) ) {
+			return;
+		}
+
+		/* Get primary user */
+		$primary_user = get_userdata( $primary_id );
+		if ( ! $primary_user ) {
+			return;
+		}
+
+		/* SECURITY: UNIFIED privilege escalation check */
+		$selected_highest_role = self::get_highest_role( $selected_user );
+		$current_highest_role  = self::get_highest_role( $current_user );
+		$role_comparison       = self::compare_role_level( $selected_highest_role, $current_highest_role );
+
+		/*
+		 * Block role assignment if trying to assign equal or higher role without proper capability.
+		 * This prevents:
+		 * 1. Non-admins from assigning administrator role
+		 * 2. Editors from assigning editor or admin roles to themselves
+		 * 3. Any privilege escalation attacks through account merging
+		 */
+		if ( $role_comparison >= 0 && ! current_user_can( 'promote_users' ) ) {
+			NBUF_Security_Log::log(
+				'privilege_escalation_blocked',
+				'critical',
+				'Attempted to assign equal or higher role during account merge',
+				array(
+					'current_user_id' => $current_user->ID,
+					'current_role'    => $current_highest_role,
+					'attempted_role'  => $selected_highest_role,
+					'target_user_id'  => $primary_id,
+					'source_user_id'  => $selected_user_id,
+					'role_comparison' => $role_comparison,
+					'has_promote'     => current_user_can( 'promote_users' ),
+					'operation'       => 'account_merge',
+				)
+			);
+
+			/* Log attempted privilege escalation in audit log */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$current_user->ID,
+					'security_violation',
+					'blocked',
+					'Attempted privilege escalation during account merge',
+					array(
+						'attempted_role' => $selected_highest_role,
+						'current_role'   => $current_highest_role,
+						'target_user_id' => $primary_id,
+						'source_user_id' => $selected_user_id,
+					)
+				);
+			}
+			return;
+		}
+
+		/* Only update roles if they're different */
+		if ( $selected_user_id !== $primary_id ) {
+			/* Remove all current roles from primary user */
+			foreach ( $primary_user->roles as $role ) {
+				$primary_user->remove_role( $role );
+			}
+
+			/* Add selected user's roles to primary user */
+			foreach ( $selected_user->roles as $role ) {
+				$primary_user->add_role( $role );
+			}
+
+			/* Log role change in audit log */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$primary_id,
+					'role_change',
+					'success',
+					'User roles updated during account merge',
+					array(
+						'new_roles'      => $selected_user->roles,
+						'source_user_id' => $selected_user_id,
+						'performed_by'   => $current_user->ID,
+						'performer_role' => $current_highest_role,
+					)
+				);
+			}
+		}
+	}
+
+	/**
+	 * Get highest priority role for user
+	 *
+	 * @param WP_User $user User object.
+	 * @return string Role slug.
+	 */
+	private static function get_highest_role( $user ) {
+		/**
+		 * Filter: Allow sites to define custom role hierarchy
+		 *
+		 * Enables support for custom roles (e.g., WooCommerce shop_manager, membership roles).
+		 * Add custom roles with appropriate hierarchy levels.
+		 *
+		 * @param array $hierarchy Role hierarchy with role slug => priority level.
+		 */
+		$role_hierarchy = apply_filters(
+			'nbuf_account_merger_role_hierarchy',
+			array(
+				'administrator' => 100,
+				'editor'        => 80,
+				'author'        => 60,
+				'contributor'   => 40,
+				'subscriber'    => 20,
+			)
+		);
+
+		$highest_level = 0;
+		$highest_role  = 'subscriber';
+
+		foreach ( $user->roles as $role ) {
+			$level = isset( $role_hierarchy[ $role ] ) ? $role_hierarchy[ $role ] : 0;
+			if ( $level > $highest_level ) {
+				$highest_level = $level;
+				$highest_role  = $role;
+			}
+		}
+
+		return $highest_role;
+	}
+
+	/**
+	 * Compare role levels
+	 *
+	 * @param string $role1 First role slug.
+	 * @param string $role2 Second role slug.
+	 * @return int -1 if role1 < role2, 0 if equal, 1 if role1 > role2.
+	 */
+	private static function compare_role_level( $role1, $role2 ) {
+		/** This filter is documented in class-nbuf-account-merger.php */
+		$role_hierarchy = apply_filters(
+			'nbuf_account_merger_role_hierarchy',
+			array(
+				'administrator' => 100,
+				'editor'        => 80,
+				'author'        => 60,
+				'contributor'   => 40,
+				'subscriber'    => 20,
+			)
+		);
+
+		$level1 = isset( $role_hierarchy[ $role1 ] ) ? $role_hierarchy[ $role1 ] : 0;
+		$level2 = isset( $role_hierarchy[ $role2 ] ) ? $role_hierarchy[ $role2 ] : 0;
+
+		if ( $level1 < $level2 ) {
+			return -1;
+		} elseif ( $level1 > $level2 ) {
+			return 1;
+		}
+		return 0;
 	}
 }

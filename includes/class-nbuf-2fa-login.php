@@ -72,8 +72,11 @@ class NBUF_2FA_Login {
 			return $user;
 		}
 
-		/* Generate secure token and store user data in transient */
-		$token = wp_generate_password( 32, false );
+		/*
+		 * SECURITY: Generate cryptographically secure 2FA session token.
+		 * Use random_bytes() instead of wp_generate_password() for security tokens.
+		 */
+		$token = bin2hex( random_bytes( 32 ) ); /* 64 hex characters, cryptographically secure */
 		set_transient(
 			'nbuf_2fa_pending_' . $token,
 			array(

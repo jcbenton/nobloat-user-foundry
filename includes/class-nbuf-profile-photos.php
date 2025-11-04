@@ -64,8 +64,25 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Check if user has custom uploaded photo */
-		if ( ! empty( $user_data['profile_photo_url'] ) ) {
-			return esc_url( $user_data['profile_photo_url'] );
+		if ( ! empty( $user_data['profile_photo_url'] ) && ! empty( $user_data['profile_photo_path'] ) ) {
+			/* Validate photo path for security */
+			$validation = self::validate_photo_path( $user_data['profile_photo_path'], $user_id );
+			if ( ! is_wp_error( $validation ) ) {
+				/*
+				 * SECURITY: Reconstruct URL from validated path instead of trusting stored URL.
+				 * This prevents attacks where path validation passes but URL points elsewhere.
+				 */
+				$upload_dir = wp_upload_dir();
+				$base_url   = trailingslashit( $upload_dir['baseurl'] );
+				$base_path  = trailingslashit( $upload_dir['basedir'] );
+
+				/* Get path relative to uploads directory */
+				$relative_path     = str_replace( $base_path, '', $user_data['profile_photo_path'] );
+				$reconstructed_url = $base_url . $relative_path;
+
+				return esc_url( $reconstructed_url );
+			}
+			/* If validation fails, fall through to default avatar */
 		}
 
 		/* Check if Gravatar is enabled */
@@ -99,8 +116,25 @@ class NBUF_Profile_Photos {
 	public static function get_cover_photo( $user_id ) {
 		$user_data = NBUF_User_Data::get( $user_id );
 
-		if ( ! empty( $user_data['cover_photo_url'] ) ) {
-			return esc_url( $user_data['cover_photo_url'] );
+		if ( ! empty( $user_data['cover_photo_url'] ) && ! empty( $user_data['cover_photo_path'] ) ) {
+			/* Validate photo path for security */
+			$validation = self::validate_photo_path( $user_data['cover_photo_path'], $user_id );
+			if ( ! is_wp_error( $validation ) ) {
+				/*
+				 * SECURITY: Reconstruct URL from validated path instead of trusting stored URL.
+				 * This prevents attacks where path validation passes but URL points elsewhere.
+				 */
+				$upload_dir = wp_upload_dir();
+				$base_url   = trailingslashit( $upload_dir['baseurl'] );
+				$base_path  = trailingslashit( $upload_dir['basedir'] );
+
+				/* Get path relative to uploads directory */
+				$relative_path     = str_replace( $base_path, '', $user_data['cover_photo_path'] );
+				$reconstructed_url = $base_url . $relative_path;
+
+				return esc_url( $reconstructed_url );
+			}
+			/* If validation fails, return null */
 		}
 
 		return null;
@@ -278,8 +312,32 @@ class NBUF_Profile_Photos {
 	 * AJAX: Upload profile photo
 	 */
 	public static function ajax_upload_profile_photo() {
-		/* Verify nonce */
+		/* SECURITY: Multi-layer CSRF protection */
 		check_ajax_referer( 'nbuf_upload_profile_photo', 'nonce' );
+
+		/* Verify AJAX request method */
+		if ( ! wp_doing_ajax() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request method.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* SECURITY: Verify request origin to prevent cross-site attacks */
+		$referer  = wp_get_referer();
+		$site_url = site_url();
+		if ( ! $referer || 0 !== strpos( $referer, $site_url ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'csrf_origin_mismatch',
+					'critical',
+					'AJAX photo upload blocked - invalid origin',
+					array(
+						'referer'  => $referer,
+						'expected' => $site_url,
+						'user_id'  => get_current_user_id(),
+					)
+				);
+			}
+			wp_send_json_error( array( 'message' => __( 'Invalid request origin.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Check if user is logged in */
 		if ( ! is_user_logged_in() ) {
@@ -288,15 +346,32 @@ class NBUF_Profile_Photos {
 
 		$user_id = get_current_user_id();
 
+		/*
+		 * SECURITY: Rate limiting to prevent upload abuse.
+		 * Allow 1 upload every 10 seconds per user.
+		 */
+		$rate_key = 'photo_upload_profile_' . $user_id;
+		$attempt  = get_transient( $rate_key );
+		if ( false !== $attempt ) {
+			wp_send_json_error( array( 'message' => __( 'Too many upload attempts. Please wait 10 seconds.', 'nobloat-user-foundry' ) ) );
+		}
+		set_transient( $rate_key, time(), 10 );
+
 		/* Check if file was uploaded */
 		if ( empty( $_FILES['profile_photo'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Validate file size (max 5MB) */
-		$max_size = 5 * 1024 * 1024; // 5MB
+		/* Validate file size (from settings) */
+		$max_size_mb = NBUF_Options::get( 'nbuf_profile_photo_max_size', 5 );
+		$max_size    = $max_size_mb * 1024 * 1024;
 		if ( isset( $_FILES['profile_photo']['size'] ) && $_FILES['profile_photo']['size'] > $max_size ) {
-			wp_send_json_error( array( 'message' => __( 'File is too large. Maximum size is 5MB.', 'nobloat-user-foundry' ) ) );
+			wp_send_json_error(
+				array(
+					/* translators: %d: Maximum file size in MB */
+					'message' => sprintf( __( 'File is too large. Maximum size is %dMB.', 'nobloat-user-foundry' ), $max_size_mb ),
+				)
+			);
 		}
 
 		/*
@@ -314,7 +389,7 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => __( 'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Handle upload */
+		/* Handle upload to temporary location */
 		include_once ABSPATH . 'wp-admin/includes/file.php';
 		include_once ABSPATH . 'wp-admin/includes/image.php';
 
@@ -324,20 +399,86 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => $upload['error'] ) );
 		}
 
-		/* Delete old photo if exists */
-		self::delete_user_photo( $user_id, 'profile' );
+		/* Process image (convert to WebP, optimize, resize) */
+		$processed = NBUF_Image_Processor::process_image(
+			$upload['file'],
+			$user_id,
+			NBUF_Image_Processor::TYPE_PROFILE
+		);
 
-		/* Save photo URL to user data */
+		/*
+		 * SECURITY: Delete temporary upload with proper error handling.
+		 * No @ error suppression - log failures for security audit.
+		 */
+		if ( file_exists( $upload['file'] ) && is_file( $upload['file'] ) ) {
+			$deleted = wp_delete_file( $upload['file'] );
+			if ( ! $deleted ) {
+				/* Log deletion failure for security monitoring */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'file_deletion_failed',
+						'warning',
+						'Failed to delete temporary upload file',
+						array(
+							'file_path' => $upload['file'],
+							'user_id'   => get_current_user_id(),
+							'operation' => 'photo_upload_cleanup',
+						)
+					);
+				}
+			}
+		}
+
+		if ( is_wp_error( $processed ) ) {
+			wp_send_json_error( array( 'message' => $processed->get_error_message() ) );
+		}
+
+		/*
+		 * SECURITY: Validate photo path before saving to database.
+		 * If validation fails, securely delete the file with proper verification.
+		 */
+		$validation = self::validate_photo_path( $processed['path'], $user_id );
+		if ( is_wp_error( $validation ) ) {
+			/*
+			 * Delete the uploaded file since validation failed.
+			 * SECURITY: Re-validate file exists and is in correct location before deletion.
+			 */
+			$real_path   = realpath( $processed['path'] );
+			$upload_base = realpath( wp_upload_dir()['basedir'] );
+
+			if ( $real_path && $upload_base && 0 === strpos( $real_path, $upload_base ) && is_file( $real_path ) ) {
+				$deleted = wp_delete_file( $real_path );
+				if ( ! $deleted ) {
+					/* Log deletion failure */
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log(
+							'file_deletion_failed',
+							'warning',
+							'Failed to delete invalid photo after validation failure',
+							array(
+								'file_path' => $real_path,
+								'user_id'   => $user_id,
+								'operation' => 'photo_validation_cleanup',
+							)
+						);
+					}
+				}
+			}
+			wp_send_json_error( array( 'message' => $validation->get_error_message() ) );
+		}
+
+		/* Save photo URL to user data (old photo already deleted by image processor) */
 		$user_data                       = NBUF_User_Data::get( $user_id );
-		$user_data['profile_photo_url']  = $upload['url'];
-		$user_data['profile_photo_path'] = $upload['file'];
+		$user_data['profile_photo_url']  = $processed['url'];
+		$user_data['profile_photo_path'] = $processed['path'];
 		NBUF_User_Data::update( $user_id, $user_data );
 
 		/* Return success */
 		wp_send_json_success(
 			array(
 				'message' => __( 'Profile photo uploaded successfully.', 'nobloat-user-foundry' ),
-				'url'     => $upload['url'],
+				'url'     => $processed['url'],
+				'format'  => $processed['format'],
 			)
 		);
 	}
@@ -346,8 +487,32 @@ class NBUF_Profile_Photos {
 	 * AJAX: Upload cover photo
 	 */
 	public static function ajax_upload_cover_photo() {
-		/* Verify nonce */
+		/* SECURITY: Multi-layer CSRF protection */
 		check_ajax_referer( 'nbuf_upload_cover_photo', 'nonce' );
+
+		/* Verify AJAX request method */
+		if ( ! wp_doing_ajax() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request method.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* SECURITY: Verify request origin to prevent cross-site attacks */
+		$referer  = wp_get_referer();
+		$site_url = site_url();
+		if ( ! $referer || 0 !== strpos( $referer, $site_url ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'csrf_origin_mismatch',
+					'critical',
+					'AJAX photo upload blocked - invalid origin',
+					array(
+						'referer'  => $referer,
+						'expected' => $site_url,
+						'user_id'  => get_current_user_id(),
+					)
+				);
+			}
+			wp_send_json_error( array( 'message' => __( 'Invalid request origin.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Check if user is logged in */
 		if ( ! is_user_logged_in() ) {
@@ -356,15 +521,32 @@ class NBUF_Profile_Photos {
 
 		$user_id = get_current_user_id();
 
+		/*
+		 * SECURITY: Rate limiting to prevent upload abuse.
+		 * Allow 1 upload every 10 seconds per user.
+		 */
+		$rate_key = 'photo_upload_cover_' . $user_id;
+		$attempt  = get_transient( $rate_key );
+		if ( false !== $attempt ) {
+			wp_send_json_error( array( 'message' => __( 'Too many upload attempts. Please wait 10 seconds.', 'nobloat-user-foundry' ) ) );
+		}
+		set_transient( $rate_key, time(), 10 );
+
 		/* Check if file was uploaded */
 		if ( empty( $_FILES['cover_photo'] ) ) {
 			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Validate file size (max 10MB for cover photos) */
-		$max_size = 10 * 1024 * 1024; // 10MB
+		/* Validate file size (from settings) */
+		$max_size_mb = NBUF_Options::get( 'nbuf_cover_photo_max_size', 10 );
+		$max_size    = $max_size_mb * 1024 * 1024;
 		if ( isset( $_FILES['cover_photo']['size'] ) && $_FILES['cover_photo']['size'] > $max_size ) {
-			wp_send_json_error( array( 'message' => __( 'File is too large. Maximum size is 10MB.', 'nobloat-user-foundry' ) ) );
+			wp_send_json_error(
+				array(
+					/* translators: %d: Maximum file size in MB */
+					'message' => sprintf( __( 'File is too large. Maximum size is %dMB.', 'nobloat-user-foundry' ), $max_size_mb ),
+				)
+			);
 		}
 
 		/*
@@ -382,7 +564,7 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => __( 'Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Handle upload */
+		/* Handle upload to temporary location */
 		include_once ABSPATH . 'wp-admin/includes/file.php';
 		include_once ABSPATH . 'wp-admin/includes/image.php';
 
@@ -392,20 +574,86 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => $upload['error'] ) );
 		}
 
-		/* Delete old photo if exists */
-		self::delete_user_photo( $user_id, 'cover' );
+		/* Process image (convert to WebP, optimize, resize) */
+		$processed = NBUF_Image_Processor::process_image(
+			$upload['file'],
+			$user_id,
+			NBUF_Image_Processor::TYPE_COVER
+		);
 
-		/* Save photo URL to user data */
+		/*
+		 * SECURITY: Delete temporary upload with proper error handling.
+		 * No @ error suppression - log failures for security audit.
+		 */
+		if ( file_exists( $upload['file'] ) && is_file( $upload['file'] ) ) {
+			$deleted = wp_delete_file( $upload['file'] );
+			if ( ! $deleted ) {
+				/* Log deletion failure for security monitoring */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'file_deletion_failed',
+						'warning',
+						'Failed to delete temporary upload file',
+						array(
+							'file_path' => $upload['file'],
+							'user_id'   => get_current_user_id(),
+							'operation' => 'photo_upload_cleanup',
+						)
+					);
+				}
+			}
+		}
+
+		if ( is_wp_error( $processed ) ) {
+			wp_send_json_error( array( 'message' => $processed->get_error_message() ) );
+		}
+
+		/*
+		 * SECURITY: Validate photo path before saving to database.
+		 * If validation fails, securely delete the file with proper verification.
+		 */
+		$validation = self::validate_photo_path( $processed['path'], $user_id );
+		if ( is_wp_error( $validation ) ) {
+			/*
+			 * Delete the uploaded file since validation failed.
+			 * SECURITY: Re-validate file exists and is in correct location before deletion.
+			 */
+			$real_path   = realpath( $processed['path'] );
+			$upload_base = realpath( wp_upload_dir()['basedir'] );
+
+			if ( $real_path && $upload_base && 0 === strpos( $real_path, $upload_base ) && is_file( $real_path ) ) {
+				$deleted = wp_delete_file( $real_path );
+				if ( ! $deleted ) {
+					/* Log deletion failure */
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log(
+							'file_deletion_failed',
+							'warning',
+							'Failed to delete invalid photo after validation failure',
+							array(
+								'file_path' => $real_path,
+								'user_id'   => $user_id,
+								'operation' => 'photo_validation_cleanup',
+							)
+						);
+					}
+				}
+			}
+			wp_send_json_error( array( 'message' => $validation->get_error_message() ) );
+		}
+
+		/* Save photo URL to user data (old photo already deleted by image processor) */
 		$user_data                     = NBUF_User_Data::get( $user_id );
-		$user_data['cover_photo_url']  = $upload['url'];
-		$user_data['cover_photo_path'] = $upload['file'];
+		$user_data['cover_photo_url']  = $processed['url'];
+		$user_data['cover_photo_path'] = $processed['path'];
 		NBUF_User_Data::update( $user_id, $user_data );
 
 		/* Return success */
 		wp_send_json_success(
 			array(
 				'message' => __( 'Cover photo uploaded successfully.', 'nobloat-user-foundry' ),
-				'url'     => $upload['url'],
+				'url'     => $processed['url'],
+				'format'  => $processed['format'],
 			)
 		);
 	}
@@ -472,25 +720,117 @@ class NBUF_Profile_Photos {
 		$url_key  = $type . '_photo_url';
 		$path_key = $type . '_photo_path';
 
-		/* Delete physical file if exists - validate path to prevent directory traversal */
-		if ( ! empty( $user_data[ $path_key ] ) ) {
-			$file_path  = $user_data[ $path_key ];
+		/* Store file path before clearing metadata */
+		$file_to_delete = ! empty( $user_data[ $path_key ] ) ? $user_data[ $path_key ] : null;
+
+		/* Remove from database FIRST to prevent orphaned metadata if file deletion fails */
+		$user_data[ $url_key ]  = '';
+		$user_data[ $path_key ] = '';
+		NBUF_User_Data::update( $user_id, $user_data );
+
+		/* Delete physical file after metadata is cleared - validate path to prevent directory traversal */
+		if ( $file_to_delete ) {
 			$upload_dir = wp_upload_dir();
 			$base_dir   = $upload_dir['basedir'];
 
 			/* Ensure file is within uploads directory */
-			$real_path = realpath( $file_path );
+			$real_path = realpath( $file_to_delete );
 			$real_base = realpath( $base_dir );
 
 			if ( $real_path && $real_base && strpos( $real_path, $real_base ) === 0 && file_exists( $real_path ) ) {
 				wp_delete_file( $real_path );
 			}
 		}
+	}
 
-		/* Remove from database */
-		$user_data[ $url_key ]  = '';
-		$user_data[ $path_key ] = '';
-		NBUF_User_Data::update( $user_id, $user_data );
+	/**
+	 * Validate photo file path is legitimate and safe
+	 *
+	 * Performs comprehensive security validation on photo file paths to prevent:
+	 * - Path traversal attacks
+	 * - Symlink attacks
+	 * - Access to files outside user's photo directory
+	 * - Non-image file access
+	 *
+	 * @param string $file_path Path to validate.
+	 * @param int    $user_id   Expected user ID.
+	 * @return bool|WP_Error True if valid, WP_Error if invalid.
+	 */
+	public static function validate_photo_path( $file_path, $user_id ) {
+		/* Check 1: Path not empty */
+		if ( empty( $file_path ) ) {
+			return new WP_Error( 'empty_path', __( 'Photo path is empty', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check 2: Resolve real path (handles symlinks and relative paths) */
+		$real_path = realpath( $file_path );
+		if ( ! $real_path ) {
+			return new WP_Error( 'invalid_path', __( 'Photo path does not exist or is not accessible', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check 3: Verify it's within uploads directory */
+		$upload_dir = wp_upload_dir();
+		$real_base  = realpath( $upload_dir['basedir'] );
+
+		if ( ! $real_base || 0 !== strpos( $real_path, $real_base ) ) {
+			return new WP_Error( 'path_outside_uploads', __( 'Photo path is outside uploads directory', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check 4: Verify it's within the specific user's nobloat directory */
+		$expected_dir = trailingslashit( $real_base ) . 'nobloat/' . absint( $user_id ) . '/';
+		if ( 0 !== strpos( $real_path, $expected_dir ) ) {
+			return new WP_Error(
+				'path_wrong_user',
+				sprintf(
+					/* translators: %d: User ID */
+					__( 'Photo path is not for user %d', 'nobloat-user-foundry' ),
+					$user_id
+				)
+			);
+		}
+
+		/* Check 5: Verify it's a file and readable */
+		if ( ! is_file( $real_path ) || ! is_readable( $real_path ) ) {
+			return new WP_Error( 'not_readable', __( 'Photo file is not readable', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check 6: Verify MIME type is a valid image */
+		if ( function_exists( 'finfo_open' ) ) {
+			$finfo = finfo_open( FILEINFO_MIME_TYPE );
+			$mime  = finfo_file( $finfo, $real_path );
+			finfo_close( $finfo );
+
+			$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
+			if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+				return new WP_Error(
+					'invalid_mime',
+					sprintf(
+						/* translators: %s: Detected MIME type */
+						__( 'Photo file is not a valid image type. Detected: %s', 'nobloat-user-foundry' ),
+						$mime
+					)
+				);
+			}
+		}
+
+		/* Check 7: Verify file size is reasonable (prevent huge files) */
+		$file_size   = filesize( $real_path );
+		$max_size_mb = NBUF_Options::get( 'nbuf_profile_photo_max_size', 5 );
+		$max_size    = $max_size_mb * 1024 * 1024;
+
+		if ( $file_size > $max_size ) {
+			return new WP_Error(
+				'file_too_large',
+				sprintf(
+					/* translators: %d: Maximum file size in MB */
+					__( 'Photo file is too large. Maximum size is %dMB.', 'nobloat-user-foundry' ),
+					$max_size_mb
+				)
+			);
+		}
+
+		/* All checks passed */
+		return true;
 	}
 
 	/**
@@ -536,6 +876,11 @@ class NBUF_Profile_Photos {
 
 				<p class="description">
 		<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 5MB.', 'nobloat-user-foundry' ); ?>
+				</p>
+
+				<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px;">
+					<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
+		<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs to enhance privacy. However, photos are publicly accessible to anyone who has the URL. Do not upload photos containing sensitive or confidential information.', 'nobloat-user-foundry' ); ?>
 				</p>
 
 		<?php if ( $gravatar_enabled ) : ?>
@@ -585,6 +930,11 @@ class NBUF_Profile_Photos {
 
 					<p class="description">
 			<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 10MB. Recommended size: 1500x500px.', 'nobloat-user-foundry' ); ?>
+					</p>
+
+					<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px;">
+						<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
+			<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs to enhance privacy. However, photos are publicly accessible to anyone who has the URL. Do not upload photos containing sensitive or confidential information.', 'nobloat-user-foundry' ); ?>
 					</p>
 				</div>
 		<?php endif; ?>

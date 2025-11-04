@@ -39,6 +39,9 @@ class NBUF_Cron {
 		if ( ! wp_next_scheduled( 'nbuf_cleanup_transients' ) ) {
 			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_transients' );
 		}
+		if ( ! wp_next_scheduled( 'nbuf_cleanup_unverified_accounts' ) ) {
+			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_unverified_accounts' );
+		}
 	}
 
 	/**
@@ -51,6 +54,7 @@ class NBUF_Cron {
 		wp_clear_scheduled_hook( 'nbuf_audit_log_cleanup_cron' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_version_history' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_transients' );
+		wp_clear_scheduled_hook( 'nbuf_cleanup_unverified_accounts' );
 	}
 
 	/**
@@ -63,6 +67,7 @@ class NBUF_Cron {
 		add_action( 'nbuf_audit_log_cleanup_cron', array( __CLASS__, 'run_audit_log_cleanup' ) );
 		add_action( 'nbuf_cleanup_version_history', array( __CLASS__, 'run_version_history_cleanup' ) );
 		add_action( 'nbuf_cleanup_transients', array( __CLASS__, 'run_transient_cleanup' ) );
+		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
 	}
 
 	/**
@@ -165,6 +170,94 @@ class NBUF_Cron {
 		}
 
 		return ( $deleted_timeouts + $deleted_values );
+	}
+
+	/**
+	 * Run unverified accounts cleanup.
+	 *
+	 * Executes daily to remove accounts that have not verified their email
+	 * within the configured time period. Only runs if email verification
+	 * is enabled and auto-delete is configured.
+	 *
+	 * @return int Number of accounts deleted.
+	 */
+	public static function run_unverified_cleanup(): int {
+		/* Check if email verification is required */
+		$require_verification = NBUF_Options::get( 'nbuf_require_verification', false );
+
+		if ( ! $require_verification ) {
+			return 0;
+		}
+
+		/* Get cleanup days setting (0 = disabled) */
+		$cleanup_days = (int) NBUF_Options::get( 'nbuf_delete_unverified_days', 5 );
+
+		if ( $cleanup_days <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		/* Calculate cutoff date */
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cleanup_days} days" ) );
+
+		/*
+		 * Query unverified users older than cutoff date
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table join required for unverified user cleanup.
+		$user_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT u.ID
+				 FROM {$wpdb->users} u
+				 INNER JOIN {$wpdb->prefix}nbuf_user_data ud ON u.ID = ud.user_id
+				 WHERE ud.is_verified = 0
+				 AND ud.is_disabled = 0
+				 AND u.user_registered < %s
+				 LIMIT 100",
+				$cutoff_date
+			)
+		);
+
+		if ( empty( $user_ids ) ) {
+			return 0;
+		}
+
+		$deleted_count = 0;
+
+		foreach ( $user_ids as $user_id ) {
+			/* Safety check: never delete admins */
+			$user = get_userdata( $user_id );
+			if ( ! $user || user_can( $user_id, 'manage_options' ) ) {
+				continue;
+			}
+
+			/* Log before deletion */
+			NBUF_Audit_Log::log(
+				$user_id,
+				'users',
+				'unverified_account_deleted',
+				array(
+					'reason'     => 'auto_cleanup',
+					'days'       => $cleanup_days,
+					'username'   => $user->user_login,
+					'email'      => $user->user_email,
+					'registered' => $user->user_registered,
+				)
+			);
+
+			/* Delete user (reassign posts to admin if needed) */
+			if ( wp_delete_user( $user_id ) ) {
+				++$deleted_count;
+			}
+		}
+
+		/* Log cleanup statistics */
+		if ( $deleted_count > 0 ) {
+			NBUF_Options::update( 'nbuf_last_unverified_cleanup', current_time( 'mysql' ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_unverified_cleanup_count', $deleted_count, false, 'system' );
+		}
+
+		return $deleted_count;
 	}
 }
 

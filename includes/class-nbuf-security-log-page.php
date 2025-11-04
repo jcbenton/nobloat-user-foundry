@@ -1,13 +1,13 @@
 <?php
 /**
- * NoBloat User Foundry - Audit Log Page
+ * NoBloat User Foundry - Security Log Page
  *
- * Handles admin page registration and rendering for audit log viewer.
+ * Handles admin page registration and rendering for security log viewer.
  * Includes menu registration, page display, export, and purge functionality.
  *
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes
- * @since      1.0.0
+ * @since      1.4.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,15 +15,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Audit log admin page handler
+ * Security log admin page handler
  *
- * @since 1.0.0
+ * @since 1.4.0
  */
-class NBUF_Audit_Log_Page {
+class NBUF_Security_Log_Page {
 
 
 	/**
-	 * Initialize audit log page
+	 * Initialize security log page
 	 */
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
@@ -32,21 +32,21 @@ class NBUF_Audit_Log_Page {
 	}
 
 	/**
-	 * Add audit log menu page
+	 * Add security log menu page
 	 */
 	public static function add_menu_page() {
 		add_submenu_page(
 			'nobloat-foundry',
-			__( 'User Audit Log', 'nobloat-user-foundry' ),
-			__( 'User Audit Log', 'nobloat-user-foundry' ),
+			__( 'Security Audit Log', 'nobloat-user-foundry' ),
+			__( 'Security Audit Log', 'nobloat-user-foundry' ),
 			'manage_options',
-			'nobloat-foundry-user-log',
+			'nobloat-foundry-security-log',
 			array( __CLASS__, 'render_page' )
 		);
 	}
 
 	/**
-	 * Render audit log page
+	 * Render security log page
 	 */
 	public static function render_page() {
 		/* Check user capabilities */
@@ -58,21 +58,21 @@ class NBUF_Audit_Log_Page {
 		self::display_notices();
 
 		/* Create list table instance */
-		$list_table = new NBUF_Audit_Log_List_Table();
+		$list_table = new NBUF_Security_Log_List_Table();
 		$list_table->prepare_items();
 
 		/* Get statistics */
-		$stats = NBUF_Audit_Log::get_stats();
+		$stats = NBUF_Security_Log::get_stats();
 
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'User Audit Log', 'nobloat-user-foundry' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Security Audit Log', 'nobloat-user-foundry' ); ?></h1>
 
-		<?php if ( NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
+		<?php if ( NBUF_Options::get( 'nbuf_security_log_enabled', true ) ) : ?>
 				<a href="<?php echo esc_url( self::get_export_url() ); ?>" class="page-title-action">
 			<?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
 				</a>
-				<a href="<?php echo esc_url( self::get_purge_url() ); ?>" class="page-title-action" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete ALL audit logs? This action cannot be undone.', 'nobloat-user-foundry' ); ?>');">
+				<a href="<?php echo esc_url( self::get_purge_url() ); ?>" class="page-title-action" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete ALL security logs? This action cannot be undone.', 'nobloat-user-foundry' ); ?>');">
 			<?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
 				</a>
 		<?php endif; ?>
@@ -85,21 +85,21 @@ class NBUF_Audit_Log_Page {
 		<?php
 		printf(
 		/* translators: %s: Settings page URL */
-			esc_html__( 'Configure user audit log settings in %s', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings → Tools → Audit Log', 'nobloat-user-foundry' ) . '</a>'
+			esc_html__( 'Configure security audit log settings in %s', 'nobloat-user-foundry' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=security-log' ) ) . '">' . esc_html__( 'Settings → Tools → Security Log', 'nobloat-user-foundry' ) . '</a>'
 		);
 		?>
 				</p>
 			</div>
 
-		<?php if ( ! NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
+		<?php if ( ! NBUF_Options::get( 'nbuf_security_log_enabled', true ) ) : ?>
 				<div class="notice notice-warning">
 					<p>
 			<?php
 			printf(
 			/* translators: %s: Settings page URL */
-				esc_html__( 'Audit logging is currently disabled. Enable it in %s to start tracking user activity.', 'nobloat-user-foundry' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings > Tools > Audit Log', 'nobloat-user-foundry' ) . '</a>'
+				esc_html__( 'Security logging is currently disabled. Enable it in %s to start tracking security events.', 'nobloat-user-foundry' ),
+				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=security-log' ) ) . '">' . esc_html__( 'Settings → Tools → Security Log', 'nobloat-user-foundry' ) . '</a>'
 			);
 			?>
 					</p>
@@ -137,9 +137,9 @@ class NBUF_Audit_Log_Page {
 
 			<!-- List table -->
 			<form method="get">
-				<input type="hidden" name="page" value="nobloat-foundry-user-log">
+				<input type="hidden" name="page" value="nobloat-foundry-security-log">
 		<?php
-		$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'audit-log-search' );
+		$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'security-log-search' );
 		$list_table->display();
 		?>
 			</form>
@@ -167,12 +167,12 @@ class NBUF_Audit_Log_Page {
 
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['exported'] ) ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Audit logs exported successfully.', 'nobloat-user-foundry' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Security logs exported successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 		}
 
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['purged'] ) ) {
-			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'All audit logs have been purged.', 'nobloat-user-foundry' ) . '</p></div>';
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'All security logs have been purged.', 'nobloat-user-foundry' ) . '</p></div>';
 		}
 
 		/*
@@ -188,43 +188,47 @@ class NBUF_Audit_Log_Page {
 	 * Handle CSV export
 	 */
 	public static function handle_export() {
-		if ( ! isset( $_GET['action'] ) || 'nbuf_export_logs' !== $_GET['action'] ) {
+		if ( ! isset( $_GET['action'] ) || 'nbuf_export_security_logs' !== $_GET['action'] ) {
 			return;
 		}
 
-		/* Check nonce */
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_export_logs' ) ) {
-			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
-		}
+		/* Check nonce and capability FIRST before any processing */
+		check_admin_referer( 'nbuf_export_security_logs' );
 
-		/* Check capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to export logs', 'nobloat-user-foundry' ) );
 		}
 
 		/* Get current filters */
 		$filters = array();
-		if ( ! empty( $_GET['user_id'] ) ) {
-			$filters['user_id'] = intval( $_GET['user_id'] );
+		if ( ! empty( $_GET['severity'] ) ) {
+			$filters['severity'] = sanitize_text_field( wp_unslash( $_GET['severity'] ) );
 		}
 		if ( ! empty( $_GET['event_type'] ) ) {
 			$filters['event_type'] = sanitize_text_field( wp_unslash( $_GET['event_type'] ) );
 		}
-		if ( ! empty( $_GET['event_status'] ) ) {
-			$filters['event_status'] = sanitize_text_field( wp_unslash( $_GET['event_status'] ) );
+		if ( ! empty( $_GET['date_from'] ) ) {
+			$filters['date_from'] = sanitize_text_field( wp_unslash( $_GET['date_from'] ) );
+		}
+		if ( ! empty( $_GET['date_to'] ) ) {
+			$filters['date_to'] = sanitize_text_field( wp_unslash( $_GET['date_to'] ) );
 		}
 
 		/* Generate CSV */
-		$csv = NBUF_Audit_Log::export_to_csv( $filters );
+		$csv = NBUF_Security_Log::export_to_csv( $filters );
 
 		/* Set headers for download */
-		$filename = 'audit-log-' . gmdate( 'Y-m-d-His' ) . '.csv';
+		$filename = 'security-log-' . gmdate( 'Y-m-d-His' ) . '.csv';
+		/* Remove any potential CRLF or special characters for security */
+		$filename = preg_replace( '/[^a-zA-Z0-9._-]/', '', $filename );
+
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV export data from NBUF_Audit_Log::export_to_csv().
+     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV export data from NBUF_Security_Log::export_to_csv().
 		echo $csv;
 		exit;
 	}
@@ -233,12 +237,12 @@ class NBUF_Audit_Log_Page {
 	 * Handle purge all logs
 	 */
 	public static function handle_purge() {
-		if ( ! isset( $_GET['action'] ) || 'nbuf_purge_logs' !== $_GET['action'] ) {
+		if ( ! isset( $_GET['action'] ) || 'nbuf_purge_security_logs' !== $_GET['action'] ) {
 			return;
 		}
 
 		/* Check nonce */
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_purge_logs' ) ) {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_purge_security_logs' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
 		}
 
@@ -248,7 +252,7 @@ class NBUF_Audit_Log_Page {
 		}
 
 		/* Purge all logs */
-		$success = NBUF_Audit_Log::purge_all_logs();
+		$success = NBUF_Security_Log::purge_all_logs();
 
 		/* Redirect with result */
 		$redirect = remove_query_arg( array( 'action', '_wpnonce' ) );
@@ -269,23 +273,33 @@ class NBUF_Audit_Log_Page {
 	 */
 	private static function get_export_url() {
 		$url = admin_url( 'admin.php' );
-		$url = add_query_arg( 'action', 'nbuf_export_logs', $url );
+		$url = add_query_arg( 'action', 'nbuf_export_security_logs', $url );
 
 		/*
 		 * Preserve current filters
 		 */
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
+		if ( ! empty( $_GET['severity'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
+			$url = add_query_arg( 'severity', sanitize_text_field( wp_unslash( $_GET['severity'] ) ), $url );
+		}
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 		if ( ! empty( $_GET['event_type'] ) ) {
          // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
 			$url = add_query_arg( 'event_type', sanitize_text_field( wp_unslash( $_GET['event_type'] ) ), $url );
 		}
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
-		if ( ! empty( $_GET['event_status'] ) ) {
+		if ( ! empty( $_GET['date_from'] ) ) {
          // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
-			$url = add_query_arg( 'event_status', sanitize_text_field( wp_unslash( $_GET['event_status'] ) ), $url );
+			$url = add_query_arg( 'date_from', sanitize_text_field( wp_unslash( $_GET['date_from'] ) ), $url );
+		}
+     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
+		if ( ! empty( $_GET['date_to'] ) ) {
+         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only URL parameter preservation
+			$url = add_query_arg( 'date_to', sanitize_text_field( wp_unslash( $_GET['date_to'] ) ), $url );
 		}
 
-		return wp_nonce_url( $url, 'nbuf_export_logs' );
+		return wp_nonce_url( $url, 'nbuf_export_security_logs' );
 	}
 
 	/**
@@ -294,9 +308,9 @@ class NBUF_Audit_Log_Page {
 	 * @return string Purge URL.
 	 */
 	private static function get_purge_url() {
-		$url = admin_url( 'admin.php?page=nobloat-foundry-user-log' );
-		$url = add_query_arg( 'action', 'nbuf_purge_logs', $url );
-		return wp_nonce_url( $url, 'nbuf_purge_logs' );
+		$url = admin_url( 'admin.php?page=nobloat-foundry-security-log' );
+		$url = add_query_arg( 'action', 'nbuf_purge_security_logs', $url );
+		return wp_nonce_url( $url, 'nbuf_purge_security_logs' );
 	}
 
 	/**
@@ -305,14 +319,14 @@ class NBUF_Audit_Log_Page {
 	 * @return string Retention label.
 	 */
 	private static function get_retention_label() {
-		$retention = NBUF_Options::get( 'nbuf_audit_log_retention', '90days' );
+		$retention = NBUF_Options::get( 'nbuf_security_log_retention', '365days' );
 
 		$labels = array(
 			'7days'   => __( '7 Days', 'nobloat-user-foundry' ),
 			'30days'  => __( '30 Days', 'nobloat-user-foundry' ),
 			'90days'  => __( '90 Days', 'nobloat-user-foundry' ),
 			'180days' => __( '6 Months', 'nobloat-user-foundry' ),
-			'1year'   => __( '1 Year', 'nobloat-user-foundry' ),
+			'365days' => __( '1 Year', 'nobloat-user-foundry' ),
 			'2years'  => __( '2 Years', 'nobloat-user-foundry' ),
 			'forever' => __( 'Forever', 'nobloat-user-foundry' ),
 		);

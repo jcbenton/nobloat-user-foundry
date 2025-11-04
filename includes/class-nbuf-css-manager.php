@@ -118,7 +118,20 @@ class NBUF_CSS_Manager {
 		if ( file_exists( $live_path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
 			$old_content = file_get_contents( $live_path );
-			$old_hash    = md5( $old_content );
+			if ( false === $old_content ) {
+				NBUF_Security_Log::log(
+					'css_read_failed',
+					'warning',
+					'Failed to read existing CSS file for hash comparison',
+					array(
+						'file_path' => $live_path,
+						'filename'  => $filename,
+					)
+				);
+				/* Continue anyway - will regenerate CSS */
+			} else {
+				$old_hash = md5( $old_content );
+			}
 		}
 
 		/* Skip write if CSS unchanged */
@@ -135,6 +148,16 @@ class NBUF_CSS_Manager {
 		if ( false === $wrote_css ) {
 			/* Write failed - set token */
 			NBUF_Options::update( $token_key, 1, true, 'system' );
+			NBUF_Security_Log::log(
+				'css_write_failed',
+				'critical',
+				'Failed to write CSS file to disk',
+				array(
+					'file_path' => $live_path,
+					'filename'  => $filename,
+					'css_size'  => strlen( $css ),
+				)
+			);
 			return false;
 		}
 
@@ -146,12 +169,33 @@ class NBUF_CSS_Manager {
 		if ( false === $wrote_min ) {
 			/* Minified write failed - set token */
 			NBUF_Options::update( $token_key, 1, true, 'system' );
+			NBUF_Security_Log::log(
+				'css_minify_write_failed',
+				'critical',
+				'Failed to write minified CSS file to disk',
+				array(
+					'file_path'     => $min_path,
+					'filename'      => $filename,
+					'minified_size' => strlen( $minified ),
+				)
+			);
 
 			/*
 			 * Delete the CSS file we just wrote to keep them in sync
 			 */
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup after failed CSS write; WP_Filesystem not practical here.
-			unlink( $live_path );
+			$unlink_result = unlink( $live_path );
+			if ( false === $unlink_result ) {
+				NBUF_Security_Log::log(
+					'css_cleanup_failed',
+					'warning',
+					'Failed to delete orphaned CSS file after minified write failure',
+					array(
+						'file_path' => $live_path,
+						'filename'  => $filename,
+					)
+				);
+			}
 			return false;
 		}
 
@@ -190,21 +234,63 @@ class NBUF_CSS_Manager {
 		$min_path = $ui_dir . $filename . '-live.min.css';
 		if ( file_exists( $min_path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			return file_get_contents( $min_path );
+			$content = file_get_contents( $min_path );
+			if ( false === $content ) {
+				NBUF_Security_Log::log(
+					'css_read_failed',
+					'warning',
+					'Failed to read minified CSS file',
+					array(
+						'file_path' => $min_path,
+						'filename'  => $filename,
+					)
+				);
+				/* Fall through to next priority */
+			} else {
+				return $content;
+			}
 		}
 
 		/* Priority 2: Live CSS file */
 		$live_path = $ui_dir . $filename . '-live.css';
 		if ( file_exists( $live_path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			return file_get_contents( $live_path );
+			$content = file_get_contents( $live_path );
+			if ( false === $content ) {
+				NBUF_Security_Log::log(
+					'css_read_failed',
+					'warning',
+					'Failed to read live CSS file',
+					array(
+						'file_path' => $live_path,
+						'filename'  => $filename,
+					)
+				);
+				/* Fall through to next priority */
+			} else {
+				return $content;
+			}
 		}
 
 		/* Priority 3: Default template from /templates/ */
 		$default_path = $templates_dir . $filename . '.css';
 		if ( file_exists( $default_path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			return file_get_contents( $default_path );
+			$content = file_get_contents( $default_path );
+			if ( false === $content ) {
+				NBUF_Security_Log::log(
+					'css_read_failed',
+					'critical',
+					'Failed to read default CSS template',
+					array(
+						'file_path' => $default_path,
+						'filename'  => $filename,
+					)
+				);
+				/* Fall through to DB fallback */
+			} else {
+				return $content;
+			}
 		}
 
 		/* Priority 4: Database fallback */
@@ -229,7 +315,20 @@ class NBUF_CSS_Manager {
 		$path = NBUF_TEMPLATES_DIR . $filename . '.css';
 		if ( file_exists( $path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			return file_get_contents( $path );
+			$content = file_get_contents( $path );
+			if ( false === $content ) {
+				NBUF_Security_Log::log(
+					'css_read_failed',
+					'critical',
+					'Failed to read default CSS template in load_default_css()',
+					array(
+						'file_path' => $path,
+						'filename'  => $filename,
+					)
+				);
+				return '';
+			}
+			return $content;
 		}
 		return '';
 	}

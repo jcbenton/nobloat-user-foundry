@@ -252,7 +252,7 @@ $stats = NBUF_Audit_Log::get_stats();
 					printf(
 					/* translators: %s: Audit log page URL */
 						esc_html__( 'View logs and purge options on the %s page.', 'nobloat-user-foundry' ),
-						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-user-log' ) ) . '">' . esc_html__( 'User Log', 'nobloat-user-foundry' ) . '</a>'
+						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-user-log' ) ) . '">' . esc_html__( 'User Audit Log', 'nobloat-user-foundry' ) . '</a>'
 					);
 					?>
 				</p>

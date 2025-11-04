@@ -27,6 +27,13 @@ if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_settings' ) ) 
 	$include_login_attempts = isset( $_POST['nbuf_gdpr_include_login_attempts'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_gdpr_include_login_attempts', $include_login_attempts, true, 'gdpr' );
 
+	/* User Content Deletion Options */
+	$delete_user_photos = isset( $_POST['nbuf_gdpr_delete_user_photos'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_gdpr_delete_user_photos', $delete_user_photos, true, 'gdpr' );
+
+	$delete_on_uninstall = isset( $_POST['nbuf_gdpr_delete_on_uninstall'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_gdpr_delete_on_uninstall', $delete_on_uninstall, true, 'gdpr' );
+
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'GDPR settings saved.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
@@ -35,6 +42,8 @@ $delete_audit_logs      = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'ano
 $include_audit_logs     = NBUF_Options::get( 'nbuf_gdpr_include_audit_logs', true );
 $include_2fa_data       = NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true );
 $include_login_attempts = NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false );
+$delete_user_photos     = NBUF_Options::get( 'nbuf_gdpr_delete_user_photos', true );
+$delete_on_uninstall    = NBUF_Options::get( 'nbuf_gdpr_delete_on_uninstall', false );
 ?>
 
 <form method="post" action="">
@@ -96,6 +105,43 @@ $include_login_attempts = NBUF_Options::get( 'nbuf_gdpr_include_login_attempts',
 				</fieldset>
 				<p class="description">
 					<?php esc_html_e( 'Controls what happens to audit logs when a user is deleted. Anonymize keeps the logs for security purposes but replaces personal information with "deleted_user".', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+
+		<!-- Delete User Photos on Account Deletion -->
+		<tr>
+			<th scope="row">
+				<label for="nbuf_gdpr_delete_user_photos">
+					<?php esc_html_e( 'Delete User Photos', 'nobloat-user-foundry' ); ?>
+				</label>
+			</th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_gdpr_delete_user_photos" id="nbuf_gdpr_delete_user_photos" value="1" <?php checked( $delete_user_photos, 1 ); ?>>
+					<?php esc_html_e( 'Delete user photos when user account is deleted', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, all photos in /uploads/nobloat/{user_id}/ will be permanently deleted when the user account is removed. Recommended for GDPR compliance.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+
+		<!-- Delete All Content on Plugin Uninstall -->
+		<tr>
+			<th scope="row">
+				<label for="nbuf_gdpr_delete_on_uninstall">
+					<?php esc_html_e( 'Delete on Uninstall', 'nobloat-user-foundry' ); ?>
+				</label>
+			</th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_gdpr_delete_on_uninstall" id="nbuf_gdpr_delete_on_uninstall" value="1" <?php checked( $delete_on_uninstall, 1 ); ?>>
+					<?php esc_html_e( 'Delete ALL user photos when plugin is uninstalled', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<strong><?php esc_html_e( 'Warning:', 'nobloat-user-foundry' ); ?></strong>
+					<?php esc_html_e( 'When enabled, the entire /uploads/nobloat/ directory will be permanently deleted when you uninstall this plugin. This action cannot be undone. Disabled by default for safety.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

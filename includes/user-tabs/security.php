@@ -534,6 +534,62 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 		</tr>
 	</table>
 
+	<!-- Account Verification & Approval -->
+	<h2><?php esc_html_e( 'Account Verification & Approval', 'nobloat-user-foundry' ); ?></h2>
+	<table class="form-table">
+		<?php
+		$require_verification   = NBUF_Options::get( 'nbuf_require_verification', false );
+		$require_approval       = NBUF_Options::get( 'nbuf_require_approval', false );
+		$delete_unverified_days = NBUF_Options::get( 'nbuf_delete_unverified_days', 5 );
+		$new_user_default_role  = NBUF_Options::get( 'nbuf_new_user_default_role', 'subscriber' );
+		?>
+		<tr>
+			<th><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_require_verification" value="1" <?php checked( $require_verification, true ); ?>>
+					<?php esc_html_e( 'Require email verification for new accounts', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'Users must verify their email address before they can log in. A verification link will be emailed to them upon registration.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Admin Approval', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_require_approval" value="1" <?php checked( $require_approval, true ); ?>>
+					<?php esc_html_e( 'Require administrator approval for new accounts', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'New user accounts must be manually approved by an administrator before they can log in. Users will receive an email notification once approved.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Auto-Delete Unverified Accounts', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="number" name="nbuf_delete_unverified_days" value="<?php echo esc_attr( $delete_unverified_days ); ?>" min="0" max="365" class="small-text">
+				<span><?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></span>
+				<p class="description">
+					<?php esc_html_e( 'Automatically delete accounts that have not verified their email within this many days. Set to 0 to disable. Only applies when email verification is enabled. Default: 5 days', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'New User Default Role', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<select name="nbuf_new_user_default_role">
+					<?php wp_dropdown_roles( $new_user_default_role ); ?>
+				</select>
+				<p class="description">
+					<?php esc_html_e( 'The default WordPress role assigned to new user accounts upon registration. This role determines what capabilities and permissions the user will have. Default: Subscriber', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>

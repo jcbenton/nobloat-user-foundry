@@ -134,6 +134,11 @@ class NBUF_Database {
             user_id BIGINT(20) UNSIGNED NOT NULL,
             is_verified TINYINT(1) NOT NULL DEFAULT 0,
             verified_date DATETIME NULL,
+            requires_approval TINYINT(1) NOT NULL DEFAULT 0,
+            is_approved TINYINT(1) NOT NULL DEFAULT 1,
+            approved_by BIGINT(20) UNSIGNED NULL,
+            approved_date DATETIME NULL,
+            approval_notes TEXT NULL,
             is_disabled TINYINT(1) NOT NULL DEFAULT 0,
             disabled_reason VARCHAR(50) NULL,
             expires_at DATETIME NULL,
@@ -142,8 +147,11 @@ class NBUF_Database {
             password_changed_at DATETIME NULL,
             PRIMARY KEY (user_id),
             KEY is_verified (is_verified),
+            KEY is_approved (is_approved),
             KEY is_disabled (is_disabled),
             KEY expires_at (expires_at),
+            KEY pending_approval (requires_approval, is_approved, is_verified),
+            KEY unverified_cleanup (is_verified, is_disabled),
             KEY warning_check (expires_at, expiration_warned_at, is_disabled)
         ) {$charset_collate};";
 

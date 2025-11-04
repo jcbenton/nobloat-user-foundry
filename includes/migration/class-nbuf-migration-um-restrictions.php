@@ -189,12 +189,28 @@ class NBUF_Migration_UM_Restrictions {
 		}
 
 		/*
-		Map action
-		* UM values: 0 = show message, 1 = redirect
-		*/
+		 * Map action
+		 * UM values: 0 = show message, 1 = redirect
+		 * SECURITY: Validate redirect URLs are internal only to prevent open redirect vulnerabilities
+		 */
 		if ( '1' === $redirect_enabled && ! empty( $redirect_url ) ) {
-			$nbuf['restriction_action'] = 'redirect';
-			$nbuf['redirect_url']       = esc_url_raw( $redirect_url );
+			/* Validate redirect URL is internal only - prevents open redirect attacks */
+			$validated_url = wp_validate_redirect( $redirect_url, false );
+
+			if ( false !== $validated_url ) {
+				$nbuf['restriction_action'] = 'redirect';
+				$nbuf['redirect_url']       = esc_url_raw( $validated_url );
+			} else {
+				/* Invalid/external URL blocked - log for security audit */
+				error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security logging for blocked open redirect attempt.
+					sprintf(
+						'[NoBloat User Foundry] SECURITY: Blocked migration of external redirect URL: %s',
+						$redirect_url
+					)
+				);
+				/* Fall back to message instead */
+				$nbuf['restriction_action'] = 'message';
+			}
 		} elseif ( '1' === $custom_message_enabled && ! empty( $custom_message ) ) {
 			$nbuf['restriction_action'] = 'message';
 			$nbuf['custom_message']     = wp_kses_post( $custom_message );

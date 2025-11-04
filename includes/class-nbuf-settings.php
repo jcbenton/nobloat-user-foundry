@@ -100,8 +100,8 @@ class NBUF_Settings {
 			echo esc_html__( 'Required pages are missing or misconfigured:', 'nobloat-user-foundry' );
 			echo '<ul style="list-style:disc;margin-left:20px;">';
 			foreach ( $missing_pages as $page_desc ) {
-             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $page_desc contains safe HTML with <code> tags.
-				echo '<li>' . $page_desc . '</li>';
+				/* SECURITY: Allow <code> tags for page path display */
+				echo '<li>' . wp_kses_post( $page_desc ) . '</li>';
 			}
 			echo '</ul>';
 			echo '<p>' . esc_html__( 'Please create the pages with the correct slugs and shortcodes, or deactivate and reactivate the plugin.', 'nobloat-user-foundry' ) . '</p>';
@@ -787,12 +787,121 @@ class NBUF_Settings {
 			)
 		);
 
+		/* Security - Account Verification & Approval */
+		register_setting(
+			'nbuf_security_group',
+			'nbuf_require_approval',
+			array(
+				'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox' ),
+			)
+		);
+		register_setting(
+			'nbuf_security_group',
+			'nbuf_delete_unverified_days',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					return absint( $value );
+				},
+			)
+		);
+		register_setting(
+			'nbuf_security_group',
+			'nbuf_new_user_default_role',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					/* Validate against WordPress roles */
+					$roles = wp_roles()->get_names();
+					return in_array( $value, array_keys( $roles ), true ) ? sanitize_key( $value ) : 'subscriber';
+				},
+			)
+		);
+
 		/* Registration field options */
 		register_setting(
 			'nbuf_registration_group',
 			'nbuf_registration_fields',
 			array(
 				'sanitize_callback' => array( __CLASS__, 'sanitize_registration_fields' ),
+			)
+		);
+
+		/* Media - Image Optimization Settings */
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_convert_images_to_webp',
+			array(
+				'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox' ),
+			)
+		);
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_webp_quality',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$quality = absint( $value );
+					return ( $quality >= 1 && $quality <= 100 ) ? $quality : 85;
+				},
+			)
+		);
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_strip_exif_data',
+			array(
+				'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox' ),
+			)
+		);
+
+		/* Media - Profile Photo Settings */
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_profile_photo_max_width',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$width = absint( $value );
+					return ( $width >= 256 && $width <= 4096 ) ? $width : 1024;
+				},
+			)
+		);
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_profile_photo_max_size',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$size = absint( $value );
+					return ( $size >= 1 && $size <= 50 ) ? $size : 5;
+				},
+			)
+		);
+
+		/* Media - Cover Photo Settings */
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_cover_photo_max_width',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$width = absint( $value );
+					return ( $width >= 800 && $width <= 4096 ) ? $width : 1920;
+				},
+			)
+		);
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_cover_photo_max_height',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$height = absint( $value );
+					return ( $height >= 200 && $height <= 2048 ) ? $height : 600;
+				},
+			)
+		);
+		register_setting(
+			'nbuf_media_group',
+			'nbuf_cover_photo_max_size',
+			array(
+				'sanitize_callback' => function ( $value ) {
+					$size = absint( $value );
+					return ( $size >= 1 && $size <= 50 ) ? $size : 10;
+				},
 			)
 		);
 	}
@@ -846,7 +955,7 @@ class NBUF_Settings {
 				'nbuf_settings',
 				'invalid_' . sanitize_title( $label ) . '_slug',
 				/* translators: 1: Field label, 2: Default path example */
-				sprintf( __( '%1$s URL must be a simple single-level path (e.g., %2$s)', 'nobloat-user-foundry' ), $label, esc_html( $default ) ),
+				esc_html( sprintf( __( '%1$s URL must be a simple single-level path (e.g., %2$s)', 'nobloat-user-foundry' ), $label, $default ) ),
 				'error'
 			);
 			return $default;
@@ -1095,6 +1204,10 @@ class NBUF_Settings {
 					'2fa-totp'     => __( 'Authenticator', 'nobloat-user-foundry' ),
 				),
 			),
+			'media'       => array(
+				'label'   => __( 'Media', 'nobloat-user-foundry' ),
+				'subtabs' => array(),
+			),
 			'users'       => array(
 				'label'   => __( 'Users', 'nobloat-user-foundry' ),
 				'subtabs' => array(
@@ -1144,6 +1257,7 @@ class NBUF_Settings {
 					'merge-accounts' => __( 'Merge Accounts', 'nobloat-user-foundry' ),
 					'migration'      => __( 'Migration', 'nobloat-user-foundry' ),
 					'audit-log'      => __( 'Audit Log', 'nobloat-user-foundry' ),
+					'security-log'   => __( 'Security Log', 'nobloat-user-foundry' ),
 					'diagnostics'    => __( 'Diagnostics', 'nobloat-user-foundry' ),
 					'tests'          => __( 'Tests', 'nobloat-user-foundry' ),
 					'shortcodes'     => __( 'Shortcodes', 'nobloat-user-foundry' ),
@@ -1330,6 +1444,21 @@ class NBUF_Settings {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
 		$content = file_get_contents( $path );
 
+		if ( false === $content ) {
+			NBUF_Security_Log::log(
+				'file_read_failed',
+				'critical',
+				'Failed to read template file during AJAX reset',
+				array(
+					'file_path'     => $path,
+					'template_type' => $type,
+					'operation'     => 'ajax_reset_template',
+					'user_id'       => get_current_user_id(),
+				)
+			);
+			wp_send_json_error( __( 'Failed to read template file.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Use Template Manager to save (stores in custom table, not wp_options) */
 		NBUF_Template_Manager::save_template( $type, $content );
 
@@ -1374,6 +1503,21 @@ class NBUF_Settings {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
 		$content = file_get_contents( $path );
+
+		if ( false === $content ) {
+			NBUF_Security_Log::log(
+				'file_read_failed',
+				'critical',
+				'Failed to read CSS file during AJAX reset',
+				array(
+					'file_path'     => $path,
+					'template_type' => $template,
+					'operation'     => 'ajax_reset_style',
+					'user_id'       => get_current_user_id(),
+				)
+			);
+			wp_send_json_error( __( 'Failed to read CSS file.', 'nobloat-user-foundry' ) );
+		}
 
 		/* Use NBUF_Options to save (stores in custom table, not wp_options) */
 		NBUF_Options::update( $option_map[ $template ], $content, false, 'styles' );

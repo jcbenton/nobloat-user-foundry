@@ -242,6 +242,184 @@ class NBUF_User_Data {
 	}
 
 	/**
+	 * Check if user requires admin approval.
+	 *
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool True if requires approval.
+	 */
+	public static function requires_approval( int $user_id ): bool {
+		$data = self::get( $user_id );
+		return $data && 1 === (int) $data->requires_approval;
+	}
+
+	/**
+	 * Check if user is approved.
+	 *
+	 * Returns true if user is approved OR doesn't require approval.
+	 *
+	 * @since  1.0.0
+	 * @param  int $user_id User ID.
+	 * @return bool True if approved or approval not required.
+	 */
+	public static function is_approved( int $user_id ): bool {
+		$data = self::get( $user_id );
+
+		/* If doesn't require approval, consider approved */
+		if ( ! $data || ! $data->requires_approval ) {
+			return true;
+		}
+
+		return 1 === (int) $data->is_approved;
+	}
+
+	/**
+	 * Set user to require approval.
+	 *
+	 * @since  1.0.0
+	 * @param  int  $user_id User ID.
+	 * @param  bool $requires Whether approval is required.
+	 * @return bool True on success.
+	 */
+	public static function set_requires_approval( int $user_id, bool $requires = true ): bool {
+		return self::update(
+			$user_id,
+			array(
+				'requires_approval' => $requires ? 1 : 0,
+				'is_approved'       => $requires ? 0 : 1,  /* If no longer requires, auto-approve */
+			)
+		);
+	}
+
+	/**
+	 * Approve user account.
+	 *
+	 * Manual approval - works regardless of global settings.
+	 * Admin can manually approve any user at any time.
+	 *
+	 * @since  1.0.0
+	 * @param  int    $user_id User ID to approve.
+	 * @param  int    $admin_id Admin who approved.
+	 * @param  string $notes Optional approval notes.
+	 * @return bool True on success.
+	 */
+	public static function approve_user( int $user_id, int $admin_id, string $notes = '' ): bool {
+		/* Log approval */
+		NBUF_Audit_Log::log(
+			$user_id,
+			'users',
+			'account_approved',
+			array(
+				'approved_by' => $admin_id,
+				'notes'       => $notes,
+			)
+		);
+
+		$result = self::update(
+			$user_id,
+			array(
+				'is_approved'    => 1,
+				'approved_by'    => $admin_id,
+				'approved_date'  => current_time( 'mysql' ),
+				'approval_notes' => sanitize_textarea_field( $notes ),
+			)
+		);
+
+		/* Send approval notification email */
+		if ( $result ) {
+			$user = get_userdata( $user_id );
+			if ( $user && class_exists( 'NBUF_Email' ) ) {
+				NBUF_Email::send_account_approved_email( $user->user_email, $user->user_login );
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Reject user account.
+	 *
+	 * Manual rejection - works regardless of global settings.
+	 * Sets account as disabled with 'rejected' reason.
+	 *
+	 * @since  1.0.0
+	 * @param  int    $user_id User ID to reject.
+	 * @param  int    $admin_id Admin who rejected.
+	 * @param  string $reason Rejection reason.
+	 * @return bool True on success.
+	 */
+	public static function reject_user( int $user_id, int $admin_id, string $reason = '' ): bool {
+		/* Log rejection */
+		NBUF_Audit_Log::log(
+			$user_id,
+			'users',
+			'account_rejected',
+			array(
+				'rejected_by' => $admin_id,
+				'reason'      => $reason,
+			)
+		);
+
+		/* Disable account with 'rejected' reason */
+		$result = self::set_disabled( $user_id, 'rejected' );
+
+		/* Send rejection email */
+		if ( $result ) {
+			$user = get_userdata( $user_id );
+			if ( $user && class_exists( 'NBUF_Email' ) ) {
+				NBUF_Email::send_account_rejected_email( $user->user_email, $reason );
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Manually verify user.
+	 *
+	 * Admin can manually verify any user regardless of whether
+	 * email verification is enabled in settings.
+	 *
+	 * @since  1.0.0
+	 * @param  int $user_id User ID to verify.
+	 * @param  int $admin_id Admin who verified.
+	 * @return bool True on success.
+	 */
+	public static function manually_verify( int $user_id, int $admin_id ): bool {
+		/* Log manual verification */
+		NBUF_Audit_Log::log(
+			$user_id,
+			'users',
+			'manually_verified',
+			array( 'verified_by' => $admin_id )
+		);
+
+		return self::set_verified( $user_id );
+	}
+
+	/**
+	 * Manually unverify user.
+	 *
+	 * Admin can manually unverify any user.
+	 *
+	 * @since  1.0.0
+	 * @param  int $user_id User ID to unverify.
+	 * @param  int $admin_id Admin who unverified.
+	 * @return bool True on success.
+	 */
+	public static function manually_unverify( int $user_id, int $admin_id ): bool {
+		/* Log manual unverification */
+		NBUF_Audit_Log::log(
+			$user_id,
+			'users',
+			'manually_unverified',
+			array( 'unverified_by' => $admin_id )
+		);
+
+		return self::set_unverified( $user_id );
+	}
+
+	/**
 	 * Update user data in table.
 	 *
 	 * @since  1.0.0

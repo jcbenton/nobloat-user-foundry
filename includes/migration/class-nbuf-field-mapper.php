@@ -146,6 +146,32 @@ class NBUF_Field_Mapper {
 	 * @return mixed Transformed value
 	 */
 	private function apply_transformation( $transform_name, $value ) {
+		/*
+		 * Whitelist of allowed transformation functions.
+		 * SECURITY: Never allow arbitrary callables to prevent code execution vulnerabilities.
+		 */
+		$allowed_transforms = array(
+			'sanitize_text'                 => 'sanitize_text_field',
+			'sanitize_textarea'             => 'sanitize_textarea_field',
+			'sanitize_email'                => 'sanitize_email',
+			'sanitize_url'                  => 'esc_url_raw',
+			'um_account_status_to_verified' => null, /* Custom handler below */
+			'um_last_login_to_audit'        => null, /* Custom handler below */
+		);
+
+		/* Check if transformation is whitelisted */
+		if ( ! isset( $allowed_transforms[ $transform_name ] ) ) {
+			/* Invalid/dangerous transformation - return original value */
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security logging for attempted unauthorized transformation.
+				sprintf(
+					'[NoBloat User Foundry] SECURITY: Blocked attempted use of non-whitelisted transformation: %s',
+					$transform_name
+				)
+			);
+			return $value;
+		}
+
+		/* Apply whitelisted transformation */
 		switch ( $transform_name ) {
 			case 'sanitize_text':
 				return sanitize_text_field( $value );
@@ -168,10 +194,7 @@ class NBUF_Field_Mapper {
 				return ! empty( $value ) ? gmdate( 'Y-m-d H:i:s', $value ) : null;
 
 			default:
-				/* Check if it's a callable function */
-				if ( is_callable( $transform_name ) ) {
-					return call_user_func( $transform_name, $value );
-				}
+				/* Should never reach here due to whitelist check above */
 				return $value;
 		}
 	}

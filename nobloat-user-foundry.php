@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 $plugin_data = get_file_data( __FILE__, array( 'Version' => 'Version' ), false );
 define( 'NBUF_VERSION', $plugin_data['Version'] );
+define( 'NBUF_PLUGIN_FILE', __FILE__ );
 define( 'NBUF_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NBUF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'NBUF_TEMPLATES_DIR', NBUF_PLUGIN_DIR . 'templates/' );
@@ -128,6 +129,7 @@ add_action(
 		if ( is_admin() ) {
 			NBUF_Settings::init();
 			NBUF_Audit_Log_Page::init();
+			NBUF_Security_Log_Page::init();
 			NBUF_Version_History_Page::init();
 			NBUF_Migration::init();
 			NBUF_Admin_User_Search::init();
@@ -135,6 +137,9 @@ add_action(
 
 		// Initialize WordPress privacy integration (ALWAYS - for GDPR compliance).
 		NBUF_Privacy::init();
+
+		// Initialize security logging (ALWAYS - for audit trail and compliance).
+		NBUF_Security_Log::init();
 
 		// Check if user management system is enabled.
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
@@ -236,6 +241,12 @@ add_action(
 				);
 			}
 		);
+
+		/*
+		 * GDPR: Clean up user photos when account is deleted
+		 * Checks nbuf_gdpr_delete_user_photos setting before deleting
+		 */
+		add_action( 'delete_user', array( 'NBUF_Image_Processor', 'cleanup_user_photos' ), 10, 1 );
 
 		// Initialize 2FA only if enabled (autoloader handles class loading).
 		$email_2fa_enabled = 'disabled' !== NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );

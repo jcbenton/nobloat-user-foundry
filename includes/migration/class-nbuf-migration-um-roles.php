@@ -155,9 +155,49 @@ class NBUF_Migration_UM_Roles {
 			$nbuf['role_name'] = ucwords( str_replace( '_', ' ', $role_key ) );
 		}
 
-		/* Get WordPress capabilities */
+		/*
+		 * Get WordPress capabilities - SECURITY: Whitelist only safe capabilities
+		 * Never allow dangerous capabilities like 'manage_options', 'edit_users',
+		 * 'delete_users', 'install_plugins', etc. to prevent privilege escalation.
+		 */
 		if ( isset( $um_meta['wp_capabilities'] ) && is_array( $um_meta['wp_capabilities'] ) ) {
-			$nbuf['capabilities'] = $um_meta['wp_capabilities'];
+			/* Whitelist of safe capabilities that can be migrated */
+			$safe_capabilities = array(
+				'read'                   => true,
+				'edit_posts'             => true,
+				'delete_posts'           => true,
+				'publish_posts'          => true,
+				'upload_files'           => true,
+				'edit_published_posts'   => true,
+				'delete_published_posts' => true,
+				'edit_pages'             => true,
+				'delete_pages'           => true,
+				'publish_pages'          => true,
+				'edit_published_pages'   => true,
+				'delete_published_pages' => true,
+				'moderate_comments'      => true,
+				'manage_categories'      => true,
+				'manage_links'           => true,
+			);
+
+			/* Filter capabilities through whitelist */
+			$filtered_caps = array();
+			foreach ( $um_meta['wp_capabilities'] as $cap => $value ) {
+				if ( isset( $safe_capabilities[ $cap ] ) ) {
+					$filtered_caps[ $cap ] = $value;
+				} else {
+					/* Log blocked capability for security audit */
+					error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security logging for blocked privilege escalation attempt.
+						sprintf(
+							'[NoBloat User Foundry] SECURITY: Blocked migration of dangerous capability "%s" from UM role "%s"',
+							$cap,
+							$role_key
+						)
+					);
+				}
+			}
+
+			$nbuf['capabilities'] = $filtered_caps;
 		}
 
 		/* Get priority */

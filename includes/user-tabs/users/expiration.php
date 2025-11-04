@@ -45,6 +45,20 @@ if ( empty( $warning_html ) ) {
 	if ( file_exists( $default_path ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
 		$warning_html = file_get_contents( $default_path );
+
+		if ( false === $warning_html ) {
+			NBUF_Security_Log::log(
+				'file_read_failed',
+				'warning',
+				'Failed to read default expiration warning HTML template',
+				array(
+					'file_path' => $default_path,
+					'context'   => 'user_expiration_settings_load',
+					'user_id'   => get_current_user_id(),
+				)
+			);
+			$warning_html = '';
+		}
 	}
 }
 if ( empty( $warning_text ) ) {
@@ -52,6 +66,20 @@ if ( empty( $warning_text ) ) {
 	if ( file_exists( $default_path ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
 		$warning_text = file_get_contents( $default_path );
+
+		if ( false === $warning_text ) {
+			NBUF_Security_Log::log(
+				'file_read_failed',
+				'warning',
+				'Failed to read default expiration warning text template',
+				array(
+					'file_path' => $default_path,
+					'context'   => 'user_expiration_settings_load',
+					'user_id'   => get_current_user_id(),
+				)
+			);
+			$warning_text = '';
+		}
 	}
 }
 ?>

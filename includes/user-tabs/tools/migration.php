@@ -106,6 +106,38 @@ $available_plugins = array(
 				<?php esc_html_e( 'Review what custom roles will be migrated.', 'nobloat-user-foundry' ); ?>
 			</p>
 
+			<div class="notice notice-warning inline" style="margin: 15px 0;">
+				<p>
+					<strong><?php esc_html_e( 'Security Notice:', 'nobloat-user-foundry' ); ?></strong>
+					<?php
+					esc_html_e(
+						'For security reasons, administrative and system-level capabilities are automatically blocked from migration. The following capabilities will NOT be migrated:',
+						'nobloat-user-foundry'
+					);
+					?>
+				</p>
+				<ul style="list-style: disc; margin-left: 20px;">
+					<li><?php esc_html_e( 'Administrative capabilities (manage_options, switch_themes, edit_themes, etc.)', 'nobloat-user-foundry' ); ?></li>
+					<li><?php esc_html_e( 'User management capabilities (edit_users, delete_users, create_users, etc.)', 'nobloat-user-foundry' ); ?></li>
+					<li><?php esc_html_e( 'Plugin/theme installation capabilities (install_plugins, activate_plugins, etc.)', 'nobloat-user-foundry' ); ?></li>
+					<li><?php esc_html_e( 'System update capabilities (update_core, update_plugins, update_themes)', 'nobloat-user-foundry' ); ?></li>
+				</ul>
+				<p>
+					<?php
+					echo wp_kses_post(
+						sprintf(
+							/* translators: %s: URL to role manager */
+							__(
+								'After migration, you can review and manually add any necessary capabilities using the <a href="%s">Role Manager</a> if you have the appropriate administrative permissions.',
+								'nobloat-user-foundry'
+							),
+							admin_url( 'admin.php?page=nobloat-foundry-users&tab=users&subtab=roles' )
+						)
+					);
+					?>
+				</p>
+			</div>
+
 			<div id="nbuf-roles-preview">
 				<!-- Will be populated via JavaScript -->
 			</div>
@@ -130,10 +162,10 @@ $available_plugins = array(
 			</button>
 
 			<div id="nbuf-migration-progress" style="display:none; margin-top: 20px;">
-				<div class="nbuf-progress-bar">
-					<div class="nbuf-progress-fill" style="width: 0%;"></div>
+				<div class="nbuf-progress-bar" style="background: #e0e0e0; height: 30px; border-radius: 5px; overflow: hidden; position: relative;">
+					<div class="nbuf-progress-fill" style="width: 0%; background: #0073aa; height: 100%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;"></div>
 				</div>
-				<p class="nbuf-progress-text">
+				<p class="nbuf-progress-text" style="margin-top: 10px;">
 					<strong><?php esc_html_e( 'Migrating...', 'nobloat-user-foundry' ); ?></strong>
 					<span id="nbuf-progress-status"></span>
 				</p>

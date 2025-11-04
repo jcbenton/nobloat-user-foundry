@@ -21,6 +21,21 @@ if ( file_exists( $docs_path ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local documentation file, not remote URL.
 	$content = file_get_contents( $docs_path );
 
+	if ( false === $content ) {
+		NBUF_Security_Log::log(
+			'file_read_failed',
+			'warning',
+			'Failed to read documentation file',
+			array(
+				'file_path' => $docs_path,
+				'context'   => 'docs_tab_load',
+				'user_id'   => get_current_user_id(),
+			)
+		);
+		echo '<div class="notice notice-error"><p>' . esc_html__( 'Error: Unable to read documentation file.', 'nobloat-user-foundry' ) . '</p></div>';
+		return;
+	}
+
 	/* Extract just the body content (skip the full HTML wrapper) */
 	if ( preg_match( '/<body[^>]*>(.*?)<\/body>/s', $content, $matches ) ) {
 		/* Found body tag - extract content from within it */

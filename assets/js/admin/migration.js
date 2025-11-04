@@ -20,6 +20,18 @@ jQuery(document).ready(function($) {
 	let fieldMappings = {};
 	let migrationTypes = [];
 
+	/**
+	 * Escape HTML to prevent XSS attacks
+	 *
+	 * @param {string} text - Text to escape
+	 * @return {string} Escaped text safe for HTML insertion
+	 */
+	function escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
+
 	/* Available plugins data */
 	const pluginsData = NBUF_Migration.plugins_data;
 
@@ -119,6 +131,15 @@ jQuery(document).ready(function($) {
 			html += '<div class="checkbox-label">';
 			html += '<strong>NBUF_Migration.i18n['Profile Data']</strong>';
 			html += '<p class="description">NBUF_Migration.i18n['Migrate user profile fields (phone, company, address, social media, etc.)']</p>';
+			html += '</div>';
+			html += '</label>';
+
+			/* Add copy photos sub-option */
+			html += '<label style="margin-left: 30px;">';
+			html += '<input type="checkbox" id="nbuf-copy-photos" value="1" checked>';
+			html += '<div class="checkbox-label">';
+			html += '<strong>Copy Profile & Cover Photos</strong>';
+			html += '<p class="description">Copy user photos to NoBloat directory with WebP conversion (if enabled in Media settings)</p>';
 			html += '</div>';
 			html += '</label>';
 		}
@@ -408,36 +429,62 @@ jQuery(document).ready(function($) {
 			migrationTypes.push($(this).val());
 		});
 
+		/* Get copy photos setting */
+		const copyPhotos = $('#nbuf-copy-photos').is(':checked');
+
 		$('#nbuf-migration-progress').slideDown();
 		$('#nbuf-start-migration-btn').prop('disabled', true);
 
-		executeMigration();
+		executeMigrationBatch(0, copyPhotos);
 	});
 
-	/* Execute migration */
-	function executeMigration() {
+	/* Execute migration in batches */
+	function executeMigrationBatch(offset, copyPhotos) {
+		const batchSize = 50;
+
 		$.ajax({
 			url: ajaxurl,
 			type: 'POST',
 			data: {
-				action: 'nbuf_execute_migration',
+				action: 'nbuf_execute_migration_batch',
 				nonce: nonce,
 				plugin_slug: selectedPlugin,
 				migration_types: JSON.stringify(migrationTypes),
-				field_mappings: JSON.stringify(fieldMappings)
+				field_mappings: JSON.stringify(fieldMappings),
+				batch_offset: offset,
+				batch_size: batchSize,
+				copy_photos: copyPhotos
 			},
 			success: function(response) {
 				if (response.success) {
-					updateProgress(100, 'NBUF_Migration.i18n['Complete']');
-					displayResults(response.data);
+					const data = response.data;
+
+					/* Update progress bar with sanitized values */
+					const processed = parseInt(data.processed, 10) || 0;
+					const total = parseInt(data.total, 10) || 1;
+					const percent = Math.round((processed / total) * 100);
+					const statusText = 'Processing ' + processed + ' of ' + total + ' users...';
+					updateProgress(percent, escapeHtml(statusText));
+
+					/* Continue batch processing if not completed */
+					if (!data.completed) {
+						executeMigrationBatch(data.offset, copyPhotos);
+					} else {
+						/* Migration complete */
+						updateProgress(100, 'Complete!');
+						displayResults(data.results);
+					}
 				} else {
-					alert(response.data.message || 'NBUF_Migration.i18n['Migration failed.']');
+					const errorMsg = (response.data && response.data.message) ? escapeHtml(response.data.message) : 'Migration failed.';
+					alert(errorMsg);
 					$('#nbuf-start-migration-btn').prop('disabled', false);
+					$('#nbuf-migration-progress').slideUp();
 				}
 			},
 			error: function() {
-				alert('NBUF_Migration.i18n['Migration failed. Please try again.']');
+				alert('Migration failed. Please try again.');
 				$('#nbuf-start-migration-btn').prop('disabled', false);
+				$('#nbuf-migration-progress').slideUp();
 			}
 		});
 	}

@@ -128,6 +128,7 @@ add_action(
 		// Initialize admin settings (ALWAYS - needed to configure when disabled).
 		if ( is_admin() ) {
 			NBUF_Settings::init();
+			NBUF_Logs_Menu::init();
 			NBUF_Audit_Log_Page::init();
 			NBUF_Security_Log_Page::init();
 			NBUF_Version_History_Page::init();
@@ -138,8 +139,14 @@ add_action(
 		// Initialize WordPress privacy integration (ALWAYS - for GDPR compliance).
 		NBUF_Privacy::init();
 
+		// Initialize GDPR data export (ALWAYS - for GDPR compliance).
+		NBUF_GDPR_Export::init();
+
 		// Initialize security logging (ALWAYS - for audit trail and compliance).
 		NBUF_Security_Log::init();
+
+		// Initialize admin action hooks (ALWAYS - for accountability and compliance).
+		NBUF_Admin_Action_Hooks::init();
 
 		// Check if user management system is enabled.
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );

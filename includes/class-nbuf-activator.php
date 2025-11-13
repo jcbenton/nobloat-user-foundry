@@ -38,6 +38,7 @@ class NBUF_Activator {
 			NBUF_Database::create_login_attempts_table();
 			NBUF_Database::create_user_2fa_table();
 			NBUF_Database::create_user_audit_log_table();
+			NBUF_Database::create_admin_audit_log_table();
 			NBUF_Database::create_user_notes_table();
 			NBUF_Database::create_import_history_table();
 			NBUF_Database::create_menu_restrictions_table();
@@ -313,6 +314,70 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_audit_log_anonymize_ip', false, true, 'audit_log' );
 			NBUF_Options::update( 'nbuf_audit_log_max_message_length', 500, true, 'audit_log' );
 
+			/*
+			 * Enterprise Logging System defaults (v1.4.0+).
+			 * Master logging toggles.
+			 */
+			NBUF_Options::update( 'nbuf_logging_user_audit_enabled', true, true, 'logging' );
+			NBUF_Options::update( 'nbuf_logging_admin_audit_enabled', true, true, 'logging' );
+			NBUF_Options::update( 'nbuf_logging_security_enabled', true, true, 'logging' );
+
+			/* User Audit Log settings */
+			NBUF_Options::update( 'nbuf_logging_user_audit_retention', '365', true, 'logging' );
+			NBUF_Options::update(
+				'nbuf_logging_user_audit_categories',
+				array(
+					'authentication' => true,
+					'verification'   => true,
+					'passwords'      => true,
+					'2fa'            => true,
+					'account_status' => true,
+					'profile'        => false,
+				),
+				true,
+				'logging'
+			);
+
+			/* Admin Audit Log settings */
+			NBUF_Options::update( 'nbuf_logging_admin_audit_retention', 'forever', true, 'logging' );
+			NBUF_Options::update(
+				'nbuf_logging_admin_audit_categories',
+				array(
+					'user_deletion'        => true,
+					'role_changes'         => true,
+					'settings_changes'     => true,
+					'bulk_actions'         => true,
+					'manual_verifications' => true,
+					'password_resets'      => true,
+					'profile_edits'        => true,
+				),
+				true,
+				'logging'
+			);
+
+			/* Security Log settings */
+			NBUF_Options::update( 'nbuf_logging_security_retention', '90', true, 'logging' );
+			NBUF_Options::update(
+				'nbuf_logging_security_categories',
+				array(
+					'file_operations'      => true,
+					'csrf_attempts'        => true,
+					'privilege_escalation' => true,
+					'login_limiting'       => true,
+					'import_errors'        => true,
+				),
+				true,
+				'logging'
+			);
+
+			/* Privacy settings (all logs) */
+			NBUF_Options::update( 'nbuf_logging_anonymize_ip', false, true, 'logging' );
+			NBUF_Options::update( 'nbuf_logging_store_user_agent', true, true, 'logging' );
+
+			/* GDPR settings */
+			NBUF_Options::update( 'nbuf_logging_include_in_export', true, true, 'logging' );
+			NBUF_Options::update( 'nbuf_logging_user_deletion_action', 'anonymize', true, 'logging' );
+
 			/* GDPR defaults */
 			NBUF_Options::update( 'nbuf_gdpr_delete_audit_logs', 'anonymize', true, 'gdpr' );
 			NBUF_Options::update( 'nbuf_gdpr_include_audit_logs', true, true, 'gdpr' );
@@ -335,7 +400,7 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_enable_profiles', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_enable_public_profiles', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_enable_gravatar', false, true, 'profiles' );
-			NBUF_Options::update( 'nbuf_profile_page_slug', 'profile', true, 'profiles' );
+			NBUF_Options::update( 'nbuf_profile_page_slug', 'nobloat-profile', true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_default_privacy', 'members_only', true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_allow_cover_photos', true, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_max_photo_size', 5, true, 'profiles' );
@@ -411,6 +476,9 @@ class NBUF_Activator {
 		// Two-Factor Authentication pages.
 		self::create_page( 'nbuf_page_2fa_verify', 'NoBloat 2FA Verify', array( 'nobloat-2fa-verify', '2fa-verify' ), '[nbuf_2fa_verify]' );
 		self::create_page( 'nbuf_page_2fa_setup', 'NoBloat 2FA Setup', array( 'nobloat-2fa-setup', '2fa-setup' ), '[nbuf_2fa_setup]' );
+
+		// Member Directory page.
+		self::create_page( 'nbuf_page_member_directory', 'NoBloat Members', array( 'nobloat-members' ), '[nbuf_members]' );
 	}
 
 	/**
@@ -794,6 +862,10 @@ class NBUF_Activator {
 				'autoload' => true,
 			),
 			'nbuf_page_2fa_setup'                   => array(
+				'group'    => 'settings',
+				'autoload' => true,
+			),
+			'nbuf_page_member_directory'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),

@@ -406,6 +406,49 @@ class NBUF_Database {
 	}
 
 	/**
+	 * Create admin audit log table
+	 *
+	 * Separate table for admin actions on users and system settings.
+	 * GDPR: Different purpose and retention policy from user-initiated actions.
+	 *
+	 * @since 1.4.0
+	 */
+	public static function create_admin_audit_log_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_admin_audit_log';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            admin_id BIGINT(20) UNSIGNED NOT NULL,
+            admin_username VARCHAR(60) NOT NULL,
+            target_user_id BIGINT(20) UNSIGNED DEFAULT NULL,
+            target_username VARCHAR(60) DEFAULT NULL,
+            action_type VARCHAR(50) NOT NULL,
+            action_status VARCHAR(20) NOT NULL,
+            action_message TEXT DEFAULT NULL,
+            metadata TEXT DEFAULT NULL,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent TEXT DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY admin_id (admin_id),
+            KEY target_user_id (target_user_id),
+            KEY action_type (action_type),
+            KEY action_status (action_status),
+            KEY created_at (created_at),
+            KEY admin_actions (admin_id, created_at),
+            KEY user_modifications (target_user_id, created_at),
+            KEY cleanup (created_at, action_type),
+            FULLTEXT KEY search_message (action_message)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
 	==========================================================
 	INSERT TOKEN
 	----------------------------------------------------------

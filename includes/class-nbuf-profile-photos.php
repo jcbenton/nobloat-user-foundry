@@ -254,6 +254,12 @@ class NBUF_Profile_Photos {
 	 * @return string Gravatar URL.
 	 */
 	private static function get_gravatar_url( $email, $size = 96 ) {
+		/*
+		 * SECURITY NOTE: MD5 is used here per Gravatar API specification.
+		 * This is NOT a security vulnerability - Gravatar requires MD5 hashes.
+		 * MD5 weakness is irrelevant for public avatar URL generation.
+		 * See: https://en.gravatar.com/site/implement/hash/
+		 */
 		$hash = md5( strtolower( trim( $email ) ) );
 		return sprintf(
 			'https://www.gravatar.com/avatar/%s?s=%d&d=mp&r=g',

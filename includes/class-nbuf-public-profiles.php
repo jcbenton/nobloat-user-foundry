@@ -41,13 +41,16 @@ class NBUF_Public_Profiles {
 
 		// Enqueue profile page CSS.
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_profile_css' ) );
+
+		// Auto-flush rewrites when profile slug changes.
+		add_action( 'update_option_nbuf_profile_page_slug', array( __CLASS__, 'on_slug_change' ), 10, 2 );
 	}
 
 	/**
 	 * Register custom rewrite rules for profile URLs
 	 */
 	public static function register_rewrite_rules() {
-		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'profile' );
+		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
 
 		add_rewrite_rule(
 			'^' . $slug . '/([^/]+)/?$',
@@ -500,7 +503,7 @@ class NBUF_Public_Profiles {
 			$username = $user;
 		}
 
-		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'profile' );
+		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
 		return home_url( '/' . $slug . '/' . $username );
 	}
 
@@ -510,5 +513,22 @@ class NBUF_Public_Profiles {
 	public static function flush_rewrite_rules() {
 		self::register_rewrite_rules();
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Handle profile slug change
+	 *
+	 * Automatically flushes rewrite rules when the profile page slug is changed.
+	 * This ensures the new slug works immediately without requiring manual
+	 * permalink flushing.
+	 *
+	 * @param string $old_value Old slug value.
+	 * @param string $new_value New slug value.
+	 */
+	public static function on_slug_change( $old_value, $new_value ) {
+		/* Only flush if slug actually changed */
+		if ( $old_value !== $new_value ) {
+			self::flush_rewrite_rules();
+		}
 	}
 }

@@ -42,6 +42,9 @@ class NBUF_Cron {
 		if ( ! wp_next_scheduled( 'nbuf_cleanup_unverified_accounts' ) ) {
 			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_unverified_accounts' );
 		}
+		if ( ! wp_next_scheduled( 'nbuf_enterprise_logging_cleanup' ) ) {
+			wp_schedule_event( time(), 'daily', 'nbuf_enterprise_logging_cleanup' );
+		}
 	}
 
 	/**
@@ -55,6 +58,7 @@ class NBUF_Cron {
 		wp_clear_scheduled_hook( 'nbuf_cleanup_version_history' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_transients' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_unverified_accounts' );
+		wp_clear_scheduled_hook( 'nbuf_enterprise_logging_cleanup' );
 	}
 
 	/**
@@ -68,6 +72,7 @@ class NBUF_Cron {
 		add_action( 'nbuf_cleanup_version_history', array( __CLASS__, 'run_version_history_cleanup' ) );
 		add_action( 'nbuf_cleanup_transients', array( __CLASS__, 'run_transient_cleanup' ) );
 		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
+		add_action( 'nbuf_enterprise_logging_cleanup', array( __CLASS__, 'run_enterprise_logging_cleanup' ) );
 	}
 
 	/**
@@ -258,6 +263,63 @@ class NBUF_Cron {
 		}
 
 		return $deleted_count;
+	}
+
+	/**
+	 * Run enterprise logging cleanup
+	 *
+	 * Executes daily to remove old log entries from all 3 enterprise logging tables
+	 * based on their individual retention settings. Supports GDPR-compliant data
+	 * minimization by automatically pruning logs according to configured periods.
+	 *
+	 * Tables pruned:
+	 * - User Activity Log (user-initiated actions)
+	 * - Admin Actions Log (admin actions on users/settings)
+	 * - Security Events Log (system security events)
+	 *
+	 * @since 1.4.0
+	 * @return array Array with counts of deleted entries per table.
+	 */
+	public static function run_enterprise_logging_cleanup() {
+		$results = array(
+			'user_audit'   => 0,
+			'admin_audit'  => 0,
+			'security_log' => 0,
+		);
+
+		/* Prune user audit log */
+		if ( class_exists( 'NBUF_Audit_Log' ) && NBUF_Options::get( 'nbuf_logging_user_audit_enabled', true ) ) {
+			$retention = NBUF_Options::get( 'nbuf_logging_user_audit_retention', '365' );
+			if ( 'forever' !== $retention ) {
+				$results['user_audit'] = NBUF_Audit_Log::prune_logs_older_than( absint( $retention ) );
+			}
+		}
+
+		/* Prune admin audit log */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) && NBUF_Options::get( 'nbuf_logging_admin_audit_enabled', true ) ) {
+			$retention = NBUF_Options::get( 'nbuf_logging_admin_audit_retention', 'forever' );
+			if ( 'forever' !== $retention ) {
+				$results['admin_audit'] = NBUF_Admin_Audit_Log::prune_logs_older_than( absint( $retention ) );
+			}
+		}
+
+		/* Prune security log */
+		if ( class_exists( 'NBUF_Security_Log' ) && NBUF_Options::get( 'nbuf_logging_security_enabled', true ) ) {
+			$retention = NBUF_Options::get( 'nbuf_logging_security_retention', '90' );
+			if ( 'forever' !== $retention ) {
+				$results['security_log'] = NBUF_Security_Log::prune_logs_older_than( absint( $retention ) );
+			}
+		}
+
+		/* Log cleanup statistics */
+		$total_deleted = array_sum( $results );
+		if ( $total_deleted > 0 ) {
+			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup', current_time( 'mysql' ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup_count', $total_deleted, false, 'system' );
+			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup_details', $results, false, 'system' );
+		}
+
+		return $results;
 	}
 }
 

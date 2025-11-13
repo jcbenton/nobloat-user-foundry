@@ -16,7 +16,7 @@ $profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
 $public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 $gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 $profile_custom_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
-$profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'profile' );
+$profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
 $default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
 $allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 $max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
@@ -77,6 +77,12 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 							'<code>' . esc_html( home_url( '/' . $profile_page_slug . '/username' ) ) . '</code>'
 						);
 						?>
+					</p>
+					<p class="description" style="color: #d63638; font-weight: 500;">
+						<?php esc_html_e( '⚠️ Important: This slug cannot conflict with existing page slugs. If a page with this slug already exists, the profile URL will override it. Choose a unique slug to avoid conflicts.', 'nobloat-user-foundry' ); ?>
+					</p>
+					<p class="description">
+						<?php esc_html_e( 'Rewrite rules are automatically flushed when you change this setting.', 'nobloat-user-foundry' ); ?>
 					</p>
 				</td>
 			</tr>

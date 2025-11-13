@@ -78,6 +78,10 @@ if ( in_array( 'tokens', $cleanup, true ) ) {
 	$security_log_table = $wpdb->prefix . 'nbuf_security_log';
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $security_log_table ) );
+
+	$admin_audit_log_table = $wpdb->prefix . 'nbuf_admin_audit_log';
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $admin_audit_log_table ) );
 }
 
 /**
@@ -95,6 +99,65 @@ if ( in_array( 'usermeta', $cleanup, true ) ) {
 			$wpdb->usermeta
 		)
 	);
+}
+
+/**
+ * Delete pages containing NoBloat shortcodes (if requested)
+ *
+ * Searches for all pages that contain NoBloat shortcodes and deletes them.
+ * This includes all auto-created pages like login, registration, account, etc.
+ * Disabled by default for safety.
+ */
+if ( in_array( 'pages', $cleanup, true ) ) {
+	/* List of all NoBloat shortcodes to search for */
+	$nbuf_shortcodes = array(
+		'nbuf_verify_page',
+		'nbuf_reset_form',
+		'nbuf_request_reset_form',
+		'nbuf_login_form',
+		'nbuf_registration_form',
+		'nbuf_account_page',
+		'nbuf_logout',
+		'nbuf_2fa_verify',
+		'nbuf_2fa_setup',
+		'nbuf_members',
+		'nbuf_profile',
+		'nbuf_restrict',
+	);
+
+	/* Get all published pages */
+	$page_ids = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+
+	if ( ! empty( $page_ids ) && is_array( $page_ids ) ) {
+		foreach ( $page_ids as $page_id ) {
+			$content = get_post_field( 'post_content', $page_id );
+
+			if ( empty( $content ) ) {
+				continue;
+			}
+
+			/* Check if page contains any NoBloat shortcode */
+			$contains_nbuf_shortcode = false;
+			foreach ( $nbuf_shortcodes as $shortcode ) {
+				if ( false !== strpos( $content, '[' . $shortcode ) ) {
+					$contains_nbuf_shortcode = true;
+					break;
+				}
+			}
+
+			/* Delete page if it contains a NoBloat shortcode */
+			if ( $contains_nbuf_shortcode ) {
+				wp_delete_post( $page_id, true ); // true = force delete (bypass trash).
+			}
+		}
+	}
 }
 
 /**
@@ -178,6 +241,11 @@ if ( $delete_photos ) {
  */
 $cron_hooks = array(
 	'nbuf_cleanup_cron',
+	'nbuf_audit_log_cleanup_cron',
+	'nbuf_cleanup_version_history',
+	'nbuf_cleanup_transients',
+	'nbuf_cleanup_unverified_accounts',
+	'nbuf_enterprise_logging_cleanup',
 	'nbuf_check_expirations',
 	'nbuf_send_expiration_warnings',
 );

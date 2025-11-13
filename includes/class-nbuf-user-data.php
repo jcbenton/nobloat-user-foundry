@@ -385,14 +385,9 @@ class NBUF_User_Data {
 	 * @param  int $admin_id Admin who verified.
 	 * @return bool True on success.
 	 */
-	public static function manually_verify( int $user_id, int $admin_id ): bool {
-		/* Log manual verification */
-		NBUF_Audit_Log::log(
-			$user_id,
-			'users',
-			'manually_verified',
-			array( 'verified_by' => $admin_id )
-		);
+	public static function manually_verify( int $user_id, int $admin_id ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Parameter preserved for API consistency, admin ID retrieved internally by logging method.
+		/* Log manual verification to admin audit log */
+		NBUF_Admin_Action_Hooks::log_manual_verification( $user_id );
 
 		return self::set_verified( $user_id );
 	}
@@ -407,14 +402,9 @@ class NBUF_User_Data {
 	 * @param  int $admin_id Admin who unverified.
 	 * @return bool True on success.
 	 */
-	public static function manually_unverify( int $user_id, int $admin_id ): bool {
-		/* Log manual unverification */
-		NBUF_Audit_Log::log(
-			$user_id,
-			'users',
-			'manually_unverified',
-			array( 'unverified_by' => $admin_id )
-		);
+	public static function manually_unverify( int $user_id, int $admin_id ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Parameter preserved for API consistency, admin ID retrieved internally by logging method.
+		/* Log manual unverification to admin audit log */
+		NBUF_Admin_Action_Hooks::log_manual_unverification( $user_id );
 
 		return self::set_unverified( $user_id );
 	}

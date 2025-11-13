@@ -587,6 +587,57 @@ class NBUF_Audit_Log {
 	}
 
 	/**
+	 * Prune logs older than specified days (for enterprise logging system)
+	 *
+	 * @param int $days Number of days to retain.
+	 * @return int Number of rows deleted.
+	 */
+	public static function prune_logs_older_than( int $days ): int {
+		/* Don't prune if retention is forever */
+		if ( 0 === $days || 'forever' === $days ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$table_name  = $wpdb->prefix . 'nbuf_user_audit_log';
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE created_at < %s',
+				$table_name,
+				$cutoff_date
+			)
+		);
+
+		return absint( $result );
+	}
+
+	/**
+	 * Get logs for a specific user (for GDPR export)
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $limit   Number of logs to retrieve.
+	 * @return array Array of log entries.
+	 */
+	public static function get_user_logs( int $user_id, int $limit = 1000 ): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_user_audit_log';
+
+		$query = $wpdb->prepare(
+			'SELECT * FROM %i WHERE user_id = %d ORDER BY created_at DESC LIMIT %d',
+			$table_name,
+			$user_id,
+			$limit
+		);
+
+     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with $wpdb->prepare() above.
+		$results = $wpdb->get_results( $query, ARRAY_A );
+
+		return $results ? $results : array();
+	}
+
+	/**
 	 * Get client IP address
 	 *
 	 * @return string IP address.

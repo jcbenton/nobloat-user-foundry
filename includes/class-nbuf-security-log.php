@@ -947,4 +947,81 @@ class NBUF_Security_Log {
 
 		return $deleted;
 	}
+
+	/**
+	 * Prune logs older than specified days
+	 *
+	 * @param int $days Number of days to retain.
+	 * @return int Number of rows deleted.
+	 */
+	public static function prune_logs_older_than( $days ) {
+		global $wpdb;
+
+		/* Don't prune if retention is forever */
+		if ( 0 === $days || 'forever' === $days ) {
+			return 0;
+		}
+
+		$table       = $wpdb->prefix . self::TABLE_NAME;
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron job cleanup.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->prefix}nbuf_security_log WHERE timestamp < %s",
+				$cutoff_date
+			)
+		);
+
+		return absint( $result );
+	}
+
+	/**
+	 * Anonymize logs for a specific user (GDPR compliance)
+	 *
+	 * @param int $user_id User ID to anonymize.
+	 * @return int Number of rows updated.
+	 */
+	public static function anonymize_user_logs( $user_id ) {
+		global $wpdb;
+
+		$table = $wpdb->prefix . self::TABLE_NAME;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- GDPR data erasure.
+		$result = $wpdb->update(
+			$table,
+			array(
+				'ip_address' => '0.0.0.0',
+				'user_agent' => null,
+				'message'    => 'User data anonymized',
+				'context'    => null,
+			),
+			array( 'user_id' => $user_id ),
+			array( '%s', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		return absint( $result );
+	}
+
+	/**
+	 * Delete logs for a specific user (GDPR compliance)
+	 *
+	 * @param int $user_id User ID to delete logs for.
+	 * @return int Number of rows deleted.
+	 */
+	public static function delete_user_logs( $user_id ) {
+		global $wpdb;
+
+		$table = $wpdb->prefix . self::TABLE_NAME;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- GDPR data erasure.
+		$result = $wpdb->delete(
+			$table,
+			array( 'user_id' => $user_id ),
+			array( '%d' )
+		);
+
+		return absint( $result );
+	}
 }

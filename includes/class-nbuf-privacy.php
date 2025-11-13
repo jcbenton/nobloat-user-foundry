@@ -52,8 +52,18 @@ class NBUF_Privacy {
 		);
 
 		$exporters['nobloat-user-foundry-audit-logs'] = array(
-			'exporter_friendly_name' => __( 'NoBloat User Foundry - Audit Logs', 'nobloat-user-foundry' ),
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - User Activity Logs', 'nobloat-user-foundry' ),
 			'callback'               => array( __CLASS__, 'export_audit_logs' ),
+		);
+
+		$exporters['nobloat-user-foundry-admin-audit-logs'] = array(
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - Admin Actions on Your Account', 'nobloat-user-foundry' ),
+			'callback'               => array( __CLASS__, 'export_admin_audit_logs' ),
+		);
+
+		$exporters['nobloat-user-foundry-security-logs'] = array(
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - Security Events', 'nobloat-user-foundry' ),
+			'callback'               => array( __CLASS__, 'export_security_logs' ),
 		);
 
 		$exporters['nobloat-user-foundry-2fa-data'] = array(
@@ -76,9 +86,9 @@ class NBUF_Privacy {
 			'callback'             => array( __CLASS__, 'erase_user_data' ),
 		);
 
-		$erasers['nobloat-user-foundry-audit-logs'] = array(
-			'eraser_friendly_name' => __( 'NoBloat User Foundry - Audit Logs', 'nobloat-user-foundry' ),
-			'callback'             => array( __CLASS__, 'erase_audit_logs' ),
+		$erasers['nobloat-user-foundry-enterprise-logs'] = array(
+			'eraser_friendly_name' => __( 'NoBloat User Foundry - All Logs (User Activity, Admin Actions, Security)', 'nobloat-user-foundry' ),
+			'callback'             => array( __CLASS__, 'erase_enterprise_logs' ),
 		);
 
 		return $erasers;
@@ -259,6 +269,169 @@ class NBUF_Privacy {
 	}
 
 	/**
+	 * Export admin audit logs
+	 *
+	 * Exports admin actions performed on this user's account.
+	 *
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
+	 * @return array Export data.
+	 */
+	public static function export_admin_audit_logs( $email_address, $page = 1 ) {
+		/* Check if admin audit logs should be included */
+		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_admin_audit_logs', true ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$data_to_export = array();
+		$per_page       = 500;
+		$offset         = ( $page - 1 ) * $per_page;
+
+		/* Get admin actions performed on this user */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			$logs = NBUF_Admin_Audit_Log::get_user_modifications(
+				$user->ID,
+				$per_page,
+				$offset
+			);
+
+			foreach ( $logs as $log ) {
+				$admin_user = get_userdata( $log->admin_id );
+				$admin_name = $admin_user ? $admin_user->user_login : 'Unknown';
+
+				$data_to_export[] = array(
+					'group_id'    => 'nobloat-user-foundry-admin-audit-logs',
+					'group_label' => __( 'Admin Actions on Your Account', 'nobloat-user-foundry' ),
+					'item_id'     => 'admin-log-' . $log->id,
+					'data'        => array(
+						array(
+							'name'  => __( 'Date/Time', 'nobloat-user-foundry' ),
+							'value' => $log->created_at,
+						),
+						array(
+							'name'  => __( 'Admin User', 'nobloat-user-foundry' ),
+							'value' => $admin_name,
+						),
+						array(
+							'name'  => __( 'Action', 'nobloat-user-foundry' ),
+							'value' => $log->action_type,
+						),
+						array(
+							'name'  => __( 'Status', 'nobloat-user-foundry' ),
+							'value' => $log->status,
+						),
+						array(
+							'name'  => __( 'Details', 'nobloat-user-foundry' ),
+							'value' => $log->description,
+						),
+					),
+				);
+			}
+
+			$done = count( $logs ) < $per_page;
+		} else {
+			$done = true;
+		}
+
+		return array(
+			'data' => $data_to_export,
+			'done' => $done,
+		);
+	}
+
+	/**
+	 * Export security logs
+	 *
+	 * Exports security events related to this user.
+	 *
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
+	 * @return array Export data.
+	 */
+	public static function export_security_logs( $email_address, $page = 1 ) {
+		/* Check if security logs should be included */
+		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_security_logs', true ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$data_to_export = array();
+		$per_page       = 500;
+		$offset         = ( $page - 1 ) * $per_page;
+
+		/* Get security logs for this user */
+		if ( class_exists( 'NBUF_Security_Log' ) ) {
+			$logs = NBUF_Security_Log::get_user_logs(
+				$user->ID,
+				$per_page,
+				$offset
+			);
+
+			foreach ( $logs as $log ) {
+				$data_to_export[] = array(
+					'group_id'    => 'nobloat-user-foundry-security-logs',
+					'group_label' => __( 'Security Events', 'nobloat-user-foundry' ),
+					'item_id'     => 'security-log-' . $log->id,
+					'data'        => array(
+						array(
+							'name'  => __( 'Date/Time', 'nobloat-user-foundry' ),
+							'value' => $log->created_at,
+						),
+						array(
+							'name'  => __( 'Event Type', 'nobloat-user-foundry' ),
+							'value' => $log->event_type,
+						),
+						array(
+							'name'  => __( 'Severity', 'nobloat-user-foundry' ),
+							'value' => $log->severity,
+						),
+						array(
+							'name'  => __( 'Details', 'nobloat-user-foundry' ),
+							'value' => $log->description,
+						),
+						array(
+							'name'  => __( 'IP Address', 'nobloat-user-foundry' ),
+							'value' => $log->ip_address ? $log->ip_address : 'N/A',
+						),
+					),
+				);
+			}
+
+			$done = count( $logs ) < $per_page;
+		} else {
+			$done = true;
+		}
+
+		return array(
+			'data' => $data_to_export,
+			'done' => $done,
+		);
+	}
+
+	/**
 	 * Export 2FA data
 	 *
 	 * @param  string $email_address User email address.
@@ -384,13 +557,16 @@ class NBUF_Privacy {
 	}
 
 	/**
-	 * Erase audit logs
+	 * Erase enterprise logs (all 3 tables)
+	 *
+	 * Handles erasure for User Activity Log, Admin Actions Log, and Security Log
+	 * based on GDPR settings.
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
 	 * @return array Erasure result.
 	 */
-	public static function erase_audit_logs( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
+	public static function erase_enterprise_logs( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -402,25 +578,63 @@ class NBUF_Privacy {
 			);
 		}
 
-		$delete_mode    = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
 		$items_removed  = false;
 		$items_retained = false;
 		$messages       = array();
 
-		if ( 'delete' === $delete_mode ) {
-			/* Permanently delete all audit logs */
-			NBUF_Audit_Log::delete_user_logs( $user->ID );
-			$items_removed = true;
-			$messages[]    = __( 'All audit logs permanently deleted.', 'nobloat-user-foundry' );
-		} elseif ( 'anonymize' === $delete_mode ) {
-			/* Anonymize audit logs */
-			NBUF_Audit_Log::anonymize_user_logs( $user->ID );
-			$items_removed = true;
-			$messages[]    = __( 'Audit logs anonymized (personal data removed, logs retained for security).', 'nobloat-user-foundry' );
+		/* Get GDPR deletion mode (delete, anonymize, keep) */
+		$deletion_mode = NBUF_Options::get( 'nbuf_logging_user_deletion_action', 'anonymize' );
+
+		if ( 'delete' === $deletion_mode ) {
+			/* Permanently delete logs from all 3 tables */
+
+			/* Delete user activity logs */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::delete_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			/* Delete admin action logs (where this user is the target) */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::delete_target_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			/* Delete security logs */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::delete_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			$messages[] = __( 'All logs permanently deleted (user activity, admin actions, security events).', 'nobloat-user-foundry' );
+
+		} elseif ( 'anonymize' === $deletion_mode ) {
+			/* Anonymize logs in all 3 tables */
+
+			/* Anonymize user activity logs */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::anonymize_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			/* Anonymize admin action logs (where this user is the target) */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::anonymize_target_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			/* Anonymize security logs */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::anonymize_user_logs( $user->ID );
+				$items_removed = true;
+			}
+
+			$messages[] = __( 'All logs anonymized (personal data removed, logs retained for security and compliance).', 'nobloat-user-foundry' );
+
 		} else {
 			/* Keep logs unchanged */
 			$items_retained = true;
-			$messages[]     = __( 'Audit logs retained per GDPR settings.', 'nobloat-user-foundry' );
+			$messages[]     = __( 'All logs retained per GDPR settings (compliance with legal obligations).', 'nobloat-user-foundry' );
 		}
 
 		return array(
@@ -434,20 +648,39 @@ class NBUF_Privacy {
 	/**
 	 * Handle user deletion
 	 *
-	 * Called when a user is deleted to handle audit logs per GDPR settings.
+	 * Called when a user is deleted to handle logs per GDPR settings.
+	 * Processes all 3 enterprise logging tables.
 	 *
 	 * @param int $user_id User ID being deleted.
 	 */
 	public static function handle_user_deletion( $user_id ) {
-		$delete_mode = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
+		$deletion_mode = NBUF_Options::get( 'nbuf_logging_user_deletion_action', 'anonymize' );
 
-		if ( 'delete' === $delete_mode ) {
-			NBUF_Audit_Log::delete_user_logs( $user_id );
-		} elseif ( 'anonymize' === $delete_mode ) {
-			NBUF_Audit_Log::anonymize_user_logs( $user_id );
+		if ( 'delete' === $deletion_mode ) {
+			/* Permanently delete logs from all 3 tables */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::delete_user_logs( $user_id );
+			}
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::delete_target_user_logs( $user_id );
+			}
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::delete_user_logs( $user_id );
+			}
+		} elseif ( 'anonymize' === $deletion_mode ) {
+			/* Anonymize logs in all 3 tables */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::anonymize_user_logs( $user_id );
+			}
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::anonymize_target_user_logs( $user_id );
+			}
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::anonymize_user_logs( $user_id );
+			}
 		}
 		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Intentional documentation comment for 'keep' mode, not commented code.
-		/* If 'keep', do nothing */
+		/* If 'keep', do nothing - logs retained for compliance */
 	}
 
 	/**
@@ -460,21 +693,23 @@ class NBUF_Privacy {
 
 		$content = sprintf(
 			'<h2>%s</h2><p>%s</p>' .
-			'<h3>%s</h3><ul><li>%s</li><li>%s</li><li>%s</li><li>%s</li><li>%s</li></ul>' .
+			'<h3>%s</h3><ul><li>%s</li><li>%s</li><li>%s</li><li>%s</li><li>%s</li><li>%s</li><li>%s</li></ul>' .
 			'<h3>%s</h3><p>%s</p>' .
 			'<h3>%s</h3><p>%s</p>',
 			__( 'NoBloat User Foundry', 'nobloat-user-foundry' ),
-			__( 'This site uses NoBloat User Foundry to manage user accounts, verification, authentication, and security features.', 'nobloat-user-foundry' ),
+			__( 'This site uses NoBloat User Foundry to manage user accounts, verification, authentication, and security features with enterprise-grade logging for compliance and security.', 'nobloat-user-foundry' ),
 			__( 'What Data We Collect', 'nobloat-user-foundry' ),
 			__( 'Email verification status and verification dates', 'nobloat-user-foundry' ),
 			__( 'Account expiration dates (if applicable)', 'nobloat-user-foundry' ),
 			__( 'Two-factor authentication settings and usage logs', 'nobloat-user-foundry' ),
-			__( 'Activity logs including login attempts, password changes, and account modifications with IP addresses', 'nobloat-user-foundry' ),
+			__( 'User Activity Logs: Your login attempts, password changes, and account modifications with IP addresses (retained 1 year)', 'nobloat-user-foundry' ),
+			__( 'Admin Actions Logs: Administrative actions performed on your account including edits, role changes, and security operations (retained permanently for compliance)', 'nobloat-user-foundry' ),
+			__( 'Security Event Logs: System security events related to your account including failed logins and security warnings (retained 90 days)', 'nobloat-user-foundry' ),
 			__( 'Extended profile information such as phone number, company, address (if provided)', 'nobloat-user-foundry' ),
 			__( 'How Long We Retain Data', 'nobloat-user-foundry' ),
-			__( 'Activity logs are automatically deleted based on configured retention period (default: 90 days). User verification and profile data is retained for the life of the account unless deleted.', 'nobloat-user-foundry' ),
+			__( 'Logs are automatically deleted based on configured retention periods: User Activity (1 year), Admin Actions (permanent for compliance), Security Events (90 days). User verification and profile data is retained for the life of the account unless deleted. All retention periods comply with GDPR Article 5(1)(e) storage limitation principle.', 'nobloat-user-foundry' ),
 			__( 'Your Rights', 'nobloat-user-foundry' ),
-			__( 'You can request a data export or deletion of your personal data at any time through the WordPress privacy tools. Activity logs will be anonymized or deleted per our GDPR settings.', 'nobloat-user-foundry' )
+			__( 'You can request a data export or deletion of your personal data at any time through the WordPress privacy tools. All logs (User Activity, Admin Actions, Security Events) will be anonymized or deleted per our GDPR settings. Note: Admin Actions logs may be retained in anonymized form to comply with legal obligations under GDPR Article 6(1)(c).', 'nobloat-user-foundry' )
 		);
 
 		wp_add_privacy_policy_content(

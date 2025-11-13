@@ -37,6 +37,7 @@ $cleanup  = (array) ( $settings['cleanup'] ?? array() );
 			'settings'  => __( 'Delete plugin settings.', 'nobloat-user-foundry' ),
 			'templates' => __( 'Delete templates.', 'nobloat-user-foundry' ),
 			'usermeta'  => __( 'Delete user verification and disabled status meta fields.', 'nobloat-user-foundry' ),
+			'pages'     => __( 'Delete pages containing NoBloat shortcodes.', 'nobloat-user-foundry' ),
 		);
 		foreach ( $cleanup_options as $key => $label ) {
 			printf(

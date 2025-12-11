@@ -27,9 +27,9 @@ $notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', false );
 $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 

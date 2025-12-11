@@ -16,9 +16,9 @@ $hooks    = (array) ( $settings['hooks'] ?? array() );
 $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_settings_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_settings' );
 	?>
 
@@ -35,23 +35,35 @@ $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 		<tr>
 			<th><?php esc_html_e( 'Registration Hooks', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<?php
-				$available_hooks = array(
-					'user_register' => __( 'user_register — default WordPress registration.', 'nobloat-user-foundry' ),
-				);
-				foreach ( $available_hooks as $hook => $desc ) {
-					printf(
-						'<label style="display:block;"><input type="checkbox" name="nbuf_settings[hooks][]" value="%s" %s> %s</label>',
-						esc_attr( $hook ),
-						checked( in_array( $hook, $hooks, true ), true, false ),
-						esc_html( $desc )
-					);
-				}
-				?>
-				<label style="display:block;margin-top:8px;">
+				<fieldset>
+					<label style="display:block;">
+						<input type="checkbox" name="nbuf_settings[hooks][]" value="register_new_user" <?php checked( in_array( 'register_new_user', $hooks, true ), true ); ?>>
+						<strong>register_new_user</strong>
+					</label>
+					<p class="description" style="margin: 4px 0 12px 24px;">
+						<?php esc_html_e( 'Fires when users self-register through the standard WordPress registration form (wp-login.php?action=register). This is the recommended hook for most sites as it only targets front-end self-registration.', 'nobloat-user-foundry' ); ?>
+					</p>
+
+					<label style="display:block;">
+						<input type="checkbox" name="nbuf_settings[hooks][]" value="user_register" <?php checked( in_array( 'user_register', $hooks, true ), true ); ?>>
+						<strong>user_register</strong>
+					</label>
+					<p class="description" style="margin: 4px 0 12px 24px;">
+						<?php esc_html_e( 'Fires for ALL user creation methods including: admin panel, REST API, WP-CLI, programmatic creation, and third-party plugins. Use with caution — this will trigger verification emails even when admins manually create users or when users are imported in bulk.', 'nobloat-user-foundry' ); ?>
+					</p>
+				</fieldset>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Email Change Re-verification', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
 					<input type="checkbox" name="nbuf_settings[reverify_on_email_change]" value="1" <?php checked( ! empty( $settings['reverify_on_email_change'] ), true ); ?>>
-					<?php esc_html_e( 'Require re-verification if a user changes their email address.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Require re-verification when a user changes their email address', 'nobloat-user-foundry' ); ?>
 				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, users who update their email address will have their verification status reset and must verify the new address before regaining full access. This prevents users from switching to unverified email addresses.', 'nobloat-user-foundry' ); ?>
+				</p>
 			</td>
 		</tr>
 		<tr>

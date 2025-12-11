@@ -183,6 +183,3 @@ class NBUF_Diagnostics {
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-/* Initialize */
-NBUF_Diagnostics::init();

@@ -51,9 +51,9 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_settings_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_settings' );
 	?>
 
@@ -304,7 +304,7 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				);
 				?>
 				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_verify_page] shortcode. Auto-created as "NoBloat Verify" during activation.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Page must contain [nbuf_verify_page] shortcode. Auto-created as "NoBloat Verification" during activation.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -322,7 +322,7 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				);
 				?>
 				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_reset_form] shortcode. Auto-created as "NoBloat Reset" during activation.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Page must contain [nbuf_reset_form] shortcode. Auto-created as "NoBloat Password Reset" during activation.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -340,7 +340,7 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				);
 				?>
 				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_request_reset_form] shortcode. Auto-created as "NoBloat Forgot Password" during activation.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Page must contain [nbuf_request_reset_form] shortcode. Auto-created as "NoBloat Request Password Reset" during activation.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

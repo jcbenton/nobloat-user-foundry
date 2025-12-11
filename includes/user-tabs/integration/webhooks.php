@@ -12,9 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_settings_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_settings' );
 	?>
 

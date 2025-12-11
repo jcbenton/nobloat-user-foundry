@@ -1,5 +1,4 @@
 <div class="nbuf-request-reset-wrapper">
-    <h2 class="nbuf-request-reset-title">Reset Your Password</h2>
     <p class="nbuf-request-reset-description">Enter your email address and we'll send you a link to reset your password.</p>
 
     {error_message}
@@ -10,14 +9,14 @@
         <input type="hidden" name="nbuf_request_reset_action" value="1">
 
         <div class="nbuf-form-group">
-            <label class="nbuf-request-reset-label" for="nbuf_user_login">Email Address</label>
-            <input type="email" name="user_login" id="nbuf_user_login" class="nbuf-request-reset-input" placeholder="your@email.com" required autocomplete="email">
+            <label class="nbuf-form-label nbuf-request-reset-label" for="nbuf_user_login">Email Address</label>
+            <input type="email" name="user_login" id="nbuf_user_login" class="nbuf-form-input nbuf-request-reset-input" placeholder="your@email.com" required autocomplete="email">
         </div>
 
-        <button type="submit" class="nbuf-request-reset-button">Send Reset Link</button>
+        <button type="submit" class="nbuf-button nbuf-button-primary nbuf-request-reset-button">Send Reset Link</button>
 
-        <div class="nbuf-request-reset-links">
-            <a href="{login_url}" class="nbuf-request-reset-link">Back to Login</a>
+        <div class="nbuf-form-footer nbuf-request-reset-links">
+            <a href="{login_url}" class="nbuf-form-link nbuf-request-reset-link">Back to Login</a>
             {register_link}
         </div>
     </form>

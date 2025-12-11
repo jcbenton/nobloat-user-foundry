@@ -21,6 +21,67 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Shortcodes {
 
+	/**
+	 * Enqueue frontend CSS for a specific page type.
+	 *
+	 * Called directly from shortcodes to ensure CSS loads
+	 * regardless of page ID settings.
+	 *
+	 * @param string $page_type Page type: 'login', 'registration', 'reset', 'account'.
+	 */
+	private static function enqueue_frontend_css( $page_type ) {
+		/* Check if CSS loading is enabled */
+		$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
+		if ( ! $css_load_on_pages ) {
+			return;
+		}
+
+		$css_files = array(
+			'login'        => array( 'nbuf-login', 'login-page', 'nbuf_login_page_css', 'nbuf_css_write_failed_login' ),
+			'registration' => array( 'nbuf-registration', 'registration-page', 'nbuf_registration_page_css', 'nbuf_css_write_failed_registration' ),
+			'reset'        => array( 'nbuf-reset', 'reset-page', 'nbuf_reset_page_css', 'nbuf_css_write_failed_reset' ),
+			'account'      => array( 'nbuf-account', 'account-page', 'nbuf_account_page_css', 'nbuf_css_write_failed_account' ),
+			'2fa'          => array( 'nbuf-2fa', '2fa-setup', 'nbuf_2fa_setup_css', 'nbuf_css_write_failed_2fa' ),
+		);
+
+		if ( ! isset( $css_files[ $page_type ] ) ) {
+			return;
+		}
+
+		list( $handle, $filename, $db_option, $token_key ) = $css_files[ $page_type ];
+
+		/* Only enqueue once per page type */
+		if ( wp_style_is( $handle, 'enqueued' ) ) {
+			return;
+		}
+
+		NBUF_CSS_Manager::enqueue_css( $handle, $filename, $db_option, $token_key );
+	}
+
+	/**
+	 * Check if user management system is enabled and return notice if not.
+	 *
+	 * @return string|false HTML notice if system disabled, false if enabled.
+	 */
+	private static function get_system_disabled_notice() {
+		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
+		if ( $system_enabled ) {
+			return false;
+		}
+
+		// Only show detailed message to admins.
+		if ( current_user_can( 'manage_options' ) ) {
+			return '<div class="nbuf-message nbuf-message-error" style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px; margin: 20px auto; max-width: 500px; text-align: center; font-size: 16px;">'
+				. '<strong>' . esc_html__( 'NoBloat User Foundry', 'nobloat-user-foundry' ) . ':</strong> '
+				. esc_html__( 'The user management system is currently disabled. Enable it under NoBloat Foundry → User Settings → System → Status.', 'nobloat-user-foundry' )
+				. '</div>';
+		}
+
+		// Non-admins see a clear message explaining the situation.
+		return '<div class="nbuf-message nbuf-message-error" style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px; margin: 20px auto; max-width: 500px; text-align: center; font-size: 16px;">'
+			. esc_html__( 'The NoBloat User Management system is not enabled. Please contact the site administrator.', 'nobloat-user-foundry' )
+			. '</div>';
+	}
 
 	/**
 	 * Initialize shortcodes and form handlers.
@@ -67,6 +128,10 @@ class NBUF_Shortcodes {
 	 * @return string Shortcode output.
 	 */
 	public static function sc_verify_page( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
 
 		/*
 		* If token is present, delegate to verifier for processing
@@ -94,6 +159,14 @@ class NBUF_Shortcodes {
 	 * @return string Shortcode output.
 	 */
 	public static function sc_reset_form( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for reset page */
+		self::enqueue_frontend_css( 'reset' );
+
 		/* Check if password reset is enabled */
 		$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 		if ( ! $enable_password_reset ) {
@@ -188,6 +261,14 @@ class NBUF_Shortcodes {
 	 * @return string Form HTML.
 	 */
 	public static function sc_request_reset_form( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for reset page (shares same CSS) */
+		self::enqueue_frontend_css( 'reset' );
+
 		/* Check if password reset is enabled */
 		$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 		if ( ! $enable_password_reset ) {
@@ -470,6 +551,14 @@ class NBUF_Shortcodes {
 	 * @return string Form HTML.
 	 */
 	public static function sc_login_form( $atts = array() ) {
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for login page */
+		self::enqueue_frontend_css( 'login' );
+
 		// Check if custom login is enabled.
 		$enable_login = NBUF_Options::get( 'nbuf_enable_login', true );
 		if ( ! $enable_login ) {
@@ -491,14 +580,30 @@ class NBUF_Shortcodes {
 		// Get template using Template Manager (custom table + caching).
 		$template = NBUF_Template_Manager::load_template( 'login-form' );
 
-		// Get current URL for redirect.
+		// Get current URL for form action.
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 		$current_url = home_url( $request_uri );
 
-		// Get redirect URL from shortcode attribute or use current page.
+		// Determine default redirect URL from settings.
+		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
+		switch ( $login_redirect_setting ) {
+			case 'admin':
+				$default_redirect = admin_url();
+				break;
+			case 'home':
+				$default_redirect = home_url( '/' );
+				break;
+			case 'custom':
+			default:
+				$custom_url       = NBUF_Options::get( 'nbuf_login_redirect_custom', '/nobloat-account' );
+				$default_redirect = $custom_url ? home_url( $custom_url ) : home_url( '/nobloat-account' );
+				break;
+		}
+
+		// Get redirect URL from shortcode attribute or use settings default.
 		$atts = shortcode_atts(
 			array(
-				'redirect' => $current_url,
+				'redirect' => $default_redirect,
 			),
 			$atts,
 			'nbuf_login_form'
@@ -507,21 +612,26 @@ class NBUF_Shortcodes {
 		// Build action URL.
 		$action_url = esc_url( $current_url );
 
-		// Get password reset page URL (only if enabled).
-		$reset_url             = '';
+		// Get password reset link (only if enabled).
+		$reset_link            = '';
 		$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 		if ( $enable_password_reset ) {
 			$reset_page_id = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
 			if ( $reset_page_id ) {
-				$reset_url = get_permalink( $reset_page_id );
+				$reset_url  = get_permalink( $reset_page_id );
+				$reset_link = '<a href="' . esc_url( $reset_url ) . '" class="nbuf-login-link">' . esc_html__( 'Forgot Password?', 'nobloat-user-foundry' ) . '</a>';
 			}
 		}
 
 		// Build register link if registration is enabled.
-		$register_link = '';
-		if ( get_option( 'users_can_register' ) ) {
-			$register_url  = wp_registration_url();
-			$register_link = '<a href="' . esc_url( $register_url ) . '" class="nbuf-login-link">' . esc_html__( 'Register', 'nobloat-user-foundry' ) . '</a>';
+		$register_link       = '';
+		$enable_registration = NBUF_Options::get( 'nbuf_enable_registration', true );
+		if ( $enable_registration ) {
+			$registration_page_id = NBUF_Options::get( 'nbuf_page_registration', 0 );
+			if ( $registration_page_id ) {
+				$register_url  = get_permalink( $registration_page_id );
+				$register_link = '<a href="' . esc_url( $register_url ) . '" class="nbuf-login-link">' . esc_html__( 'Register', 'nobloat-user-foundry' ) . '</a>';
+			}
 		}
 
 		// Get error message if present.
@@ -557,7 +667,7 @@ class NBUF_Shortcodes {
 				'{action_url}',
 				'{nonce_field}',
 				'{redirect_to}',
-				'{reset_url}',
+				'{reset_link}',
 				'{register_link}',
 				'{error_message}',
 			),
@@ -565,7 +675,7 @@ class NBUF_Shortcodes {
 				$action_url,
 				$nonce_field,
 				esc_attr( $atts['redirect'] ),
-				esc_url( $reset_url ),
+				$reset_link,
 				$register_link,
 				$error_message,
 			),
@@ -691,6 +801,14 @@ class NBUF_Shortcodes {
 	 * @return string Form HTML.
 	 */
 	public static function sc_registration_form( $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for registration page */
+		self::enqueue_frontend_css( 'registration' );
+
 		/* Check if registration is enabled */
 		$enable_registration = NBUF_Options::get( 'nbuf_enable_registration', true );
 		if ( ! $enable_registration ) {
@@ -744,14 +862,20 @@ class NBUF_Shortcodes {
 			$username_value      = isset( $_POST['username'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_POST['username'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$username_field_html = '
                 <div class="nbuf-form-group">
-                    <label for="nbuf_reg_username">' . esc_html__( 'Username', 'nobloat-user-foundry' ) . ' <span class="required">*</span></label>
-                    <input type="text" id="nbuf_reg_username" name="username" required value="' . $username_value . '" autocomplete="username">
+                    <label class="nbuf-form-label nbuf-registration-label" for="nbuf_reg_username">' . esc_html__( 'Username', 'nobloat-user-foundry' ) . ' <span class="required">*</span></label>
+                    <input type="text" id="nbuf_reg_username" name="username" class="nbuf-form-input nbuf-registration-input" required value="' . $username_value . '" autocomplete="username">
                 </div>';
 		}
 
 		/* Build profile fields HTML based on enabled fields */
 		$profile_fields_html = '';
 		$enabled_fields      = NBUF_Registration::get_enabled_fields();
+		$field_count         = count( $enabled_fields );
+		$use_two_columns     = $field_count > 5;
+		$field_items         = array();
+
+		/* Textarea fields that should always span full width */
+		$full_width_fields = array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
 
 		foreach ( $enabled_fields as $field_key => $field_data ) {
 			$field_value = isset( $_POST[ $field_key ] ) ? esc_attr( sanitize_text_field( wp_unslash( $_POST[ $field_key ] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -759,14 +883,15 @@ class NBUF_Shortcodes {
 			$req_attr    = $field_data['required'] ? ' required' : '';
 
 			/* Determine input type based on field characteristics */
-			$input_type = self::get_field_input_type( $field_key );
+			$input_type    = self::get_field_input_type( $field_key );
+			$is_full_width = in_array( $field_key, $full_width_fields, true );
 
 			/* Text areas for long-form content */
-			if ( in_array( $field_key, array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
-				$profile_fields_html .= sprintf(
-					'<div class="nbuf-form-group">
-                        <label for="nbuf_reg_%1$s">%2$s%3$s</label>
-                        <textarea id="nbuf_reg_%1$s" name="%1$s"%4$s autocomplete="%1$s">%5$s</textarea>
+			if ( $is_full_width ) {
+				$field_html = sprintf(
+					'<div class="nbuf-form-group nbuf-form-group-full">
+                        <label class="nbuf-form-label nbuf-registration-label" for="nbuf_reg_%1$s">%2$s%3$s</label>
+                        <textarea id="nbuf_reg_%1$s" name="%1$s" class="nbuf-form-input nbuf-form-textarea nbuf-registration-input"%4$s autocomplete="%1$s">%5$s</textarea>
                     </div>',
 					esc_attr( $field_key ),
 					esc_html( $field_data['label'] ),
@@ -775,10 +900,10 @@ class NBUF_Shortcodes {
 					esc_textarea( $field_value )
 				);
 			} else {
-				$profile_fields_html .= sprintf(
+				$field_html = sprintf(
 					'<div class="nbuf-form-group">
-                        <label for="nbuf_reg_%1$s">%2$s%3$s</label>
-                        <input type="%4$s" id="nbuf_reg_%1$s" name="%1$s"%5$s value="%6$s" autocomplete="%1$s">
+                        <label class="nbuf-form-label nbuf-registration-label" for="nbuf_reg_%1$s">%2$s%3$s</label>
+                        <input type="%4$s" id="nbuf_reg_%1$s" name="%1$s" class="nbuf-form-input nbuf-registration-input"%5$s value="%6$s" autocomplete="%1$s">
                     </div>',
 					esc_attr( $field_key ),
 					esc_html( $field_data['label'] ),
@@ -788,21 +913,74 @@ class NBUF_Shortcodes {
 					$field_value
 				);
 			}
+
+			$field_items[] = array(
+				'html'       => $field_html,
+				'full_width' => $is_full_width,
+			);
+		}
+
+		/* Build final HTML - wrap in grid container if using two columns */
+		if ( $use_two_columns && ! empty( $field_items ) ) {
+			$profile_fields_html = '<div class="nbuf-form-grid">';
+			foreach ( $field_items as $item ) {
+				$profile_fields_html .= $item['html'];
+			}
+			$profile_fields_html .= '</div>';
+		} else {
+			foreach ( $field_items as $item ) {
+				$profile_fields_html .= $item['html'];
+			}
 		}
 
 		/* Replace placeholders */
 		$email_value = isset( $_POST['email'] ) ? esc_attr( sanitize_email( wp_unslash( $_POST['email'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
+		/* Build dynamic password requirements text */
+		$password_min_length      = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		$password_requirements    = array();
+		$password_requirements[]  = sprintf(
+			/* translators: %d: minimum password length */
+			__( 'Minimum %d characters', 'nobloat-user-foundry' ),
+			$password_min_length
+		);
+
+		/* Add character type requirements if password strength is enabled */
+		if ( NBUF_Options::get( 'nbuf_password_requirements_enabled', true ) ) {
+			if ( NBUF_Options::get( 'nbuf_password_require_uppercase', false ) ) {
+				$password_requirements[] = __( 'uppercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_lowercase', false ) ) {
+				$password_requirements[] = __( 'lowercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_numbers', false ) ) {
+				$password_requirements[] = __( 'number', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_special', false ) ) {
+				$password_requirements[] = __( 'special character', 'nobloat-user-foundry' );
+			}
+		}
+
+		/* Format requirements text */
+		if ( count( $password_requirements ) > 1 ) {
+			$first_req               = array_shift( $password_requirements );
+			$password_requirements_text = $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $password_requirements );
+		} else {
+			$password_requirements_text = $password_requirements[0];
+		}
+
 		$replacements = array(
-			'{action_url}'        => esc_url( get_permalink() ),
-			'{nonce_field}'       => wp_nonce_field( 'nbuf_registration', 'nbuf_registration_nonce', true, false ),
-			'{username_field}'    => $username_field_html,
-			'{profile_fields}'    => $profile_fields_html,
-			'{email_value}'       => $email_value,
-			'{login_url}'         => esc_url( $login_url ),
-			'{success_message}'   => $success_message,
-			'{error_message}'     => $error_message,
-			'{logged_in_message}' => '',
+			'{action_url}'            => esc_url( get_permalink() ),
+			'{nonce_field}'           => wp_nonce_field( 'nbuf_registration', 'nbuf_registration_nonce', true, false ),
+			'{username_field}'        => $username_field_html,
+			'{profile_fields}'        => $profile_fields_html,
+			'{email_value}'           => $email_value,
+			'{login_url}'             => esc_url( $login_url ),
+			'{success_message}'       => $success_message,
+			'{error_message}'         => $error_message,
+			'{logged_in_message}'     => '',
+			'{password_min_length}'   => esc_attr( $password_min_length ),
+			'{password_requirements}' => esc_html( $password_requirements_text ),
 		);
 
 		foreach ( $replacements as $placeholder => $value ) {
@@ -907,6 +1085,14 @@ class NBUF_Shortcodes {
 	 * @return string Page HTML.
 	 */
 	public static function sc_account_page( $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for account page */
+		self::enqueue_frontend_css( 'account' );
+
 		/* Require user to be logged in */
 		if ( ! is_user_logged_in() ) {
 			$login_url = wp_login_url( get_permalink() );
@@ -981,6 +1167,31 @@ class NBUF_Shortcodes {
 		if ( isset( $_GET['password_changed'] ) && 'success' === $_GET['password_changed'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$messages .= '<div class="nbuf-message nbuf-message-success nbuf-account-success">' . esc_html__( 'Password changed successfully!', 'nobloat-user-foundry' ) . '</div>';
 		}
+		if ( isset( $_GET['2fa_updated'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$twofa_status = sanitize_text_field( wp_unslash( $_GET['2fa_updated'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( 'enabled' === $twofa_status ) {
+				$messages .= '<div class="nbuf-message nbuf-message-success nbuf-account-success">' . esc_html__( 'Two-factor authentication enabled!', 'nobloat-user-foundry' ) . '</div>';
+			} elseif ( 'disabled' === $twofa_status ) {
+				$messages .= '<div class="nbuf-message nbuf-message-success nbuf-account-success">' . esc_html__( 'Two-factor authentication disabled.', 'nobloat-user-foundry' ) . '</div>';
+			}
+		}
+		/* Check for newly generated backup codes */
+		if ( isset( $_GET['backup_codes'] ) && 'generated' === $_GET['backup_codes'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$backup_codes = get_transient( 'nbuf_backup_codes_' . $user_id );
+			if ( $backup_codes && is_array( $backup_codes ) ) {
+				delete_transient( 'nbuf_backup_codes_' . $user_id );
+				$messages .= '<div class="nbuf-backup-codes-display">';
+				$messages .= '<h3>' . esc_html__( 'Your New Backup Codes', 'nobloat-user-foundry' ) . '</h3>';
+				$messages .= '<p class="nbuf-backup-codes-warning">' . esc_html__( 'Save these codes in a safe place. They will only be shown once!', 'nobloat-user-foundry' ) . '</p>';
+				$messages .= '<div class="nbuf-backup-codes-list">';
+				foreach ( $backup_codes as $code ) {
+					$messages .= '<div class="nbuf-backup-code">' . esc_html( $code ) . '</div>';
+				}
+				$messages .= '</div>';
+				$messages .= '<p><small>' . esc_html__( 'Each code can only be used once. Use them if you lose access to your authenticator app.', 'nobloat-user-foundry' ) . '</small></p>';
+				$messages .= '</div>';
+			}
+		}
 		if ( isset( $_GET['error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$error     = sanitize_text_field( wp_unslash( $_GET['error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$messages .= '<div class="nbuf-message nbuf-message-error nbuf-account-error">' . esc_html( urldecode( $error ) ) . '</div>';
@@ -989,7 +1200,7 @@ class NBUF_Shortcodes {
 		/* Get user verification and expiration status */
 		$is_verified = NBUF_User_Data::is_verified( $user_id );
 		$is_expired  = NBUF_User_Data::is_expired( $user_id );
-		$expires_at  = NBUF_User_Data::get_expires_at( $user_id );
+		$expires_at  = NBUF_User_Data::get_expiration( $user_id );
 
 		/* Build status badges */
 		$status_badges = '';
@@ -1040,9 +1251,62 @@ class NBUF_Shortcodes {
 		wp_nonce_field( 'nbuf_account_password', 'nbuf_password_nonce', false );
 		$nonce_field_password = ob_get_clean();
 
+		/* Build dynamic password requirements text */
+		$password_min_length     = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		$password_requirements   = array();
+		$password_requirements[] = sprintf(
+			/* translators: %d: minimum password length */
+			__( 'Minimum %d characters', 'nobloat-user-foundry' ),
+			$password_min_length
+		);
+
+		/* Add character type requirements if password strength is enabled */
+		if ( NBUF_Options::get( 'nbuf_password_requirements_enabled', true ) ) {
+			if ( NBUF_Options::get( 'nbuf_password_require_uppercase', false ) ) {
+				$password_requirements[] = __( 'uppercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_lowercase', false ) ) {
+				$password_requirements[] = __( 'lowercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_numbers', false ) ) {
+				$password_requirements[] = __( 'number', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_special', false ) ) {
+				$password_requirements[] = __( 'special character', 'nobloat-user-foundry' );
+			}
+		}
+
+		/* Format requirements text */
+		if ( count( $password_requirements ) > 1 ) {
+			$first_req                  = array_shift( $password_requirements );
+			$password_requirements_text = $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $password_requirements );
+		} else {
+			$password_requirements_text = $password_requirements[0];
+		}
+
+		/* Build security tab content if 2FA is available */
+		$security_tab_button  = '';
+		$security_tab_content = '';
+		$security_tab_html    = NBUF_2FA_Account::build_security_tab_html( $user_id );
+		if ( ! empty( $security_tab_html ) ) {
+			$security_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="security">' . esc_html__( 'Security', 'nobloat-user-foundry' ) . '</button>';
+			$security_tab_content = '<div class="nbuf-tab-content" data-tab="security">' . $security_tab_html . '</div>';
+		}
+
+		/* Build profile photo HTML */
+		$profile_photo_url = NBUF_Profile_Photos::get_profile_photo( $user_id, 200 );
+		if ( $profile_photo_url ) {
+			$profile_photo_html = '<img src="' . esc_url( $profile_photo_url ) . '" alt="' . esc_attr( $current_user->display_name ) . '">';
+		} else {
+			/* Default placeholder with user initial */
+			$initial            = strtoupper( substr( $current_user->display_name ? $current_user->display_name : $current_user->user_login, 0, 1 ) );
+			$profile_photo_html = '<div class="nbuf-no-photo">' . esc_html( $initial ) . '</div>';
+		}
+
 		/* Replace placeholders */
 		$replacements = array(
 			'{messages}'                => $messages,
+			'{profile_photo}'           => $profile_photo_html,
 			'{status_badges}'           => $status_badges,
 			'{username}'                => esc_html( $current_user->user_login ),
 			'{email}'                   => esc_html( $current_user->user_email ),
@@ -1057,6 +1321,9 @@ class NBUF_Shortcodes {
 			'{photos_section}'          => $photos_section_html,
 			'{version_history_section}' => $version_history_section_html,
 			'{logout_url}'              => esc_url( wp_logout_url( home_url() ) ),
+			'{password_requirements}'   => esc_html( $password_requirements_text ),
+			'{security_tab_button}'     => $security_tab_button,
+			'{security_tab_content}'    => $security_tab_content,
 		);
 
 		foreach ( $replacements as $placeholder => $value ) {
@@ -1135,18 +1402,27 @@ class NBUF_Shortcodes {
 	 * ==========================================================
 	 */
 	public static function maybe_handle_account_actions() {
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
-		if ( is_admin() || ! isset( $_POST['nbuf_account_action'] ) ) {
+		if ( is_admin() ) {
 			return;
 		}
 
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
-		$action = sanitize_text_field( wp_unslash( $_POST['nbuf_account_action'] ) );
+		/* Handle standard account actions */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
+		if ( isset( $_POST['nbuf_account_action'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
+			$action = sanitize_text_field( wp_unslash( $_POST['nbuf_account_action'] ) );
 
-		if ( 'update_profile' === $action ) {
-			self::handle_profile_update();
-		} elseif ( 'change_password' === $action ) {
-			self::handle_password_change();
+			if ( 'update_profile' === $action ) {
+				self::handle_profile_update();
+			} elseif ( 'change_password' === $action ) {
+				self::handle_password_change();
+			}
+		}
+
+		/* Handle 2FA actions */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
+		if ( isset( $_POST['nbuf_2fa_action'] ) ) {
+			NBUF_2FA_Account::handle_actions();
 		}
 	}
 
@@ -1321,6 +1597,11 @@ class NBUF_Shortcodes {
 	 * @return string Logout HTML or redirect.
 	 */
 	public static function sc_logout( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
 		/* Get settings */
 		$logout_behavior = NBUF_Options::get( 'nbuf_logout_behavior', 'immediate' );
 		$logout_redirect = NBUF_Options::get( 'nbuf_logout_redirect', 'home' );
@@ -1433,6 +1714,14 @@ class NBUF_Shortcodes {
 	 * @return string 2FA verification form HTML.
 	 */
 	public static function sc_2fa_verify( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for 2FA pages */
+		self::enqueue_frontend_css( '2fa' );
+
 		/* Check if 2FA_Login class exists */
 		if ( ! class_exists( 'NBUF_2FA_Login' ) ) {
 			return '<p>' . esc_html__( '2FA system is not available.', 'nobloat-user-foundry' ) . '</p>';
@@ -1454,6 +1743,14 @@ class NBUF_Shortcodes {
 	 * @return string 2FA setup page HTML.
 	 */
 	public static function sc_2fa_setup( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
+		/* Enqueue CSS for 2FA pages */
+		self::enqueue_frontend_css( '2fa' );
+
 		/* Check if user is logged in */
 		if ( ! is_user_logged_in() ) {
 			return '<p>' . esc_html__( 'You must be logged in to set up two-factor authentication.', 'nobloat-user-foundry' ) . '</p>';
@@ -1471,8 +1768,9 @@ class NBUF_Shortcodes {
 		$email_method = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
 		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
 
-		$email_available = in_array( $email_method, array( 'optional_all', 'required_all', 'required_admin' ), true );
-		$totp_available  = in_array( $totp_method, array( 'optional', 'required_all', 'required_admin' ), true );
+		/* Accept both old and new option values for backwards compatibility */
+		$email_available = in_array( $email_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
+		$totp_available  = in_array( $totp_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
 
 		/* Check if current user can access 2FA */
 		$is_admin = current_user_can( 'manage_options' );
@@ -1597,6 +1895,11 @@ class NBUF_Shortcodes {
 	 * @return string Restricted or allowed content.
 	 */
 	public static function sc_restrict( $atts, $content = '' ) {
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
 		/* Parse attributes */
 		$atts = shortcode_atts(
 			array(
@@ -1695,6 +1998,11 @@ class NBUF_Shortcodes {
 	 * @return string Profile HTML.
 	 */
 	public static function sc_profile( $atts ) {
+		$disabled_notice = self::get_system_disabled_notice();
+		if ( $disabled_notice ) {
+			return $disabled_notice;
+		}
+
 		$atts = shortcode_atts(
 			array(
 				'user' => '',

@@ -20,8 +20,8 @@ $login_method    = $reg_settings['login_method'] ?? 'email_only';
 $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 ?>
 
-<form method="post" action="options.php" id="nbuf-registration-form">
-	<?php settings_fields( 'nbuf_registration_group' ); ?>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="nbuf-registration-form">
+	<?php NBUF_Settings::settings_nonce_field(); ?>
 	<input type="hidden" name="nbuf_active_tab" value="users">
 	<input type="hidden" name="nbuf_active_subtab" value="registration">
 
@@ -125,12 +125,13 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 			<tbody>
 		<?php
 		foreach ( $category_data['fields'] as $field_key => $field_label ) :
-			$enabled  = $reg_settings[ $field_key . '_enabled' ] ?? false;
-			$required = $reg_settings[ $field_key . '_required' ] ?? false;
+			$enabled  = ! empty( $reg_settings[ $field_key . '_enabled' ] ) && '0' !== $reg_settings[ $field_key . '_enabled' ];
+			$required = ! empty( $reg_settings[ $field_key . '_required' ] ) && '0' !== $reg_settings[ $field_key . '_required' ];
 			$label    = $reg_settings[ $field_key . '_label' ] ?? '';
 			?>
 					<tr>
 						<td style="text-align: center;">
+							<input type="hidden" name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_enabled]" value="0">
 							<input type="checkbox"
 								name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_enabled]"
 								value="1"
@@ -141,6 +142,7 @@ $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 						</td>
 						<td><strong><?php echo esc_html( $field_label ); ?></strong></td>
 						<td>
+							<input type="hidden" name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_required]" value="0">
 							<input type="checkbox"
 								name="nbuf_registration_fields[<?php echo esc_attr( $field_key ); ?>_required]"
 								value="1"

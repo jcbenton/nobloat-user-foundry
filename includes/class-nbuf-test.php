@@ -151,10 +151,14 @@ class NBUF_Test {
 
 		$replacements = array(
 			'{site_name}'             => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'{site_url}'              => home_url(),
 			'{display_name}'          => 'Test User',
+			'{username}'              => 'testuser',
 			'{days_until_expiration}' => '7',
+			'{expires_date}'          => gmdate( 'F j, Y', strtotime( '+7 days' ) ),
 			'{expiration_date}'       => gmdate( 'F j, Y', strtotime( '+7 days' ) ),
 			'{login_url}'             => wp_login_url(),
+			'{contact_url}'           => home_url( '/contact' ),
 		);
 
 		$message = strtr( $template, $replacements );

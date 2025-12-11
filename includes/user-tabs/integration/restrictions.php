@@ -36,8 +36,8 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 ?>
 
 <div class="nbuf-restrictions-tab">
-	<form method="post" action="options.php">
-		<?php settings_fields( 'nbuf_settings_group' ); ?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php NBUF_Settings::settings_nonce_field(); ?>
 		<input type="hidden" name="nbuf_active_tab" value="integration">
 		<input type="hidden" name="nbuf_active_subtab" value="restrictions">
 

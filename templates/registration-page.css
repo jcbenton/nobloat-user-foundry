@@ -77,7 +77,7 @@
    ========================================================== */
 
 .nbuf-registration-wrapper {
-    max-width: 600px;
+    max-width: 480px;
     margin: var(--nbuf-space-3xl) auto;
     padding: var(--nbuf-space-xl);
 }
@@ -122,7 +122,6 @@
     font-weight: 600;
     margin-bottom: var(--nbuf-space-sm);
     color: var(--nbuf-text-primary);
-    font-size: var(--nbuf-font-size-sm);
 }
 
 .nbuf-form-label .required,
@@ -135,12 +134,11 @@
 .nbuf-form-input,
 .nbuf-registration-input {
     width: 100%;
-    padding: var(--nbuf-space-md) var(--nbuf-space-md);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
     border: 1px solid var(--nbuf-border);
     border-radius: var(--nbuf-radius-sm);
-    font-size: var(--nbuf-font-size-sm);
     box-sizing: border-box;
-    font-family: inherit;
+    font: inherit;
     /* Specific transitions for better performance */
     transition: border-color var(--nbuf-transition-base),
                 box-shadow var(--nbuf-transition-base);
@@ -182,7 +180,7 @@ textarea.nbuf-registration-input {
 
 .nbuf-form-help {
     display: block;
-    font-size: var(--nbuf-font-size-xs);
+    font-size: 0.85em;
     color: var(--nbuf-text-secondary);
     margin-top: var(--nbuf-space-xs);
     line-height: 1.4;
@@ -195,43 +193,66 @@ textarea.nbuf-registration-input {
     gap: var(--nbuf-space-lg);
 }
 
+/* Auto two-column grid for many fields (>5) */
+.nbuf-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--nbuf-space-lg);
+}
+
+/* Full-width fields span both columns */
+.nbuf-form-grid .nbuf-form-group-full {
+    grid-column: 1 / -1;
+}
+
+/* Expand wrapper when grid is active */
+.nbuf-registration-wrapper:has(.nbuf-form-grid) {
+    max-width: 700px;
+}
+
 /* ==========================================================
    BUTTONS
    ========================================================== */
 
 /* Shared button base styles */
-.nbuf-button {
+.nbuf-button,
+.nbuf-submit-button {
     width: 100%;
     padding: var(--nbuf-space-md) var(--nbuf-space-xl);
     border: none;
     border-radius: var(--nbuf-radius-sm);
-    font-size: var(--nbuf-font-size-base);
+    font: inherit;
     font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
     margin-top: var(--nbuf-space-md);
+    min-height: 44px;
+    text-align: center;
     /* Specific transition properties for better performance */
     transition: background-color var(--nbuf-transition-base),
                 transform var(--nbuf-transition-fast);
 }
 
 /* Shared primary button color */
-.nbuf-button-primary {
+.nbuf-button-primary,
+.nbuf-submit-button {
     background: var(--nbuf-primary);
     color: var(--nbuf-surface);
 }
 
-.nbuf-button-primary:hover {
+.nbuf-button-primary:hover,
+.nbuf-submit-button:hover {
     background: var(--nbuf-primary-hover);
 }
 
 /* Subtle press effect for tactile feedback */
-.nbuf-button-primary:active {
+.nbuf-button-primary:active,
+.nbuf-submit-button:active {
     transform: translateY(1px);
 }
 
 /* Enhanced focus state for accessibility */
-.nbuf-button-primary:focus-visible {
+.nbuf-button-primary:focus-visible,
+.nbuf-submit-button:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
     box-shadow: var(--nbuf-shadow-focus);
@@ -291,26 +312,29 @@ textarea.nbuf-registration-input {
    FOOTER
    ========================================================== */
 
-.nbuf-registration-footer {
+.nbuf-registration-footer,
+.nbuf-form-footer {
     text-align: center;
     margin-top: var(--nbuf-space-xl);
-    font-size: var(--nbuf-font-size-sm);
     color: var(--nbuf-text-secondary);
 }
 
-.nbuf-registration-footer a {
+.nbuf-registration-footer a,
+.nbuf-form-footer a {
     color: var(--nbuf-primary);
     text-decoration: none;
     /* Smooth underline transition */
     transition: text-decoration-color var(--nbuf-transition-base);
 }
 
-.nbuf-registration-footer a:hover {
+.nbuf-registration-footer a:hover,
+.nbuf-form-footer a:hover {
     text-decoration: underline;
 }
 
 /* Enhanced keyboard focus for links */
-.nbuf-registration-footer a:focus-visible {
+.nbuf-registration-footer a:focus-visible,
+.nbuf-form-footer a:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
     border-radius: 2px;
@@ -320,7 +344,7 @@ textarea.nbuf-registration-input {
    RESPONSIVE DESIGN
    ========================================================== */
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
     .nbuf-registration-wrapper {
         padding: var(--nbuf-space-md);
         margin: var(--nbuf-space-xl) auto;
@@ -334,9 +358,15 @@ textarea.nbuf-registration-input {
         font-size: var(--nbuf-font-size-xl);
     }
 
-    /* Stack form rows on mobile */
-    .nbuf-form-row {
+    /* Stack form rows and grid on mobile */
+    .nbuf-form-row,
+    .nbuf-form-grid {
         grid-template-columns: 1fr;
         gap: var(--nbuf-space-xl);
+    }
+
+    /* Reset wrapper width on mobile */
+    .nbuf-registration-wrapper:has(.nbuf-form-grid) {
+        max-width: 480px;
     }
 }

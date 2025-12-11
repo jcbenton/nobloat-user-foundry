@@ -45,6 +45,11 @@ class NBUF_Activator {
 			NBUF_Database::create_content_restrictions_table();
 			NBUF_Database::create_user_roles_table();
 
+			/* Create security log table */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::create_table();
+			}
+
 			/* Update user_data table for privacy controls (add columns if needed) */
 			NBUF_Database::update_user_data_table_for_privacy();
 
@@ -117,13 +122,13 @@ class NBUF_Activator {
 			NBUF_Options::update(
 				'nbuf_settings',
 				array(
-					'hooks'                    => array( 'user_register' ),
+					'hooks'                    => array( 'register_new_user' ),
 					'hooks_custom'             => '',
 					'custom_hook_enabled'      => 0,
 					'reverify_on_email_change' => 1,
 					'verification_page'        => '/nobloat-verify',
 					'password_reset_page'      => '/nobloat-reset',
-					'cleanup'                  => array( 'tokens', 'settings', 'templates', 'usermeta' ),
+					'cleanup'                  => array(),
 					'auto_verify_existing'     => 1,
 				),
 				true,
@@ -137,11 +142,11 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_notify_admin_registration', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_enable_password_reset', true, true, 'settings' );
 			NBUF_Options::update( 'nbuf_enable_custom_roles', true, true, 'settings' );
-			NBUF_Options::update( 'nbuf_redirect_default_login', false, true, 'settings' );
-			NBUF_Options::update( 'nbuf_redirect_default_register', false, true, 'settings' );
-			NBUF_Options::update( 'nbuf_redirect_default_logout', false, true, 'settings' );
-			NBUF_Options::update( 'nbuf_redirect_default_lostpassword', false, true, 'settings' );
-			NBUF_Options::update( 'nbuf_redirect_default_resetpass', false, true, 'settings' );
+			NBUF_Options::update( 'nbuf_redirect_default_login', true, true, 'settings' );
+			NBUF_Options::update( 'nbuf_redirect_default_register', true, true, 'settings' );
+			NBUF_Options::update( 'nbuf_redirect_default_logout', true, true, 'settings' );
+			NBUF_Options::update( 'nbuf_redirect_default_lostpassword', true, true, 'settings' );
+			NBUF_Options::update( 'nbuf_redirect_default_resetpass', true, true, 'settings' );
 
 			/* Login attempt limiting defaults */
 			NBUF_Options::update( 'nbuf_enable_login_limiting', true, true, 'settings' );
@@ -195,11 +200,11 @@ class NBUF_Activator {
 					'last_name_required'   => true,
 					'last_name_label'      => 'Last Name',
 
-					'phone_enabled'        => true,
+					'phone_enabled'        => false,
 					'phone_required'       => false,
 					'phone_label'          => 'Phone Number',
 
-					'company_enabled'      => true,
+					'company_enabled'      => false,
 					'company_required'     => false,
 					'company_label'        => 'Company',
 
@@ -240,10 +245,10 @@ class NBUF_Activator {
 			);
 			// phpcs:enable
 
-			/* Password strength settings - all default to false (opt-in) */
-			NBUF_Options::update( 'nbuf_password_requirements_enabled', false, true, 'settings' );
+			/* Password strength settings */
+			NBUF_Options::update( 'nbuf_password_requirements_enabled', true, true, 'settings' );
 			NBUF_Options::update( 'nbuf_password_min_strength', 'medium', true, 'settings' );
-			NBUF_Options::update( 'nbuf_password_min_length', 8, true, 'settings' );
+			NBUF_Options::update( 'nbuf_password_min_length', 12, true, 'settings' );
 			NBUF_Options::update( 'nbuf_password_require_uppercase', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_password_require_lowercase', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_password_require_numbers', false, true, 'settings' );
@@ -453,13 +458,13 @@ class NBUF_Activator {
 		// 8. Create functional pages with standardized slugs.
 
 		// Verification page.
-		self::create_page( 'nbuf_page_verification', 'NoBloat Verify', array( 'nobloat-verify' ), '[nbuf_verify_page]' );
+		self::create_page( 'nbuf_page_verification', 'NoBloat Verification', array( 'nobloat-verify' ), '[nbuf_verify_page]' );
 
 		// Password reset page.
-		self::create_page( 'nbuf_page_password_reset', 'NoBloat Reset', array( 'nobloat-reset' ), '[nbuf_reset_form]' );
+		self::create_page( 'nbuf_page_password_reset', 'NoBloat Password Reset', array( 'nobloat-reset' ), '[nbuf_reset_form]' );
 
 		// Request password reset page.
-		self::create_page( 'nbuf_page_request_reset', 'NoBloat Forgot Password', array( 'nobloat-forgot-password' ), '[nbuf_request_reset_form]' );
+		self::create_page( 'nbuf_page_request_reset', 'NoBloat Request Password Reset', array( 'nobloat-forgot-password' ), '[nbuf_request_reset_form]' );
 
 		// Login page.
 		self::create_page( 'nbuf_page_login', 'NoBloat Login', array( 'nobloat-login' ), '[nbuf_login_form]' );
@@ -541,6 +546,8 @@ class NBUF_Activator {
 			);
 			if ( ! is_wp_error( $page_id ) ) {
 				NBUF_Options::update( $option_key, $page_id, true, 'settings' );
+				// Hide page title on NoBloat pages for cleaner appearance.
+				update_post_meta( $page_id, '_nbuf_hide_title', '1' );
 				break;
 			}
 		}

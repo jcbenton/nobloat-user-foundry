@@ -36,6 +36,9 @@ class NBUF_Hooks {
 		add_action( 'user_profile_update_errors', array( __CLASS__, 'validate_profile_password' ), 10, 3 );
 		add_filter( 'registration_errors', array( __CLASS__, 'validate_registration_password' ), 10, 3 );
 		add_action( 'validate_password_reset', array( __CLASS__, 'validate_reset_password' ), 10, 2 );
+
+		/* Admin bar visibility control */
+		add_filter( 'show_admin_bar', array( __CLASS__, 'control_admin_bar_visibility' ) );
 	}
 
 	/**
@@ -63,7 +66,7 @@ class NBUF_Hooks {
 	 */
 	public static function register_hooks() {
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
-		$hooks    = isset( $settings['hooks'] ) ? (array) $settings['hooks'] : array( 'user_register' );
+		$hooks    = isset( $settings['hooks'] ) ? (array) $settings['hooks'] : array( 'register_new_user' );
 
 		foreach ( $hooks as $hook_name ) {
 			add_action( $hook_name, array( __CLASS__, 'trigger_verification_email' ), 10, 1 );
@@ -179,7 +182,7 @@ class NBUF_Hooks {
 	 */
 	public static function rewrite_password_reset_link( $message, $key, $user_login, $user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$settings    = NBUF_Options::get( 'nbuf_settings', array() );
-		$custom_path = $settings['password_reset_page'] ?? '/nbuf-reset';
+		$custom_path = $settings['password_reset_page'] ?? '/nobloat-reset';
 		$custom_path = '/' . ltrim( $custom_path, '/' );
 
 		$reset_url = home_url( $custom_path );
@@ -320,7 +323,7 @@ class NBUF_Hooks {
 
 		/* Get custom password reset page URL */
 		$settings            = NBUF_Options::get( 'nbuf_settings', array() );
-		$reset_path          = isset( $settings['password_reset_page'] ) ? $settings['password_reset_page'] : '/nbuf-reset';
+		$reset_path          = isset( $settings['password_reset_page'] ) ? $settings['password_reset_page'] : '/nobloat-reset';
 		$password_reset_link = site_url( $reset_path . '?key=' . $key . '&login=' . rawurlencode( $user_login ) );
 
 		/* Prepare placeholders */
@@ -432,11 +435,11 @@ class NBUF_Hooks {
 		}
 
 		/* Get redirect settings */
-		$redirect_login        = NBUF_Options::get( 'nbuf_redirect_default_login', false );
-		$redirect_register     = NBUF_Options::get( 'nbuf_redirect_default_register', false );
-		$redirect_logout       = NBUF_Options::get( 'nbuf_redirect_default_logout', false );
-		$redirect_lostpassword = NBUF_Options::get( 'nbuf_redirect_default_lostpassword', false );
-		$redirect_resetpass    = NBUF_Options::get( 'nbuf_redirect_default_resetpass', false );
+		$redirect_login        = NBUF_Options::get( 'nbuf_redirect_default_login', true );
+		$redirect_register     = NBUF_Options::get( 'nbuf_redirect_default_register', true );
+		$redirect_logout       = NBUF_Options::get( 'nbuf_redirect_default_logout', true );
+		$redirect_lostpassword = NBUF_Options::get( 'nbuf_redirect_default_lostpassword', true );
+		$redirect_resetpass    = NBUF_Options::get( 'nbuf_redirect_default_resetpass', true );
 
 		/*
 		 * Get current action
@@ -648,6 +651,28 @@ class NBUF_Hooks {
 		} else {
 			/* Clear weak password flag on successful password change */
 			NBUF_Password_Validator::clear_weak_password_flag( $user_id );
+		}
+	}
+
+	/**
+	 * Control WordPress admin bar visibility.
+	 *
+	 * Shows or hides the admin bar on the frontend based on settings.
+	 *
+	 * @param  bool $show Whether to show the admin bar.
+	 * @return bool Modified show value.
+	 */
+	public static function control_admin_bar_visibility( $show ) {
+		$visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_admin' );
+
+		switch ( $visibility ) {
+			case 'hide_all':
+				return false;
+			case 'show_admin':
+				return current_user_can( 'manage_options' );
+			case 'show_all':
+			default:
+				return $show;
 		}
 	}
 }

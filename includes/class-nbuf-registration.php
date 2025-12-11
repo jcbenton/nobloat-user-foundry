@@ -122,8 +122,16 @@ class NBUF_Registration {
 			return new WP_Error( 'empty_password', __( 'Please provide a password.', 'nobloat-user-foundry' ) );
 		}
 
-		if ( strlen( $data['password'] ) < 8 ) {
-			return new WP_Error( 'weak_password', __( 'Password must be at least 8 characters.', 'nobloat-user-foundry' ) );
+		$min_length = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		if ( strlen( $data['password'] ) < $min_length ) {
+			return new WP_Error(
+				'weak_password',
+				sprintf(
+					/* translators: %d: minimum password length */
+					__( 'Password must be at least %d characters.', 'nobloat-user-foundry' ),
+					$min_length
+				)
+			);
 		}
 
 		/* Check password confirmation */
@@ -295,8 +303,8 @@ class NBUF_Registration {
 		$enabled_fields = array();
 
 		foreach ( $all_fields as $field => $default_label ) {
-			$enabled  = $reg_settings[ $field . '_enabled' ] ?? false;
-			$required = $reg_settings[ $field . '_required' ] ?? false;
+			$enabled  = ! empty( $reg_settings[ $field . '_enabled' ] ) && '0' !== $reg_settings[ $field . '_enabled' ];
+			$required = ! empty( $reg_settings[ $field . '_required' ] ) && '0' !== $reg_settings[ $field . '_required' ];
 			$label    = $reg_settings[ $field . '_label' ] ?? $default_label;
 
 			/* Use default label if custom label is empty */

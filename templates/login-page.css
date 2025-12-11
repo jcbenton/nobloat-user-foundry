@@ -1,19 +1,12 @@
 /* ==========================================================
    NoBloat User Foundry - Login Page Styling
    ----------------------------------------------------------
-   Custom styling for login page.
-   Provides theme-friendly design with dual-class system.
-
-   Class Strategy: Dual-class system for maximum flexibility
-   - Shared classes (.nbuf-button) for consistent base styles
-   - Page-specific classes (.nbuf-login-button) for customization
+   Minimal styling that works with any theme.
+   Uses inherit for fonts/sizes to respect theme defaults.
    ========================================================== */
 
 /* ==========================================================
    CSS CUSTOM PROPERTIES
-   ----------------------------------------------------------
-   Centralized design tokens for easy customization and
-   theme consistency. Users can override these in admin settings.
    ========================================================== */
 
 :root {
@@ -26,77 +19,41 @@
     --nbuf-success: #155724;
     --nbuf-success-bg: #d4edda;
     --nbuf-success-border: #c3e6cb;
-    --nbuf-error: #b30000;
-    --nbuf-error-bg: #ffecec;
-    --nbuf-error-border: #f5c2c2;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
 
     /* Neutral Colors */
-    --nbuf-text-primary: #222;
-    --nbuf-text-secondary: #333;
-    --nbuf-border: #ccc;
-    --nbuf-background: #f7f7f7;
+    --nbuf-border: #ddd;
     --nbuf-surface: #fff;
 
-    /* Spacing Scale (rem-based for accessibility) */
-    --nbuf-space-xs: 0.25rem;  /* 4px */
-    --nbuf-space-sm: 0.5rem;   /* 8px */
-    --nbuf-space-md: 0.75rem;  /* 12px */
-    --nbuf-space-lg: 1rem;     /* 16px */
-    --nbuf-space-xl: 1.5rem;   /* 24px */
-    --nbuf-space-2xl: 2rem;    /* 32px */
-
-    /* Typography */
-    --nbuf-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --nbuf-font-size-sm: 0.875rem;   /* 14px */
-    --nbuf-font-size-base: 1rem;     /* 16px */
-    --nbuf-font-size-lg: 1.125rem;   /* 18px */
-    --nbuf-font-size-xl: 1.375rem;   /* 22px */
-    --nbuf-font-size-2xl: 1.6rem;    /* 25.6px */
+    /* Spacing */
+    --nbuf-space-sm: 0.5rem;
+    --nbuf-space-md: 0.75rem;
+    --nbuf-space-lg: 1rem;
+    --nbuf-space-xl: 1.5rem;
+    --nbuf-space-2xl: 2rem;
 
     /* Border Radius */
-    --nbuf-radius-sm: 4px;
-    --nbuf-radius-md: 6px;
-    --nbuf-radius-lg: 10px;
+    --nbuf-radius-md: 4px;
+    --nbuf-radius-lg: 8px;
 
     /* Shadows */
-    --nbuf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --nbuf-shadow-md: 0 3px 12px rgba(0, 0, 0, 0.1);
+    --nbuf-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
     --nbuf-shadow-focus: 0 0 0 3px var(--nbuf-primary-focus);
-
-    /* Transitions */
-    --nbuf-transition-fast: 150ms ease-in-out;
-    --nbuf-transition-base: 200ms ease-in-out;
 }
 
 /* ==========================================================
-   PAGE LAYOUT
+   PAGE LAYOUT - Center the form
    ========================================================== */
 
-body.nbuf-login-page {
-    background: var(--nbuf-background);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    font-family: var(--nbuf-font-family);
-}
-
 .nbuf-login-wrapper {
-    max-width: 400px;
-    width: 100%;
-    background: var(--nbuf-surface);
+    max-width: 480px;
+    margin: var(--nbuf-space-2xl) auto;
     padding: var(--nbuf-space-2xl);
+    background: var(--nbuf-surface);
     border-radius: var(--nbuf-radius-lg);
     box-shadow: var(--nbuf-shadow-md);
-}
-
-.nbuf-login-title {
-    text-align: center;
-    font-size: var(--nbuf-font-size-2xl);
-    margin-bottom: var(--nbuf-space-xl);
-    color: var(--nbuf-text-primary);
-    font-weight: 600;
 }
 
 /* ==========================================================
@@ -109,28 +66,25 @@ body.nbuf-login-page {
     gap: var(--nbuf-space-lg);
 }
 
-/* Shared form label base + page-specific override target */
+.nbuf-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nbuf-space-sm);
+}
+
 .nbuf-form-label,
 .nbuf-login-label {
     font-weight: 600;
-    color: var(--nbuf-text-secondary);
-    font-size: var(--nbuf-font-size-sm);
-    margin-bottom: var(--nbuf-space-xs);
 }
 
-/* Shared form input base + page-specific override target */
 .nbuf-form-input,
 .nbuf-login-input {
     width: 100%;
     padding: var(--nbuf-space-md);
-    font-size: var(--nbuf-font-size-base);
     border: 1px solid var(--nbuf-border);
     border-radius: var(--nbuf-radius-md);
     box-sizing: border-box;
-    font-family: inherit;
-    /* Specific transitions for better performance */
-    transition: border-color var(--nbuf-transition-base),
-                box-shadow var(--nbuf-transition-base);
+    font: inherit;
 }
 
 .nbuf-form-input:focus,
@@ -140,92 +94,55 @@ body.nbuf-login-page {
     outline: none;
 }
 
-/* Ensure keyboard users see clear focus indication */
-.nbuf-form-input:focus-visible,
-.nbuf-login-input:focus-visible {
-    outline: 2px solid var(--nbuf-primary);
-    outline-offset: 2px;
-}
-
 /* ==========================================================
    BUTTONS
    ========================================================== */
 
-/* Shared button base styles */
-.nbuf-button {
+.nbuf-login-button {
+    width: 100%;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
     border: none;
     border-radius: var(--nbuf-radius-md);
-    padding: var(--nbuf-space-md);
-    font-size: var(--nbuf-font-size-base);
+    background: var(--nbuf-primary);
+    color: #fff;
+    font: inherit;
     font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
-    /* Specific transition property for better performance */
-    transition: background-color var(--nbuf-transition-base),
-                transform var(--nbuf-transition-fast);
+    min-height: 44px;
+    text-align: center;
 }
 
-/* Shared primary button color */
-.nbuf-button-primary {
-    background: var(--nbuf-primary);
-    color: var(--nbuf-surface);
-}
-
-.nbuf-button-primary:hover {
+.nbuf-login-button:hover {
     background: var(--nbuf-primary-hover);
 }
 
-/* Subtle press effect for tactile feedback */
-.nbuf-button-primary:active {
-    transform: translateY(1px);
-}
-
-/* Enhanced focus state for accessibility */
-.nbuf-button-primary:focus-visible {
+.nbuf-login-button:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
-    box-shadow: var(--nbuf-shadow-focus);
-}
-
-/* Page-specific button override target */
-.nbuf-login-button {
-    /* Override styles here for login button only */
 }
 
 /* ==========================================================
    MESSAGES
    ========================================================== */
 
-/* Shared message base */
 .nbuf-message {
     padding: var(--nbuf-space-md);
     margin-bottom: var(--nbuf-space-lg);
     border-radius: var(--nbuf-radius-md);
-    font-size: var(--nbuf-font-size-sm);
 }
 
-/* Shared error message styles */
-.nbuf-message-error {
+.nbuf-message-error,
+.nbuf-login-error {
     color: var(--nbuf-error);
     background: var(--nbuf-error-bg);
     border: 1px solid var(--nbuf-error-border);
 }
 
-/* Page-specific error message override target */
-.nbuf-login-error {
-    /* Override styles here for login error messages only */
-}
-
-/* Shared success message styles */
-.nbuf-message-success {
+.nbuf-message-success,
+.nbuf-login-success {
     color: var(--nbuf-success);
     background: var(--nbuf-success-bg);
     border: 1px solid var(--nbuf-success-border);
-}
-
-/* Page-specific success message override target */
-.nbuf-login-success {
-    /* Override styles here for login success messages only */
 }
 
 /* ==========================================================
@@ -233,40 +150,27 @@ body.nbuf-login-page {
    ========================================================== */
 
 .nbuf-login-links {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
     margin-top: var(--nbuf-space-xl);
-    font-size: var(--nbuf-font-size-sm);
 }
 
 .nbuf-login-links a {
     color: var(--nbuf-primary);
     text-decoration: none;
-    /* Smooth underline transition */
-    transition: text-decoration-color var(--nbuf-transition-base);
 }
 
 .nbuf-login-links a:hover {
     text-decoration: underline;
 }
 
-/* Enhanced keyboard focus for links */
-.nbuf-login-links a:focus-visible {
-    outline: 2px solid var(--nbuf-primary);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
 /* ==========================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE
    ========================================================== */
 
 @media (max-width: 480px) {
     .nbuf-login-wrapper {
-        padding: var(--nbuf-space-xl);
         margin: var(--nbuf-space-lg);
-    }
-
-    .nbuf-login-title {
-        font-size: var(--nbuf-font-size-xl);
+        padding: var(--nbuf-space-xl);
     }
 }

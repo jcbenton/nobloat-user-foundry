@@ -20,8 +20,8 @@ $login_method    = $reg_settings['login_method'] ?? 'email_only';
 $address_mode    = $reg_settings['address_mode'] ?? 'simplified';
 ?>
 
-<form method="post" action="options.php" id="nbuf-registration-form">
-	<?php settings_fields( 'nbuf_registration_group' ); ?>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="nbuf-registration-form">
+	<?php NBUF_Settings::settings_nonce_field(); ?>
 	<input type="hidden" name="nbuf_active_tab" value="registration">
 
 	<h2><?php esc_html_e( 'Registration Behavior', 'nobloat-user-foundry' ); ?></h2>

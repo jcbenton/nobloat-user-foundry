@@ -1,5 +1,4 @@
 <div class="nbuf-reset-wrapper">
-    <h2 class="nbuf-reset-title">Reset Your Password</h2>
     <p class="nbuf-reset-description">Enter your new password below.</p>
 
     {error_message}
@@ -10,20 +9,20 @@
         <input type="hidden" name="nbuf_reset_action" value="1">
 
         <div class="nbuf-form-group">
-            <label class="nbuf-reset-label" for="pass1">New Password</label>
-            <input type="password" name="pass1" id="pass1" class="nbuf-reset-input" placeholder="New password" required autocomplete="new-password">
+            <label class="nbuf-form-label nbuf-reset-label" for="pass1">New Password</label>
+            <input type="password" name="pass1" id="pass1" class="nbuf-form-input nbuf-reset-input" placeholder="New password" required autocomplete="new-password">
             <div id="pass-strength-result" class="nbuf-password-strength"></div>
         </div>
 
         <div class="nbuf-form-group">
-            <label class="nbuf-reset-label" for="pass2">Confirm Password</label>
-            <input type="password" name="pass2" id="pass2" class="nbuf-reset-input" placeholder="Confirm password" required autocomplete="new-password">
+            <label class="nbuf-form-label nbuf-reset-label" for="pass2">Confirm Password</label>
+            <input type="password" name="pass2" id="pass2" class="nbuf-form-input nbuf-reset-input" placeholder="Confirm password" required autocomplete="new-password">
         </div>
 
-        <button type="submit" class="nbuf-reset-button">Reset Password</button>
+        <button type="submit" class="nbuf-button nbuf-button-primary nbuf-reset-button">Reset Password</button>
 
-        <div class="nbuf-reset-links">
-            <a href="{login_url}" class="nbuf-reset-link">Back to Login</a>
+        <div class="nbuf-form-footer nbuf-reset-links">
+            <a href="{login_url}" class="nbuf-form-link nbuf-reset-link">Back to Login</a>
         </div>
     </form>
 </div>

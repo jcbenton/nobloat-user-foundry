@@ -407,6 +407,30 @@ class NBUF_2FA_Login {
 			$html .= '<p class="nbuf-2fa-resend"><a href="?resend=1">' . esc_html__( 'Resend code', 'nobloat-user-foundry' ) . '</a></p>';
 		}
 
+		/* Backup code option - check if user has backup codes */
+		if ( NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
+			$backup_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
+			if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
+				$html .= '<div class="nbuf-2fa-backup-option">';
+				$html .= '<p class="nbuf-backup-link"><a href="#" id="nbuf-toggle-backup">' . esc_html__( 'Use a backup code instead', 'nobloat-user-foundry' ) . '</a></p>';
+				$html .= '<div id="nbuf-backup-form" style="display:none;">';
+				$html .= '<form method="post" class="nbuf-2fa-verify-form">';
+				$html .= wp_nonce_field( 'nbuf_2fa_verify', 'nbuf_2fa_nonce', true, false );
+				$html .= '<input type="hidden" name="nbuf_2fa_verify" value="1">';
+				$html .= '<input type="hidden" name="code_type" value="backup">';
+				$html .= '<div class="nbuf-form-group">';
+				$html .= '<label for="nbuf_backup_code">' . esc_html__( 'Backup Code', 'nobloat-user-foundry' ) . '</label>';
+				$html .= '<input type="text" name="code" id="nbuf_backup_code" class="nbuf-2fa-input" ';
+				$html .= 'placeholder="XXXXXXXX" maxlength="12" autocomplete="off" required>';
+				$html .= '</div>';
+				$html .= '<button type="submit" class="nbuf-2fa-button">' . esc_html__( 'Verify Backup Code', 'nobloat-user-foundry' ) . '</button>';
+				$html .= '</form>';
+				$html .= '</div>';
+				$html .= '<script>document.getElementById("nbuf-toggle-backup").addEventListener("click",function(e){e.preventDefault();var f=document.getElementById("nbuf-backup-form");f.style.display=f.style.display==="none"?"block":"none";this.textContent=f.style.display==="none"?"' . esc_js( __( 'Use a backup code instead', 'nobloat-user-foundry' ) ) . '":"' . esc_js( __( 'Use regular verification', 'nobloat-user-foundry' ) ) . '";});</script>';
+				$html .= '</div>';
+			}
+		}
+
 		$html .= '</div>';
 
 		return $html;

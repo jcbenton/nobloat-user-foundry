@@ -25,8 +25,8 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 ?>
 
 <div class="nbuf-profiles-tab">
-	<form method="post" action="options.php">
-		<?php settings_fields( 'nbuf_settings_group' ); ?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php NBUF_Settings::settings_nonce_field(); ?>
 		<input type="hidden" name="nbuf_active_tab" value="users">
 		<input type="hidden" name="nbuf_active_subtab" value="profiles">
 

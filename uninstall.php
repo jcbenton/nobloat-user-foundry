@@ -24,17 +24,31 @@ global $wpdb;
  */
 $options_table = $wpdb->prefix . 'nbuf_options';
 
+// Check if options table exists before querying.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$settings_value = $wpdb->get_var(
+$table_exists = $wpdb->get_var(
 	$wpdb->prepare(
-		'SELECT option_value FROM %i WHERE option_name = %s',
-		$options_table,
-		'nbuf_settings'
+		'SHOW TABLES LIKE %s',
+		$options_table
 	)
 );
 
-$settings = $settings_value ? maybe_unserialize( $settings_value ) : array();
-$cleanup  = isset( $settings['cleanup'] ) ? (array) $settings['cleanup'] : array( 'settings', 'templates', 'tokens' );
+$settings = array();
+$cleanup  = array();
+
+if ( $table_exists ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$settings_value = $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT option_value FROM %i WHERE option_name = %s',
+			$options_table,
+			'nbuf_settings'
+		)
+	);
+
+	$settings = $settings_value ? maybe_unserialize( $settings_value ) : array();
+	$cleanup  = isset( $settings['cleanup'] ) ? (array) $settings['cleanup'] : array();
+}
 
 /**
  * Drop custom options table (if settings or templates cleanup requested)
@@ -48,40 +62,34 @@ if ( in_array( 'settings', $cleanup, true ) || in_array( 'templates', $cleanup, 
 }
 
 /**
- * Drop custom database tables (if requested)
+ * Drop all custom database tables (if requested)
+ *
+ * Supports both legacy 'tokens' key and new 'tables' key for backwards compatibility.
  */
-if ( in_array( 'tokens', $cleanup, true ) ) {
-	$tokens_table = $wpdb->prefix . 'nbuf_tokens';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $tokens_table ) );
+if ( in_array( 'tables', $cleanup, true ) || in_array( 'tokens', $cleanup, true ) ) {
+	/* All plugin tables to drop */
+	$tables_to_drop = array(
+		'nbuf_tokens',
+		'nbuf_user_data',
+		'nbuf_user_profile',
+		'nbuf_login_attempts',
+		'nbuf_user_2fa',
+		'nbuf_user_audit_log',
+		'nbuf_admin_audit_log',
+		'nbuf_user_notes',
+		'nbuf_import_history',
+		'nbuf_menu_restrictions',
+		'nbuf_content_restrictions',
+		'nbuf_user_roles',
+		'nbuf_profile_versions',
+		'nbuf_security_log',
+	);
 
-	$user_data_table = $wpdb->prefix . 'nbuf_user_data';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $user_data_table ) );
-
-	$user_profile_table = $wpdb->prefix . 'nbuf_user_profile';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $user_profile_table ) );
-
-	$login_attempts_table = $wpdb->prefix . 'nbuf_login_attempts';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $login_attempts_table ) );
-
-	$menu_restrictions_table = $wpdb->prefix . 'nbuf_menu_restrictions';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $menu_restrictions_table ) );
-
-	$content_restrictions_table = $wpdb->prefix . 'nbuf_content_restrictions';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $content_restrictions_table ) );
-
-	$security_log_table = $wpdb->prefix . 'nbuf_security_log';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $security_log_table ) );
-
-	$admin_audit_log_table = $wpdb->prefix . 'nbuf_admin_audit_log';
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $admin_audit_log_table ) );
+	foreach ( $tables_to_drop as $table ) {
+		$table_name = $wpdb->prefix . $table;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_name ) );
+	}
 }
 
 /**
@@ -167,16 +175,20 @@ if ( in_array( 'pages', $cleanup, true ) ) {
  * deletes the entire /uploads/nobloat/ directory (including /nobloat/users/) and all user photos.
  * This action cannot be undone. Disabled by default for safety.
  */
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$delete_photos_setting = $wpdb->get_var(
-	$wpdb->prepare(
-		'SELECT option_value FROM %i WHERE option_name = %s',
-		$options_table,
-		'nbuf_gdpr_delete_on_uninstall'
-	)
-);
+$delete_photos = false;
 
-$delete_photos = $delete_photos_setting ? (bool) maybe_unserialize( $delete_photos_setting ) : false;
+if ( $table_exists ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$delete_photos_setting = $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT option_value FROM %i WHERE option_name = %s',
+			$options_table,
+			'nbuf_gdpr_delete_on_uninstall'
+		)
+	);
+
+	$delete_photos = $delete_photos_setting ? (bool) maybe_unserialize( $delete_photos_setting ) : false;
+}
 
 if ( $delete_photos ) {
 	$upload_dir = wp_upload_dir();
@@ -237,6 +249,36 @@ if ( $delete_photos ) {
 }
 
 /**
+ * Delete plugin data from wp_options (if settings cleanup requested)
+ *
+ * WordPress Settings API stores registered settings in wp_options.
+ * Also cleans up transients used for rate limiting, 2FA codes, etc.
+ */
+if ( in_array( 'settings', $cleanup, true ) ) {
+	/*
+	 * Delete all nbuf_* options stored by WordPress Settings API
+	 * These are created when register_setting() options are saved via options.php
+	 */
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options}
+		 WHERE option_name LIKE 'nbuf_%'"
+	);
+
+	/*
+	 * Delete all plugin transients (rate limiting, 2FA codes, etc.)
+	 */
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options}
+		 WHERE option_name LIKE '_transient_nbuf_%'
+		 OR option_name LIKE '_transient_timeout_nbuf_%'
+		 OR option_name LIKE '_transient_photo_upload_%'
+		 OR option_name LIKE '_transient_timeout_photo_upload_%'"
+	);
+}
+
+/**
  * Remove scheduled cron jobs (if registered)
  */
 $cron_hooks = array(
@@ -257,6 +299,7 @@ foreach ( $cron_hooks as $hook ) {
 
 /*
  * NOTE: All plugin options (settings, templates, CSS, migration flags, etc.)
- * are stored in the nbuf_options custom table and are removed
- * when that table is dropped above. No plugin data remains in wp_options.
+ * are stored in the nbuf_options custom table and are removed when that table
+ * is dropped above. Transients in wp_options are also cleaned when "settings"
+ * cleanup is selected.
  */

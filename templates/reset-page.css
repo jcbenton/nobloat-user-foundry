@@ -82,9 +82,11 @@ body.nbuf-reset-page {
     font-family: var(--nbuf-font-family);
 }
 
-.nbuf-reset-wrapper {
-    max-width: 400px;
+.nbuf-reset-wrapper,
+.nbuf-request-reset-wrapper {
+    max-width: 480px;
     width: 100%;
+    margin: var(--nbuf-space-2xl) auto;
     background: var(--nbuf-surface);
     padding: var(--nbuf-space-2xl);
     border-radius: var(--nbuf-radius-lg);
@@ -111,30 +113,32 @@ body.nbuf-reset-page {
 
 /* Shared form label base + page-specific override target */
 .nbuf-form-label,
-.nbuf-reset-label {
+.nbuf-reset-label,
+.nbuf-request-reset-label {
+    display: block;
     font-weight: 600;
     color: var(--nbuf-text-secondary);
-    font-size: var(--nbuf-font-size-sm);
     margin-bottom: var(--nbuf-space-xs);
 }
 
 /* Shared form input base + page-specific override target */
 .nbuf-form-input,
-.nbuf-reset-input {
+.nbuf-reset-input,
+.nbuf-request-reset-input {
     width: 100%;
-    padding: var(--nbuf-space-md);
-    font-size: var(--nbuf-font-size-base);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
     border: 1px solid var(--nbuf-border);
     border-radius: var(--nbuf-radius-md);
     box-sizing: border-box;
-    font-family: inherit;
+    font: inherit;
     /* Specific transitions for better performance */
     transition: border-color var(--nbuf-transition-base),
                 box-shadow var(--nbuf-transition-base);
 }
 
 .nbuf-form-input:focus,
-.nbuf-reset-input:focus {
+.nbuf-reset-input:focus,
+.nbuf-request-reset-input:focus {
     border-color: var(--nbuf-primary);
     box-shadow: var(--nbuf-shadow-focus);
     outline: none;
@@ -142,7 +146,8 @@ body.nbuf-reset-page {
 
 /* Ensure keyboard users see clear focus indication */
 .nbuf-form-input:focus-visible,
-.nbuf-reset-input:focus-visible {
+.nbuf-reset-input:focus-visible,
+.nbuf-request-reset-input:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
 }
@@ -187,9 +192,39 @@ body.nbuf-reset-page {
     box-shadow: var(--nbuf-shadow-focus);
 }
 
-/* Page-specific button override target */
-.nbuf-reset-button {
-    /* Override styles here for reset button only */
+/* Reset and Request Reset buttons */
+.nbuf-reset-button,
+.nbuf-request-reset-button {
+    width: 100%;
+    border: none;
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+    min-height: 44px;
+    text-align: center;
+    transition: background-color var(--nbuf-transition-base),
+                transform var(--nbuf-transition-fast);
+}
+
+.nbuf-reset-button:hover,
+.nbuf-request-reset-button:hover {
+    background: var(--nbuf-primary-hover);
+}
+
+.nbuf-reset-button:active,
+.nbuf-request-reset-button:active {
+    transform: translateY(1px);
+}
+
+.nbuf-reset-button:focus-visible,
+.nbuf-request-reset-button:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    box-shadow: var(--nbuf-shadow-focus);
 }
 
 /* ==========================================================
@@ -229,11 +264,45 @@ body.nbuf-reset-page {
 }
 
 /* ==========================================================
+   REQUEST RESET FORM SPECIFIC
+   ========================================================== */
+
+.nbuf-request-reset-description {
+    text-align: center;
+    margin-bottom: var(--nbuf-space-lg);
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-request-reset-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nbuf-space-lg);
+}
+
+.nbuf-request-reset-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--nbuf-space-lg);
+}
+
+.nbuf-request-reset-links a,
+.nbuf-request-reset-link {
+    color: var(--nbuf-primary);
+    text-decoration: none;
+}
+
+.nbuf-request-reset-links a:hover,
+.nbuf-request-reset-link:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================
    RESPONSIVE DESIGN
    ========================================================== */
 
 @media (max-width: 480px) {
-    .nbuf-reset-wrapper {
+    .nbuf-reset-wrapper,
+    .nbuf-request-reset-wrapper {
         padding: var(--nbuf-space-xl);
         margin: var(--nbuf-space-lg);
     }

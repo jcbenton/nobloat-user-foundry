@@ -64,9 +64,9 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Check if user has custom uploaded photo */
-		if ( ! empty( $user_data['profile_photo_url'] ) && ! empty( $user_data['profile_photo_path'] ) ) {
+		if ( $user_data && ! empty( $user_data->profile_photo_url ) && ! empty( $user_data->profile_photo_path ) ) {
 			/* Validate photo path for security */
-			$validation = self::validate_photo_path( $user_data['profile_photo_path'], $user_id );
+			$validation = self::validate_photo_path( $user_data->profile_photo_path, $user_id );
 			if ( ! is_wp_error( $validation ) ) {
 				/*
 				 * SECURITY: Reconstruct URL from validated path instead of trusting stored URL.
@@ -77,7 +77,7 @@ class NBUF_Profile_Photos {
 				$base_path  = trailingslashit( $upload_dir['basedir'] );
 
 				/* Get path relative to uploads directory */
-				$relative_path     = str_replace( $base_path, '', $user_data['profile_photo_path'] );
+				$relative_path     = str_replace( $base_path, '', $user_data->profile_photo_path );
 				$reconstructed_url = $base_url . $relative_path;
 
 				return esc_url( $reconstructed_url );
@@ -89,7 +89,7 @@ class NBUF_Profile_Photos {
 		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 		if ( $gravatar_enabled ) {
 			/* Check if user has opted in to Gravatar */
-			$user_gravatar_enabled = ! empty( $user_data['use_gravatar'] );
+			$user_gravatar_enabled = $user_data && ! empty( $user_data->use_gravatar );
 			if ( $user_gravatar_enabled ) {
 				return self::get_gravatar_url( $user->user_email, $size );
 			}
@@ -116,9 +116,9 @@ class NBUF_Profile_Photos {
 	public static function get_cover_photo( $user_id ) {
 		$user_data = NBUF_User_Data::get( $user_id );
 
-		if ( ! empty( $user_data['cover_photo_url'] ) && ! empty( $user_data['cover_photo_path'] ) ) {
+		if ( $user_data && ! empty( $user_data->cover_photo_url ) && ! empty( $user_data->cover_photo_path ) ) {
 			/* Validate photo path for security */
-			$validation = self::validate_photo_path( $user_data['cover_photo_path'], $user_id );
+			$validation = self::validate_photo_path( $user_data->cover_photo_path, $user_id );
 			if ( ! is_wp_error( $validation ) ) {
 				/*
 				 * SECURITY: Reconstruct URL from validated path instead of trusting stored URL.
@@ -129,7 +129,7 @@ class NBUF_Profile_Photos {
 				$base_path  = trailingslashit( $upload_dir['basedir'] );
 
 				/* Get path relative to uploads directory */
-				$relative_path     = str_replace( $base_path, '', $user_data['cover_photo_path'] );
+				$relative_path     = str_replace( $base_path, '', $user_data->cover_photo_path );
 				$reconstructed_url = $base_url . $relative_path;
 
 				return esc_url( $reconstructed_url );
@@ -474,10 +474,13 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Save photo URL to user data (old photo already deleted by image processor) */
-		$user_data                       = NBUF_User_Data::get( $user_id );
-		$user_data['profile_photo_url']  = $processed['url'];
-		$user_data['profile_photo_path'] = $processed['path'];
-		NBUF_User_Data::update( $user_id, $user_data );
+		NBUF_User_Data::update(
+			$user_id,
+			array(
+				'profile_photo_url'  => $processed['url'],
+				'profile_photo_path' => $processed['path'],
+			)
+		);
 
 		/* Return success */
 		wp_send_json_success(
@@ -649,10 +652,13 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Save photo URL to user data (old photo already deleted by image processor) */
-		$user_data                     = NBUF_User_Data::get( $user_id );
-		$user_data['cover_photo_url']  = $processed['url'];
-		$user_data['cover_photo_path'] = $processed['path'];
-		NBUF_User_Data::update( $user_id, $user_data );
+		NBUF_User_Data::update(
+			$user_id,
+			array(
+				'cover_photo_url'  => $processed['url'],
+				'cover_photo_path' => $processed['path'],
+			)
+		);
 
 		/* Return success */
 		wp_send_json_success(
@@ -727,12 +733,16 @@ class NBUF_Profile_Photos {
 		$path_key = $type . '_photo_path';
 
 		/* Store file path before clearing metadata */
-		$file_to_delete = ! empty( $user_data[ $path_key ] ) ? $user_data[ $path_key ] : null;
+		$file_to_delete = ( $user_data && ! empty( $user_data->$path_key ) ) ? $user_data->$path_key : null;
 
 		/* Remove from database FIRST to prevent orphaned metadata if file deletion fails */
-		$user_data[ $url_key ]  = '';
-		$user_data[ $path_key ] = '';
-		NBUF_User_Data::update( $user_id, $user_data );
+		NBUF_User_Data::update(
+			$user_id,
+			array(
+				$url_key  => '',
+				$path_key => '',
+			)
+		);
 
 		/* Delete physical file after metadata is cleared - validate path to prevent directory traversal */
 		if ( $file_to_delete ) {
@@ -848,12 +858,12 @@ class NBUF_Profile_Photos {
 		$user_data        = NBUF_User_Data::get( $user_id );
 		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 		$cover_enabled    = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
-		$use_gravatar     = ! empty( $user_data['use_gravatar'] );
+		$use_gravatar     = $user_data && ! empty( $user_data->use_gravatar );
 
 		/* Get current photo URLs */
 		$profile_photo_url  = self::get_profile_photo( $user_id, 150 );
 		$cover_photo_url    = self::get_cover_photo( $user_id );
-		$has_custom_profile = ! empty( $user_data['profile_photo_url'] );
+		$has_custom_profile = $user_data && ! empty( $user_data->profile_photo_url );
 		$has_cover          = ! empty( $cover_photo_url );
 
 		?>
@@ -949,7 +959,7 @@ class NBUF_Profile_Photos {
 		/* Profile Privacy Settings - only show if public profiles are enabled */
 		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 		if ( $public_profiles_enabled ) :
-			$profile_privacy = ! empty( $user_data['profile_privacy'] ) ? $user_data['profile_privacy'] : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
+			$profile_privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
 			?>
 				<div class="nbuf-profile-privacy-group" style="margin-top: 25px; padding-top: 25px; border-top: 1px solid #ddd;">
 					<h4><?php esc_html_e( 'Profile Visibility', 'nobloat-user-foundry' ); ?></h4>

@@ -38,9 +38,9 @@ $password_check_timing      = NBUF_Options::get( 'nbuf_password_check_timing', '
 $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7 );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 

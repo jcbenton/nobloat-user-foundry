@@ -18,9 +18,9 @@ $email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
 $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 

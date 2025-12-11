@@ -414,8 +414,8 @@ class NBUF_Template_Manager {
 			'welcome-email-text'        => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
 
 			// Expiration warning.
-			'expiration-warning-html'   => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
-			'expiration-warning-text'   => '{site_name}, {display_name}, {days_until_expiration}, {expiration_date}, {login_url}',
+			'expiration-warning-html'   => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}, {contact_url}',
+			'expiration-warning-text'   => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}, {contact_url}',
 
 			// 2FA email code.
 			'2fa-email-code-html'       => '{site_name}, {display_name}, {code}, {user_email}',
@@ -433,7 +433,7 @@ class NBUF_Template_Manager {
 			'security-alert-email-html' => '{site_name}, {site_url}, {event_type}, {message}, {username}, {user_email}, {user_id}, {ip_address}, {timestamp}, {log_url}, {context}',
 
 			// Login form.
-			'login-form'                => '{action_url}, {nonce_field}, {redirect_to}, {reset_url}, {register_link}, {error_message}',
+			'login-form'                => '{action_url}, {nonce_field}, {redirect_to}, {reset_link}, {register_link}, {error_message}',
 
 			// Registration form.
 			'registration-form'         => '{action_url}, {nonce_field}, {registration_fields}, {error_message}, {login_link}',

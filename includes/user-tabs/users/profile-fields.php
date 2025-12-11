@@ -54,7 +54,7 @@ $field_registry = NBUF_Profile_Data::get_field_registry();
 		<?php
 		foreach ( $category_data['fields'] as $field_key => $field_label ) :
 			$is_enabled  = in_array( $field_key, $enabled_fields, true );
-			$description = self::get_field_description( $field_key );
+			$description = get_field_description( $field_key );
 			?>
 					<tr>
 						<td style="text-align: center;">

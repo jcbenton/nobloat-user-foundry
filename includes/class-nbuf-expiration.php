@@ -186,11 +186,14 @@ class NBUF_Expiration {
 		// Prepare placeholders.
 		$expires_date = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $user_data->expires_at ) );
 		$placeholders = array(
-			'{site_name}'    => get_bloginfo( 'name' ),
-			'{display_name}' => $user->display_name ? $user->display_name : $user->user_login,
-			'{username}'     => $user->user_login,
-			'{expires_date}' => $expires_date,
-			'{site_url}'     => site_url(),
+			'{site_name}'       => get_bloginfo( 'name' ),
+			'{site_url}'        => home_url(),
+			'{display_name}'    => $user->display_name ? $user->display_name : $user->user_login,
+			'{username}'        => $user->user_login,
+			'{expires_date}'    => $expires_date,
+			'{expiration_date}' => $expires_date,
+			'{login_url}'       => wp_login_url(),
+			'{contact_url}'     => home_url( '/contact' ),
 		);
 
 		// Use HTML template if available, otherwise text.

@@ -21,9 +21,9 @@ $trusted_proxies        = NBUF_Options::get( 'nbuf_login_trusted_proxies', array
 $trusted_proxies_str = is_array( $trusted_proxies ) ? implode( ', ', $trusted_proxies ) : '';
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 

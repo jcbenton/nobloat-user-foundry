@@ -51,23 +51,65 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Add custom columns to users list table
 	 *
+	 * Order: username, name, email, verified, expiration, role
+	 * Optional columns (off by default): posts, company, location
+	 *
 	 * @param  array $columns Existing columns.
 	 * @return array Modified columns.
 	 */
 	public static function add_custom_columns( $columns ) {
-		/* Insert custom columns after username */
+		/* Get optional column settings */
+		$show_posts    = NBUF_Options::get( 'nbuf_users_column_posts', false );
+		$show_company  = NBUF_Options::get( 'nbuf_users_column_company', false );
+		$show_location = NBUF_Options::get( 'nbuf_users_column_location', false );
+
+		/* Build columns in specific order: username, name, email, verified, expiration, role */
 		$new_columns = array();
 
-		foreach ( $columns as $key => $label ) {
-			$new_columns[ $key ] = $label;
+		/* Checkbox column (if present) */
+		if ( isset( $columns['cb'] ) ) {
+			$new_columns['cb'] = $columns['cb'];
+		}
 
-			/* Add custom columns after username */
-			if ( 'username' === $key ) {
-				$new_columns['nbuf_verification'] = __( 'Verified', 'nobloat-user-foundry' );
-				$new_columns['nbuf_expiration']   = __( 'Expiration', 'nobloat-user-foundry' );
-				$new_columns['nbuf_company']      = __( 'Company', 'nobloat-user-foundry' );
-				$new_columns['nbuf_location']     = __( 'Location', 'nobloat-user-foundry' );
-			}
+		/* Username */
+		if ( isset( $columns['username'] ) ) {
+			$new_columns['username'] = $columns['username'];
+		}
+
+		/* Name */
+		if ( isset( $columns['name'] ) ) {
+			$new_columns['name'] = $columns['name'];
+		}
+
+		/* Email */
+		if ( isset( $columns['email'] ) ) {
+			$new_columns['email'] = $columns['email'];
+		}
+
+		/* Verified (custom) */
+		$new_columns['nbuf_verification'] = __( 'Verified', 'nobloat-user-foundry' );
+
+		/* Expiration (custom) */
+		$new_columns['nbuf_expiration'] = __( 'Expiration', 'nobloat-user-foundry' );
+
+		/* Role */
+		if ( isset( $columns['role'] ) ) {
+			$new_columns['role'] = $columns['role'];
+		}
+
+		/* Optional: Posts (off by default) */
+		if ( $show_posts && isset( $columns['posts'] ) ) {
+			$new_columns['posts'] = $columns['posts'];
+		}
+
+		/* Optional: Company (off by default) */
+		if ( $show_company ) {
+			$new_columns['nbuf_company'] = __( 'Company', 'nobloat-user-foundry' );
+		}
+
+		/* Optional: Location (off by default) */
+		if ( $show_location ) {
+			$new_columns['nbuf_location'] = __( 'Location', 'nobloat-user-foundry' );
 		}
 
 		return $new_columns;
@@ -99,7 +141,7 @@ class NBUF_Admin_User_Search {
 				break;
 
 			case 'nbuf_expiration':
-				$expires_at = NBUF_User_Data::get_expires_at( $user_id );
+				$expires_at = NBUF_User_Data::get_expiration( $user_id );
 				$is_expired = NBUF_User_Data::is_expired( $user_id );
 
 				if ( $is_expired ) {
@@ -171,10 +213,18 @@ class NBUF_Admin_User_Search {
 	 * @return array Modified columns.
 	 */
 	public static function make_columns_sortable( $columns ) {
+		/* Always sortable */
 		$columns['nbuf_verification'] = 'nbuf_verification';
 		$columns['nbuf_expiration']   = 'nbuf_expiration';
-		$columns['nbuf_company']      = 'nbuf_company';
-		$columns['nbuf_location']     = 'nbuf_location';
+
+		/* Optional columns - only add if enabled */
+		if ( NBUF_Options::get( 'nbuf_users_column_company', false ) ) {
+			$columns['nbuf_company'] = 'nbuf_company';
+		}
+		if ( NBUF_Options::get( 'nbuf_users_column_location', false ) ) {
+			$columns['nbuf_location'] = 'nbuf_location';
+		}
+
 		return $columns;
 	}
 
@@ -487,7 +537,7 @@ class NBUF_Admin_User_Search {
 
 				/* Expiration filter */
 				if ( $include && isset( $_GET['nbuf_expiration'] ) && ! empty( $_GET['nbuf_expiration'] ) ) {
-					$expires_at = NBUF_User_Data::get_expires_at( $user->ID );
+					$expires_at = NBUF_User_Data::get_expiration( $user->ID );
 					$is_expired = NBUF_User_Data::is_expired( $user->ID );
 
 					switch ( sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) ) ) {
@@ -592,7 +642,7 @@ class NBUF_Admin_User_Search {
 		foreach ( $users as $user ) {
 			$profile     = NBUF_Profile_Data::get( $user->ID );
 			$is_verified = NBUF_User_Data::is_verified( $user->ID );
-			$expires_at  = NBUF_User_Data::get_expires_at( $user->ID );
+			$expires_at  = NBUF_User_Data::get_expiration( $user->ID );
 
 			/* Get user role */
 			$roles = $user->roles;

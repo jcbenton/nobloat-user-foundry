@@ -40,7 +40,7 @@ class NBUF_Email {
 		// Determine verification page path.
 		$relative_path = ! empty( $settings['verification_page'] )
 		? '/' . ltrim( $settings['verification_page'], '/' )
-		: '/nbuf-verify';
+		: '/nobloat-verify';
 
 		// Construct verification URL.
 		$verification_url = add_query_arg( 'token', rawurlencode( $token ), home_url( $relative_path ) );

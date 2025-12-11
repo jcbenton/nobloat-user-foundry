@@ -48,24 +48,11 @@
 
     /* Spacing Scale (rem-based for accessibility) */
     --nbuf-space-xs: 0.25rem;   /* 4px */
-    --nbuf-space-sm: 0.313rem;  /* 5px */
-    --nbuf-space-md: 0.625rem;  /* 10px */
-    --nbuf-space-lg: 0.75rem;   /* 12px */
-    --nbuf-space-xl: 0.938rem;  /* 15px */
-    --nbuf-space-2xl: 1.25rem;  /* 20px */
-    --nbuf-space-3xl: 1.563rem; /* 25px */
-    --nbuf-space-4xl: 1.875rem; /* 30px */
-    --nbuf-space-5xl: 2.5rem;   /* 40px */
-
-    /* Typography */
-    --nbuf-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --nbuf-font-size-xs: 0.75rem;    /* 12px */
-    --nbuf-font-size-sm: 0.813rem;   /* 13px */
-    --nbuf-font-size-base: 0.875rem; /* 14px */
-    --nbuf-font-size-lg: 1.125rem;   /* 18px */
-    --nbuf-font-size-xl: 1.25rem;    /* 20px */
-    --nbuf-font-size-2xl: 1.375rem;  /* 22px */
-    --nbuf-font-size-3xl: 1.75rem;   /* 28px */
+    --nbuf-space-sm: 0.5rem;    /* 8px */
+    --nbuf-space-md: 0.75rem;   /* 12px */
+    --nbuf-space-lg: 1rem;      /* 16px */
+    --nbuf-space-xl: 1.5rem;    /* 24px */
+    --nbuf-space-2xl: 2rem;     /* 32px */
 
     /* Border Radius */
     --nbuf-radius-sm: 4px;
@@ -86,61 +73,135 @@
    ========================================================== */
 
 .nbuf-account-wrapper {
-    max-width: 800px;
-    margin: var(--nbuf-space-5xl) auto;
-    padding: var(--nbuf-space-2xl);
+    margin: var(--nbuf-space-2xl) auto;
+    padding: var(--nbuf-space-lg);
 }
 
-.nbuf-account-header {
-    margin-bottom: var(--nbuf-space-4xl);
-    padding-bottom: var(--nbuf-space-2xl);
+/* ==========================================================
+   ACCOUNT INFO LAYOUT (Photo + Details)
+   ========================================================== */
+
+.nbuf-account-layout {
+    display: flex;
+    gap: var(--nbuf-space-xl);
+    align-items: flex-start;
+}
+
+.nbuf-account-photo {
+    flex: 0 0 30%;
+    max-width: 200px;
+}
+
+.nbuf-account-photo img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--nbuf-radius-md);
+    border: 1px solid var(--nbuf-border);
+}
+
+.nbuf-account-photo .nbuf-no-photo {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nbuf-text-tertiary);
+    font-size: 3em;
+}
+
+.nbuf-account-details {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ==========================================================
+   TAB NAVIGATION
+   ========================================================== */
+
+.nbuf-account-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-xs);
     border-bottom: 2px solid var(--nbuf-border-light);
-    position: relative;
+    margin-bottom: var(--nbuf-space-xl);
+    padding-bottom: 0;
 }
 
-.nbuf-account-title {
-    margin: 0 0 var(--nbuf-space-md) 0;
-    font-size: var(--nbuf-font-size-3xl);
-    color: var(--nbuf-text-primary);
+.nbuf-tab-button {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 500;
+    color: var(--nbuf-text-secondary);
+    transition: color var(--nbuf-transition-base),
+                border-color var(--nbuf-transition-base);
+}
+
+.nbuf-tab-button:hover {
+    color: var(--nbuf-primary);
+}
+
+.nbuf-tab-button.nbuf-tab-active {
+    color: var(--nbuf-primary);
+    border-bottom-color: var(--nbuf-primary);
     font-weight: 600;
 }
 
-.nbuf-logout-link {
-    position: absolute;
-    top: 0;
-    right: 0;
-    color: var(--nbuf-primary);
-    text-decoration: none;
-    font-size: var(--nbuf-font-size-base);
-    transition: text-decoration-color var(--nbuf-transition-base);
+.nbuf-tab-button:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+    border-radius: var(--nbuf-radius-sm);
 }
 
-.nbuf-logout-link:hover {
+.nbuf-tab-logout {
+    margin-left: auto;
+    color: var(--nbuf-text-secondary);
+    text-decoration: none;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    font: inherit;
+}
+
+.nbuf-tab-logout:hover {
+    color: var(--nbuf-primary);
     text-decoration: underline;
 }
 
-/* Enhanced keyboard focus for logout link */
-.nbuf-logout-link:focus-visible {
+.nbuf-tab-logout:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: var(--nbuf-radius-sm);
+}
+
+/* ==========================================================
+   TAB CONTENT
+   ========================================================== */
+
+.nbuf-tab-content {
+    display: none;
+}
+
+.nbuf-tab-content.nbuf-tab-active {
+    display: block;
 }
 
 /* ==========================================================
    STATUS BADGES
    ========================================================== */
 
-.nbuf-account-status-badges {
-    margin-top: var(--nbuf-space-md);
-}
-
 .nbuf-account-status {
     display: inline-block;
-    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
+    padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
     border-radius: var(--nbuf-radius-sm);
-    font-size: var(--nbuf-font-size-sm);
+    font-size: 0.875em;
     font-weight: 600;
-    margin-right: var(--nbuf-space-md);
+    margin-right: var(--nbuf-space-sm);
 }
 
 .nbuf-status-verified {
@@ -165,43 +226,41 @@
    SECTIONS
    ========================================================== */
 
-.nbuf-account-sections {
-    display: grid;
-    gap: var(--nbuf-space-3xl);
-}
-
 .nbuf-account-section {
     background: var(--nbuf-background);
     border: 1px solid var(--nbuf-border-light);
     border-radius: var(--nbuf-radius-md);
-    padding: var(--nbuf-space-2xl);
+    padding: var(--nbuf-space-xl);
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-account-section:last-child {
+    margin-bottom: 0;
 }
 
 .nbuf-section-title {
-    margin: 0 0 var(--nbuf-space-xl) 0;
-    font-size: var(--nbuf-font-size-xl);
+    margin: 0 0 var(--nbuf-space-lg) 0;
+    font-size: 1.25em;
     color: var(--nbuf-text-primary);
     border-bottom: 1px solid var(--nbuf-border);
-    padding-bottom: var(--nbuf-space-md);
+    padding-bottom: var(--nbuf-space-sm);
     font-weight: 600;
 }
 
 .nbuf-info-grid {
     display: grid;
     grid-template-columns: 150px 1fr;
-    gap: var(--nbuf-space-lg) var(--nbuf-space-2xl);
+    gap: var(--nbuf-space-sm) var(--nbuf-space-lg);
     align-items: baseline;
 }
 
 .nbuf-info-label {
     font-weight: 600;
     color: var(--nbuf-text-secondary);
-    font-size: var(--nbuf-font-size-base);
 }
 
 .nbuf-info-value {
     color: var(--nbuf-text-primary);
-    font-size: var(--nbuf-font-size-base);
 }
 
 /* ==========================================================
@@ -211,7 +270,7 @@
 .nbuf-account-form {
     display: flex;
     flex-direction: column;
-    gap: var(--nbuf-space-xl);
+    gap: var(--nbuf-space-lg);
 }
 
 .nbuf-form-group {
@@ -224,9 +283,8 @@
 .nbuf-account-label {
     display: block;
     font-weight: 600;
-    margin-bottom: var(--nbuf-space-sm);
+    margin-bottom: var(--nbuf-space-xs);
     color: var(--nbuf-text-primary);
-    font-size: var(--nbuf-font-size-base);
 }
 
 /* Shared form input base + page-specific override target */
@@ -236,9 +294,8 @@
     padding: var(--nbuf-space-md);
     border: 1px solid var(--nbuf-border);
     border-radius: var(--nbuf-radius-sm);
-    font-size: var(--nbuf-font-size-base);
     box-sizing: border-box;
-    font-family: inherit;
+    font: inherit;
     /* Specific transitions for better performance */
     transition: border-color var(--nbuf-transition-base),
                 box-shadow var(--nbuf-transition-base);
@@ -258,30 +315,15 @@
     outline-offset: 2px;
 }
 
-/* Explicit font inheritance for text-type inputs */
-.nbuf-form-input[type="text"],
-.nbuf-form-input[type="email"],
-.nbuf-form-input[type="tel"],
-.nbuf-form-input[type="url"],
-.nbuf-form-input[type="password"],
-.nbuf-account-input[type="text"],
-.nbuf-account-input[type="email"],
-.nbuf-account-input[type="tel"],
-.nbuf-account-input[type="url"],
-.nbuf-account-input[type="password"] {
-    font-family: inherit;
-}
-
 textarea.nbuf-form-input,
 textarea.nbuf-account-input {
     min-height: 80px;
     resize: vertical;
-    font-family: inherit;
 }
 
 .nbuf-form-help {
     display: block;
-    font-size: var(--nbuf-font-size-xs);
+    font-size: 0.875em;
     color: var(--nbuf-text-tertiary);
     margin-top: var(--nbuf-space-xs);
     line-height: 1.4;
@@ -293,13 +335,12 @@ textarea.nbuf-account-input {
 
 /* Shared button base styles */
 .nbuf-button {
-    padding: var(--nbuf-space-md) var(--nbuf-space-2xl);
+    padding: var(--nbuf-space-md) var(--nbuf-space-xl);
     border: none;
     border-radius: var(--nbuf-radius-sm);
-    font-size: var(--nbuf-font-size-base);
+    font: inherit;
     font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
     /* Specific transition properties for better performance */
     transition: background-color var(--nbuf-transition-base),
                 transform var(--nbuf-transition-fast);
@@ -338,10 +379,9 @@ textarea.nbuf-account-input {
 
 /* Shared message base */
 .nbuf-message {
-    padding: var(--nbuf-space-lg) var(--nbuf-space-xl);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
     border-radius: var(--nbuf-radius-sm);
-    margin-bottom: var(--nbuf-space-2xl);
-    font-size: var(--nbuf-font-size-base);
+    margin-bottom: var(--nbuf-space-xl);
     line-height: 1.5;
 }
 
@@ -378,33 +418,191 @@ textarea.nbuf-account-input {
 }
 
 /* ==========================================================
+   SECURITY / 2FA TAB
+   ========================================================== */
+
+.nbuf-2fa-status {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-2fa-enabled {
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
+    margin: 0;
+}
+
+.nbuf-2fa-disabled {
+    background: var(--nbuf-warning-bg);
+    color: var(--nbuf-warning);
+    border: 1px solid var(--nbuf-warning-border);
+    margin: 0;
+}
+
+.nbuf-2fa-method-card {
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-lg);
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-2fa-method-card:last-child {
+    margin-bottom: 0;
+}
+
+.nbuf-2fa-method-card h3 {
+    margin: 0 0 var(--nbuf-space-sm) 0;
+    font-size: 1.1em;
+    color: var(--nbuf-text-primary);
+}
+
+.nbuf-method-description {
+    color: var(--nbuf-text-secondary);
+    margin: 0 0 var(--nbuf-space-md) 0;
+    font-size: 0.9em;
+}
+
+.nbuf-method-status {
+    display: inline-block;
+    padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-status-active {
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+}
+
+.nbuf-codes-remaining {
+    font-size: 0.9em;
+    color: var(--nbuf-text-secondary);
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-icon {
+    margin-right: var(--nbuf-space-xs);
+}
+
+.nbuf-button-secondary {
+    background: var(--nbuf-background);
+    color: var(--nbuf-text-primary);
+    border: 1px solid var(--nbuf-border);
+}
+
+.nbuf-button-secondary:hover {
+    background: var(--nbuf-border-light);
+}
+
+/* Backup codes display */
+.nbuf-backup-codes-display {
+    background: var(--nbuf-surface);
+    border: 2px solid var(--nbuf-warning-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-lg);
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-backup-codes-display h3 {
+    color: var(--nbuf-warning);
+    margin: 0 0 var(--nbuf-space-sm) 0;
+}
+
+.nbuf-backup-codes-warning {
+    color: var(--nbuf-warning);
+    font-size: 0.9em;
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-backup-codes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--nbuf-space-sm);
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-backup-code {
+    background: var(--nbuf-background);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+    border-radius: var(--nbuf-radius-sm);
+    font-family: monospace;
+    font-size: 1em;
+    text-align: center;
+    letter-spacing: 0.1em;
+}
+
+/* ==========================================================
    RESPONSIVE DESIGN
    ========================================================== */
 
 @media (max-width: 768px) {
     .nbuf-account-wrapper {
         padding: var(--nbuf-space-md);
-        margin: var(--nbuf-space-2xl) auto;
+        margin: var(--nbuf-space-lg) auto;
     }
 
-    .nbuf-account-title {
-        font-size: var(--nbuf-font-size-2xl);
-        padding-right: 80px; /* Space for logout link */
+    .nbuf-account-layout {
+        flex-direction: column;
+        align-items: center;
     }
 
-    .nbuf-section-title {
-        font-size: var(--nbuf-font-size-lg);
+    .nbuf-account-photo {
+        flex: none;
+        max-width: 150px;
+        margin-bottom: var(--nbuf-space-lg);
+    }
+
+    .nbuf-account-details {
+        width: 100%;
+    }
+
+    .nbuf-account-tabs {
+        flex-wrap: wrap;
+    }
+
+    .nbuf-tab-button {
+        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+    }
+
+    .nbuf-tab-logout {
+        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
     }
 }
 
 @media (max-width: 600px) {
     .nbuf-info-grid {
         grid-template-columns: 1fr;
-        gap: var(--nbuf-space-sm);
+        gap: var(--nbuf-space-xs);
     }
 
     .nbuf-info-label {
-        font-size: var(--nbuf-font-size-sm);
-        margin-bottom: var(--nbuf-space-xs);
+        margin-bottom: 0;
+    }
+
+    .nbuf-info-value {
+        margin-bottom: var(--nbuf-space-sm);
+    }
+
+    .nbuf-account-tabs {
+        gap: 0;
+    }
+
+    .nbuf-tab-button {
+        flex: 1;
+        text-align: center;
+        font-size: 0.875em;
+    }
+
+    .nbuf-tab-logout {
+        flex-basis: 100%;
+        text-align: center;
+        border-top: 1px solid var(--nbuf-border-light);
+        margin-top: var(--nbuf-space-sm);
+        padding-top: var(--nbuf-space-sm);
     }
 }

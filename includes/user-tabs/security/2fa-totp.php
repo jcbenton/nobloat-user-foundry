@@ -19,9 +19,9 @@ $totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
 $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 

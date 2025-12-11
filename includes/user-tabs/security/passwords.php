@@ -12,9 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Password strength settings */
-$password_requirements_enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', false );
+$password_requirements_enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', true );
 $password_min_strength         = NBUF_Options::get( 'nbuf_password_min_strength', 'medium' );
-$password_min_length           = NBUF_Options::get( 'nbuf_password_min_length', 8 );
+$password_min_length           = NBUF_Options::get( 'nbuf_password_min_length', 12 );
 $password_require_uppercase    = NBUF_Options::get( 'nbuf_password_require_uppercase', false );
 $password_require_lowercase    = NBUF_Options::get( 'nbuf_password_require_lowercase', false );
 $password_require_numbers      = NBUF_Options::get( 'nbuf_password_require_numbers', false );
@@ -38,9 +38,9 @@ $password_expiration_admin_bypass = NBUF_Options::get( 'nbuf_password_expiration
 $password_expiration_warning_days = NBUF_Options::get( 'nbuf_password_expiration_warning_days', 7 );
 ?>
 
-<form method="post" action="options.php">
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php
-	settings_fields( 'nbuf_security_group' );
+	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
 
@@ -93,7 +93,7 @@ $password_expiration_warning_days = NBUF_Options::get( 'nbuf_password_expiration
 				<input type="number" name="nbuf_password_min_length" value="<?php echo esc_attr( $password_min_length ); ?>" min="1" max="128" class="small-text">
 				<span><?php esc_html_e( 'characters', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'Minimum number of characters required. Default: 8', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Minimum number of characters required. Default: 12', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

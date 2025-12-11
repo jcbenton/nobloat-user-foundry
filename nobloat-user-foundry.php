@@ -134,6 +134,7 @@ add_action(
 			NBUF_Version_History_Page::init();
 			NBUF_Migration::init();
 			NBUF_Admin_User_Search::init();
+			NBUF_Diagnostics::init();
 		}
 
 		// Initialize WordPress privacy integration (ALWAYS - for GDPR compliance).
@@ -148,6 +149,15 @@ add_action(
 		// Initialize admin action hooks (ALWAYS - for accountability and compliance).
 		NBUF_Admin_Action_Hooks::init();
 
+		// Initialize hooks class (ALWAYS - for wp-login redirects to work even when system disabled).
+		// This loads class-nbuf-hooks.php which calls NBUF_Hooks::init() at the bottom.
+		class_exists( 'NBUF_Hooks' );
+
+		// Initialize shortcodes (ALWAYS - show notice when system disabled instead of nothing).
+		if ( ! is_admin() ) {
+			NBUF_Shortcodes::init();
+		}
+
 		// Check if user management system is enabled.
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 
@@ -159,7 +169,6 @@ add_action(
 		// Initialize core components (only if system enabled).
 		if ( ! is_admin() ) {
 			NBUF_Verifier::init();
-			NBUF_Shortcodes::init();
 		}
 
 		NBUF_Cron::register();
@@ -343,17 +352,12 @@ add_action(
 /**
  * Enqueue front-end styles
  *
- * Loads CSS only on specific plugin pages when enabled.
+ * Loads CSS on plugin pages. CSS loading is independent of
+ * system enabled status so pages display correctly during setup.
  */
 add_action(
 	'wp_enqueue_scripts',
 	function () {
-		/* Check if user management system is enabled */
-		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
-		if ( ! $system_enabled ) {
-			return;
-		}
-
 		/* Check if CSS loading is enabled */
 		$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
 		$css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
@@ -459,6 +463,31 @@ add_filter(
 		array_unshift( $links, $settings_link );
 		return $links;
 	}
+);
+
+/**
+ * Hide page title on NoBloat pages
+ *
+ * Pages created by the plugin have _nbuf_hide_title meta set.
+ * This filter returns empty string for the_title when in the loop.
+ */
+add_filter(
+	'the_title',
+	function ( $title, $post_id = 0 ) {
+		// Only filter in the main loop for singular pages.
+		if ( ! is_singular( 'page' ) || ! in_the_loop() || ! is_main_query() ) {
+			return $title;
+		}
+
+		// Check if this page has the hide title meta.
+		if ( get_post_meta( $post_id, '_nbuf_hide_title', true ) ) {
+			return '';
+		}
+
+		return $title;
+	},
+	10,
+	2
 );
 
 /**

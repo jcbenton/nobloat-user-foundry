@@ -54,316 +54,150 @@ $available_fields = array(
 );
 ?>
 
-<div class="nbuf-settings-section">
-	<h2>Profile Change Notifications</h2>
-	<p class="description">Get notified when users make changes to their profiles.</p>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+	<?php NBUF_Settings::settings_nonce_field(); ?>
+	<input type="hidden" name="nbuf_active_tab" value="users">
+	<input type="hidden" name="nbuf_active_subtab" value="change-notifications">
 
-	<!-- Master Toggle -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Enable Notifications</h3>
+	<h2><?php esc_html_e( 'Enable Notifications', 'nobloat-user-foundry' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Get notified when users make changes to their profiles.', 'nobloat-user-foundry' ); ?></p>
 
-		<table class="form-table">
-			<tr>
-				<th scope="row">
-					<label for="nbuf_notify_profile_changes">Profile Change Notifications</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_notify_profile_changes"
-								id="nbuf_notify_profile_changes"
-								value="1"
-								<?php checked( $notify_enabled ); ?> />
-						Enable profile change notifications
-					</label>
-					<p class="description">When enabled, admins will be notified of profile changes.</p>
-				</td>
-			</tr>
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<label for="nbuf_notify_profile_changes"><?php esc_html_e( 'Profile Change Notifications', 'nobloat-user-foundry' ); ?></label>
+			</th>
+			<td>
+				<label>
+					<input type="checkbox"
+							name="nbuf_notify_profile_changes"
+							id="nbuf_notify_profile_changes"
+							value="1"
+							<?php checked( $notify_enabled ); ?> />
+					<?php esc_html_e( 'Enable profile change notifications', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description"><?php esc_html_e( 'When enabled, admins will be notified of profile changes.', 'nobloat-user-foundry' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">
+				<label for="nbuf_notify_new_registrations"><?php esc_html_e( 'New User Notifications', 'nobloat-user-foundry' ); ?></label>
+			</th>
+			<td>
+				<label>
+					<input type="checkbox"
+							name="nbuf_notify_new_registrations"
+							id="nbuf_notify_new_registrations"
+							value="1"
+							<?php checked( $notify_new_users ); ?> />
+					<?php esc_html_e( 'Notify when new users register', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description"><?php esc_html_e( 'Get notified immediately when a new user registers.', 'nobloat-user-foundry' ); ?></p>
+			</td>
+		</tr>
+	</table>
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_notify_new_registrations">New User Notifications</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_notify_new_registrations"
-								id="nbuf_notify_new_registrations"
-								value="1"
-								<?php checked( $notify_new_users ); ?> />
-						Notify when new users register
-					</label>
-					<p class="description">Get notified immediately when a new user registers.</p>
-				</td>
-			</tr>
-		</table>
-	</div>
-
-	<!-- Notification Recipients -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Notification Recipients</h3>
-
-		<table class="form-table">
-			<tr>
-				<th scope="row">
-					<label for="nbuf_notify_profile_changes_to">Send Notifications To</label>
-				</th>
-				<td>
-					<input type="text"
-							name="nbuf_notify_profile_changes_to"
-							id="nbuf_notify_profile_changes_to"
-							value="<?php echo esc_attr( $notify_to ); ?>"
-							class="regular-text" />
-					<p class="description">
-						Email addresses to receive notifications. Separate multiple addresses with commas.<br/>
-						Default: Site admin email (<?php echo esc_html( get_option( 'admin_email' ) ); ?>)
-					</p>
-				</td>
-			</tr>
-		</table>
-	</div>
-
-	<!-- Monitored Fields -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Monitored Fields</h3>
-		<p class="description">Select which profile fields to monitor for changes.</p>
-
-		<table class="form-table">
-			<tr>
-				<th scope="row">Fields to Monitor</th>
-				<td>
-					<?php foreach ( $available_fields as $group_name => $fields ) : ?>
-						<fieldset style="margin-bottom: 20px;">
-							<legend style="font-weight: 600; margin-bottom: 8px;"><?php echo esc_html( $group_name ); ?></legend>
-						<?php foreach ( $fields as $field_key => $field_label ) : ?>
-								<label style="display: block; margin-bottom: 5px;">
-									<input type="checkbox"
-											name="nbuf_notify_profile_changes_fields[]"
-											value="<?php echo esc_attr( $field_key ); ?>"
-							<?php checked( in_array( $field_key, $notify_fields, true ) ); ?> />
-							<?php echo esc_html( $field_label ); ?>
-								</label>
-						<?php endforeach; ?>
-						</fieldset>
-					<?php endforeach; ?>
-
-					<p class="description">
-						<strong>Recommended minimum:</strong> Email Address and Display Name<br/>
-						<strong>Security tip:</strong> Monitor 2FA and privacy settings for security awareness.
-					</p>
-				</td>
-			</tr>
-		</table>
-	</div>
-
-	<!-- Notification Timing -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Notification Timing</h3>
-
-		<table class="form-table">
-			<tr>
-				<th scope="row">
-					<label for="nbuf_notify_profile_changes_digest">Notification Mode</label>
-				</th>
-				<td>
-					<select name="nbuf_notify_profile_changes_digest" id="nbuf_notify_profile_changes_digest">
-						<option value="immediate" <?php selected( $notify_digest, 'immediate' ); ?>>
-							Immediate - Send email for each change
-						</option>
-						<option value="hourly" <?php selected( $notify_digest, 'hourly' ); ?>>
-							Hourly Digest - Batch changes from past hour
-						</option>
-						<option value="daily" <?php selected( $notify_digest, 'daily' ); ?>>
-							Daily Digest - Batch changes from past 24 hours
-						</option>
-					</select>
-					<p class="description">
-						<strong>Immediate:</strong> Get notified instantly (may receive many emails)<br/>
-						<strong>Hourly:</strong> Receive one summary email per hour with all changes<br/>
-						<strong>Daily:</strong> Receive one summary email per day with all changes (recommended for high-traffic sites)
-					</p>
-				</td>
-			</tr>
-		</table>
-
-		<?php if ( 'hourly' === $notify_digest || 'daily' === $notify_digest ) : ?>
-			<div style="margin-top: 15px; padding: 15px; background: #d1ecf1; border-left: 4px solid #0c5460;">
-				<p style="margin: 0;">
-					<strong>Note:</strong> Digest emails are sent via WordPress cron.
-			<?php if ( 'hourly' === $notify_digest ) : ?>
-						Hourly digests run every hour on the hour.
-					<?php else : ?>
-						Daily digests run once per day at midnight (server time).
-					<?php endif; ?>
+	<h2><?php esc_html_e( 'Notification Recipients', 'nobloat-user-foundry' ); ?></h2>
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<label for="nbuf_notify_profile_changes_to"><?php esc_html_e( 'Send Notifications To', 'nobloat-user-foundry' ); ?></label>
+			</th>
+			<td>
+				<input type="text"
+						name="nbuf_notify_profile_changes_to"
+						id="nbuf_notify_profile_changes_to"
+						value="<?php echo esc_attr( $notify_to ); ?>"
+						class="regular-text" />
+				<p class="description">
+					<?php esc_html_e( 'Email addresses to receive notifications. Separate multiple addresses with commas.', 'nobloat-user-foundry' ); ?><br/>
+					<?php
+					printf(
+						/* translators: %s: admin email address */
+						esc_html__( 'Default: Site admin email (%s)', 'nobloat-user-foundry' ),
+						esc_html( get_option( 'admin_email' ) )
+					);
+					?>
 				</p>
-			</div>
-		<?php endif; ?>
-	</div>
+			</td>
+		</tr>
+	</table>
 
-	<!-- Testing & Preview -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Testing</h3>
+	<h2><?php esc_html_e( 'Monitored Fields', 'nobloat-user-foundry' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Select which profile fields to monitor for changes.', 'nobloat-user-foundry' ); ?></p>
 
-		<p>Test your notification settings by sending a sample notification email.</p>
+	<table class="form-table">
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Fields to Monitor', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<?php foreach ( $available_fields as $group_name => $fields ) : ?>
+					<fieldset style="margin-bottom: 20px;">
+						<legend style="font-weight: 600; margin-bottom: 8px;"><?php echo esc_html( $group_name ); ?></legend>
+					<?php foreach ( $fields as $field_key => $field_label ) : ?>
+							<label style="display: block; margin-bottom: 5px;">
+								<input type="checkbox"
+										name="nbuf_notify_profile_changes_fields[]"
+										value="<?php echo esc_attr( $field_key ); ?>"
+						<?php checked( in_array( $field_key, $notify_fields, true ) ); ?> />
+						<?php echo esc_html( $field_label ); ?>
+							</label>
+					<?php endforeach; ?>
+					</fieldset>
+				<?php endforeach; ?>
 
-		<p>
-			<button type="button" class="button" id="nbuf-test-notification">
-				<span class="dashicons dashicons-email" style="vertical-align: middle;"></span>
-				Send Test Notification
-			</button>
-		</p>
+				<p class="description">
+					<strong><?php esc_html_e( 'Recommended minimum:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Email Address and Display Name', 'nobloat-user-foundry' ); ?><br/>
+					<strong><?php esc_html_e( 'Security tip:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Monitor 2FA and privacy settings for security awareness.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
 
-		<div id="nbuf-test-result" style="display: none; margin-top: 15px;"></div>
-	</div>
+	<h2><?php esc_html_e( 'Notification Timing', 'nobloat-user-foundry' ); ?></h2>
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<label for="nbuf_notify_profile_changes_digest"><?php esc_html_e( 'Notification Mode', 'nobloat-user-foundry' ); ?></label>
+			</th>
+			<td>
+				<select name="nbuf_notify_profile_changes_digest" id="nbuf_notify_profile_changes_digest">
+					<option value="immediate" <?php selected( $notify_digest, 'immediate' ); ?>>
+						<?php esc_html_e( 'Immediate - Send email for each change', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="hourly" <?php selected( $notify_digest, 'hourly' ); ?>>
+						<?php esc_html_e( 'Hourly Digest - Batch changes from past hour', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="daily" <?php selected( $notify_digest, 'daily' ); ?>>
+						<?php esc_html_e( 'Daily Digest - Batch changes from past 24 hours', 'nobloat-user-foundry' ); ?>
+					</option>
+				</select>
+				<p class="description">
+					<strong><?php esc_html_e( 'Immediate:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Get notified instantly (may receive many emails)', 'nobloat-user-foundry' ); ?><br/>
+					<strong><?php esc_html_e( 'Hourly:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Receive one summary email per hour with all changes', 'nobloat-user-foundry' ); ?><br/>
+					<strong><?php esc_html_e( 'Daily:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Receive one summary email per day with all changes (recommended for high-traffic sites)', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
 
-	<!-- Email Template Preview -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Email Format</h3>
+	<h2><?php esc_html_e( 'Testing', 'nobloat-user-foundry' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Test your notification settings by sending a sample notification email.', 'nobloat-user-foundry' ); ?></p>
+	<p>
+		<button type="button" class="button" id="nbuf-test-notification">
+			<span class="dashicons dashicons-email" style="vertical-align: middle;"></span>
+			<?php esc_html_e( 'Send Test Notification', 'nobloat-user-foundry' ); ?>
+		</button>
+	</p>
+	<div id="nbuf-test-result" style="display: none; margin-top: 15px;"></div>
 
-		<details>
-			<summary style="cursor: pointer; font-weight: 600; padding: 10px; background: #f6f7f7; border-radius: 4px;">
-				Click to preview notification email format
-			</summary>
-
-			<div style="padding: 15px; background: #f9f9f9; margin-top: 10px; border-radius: 4px;">
-				<h4>Individual Change Notification (Immediate Mode)</h4>
-				<pre style="background: #fff; padding: 15px; border: 1px solid #ddd; overflow-x: auto; font-size: 12px; line-height: 1.5;">Subject: Profile Changes for John Doe
-
-Profile changes detected for user: John Doe (johndoe)
-
-User ID: 123
-Email: john@example.com
-Date: 2025-11-01 14:30:00
-
-Changes:
---------------------------------------------------
-
-Email Address:
-	Old: old-email@example.com
-	New: john@example.com
-
-Display Name:
-	Old: J. Doe
-	New: John Doe
-
-City:
-	Old: (empty)
-	New: Boston
-
---------------------------------------------------
-
-View user profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=123' ) ); ?></pre>
-
-				<h4 style="margin-top: 20px;">Digest Notification (Hourly/Daily Mode)</h4>
-				<pre style="background: #fff; padding: 15px; border: 1px solid #ddd; overflow-x: auto; font-size: 12px; line-height: 1.5;">Subject: Profile Changes Digest (Daily)
-
-Profile Changes Digest - Daily
-Generated: 2025-11-01 23:59:00
-
-======================================================================
-
-User: John Doe (johndoe)
-Email: john@example.com
-Profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=123' ) ); ?>
-
-----------------------------------------------------------------------
-
-Changed at: 2025-11-01 14:30:00
-	Email Address: old-email@example.com → john@example.com
-	Display Name: J. Doe → John Doe
-
-Changed at: 2025-11-01 18:45:00
-	City: (empty) → Boston
-
-
-User: Jane Smith (janesmith)
-Email: jane@example.com
-Profile: <?php echo esc_url( admin_url( 'user-edit.php?user_id=456' ) ); ?>
-
-----------------------------------------------------------------------
-
-Changed at: 2025-11-01 10:15:00
-	2FA Status: disabled → enabled
-
-
-======================================================================
-Total changes: 4
-Total users affected: 2</pre>
-			</div>
-		</details>
-	</div>
-
-	<!-- Use Cases -->
-	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Use Cases &amp; Best Practices</h3>
-
-		<details>
-			<summary style="cursor: pointer; font-weight: 600; padding: 10px; background: #f6f7f7; border-radius: 4px;">
-				Click to view use cases and recommendations
-			</summary>
-
-			<div style="padding: 15px; background: #f9f9f9; margin-top: 10px; border-radius: 4px;">
-				<h4>Common Use Cases</h4>
-
-				<strong>1. Security Monitoring</strong>
-				<ul>
-					<li>Monitor email address changes (prevent account takeover)</li>
-					<li>Track 2FA enabled/disabled events</li>
-					<li>Watch for privacy setting changes</li>
-					<li>Recommended mode: <strong>Immediate</strong></li>
-				</ul>
-
-				<strong>2. Compliance & Audit</strong>
-				<ul>
-					<li>Track all profile changes for audit trail</li>
-					<li>Monitor sensitive data updates (tax ID, government ID)</li>
-					<li>Document user-initiated changes</li>
-					<li>Recommended mode: <strong>Daily Digest</strong></li>
-				</ul>
-
-				<strong>3. Data Quality</strong>
-				<ul>
-					<li>Monitor required field completeness</li>
-					<li>Track contact information updates</li>
-					<li>Verify address changes</li>
-					<li>Recommended mode: <strong>Hourly or Daily Digest</strong></li>
-				</ul>
-
-				<strong>4. User Engagement</strong>
-				<ul>
-					<li>Track profile completion progress</li>
-					<li>Monitor bio/description updates</li>
-					<li>Watch for social media links added</li>
-					<li>Recommended mode: <strong>Daily Digest</strong></li>
-				</ul>
-
-				<h4>Best Practices</h4>
-				<ul>
-					<li>✅ <strong>Start with critical fields only</strong> - Email, display name, 2FA status</li>
-					<li>✅ <strong>Use digests for high-traffic sites</strong> - Avoid email overload</li>
-					<li>✅ <strong>Test notifications first</strong> - Ensure emails are received</li>
-					<li>✅ <strong>Monitor security-critical fields immediately</strong> - Email, password, 2FA</li>
-					<li>✅ <strong>Use daily digests for non-critical fields</strong> - Bio, city, company</li>
-					<li>⚠️ <strong>Don't monitor every field</strong> - Focus on what matters</li>
-					<li>⚠️ <strong>Review recipients regularly</strong> - Keep list up to date</li>
-				</ul>
-
-				<h4>Performance Considerations</h4>
-				<ul>
-					<li><strong>Immediate mode:</strong> One email per change (low overhead, many emails)</li>
-					<li><strong>Hourly digest:</strong> One email per hour (balanced approach)</li>
-					<li><strong>Daily digest:</strong> One email per day (minimal overhead, best for high traffic)</li>
-				</ul>
-			</div>
-		</details>
-	</div>
-</div>
+	<?php submit_button( __( 'Save Notification Settings', 'nobloat-user-foundry' ) ); ?>
+</form>
 
 <script>
 jQuery(document).ready(function($) {
 	/* Test notification */
 	$('#nbuf-test-notification').on('click', function() {
-		$(this).prop('disabled', true).text('Sending...');
+		$(this).prop('disabled', true).text('<?php echo esc_js( __( 'Sending...', 'nobloat-user-foundry' ) ); ?>');
 
 		$.ajax({
 			url: ajaxurl,
@@ -385,12 +219,12 @@ jQuery(document).ready(function($) {
 			},
 			error: function() {
 				$('#nbuf-test-result').html(
-					'<div class="notice notice-error"><p>An error occurred while sending test notification.</p></div>'
+					'<div class="notice notice-error"><p><?php echo esc_js( __( 'An error occurred while sending test notification.', 'nobloat-user-foundry' ) ); ?></p></div>'
 				).show();
 			},
 			complete: function() {
 				$('#nbuf-test-notification').prop('disabled', false).html(
-					'<span class="dashicons dashicons-email" style="vertical-align: middle;"></span> Send Test Notification'
+					'<span class="dashicons dashicons-email" style="vertical-align: middle;"></span> <?php echo esc_js( __( 'Send Test Notification', 'nobloat-user-foundry' ) ); ?>'
 				);
 			}
 		});

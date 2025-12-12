@@ -12,8 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Feature toggles */
-$enable_login          = NBUF_Options::get( 'nbuf_enable_login', true );
-$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
+$enable_login = NBUF_Options::get( 'nbuf_enable_login', true );
 
 /* Admin Users List columns */
 $users_column_posts    = NBUF_Options::get( 'nbuf_users_column_posts', false );
@@ -49,31 +48,7 @@ $admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_ad
 				</p>
 			</td>
 		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_enable_password_reset" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_enable_password_reset" value="1" <?php checked( $enable_password_reset, true ); ?>>
-					<?php esc_html_e( 'Enable password reset functionality', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Allow users to request password resets. When disabled, password reset forms will display a message. The "Forgot Password?" link will not appear on login forms when disabled.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
 	</table>
-
-	<p class="description" style="margin-top: 10px;">
-		<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
-		<?php
-		printf(
-			/* translators: %s: Link to Registration tab */
-			esc_html__( 'Registration settings (Enable Registration, Email Verification, Admin Notifications) have moved to %s.', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-user-foundry&tab=users&subtab=registration' ) ) . '">' . esc_html__( 'Users → Registration', 'nobloat-user-foundry' ) . '</a>'
-		);
-		?>
-	</p>
 
 	<h2><?php esc_html_e( 'Admin Users List Columns', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">

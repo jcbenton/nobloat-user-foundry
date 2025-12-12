@@ -16,15 +16,12 @@ $reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 /* Default values if not set */
 $username_method = $reg_settings['username_method'] ?? 'auto_random';
-$login_method    = $reg_settings['login_method'] ?? 'email_only';
 
 /* Feature toggles */
 $enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
 $require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
 $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
 
-/* Account settings */
-$allow_email_change = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="nbuf-registration-form">
@@ -93,61 +90,12 @@ $allow_email_change = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' )
 				</p>
 			</td>
 		</tr>
-
-		<tr>
-			<th><?php esc_html_e( 'Login Method', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<select name="nbuf_registration_fields[login_method]">
-					<option value="email_only" <?php selected( $login_method, 'email_only' ); ?>>
-						<?php esc_html_e( 'Email Only - Users login with email address', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="username_only" <?php selected( $login_method, 'username_only' ); ?>>
-						<?php esc_html_e( 'Username Only - Users login with username', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="email_or_username" <?php selected( $login_method, 'email_or_username' ); ?>>
-						<?php esc_html_e( 'Email or Username - Users can use either', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
-				<p class="description">
-					<?php esc_html_e( 'How users will authenticate when logging in.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
 	</table>
 
 	<p class="description" style="margin-top: 20px;">
 		<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
 		<?php esc_html_e( 'Configure which fields appear on the registration form in Profile Fields.', 'nobloat-user-foundry' ); ?>
 	</p>
-
-	<h2><?php esc_html_e( 'Account Settings', 'nobloat-user-foundry' ); ?></h2>
-	<table class="form-table">
-		<tr>
-			<th><?php esc_html_e( 'Email Address Changes', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<select name="nbuf_allow_email_change">
-					<option value="disabled" <?php selected( $allow_email_change, 'disabled' ); ?>>
-						<?php esc_html_e( 'Disabled - Users cannot change their email', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="enabled" <?php selected( $allow_email_change, 'enabled' ); ?>>
-						<?php esc_html_e( 'Enabled - Users can change email (password required)', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
-				<p class="description">
-					<?php esc_html_e( 'Allow users to change their email address from the frontend account page. Password confirmation is always required for security.', 'nobloat-user-foundry' ); ?>
-				</p>
-				<p class="description" style="margin-top: 5px;">
-					<?php
-					printf(
-						/* translators: %s: link to hooks settings */
-						esc_html__( 'When email is changed, re-verification behavior is controlled by the "Re-verify on Email Change" setting in %s.', 'nobloat-user-foundry' ),
-						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=system&subtab=hooks' ) ) . '">' . esc_html__( 'System → Hooks', 'nobloat-user-foundry' ) . '</a>'
-					);
-					?>
-				</p>
-			</td>
-		</tr>
-	</table>
 
 	<?php submit_button( __( 'Save Registration Settings', 'nobloat-user-foundry' ) ); ?>
 </form>

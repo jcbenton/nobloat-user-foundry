@@ -26,6 +26,7 @@ class NBUF_Test {
 	public static function init() {
 		add_action( 'admin_post_nbuf_send_test_email', array( __CLASS__, 'handle_test_email' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notice' ) );
+		add_action( 'wp_ajax_nbuf_test_change_notification', array( __CLASS__, 'ajax_test_change_notification' ) );
 	}
 
 	/**
@@ -282,6 +283,94 @@ class NBUF_Test {
 		remove_filter( 'wp_mail_content_type', $content_type_callback );
 
 		return $sent;
+	}
+
+	/**
+	 * Handle AJAX test for profile change notification.
+	 */
+	public static function ajax_test_change_notification() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( ! wp_verify_nonce( isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '', 'nbuf_test_notification' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$recipient = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
+
+		/* Handle array or string */
+		if ( is_array( $recipient ) ) {
+			$recipient = implode( ', ', $recipient );
+		}
+
+		/* Get first email if multiple */
+		$emails = array_map( 'trim', explode( ',', $recipient ) );
+		$to     = ! empty( $emails[0] ) ? $emails[0] : get_option( 'admin_email' );
+
+		/* Build test notification email */
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$subject   = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] Test Profile Change Notification', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$current_user = wp_get_current_user();
+
+		$message = sprintf(
+			/* translators: 1: site name */
+			__( 'This is a test notification from %s.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+
+		$message .= __( 'If you received this email, your profile change notifications are configured correctly.', 'nobloat-user-foundry' ) . "\n\n";
+
+		$message .= __( '--- Sample Notification ---', 'nobloat-user-foundry' ) . "\n\n";
+
+		$message .= sprintf(
+			/* translators: %s: username */
+			__( 'User: %s', 'nobloat-user-foundry' ),
+			$current_user->user_login
+		) . "\n";
+
+		$message .= sprintf(
+			/* translators: %s: display name */
+			__( 'Display Name: %s', 'nobloat-user-foundry' ),
+			$current_user->display_name
+		) . "\n";
+
+		$message .= sprintf(
+			/* translators: %s: email */
+			__( 'Email: %s', 'nobloat-user-foundry' ),
+			$current_user->user_email
+		) . "\n\n";
+
+		$message .= __( 'Changes:', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( '• Display Name: "Old Name" → "New Name"', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( '• Email: "old@example.com" → "new@example.com"', 'nobloat-user-foundry' ) . "\n\n";
+
+		$message .= sprintf(
+			/* translators: %s: date/time */
+			__( 'Changed at: %s', 'nobloat-user-foundry' ),
+			current_time( 'F j, Y g:i a' )
+		) . "\n";
+
+		$sent = wp_mail( $to, $subject, $message );
+
+		if ( $sent ) {
+			wp_send_json_success(
+				array(
+					'message' => sprintf(
+						/* translators: %s: email address */
+						__( 'Test notification sent to %s', 'nobloat-user-foundry' ),
+						$to
+					),
+				)
+			);
+		} else {
+			wp_send_json_error( array( 'message' => __( 'Failed to send test notification. Check your email configuration.', 'nobloat-user-foundry' ) ) );
+		}
 	}
 
 	/**

@@ -94,15 +94,15 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 
 	<?php foreach ( $field_registry as $category_key => $category_data ) : ?>
 		<h3><?php echo esc_html( $category_data['label'] ); ?></h3>
-		<table class="wp-list-table widefat fixed striped" style="margin-bottom: 30px;">
+		<table style="margin-bottom: 30px; border-collapse: collapse; width: 100%;">
 			<thead>
 				<tr>
-					<th style="width: 18%;"><?php esc_html_e( 'Field', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Registration', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Required', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Account', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 22%;"><?php esc_html_e( 'Custom Label', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 30%;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 18%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Field', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Registration', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Required', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Account', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 22%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Custom Label', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 30%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -115,8 +115,8 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 			$description     = nbuf_get_field_description( $field_key );
 			?>
 				<tr>
-					<td><strong><?php echo esc_html( $field_label ); ?></strong></td>
-					<td style="text-align: center;">
+					<td style="padding: 8px 10px;"><strong><?php echo esc_html( $field_label ); ?></strong></td>
+					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_registration_profile_fields[]"
 							value="<?php echo esc_attr( $field_key ); ?>"
@@ -125,7 +125,7 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 							data-category="<?php echo esc_attr( $category_key ); ?>"
 							data-field="<?php echo esc_attr( $field_key ); ?>">
 					</td>
-					<td style="text-align: center;">
+					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_required_profile_fields[]"
 							value="<?php echo esc_attr( $field_key ); ?>"
@@ -134,7 +134,7 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 							class="nbuf-required-toggle"
 							data-field="<?php echo esc_attr( $field_key ); ?>">
 					</td>
-					<td style="text-align: center;">
+					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_account_profile_fields[]"
 							value="<?php echo esc_attr( $field_key ); ?>"
@@ -142,7 +142,7 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 							class="nbuf-account-toggle"
 							data-category="<?php echo esc_attr( $category_key ); ?>">
 					</td>
-					<td>
+					<td style="padding: 8px 10px;">
 						<input type="text"
 							name="nbuf_profile_field_labels[<?php echo esc_attr( $field_key ); ?>]"
 							value="<?php echo esc_attr( $custom_label ); ?>"
@@ -150,26 +150,10 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 							placeholder="<?php echo esc_attr( $field_label ); ?>"
 							style="width: 100%;">
 					</td>
-					<td><span class="description"><?php echo esc_html( $description ); ?></span></td>
+					<td style="padding: 8px 10px;"><span class="description"><?php echo esc_html( $description ); ?></span></td>
 				</tr>
 		<?php endforeach; ?>
 			</tbody>
-			<tfoot>
-				<tr>
-					<td><em><?php esc_html_e( 'Select All', 'nobloat-user-foundry' ); ?></em></td>
-					<td style="text-align: center;">
-						<input type="checkbox" class="nbuf-select-all-reg" data-category="<?php echo esc_attr( $category_key ); ?>">
-					</td>
-					<td style="text-align: center;">
-						<!-- No select all for required -->
-					</td>
-					<td style="text-align: center;">
-						<input type="checkbox" class="nbuf-select-all-account" data-category="<?php echo esc_attr( $category_key ); ?>">
-					</td>
-					<td></td>
-					<td></td>
-				</tr>
-			</tfoot>
 		</table>
 	<?php endforeach; ?>
 
@@ -194,51 +178,6 @@ jQuery(document).ready(function($) {
 		} else {
 			requiredCheckbox.prop('disabled', false);
 		}
-
-		/* Update select all state */
-		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-reg-toggle[data-category="' + category + '"]');
-		var checkedCount = allCheckboxes.filter(':checked').length;
-		$('.nbuf-select-all-reg[data-category="' + category + '"]').prop('checked', checkedCount === allCheckboxes.length);
-	});
-
-	/* Select/deselect all Registration checkboxes in a category */
-	$('.nbuf-select-all-reg').on('change', function() {
-		var category = $(this).data('category');
-		var isChecked = $(this).is(':checked');
-		$('.nbuf-reg-toggle[data-category="' + category + '"]').each(function() {
-			$(this).prop('checked', isChecked).trigger('change');
-		});
-	});
-
-	/* Select/deselect all Account checkboxes in a category */
-	$('.nbuf-select-all-account').on('change', function() {
-		var category = $(this).data('category');
-		var isChecked = $(this).is(':checked');
-		$('.nbuf-account-toggle[data-category="' + category + '"]').prop('checked', isChecked);
-	});
-
-	/* Update "select all" checkbox state for Account */
-	$('.nbuf-account-toggle').on('change', function() {
-		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-account-toggle[data-category="' + category + '"]');
-		var checkedCount = allCheckboxes.filter(':checked').length;
-		$('.nbuf-select-all-account[data-category="' + category + '"]').prop('checked', checkedCount === allCheckboxes.length);
-	});
-
-	/* Initialize states on page load */
-	$('.nbuf-select-all-reg').each(function() {
-		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-reg-toggle[data-category="' + category + '"]');
-		var checkedCount = allCheckboxes.filter(':checked').length;
-		$(this).prop('checked', checkedCount === allCheckboxes.length && allCheckboxes.length > 0);
-	});
-
-	$('.nbuf-select-all-account').each(function() {
-		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-account-toggle[data-category="' + category + '"]');
-		var checkedCount = allCheckboxes.filter(':checked').length;
-		$(this).prop('checked', checkedCount === allCheckboxes.length && allCheckboxes.length > 0);
 	});
 
 	/* Initialize Required checkbox disabled state */

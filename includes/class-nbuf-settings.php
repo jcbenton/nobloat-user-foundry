@@ -978,15 +978,11 @@ class NBUF_Settings {
 					'2fa-totp'      => __( 'Authenticator', 'nobloat-user-foundry' ),
 				),
 			),
-			'media'       => array(
-				'label'   => __( 'Media', 'nobloat-user-foundry' ),
-				'subtabs' => array(),
-			),
 			'users'       => array(
 				'label'   => __( 'Users', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'registration'         => __( 'Registration', 'nobloat-user-foundry' ),
-					'expiration'           => __( 'Expiration', 'nobloat-user-foundry' ),
+					'account'              => __( 'Account', 'nobloat-user-foundry' ),
 					'profile-fields'       => __( 'Profile Fields', 'nobloat-user-foundry' ),
 					'profiles'             => __( 'Profiles & Photos', 'nobloat-user-foundry' ),
 					'directory'            => __( 'Member Directory', 'nobloat-user-foundry' ),
@@ -1012,8 +1008,15 @@ class NBUF_Settings {
 					'security-log'   => __( 'Security Log', 'nobloat-user-foundry' ),
 					'diagnostics'    => __( 'Diagnostics', 'nobloat-user-foundry' ),
 					'tests'          => __( 'Tests', 'nobloat-user-foundry' ),
-					'shortcodes'     => __( 'Shortcodes', 'nobloat-user-foundry' ),
-					'documentation'  => __( 'Documentation', 'nobloat-user-foundry' ),
+				),
+			),
+			'docs'        => array(
+				'label'   => __( 'Docs', 'nobloat-user-foundry' ),
+				'subtabs' => array(
+					'overview'   => __( 'Overview', 'nobloat-user-foundry' ),
+					'shortcodes' => __( 'Shortcodes', 'nobloat-user-foundry' ),
+					'hooks'      => __( 'Hooks & Filters', 'nobloat-user-foundry' ),
+					'api'        => __( 'API Reference', 'nobloat-user-foundry' ),
 				),
 			),
 		);

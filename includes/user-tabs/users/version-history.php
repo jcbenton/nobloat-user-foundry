@@ -18,7 +18,7 @@ $user_visible      = NBUF_Options::get( 'nbuf_version_history_user_visible', tru
 $allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
 $retention_days    = NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
 $max_versions      = NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );
-$ip_tracking       = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'off' );
+$ip_tracking       = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'anonymized' );
 $auto_cleanup      = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', true );
 
 ?>
@@ -145,7 +145,7 @@ $auto_cleanup      = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', tru
 							</option>
 						</select>
 						<p class="description">
-				<?php esc_html_e( 'Choose whether to track IP addresses when profile changes occur. Default: OFF (privacy-first).', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Choose whether to track IP addresses when profile changes occur. Default: Anonymized (balances privacy and security).', 'nobloat-user-foundry' ); ?>
 						</p>
 
 						<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 10px;">

@@ -31,9 +31,6 @@ if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_settings' ) ) 
 	$delete_user_photos = isset( $_POST['nbuf_gdpr_delete_user_photos'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_gdpr_delete_user_photos', $delete_user_photos, true, 'gdpr' );
 
-	$delete_on_uninstall = isset( $_POST['nbuf_gdpr_delete_on_uninstall'] ) ? 1 : 0;
-	NBUF_Options::update( 'nbuf_gdpr_delete_on_uninstall', $delete_on_uninstall, true, 'gdpr' );
-
 	/* Policy Display Settings */
 	$policy_login_enabled = isset( $_POST['nbuf_policy_login_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_login_enabled', $policy_login_enabled, true, 'gdpr' );
@@ -71,8 +68,7 @@ $delete_audit_logs      = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'ano
 $include_audit_logs     = NBUF_Options::get( 'nbuf_gdpr_include_audit_logs', true );
 $include_2fa_data       = NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true );
 $include_login_attempts = NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false );
-$delete_user_photos     = NBUF_Options::get( 'nbuf_gdpr_delete_user_photos', true );
-$delete_on_uninstall    = NBUF_Options::get( 'nbuf_gdpr_delete_on_uninstall', false );
+$delete_user_photos = NBUF_Options::get( 'nbuf_gdpr_delete_user_photos', true );
 
 /* Policy display settings */
 $policy_login_enabled          = NBUF_Options::get( 'nbuf_policy_login_enabled', true );
@@ -98,24 +94,22 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 		<?php esc_html_e( 'Configure data privacy and GDPR compliance settings for user data handling.', 'nobloat-user-foundry' ); ?>
 	</p>
 
-	<!-- IP Anonymization Reference -->
-	<div class="notice notice-info inline" style="margin: 20px 0;">
-		<p>
-			<strong><?php esc_html_e( 'IP Address Anonymization', 'nobloat-user-foundry' ); ?></strong><br>
-			<?php
-			printf(
-				/* translators: %s: Link to audit log settings */
-				esc_html__( 'IP anonymization for audit logs can be configured in %s.', 'nobloat-user-foundry' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Tools > Audit Log', 'nobloat-user-foundry' ) . '</a>'
-			);
-			?>
-		</p>
-		<p class="description">
-			<?php esc_html_e( 'When enabled, IP addresses are anonymized by zeroing the last octet (IPv4: 192.168.1.0) or last 80 bits (IPv6).', 'nobloat-user-foundry' ); ?>
-		</p>
-	</div>
-
 	<table class="form-table" role="presentation">
+		<!-- IP Anonymization Reference -->
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'IP Address Anonymization', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<?php
+				printf(
+					/* translators: %s: Link to audit log settings */
+					esc_html__( 'IP anonymization for audit logs can be configured in %s.', 'nobloat-user-foundry' ),
+					'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Tools → Audit Log', 'nobloat-user-foundry' ) . '</a>'
+				);
+				?>
+			</td>
+		</tr>
 		<!-- Right to be Forgotten -->
 		<tr>
 			<th scope="row">
@@ -168,34 +162,16 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</p>
 			</td>
 		</tr>
-
-		<!-- Delete All Content on Plugin Uninstall -->
-		<tr>
-			<th scope="row">
-				<label for="nbuf_gdpr_delete_on_uninstall">
-					<?php esc_html_e( 'Delete on Uninstall', 'nobloat-user-foundry' ); ?>
-				</label>
-			</th>
-			<td>
-				<label>
-					<input type="checkbox" name="nbuf_gdpr_delete_on_uninstall" id="nbuf_gdpr_delete_on_uninstall" value="1" <?php checked( $delete_on_uninstall, 1 ); ?>>
-					<?php esc_html_e( 'Delete ALL user photos when plugin is uninstalled', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<strong><?php esc_html_e( 'Warning:', 'nobloat-user-foundry' ); ?></strong>
-					<?php esc_html_e( 'When enabled, the entire /uploads/nobloat/ directory will be permanently deleted when you uninstall this plugin. This action cannot be undone. Disabled by default for safety.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
 	</table>
 
-	<h3><?php esc_html_e( 'Data Export', 'nobloat-user-foundry' ); ?></h3>
+	<hr style="margin: 30px 0;">
+
+	<h3><?php esc_html_e( 'Data Export Settings', 'nobloat-user-foundry' ); ?></h3>
 	<p class="description">
-		<?php esc_html_e( 'Configure which data is included when a user requests a personal data export via WordPress Privacy Tools.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Configure which data is included when exporting a user\'s personal data.', 'nobloat-user-foundry' ); ?>
 	</p>
 
 	<table class="form-table" role="presentation">
-		<!-- Include Audit Logs -->
 		<tr>
 			<th scope="row">
 				<label for="nbuf_gdpr_include_audit_logs">
@@ -207,13 +183,8 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 					<input type="checkbox" name="nbuf_gdpr_include_audit_logs" id="nbuf_gdpr_include_audit_logs" value="1" <?php checked( $include_audit_logs, 1 ); ?>>
 					<?php esc_html_e( 'Include user activity logs in data export', 'nobloat-user-foundry' ); ?>
 				</label>
-				<p class="description">
-					<?php esc_html_e( 'When enabled, user\'s audit log entries will be included in GDPR data export requests.', 'nobloat-user-foundry' ); ?>
-				</p>
 			</td>
 		</tr>
-
-		<!-- Include 2FA Data -->
 		<tr>
 			<th scope="row">
 				<label for="nbuf_gdpr_include_2fa_data">
@@ -223,15 +194,10 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 			<td>
 				<label>
 					<input type="checkbox" name="nbuf_gdpr_include_2fa_data" id="nbuf_gdpr_include_2fa_data" value="1" <?php checked( $include_2fa_data, 1 ); ?>>
-					<?php esc_html_e( 'Include two-factor authentication settings in data export', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Include two-factor authentication settings (secrets excluded)', 'nobloat-user-foundry' ); ?>
 				</label>
-				<p class="description">
-					<?php esc_html_e( 'Exports whether 2FA is enabled, method used, and setup date. Secrets and codes are NOT included for security.', 'nobloat-user-foundry' ); ?>
-				</p>
 			</td>
 		</tr>
-
-		<!-- Include Login Attempts -->
 		<tr>
 			<th scope="row">
 				<label for="nbuf_gdpr_include_login_attempts">
@@ -241,81 +207,89 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 			<td>
 				<label>
 					<input type="checkbox" name="nbuf_gdpr_include_login_attempts" id="nbuf_gdpr_include_login_attempts" value="1" <?php checked( $include_login_attempts, 1 ); ?>>
-					<?php esc_html_e( 'Include failed login attempt history in data export', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Include failed login attempt history', 'nobloat-user-foundry' ); ?>
 				</label>
+			</td>
+		</tr>
+	</table>
+
+	<hr style="margin: 30px 0;">
+
+	<h3><?php esc_html_e( 'Privacy Tools', 'nobloat-user-foundry' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Export or erase personal data for a specific user. These tools integrate with WordPress core privacy features.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Export Personal Data', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<a href="<?php echo esc_url( admin_url( 'export-personal-data.php' ) ); ?>" class="button">
+					<?php esc_html_e( 'Export Personal Data', 'nobloat-user-foundry' ); ?>
+				</a>
 				<p class="description">
-					<?php esc_html_e( 'Exports login attempt records with IP addresses and timestamps.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Generate a downloadable file containing all personal data for a user.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Erase Personal Data', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<a href="<?php echo esc_url( admin_url( 'erase-personal-data.php' ) ); ?>" class="button">
+					<?php esc_html_e( 'Erase Personal Data', 'nobloat-user-foundry' ); ?>
+				</a>
+				<p class="description">
+					<?php esc_html_e( 'Anonymize or delete all personal data for a user.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Email Configuration', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<p class="description" style="margin: 0;">
+					<?php
+					printf(
+						/* translators: %s: Link to test emails page */
+						esc_html__( 'Privacy tools require working email. If export/erasure emails fail to send, verify your email configuration in %s or install an SMTP plugin.', 'nobloat-user-foundry' ),
+						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=system&subtab=status' ) ) . '">' . esc_html__( 'System → Status', 'nobloat-user-foundry' ) . '</a>'
+					);
+					?>
 				</p>
 			</td>
 		</tr>
 	</table>
 
-	<h3><?php esc_html_e( 'WordPress Privacy Tools Integration', 'nobloat-user-foundry' ); ?></h3>
-	<p class="description">
-		<?php esc_html_e( 'This plugin integrates with WordPress built-in privacy tools for data export and erasure requests.', 'nobloat-user-foundry' ); ?>
-	</p>
-
-	<table class="widefat" style="max-width: 800px; margin-top: 15px;">
-		<thead>
-			<tr>
-				<th><?php esc_html_e( 'Feature', 'nobloat-user-foundry' ); ?></th>
-				<th><?php esc_html_e( 'Status', 'nobloat-user-foundry' ); ?></th>
-				<th><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td><strong><?php esc_html_e( 'Data Export', 'nobloat-user-foundry' ); ?></strong></td>
-				<td><span style="color: #46b450;">●</span> <?php esc_html_e( 'Active', 'nobloat-user-foundry' ); ?></td>
-				<td><?php esc_html_e( 'User data can be exported via Tools > Export Personal Data', 'nobloat-user-foundry' ); ?></td>
-			</tr>
-			<tr>
-				<td><strong><?php esc_html_e( 'Data Erasure', 'nobloat-user-foundry' ); ?></strong></td>
-				<td><span style="color: #46b450;">●</span> <?php esc_html_e( 'Active', 'nobloat-user-foundry' ); ?></td>
-				<td><?php esc_html_e( 'User data can be erased via Tools > Erase Personal Data', 'nobloat-user-foundry' ); ?></td>
-			</tr>
-			<tr>
-				<td><strong><?php esc_html_e( 'Privacy Policy Guide', 'nobloat-user-foundry' ); ?></strong></td>
-				<td><span style="color: #46b450;">●</span> <?php esc_html_e( 'Active', 'nobloat-user-foundry' ); ?></td>
-				<td><?php esc_html_e( 'Suggested privacy policy text available in Settings > Privacy', 'nobloat-user-foundry' ); ?></td>
-			</tr>
-		</tbody>
-	</table>
-
-	<div class="notice notice-info inline" style="margin-top: 20px;">
-		<p>
-			<strong><?php esc_html_e( 'How to Use WordPress Privacy Tools:', 'nobloat-user-foundry' ); ?></strong>
-		</p>
-		<ul style="margin-left: 20px;">
-			<li><?php esc_html_e( 'Go to Tools > Export Personal Data to export user data', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Go to Tools > Erase Personal Data to anonymize/delete user data', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Go to Settings > Privacy to view suggested privacy policy text', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-	</div>
+	<hr style="margin: 30px 0;">
 
 	<h3><?php esc_html_e( 'Policy Notices on Forms', 'nobloat-user-foundry' ); ?></h3>
 	<p class="description">
 		<?php esc_html_e( 'Display Privacy Policy and Terms of Use in a tabbed panel alongside your forms. Templates can be customized in Policy Templates tab.', 'nobloat-user-foundry' ); ?>
 	</p>
 
-	<table class="widefat" style="max-width: 700px; margin-top: 15px;">
+	<table style="max-width: 700px; margin-top: 15px; border-collapse: collapse;">
 		<thead>
 			<tr>
-				<th><?php esc_html_e( 'Form', 'nobloat-user-foundry' ); ?></th>
-				<th style="width: 80px; text-align: center;"><?php esc_html_e( 'Enable', 'nobloat-user-foundry' ); ?></th>
-				<th style="width: 120px;"><?php esc_html_e( 'Position', 'nobloat-user-foundry' ); ?></th>
+				<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Form', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 80px; text-align: center; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Enable', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 120px; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Position', 'nobloat-user-foundry' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr>
-				<td>
+				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Login Form', 'nobloat-user-foundry' ); ?></strong>
 					<code style="font-size: 11px; margin-left: 5px;">[nbuf_login_form]</code>
 				</td>
-				<td style="text-align: center;">
+				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_login_enabled" value="1" <?php checked( $policy_login_enabled, 1 ); ?>>
 				</td>
-				<td>
+				<td style="padding: 8px 10px;">
 					<select name="nbuf_policy_login_position" style="width: 100%;">
 						<option value="right" <?php selected( $policy_login_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
 						<option value="left" <?php selected( $policy_login_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
@@ -323,14 +297,14 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</td>
 			</tr>
 			<tr>
-				<td>
+				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Registration Form', 'nobloat-user-foundry' ); ?></strong>
 					<code style="font-size: 11px; margin-left: 5px;">[nbuf_registration_form]</code>
 				</td>
-				<td style="text-align: center;">
+				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_registration_enabled" value="1" <?php checked( $policy_registration_enabled, 1 ); ?>>
 				</td>
-				<td>
+				<td style="padding: 8px 10px;">
 					<select name="nbuf_policy_registration_position" style="width: 100%;">
 						<option value="right" <?php selected( $policy_registration_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
 						<option value="left" <?php selected( $policy_registration_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
@@ -338,14 +312,14 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</td>
 			</tr>
 			<tr>
-				<td>
+				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Verification Page', 'nobloat-user-foundry' ); ?></strong>
 					<code style="font-size: 11px; margin-left: 5px;">[nbuf_verify_page]</code>
 				</td>
-				<td style="text-align: center;">
+				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_verify_enabled" value="1" <?php checked( $policy_verify_enabled, 1 ); ?>>
 				</td>
-				<td>
+				<td style="padding: 8px 10px;">
 					<select name="nbuf_policy_verify_position" style="width: 100%;">
 						<option value="right" <?php selected( $policy_verify_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
 						<option value="left" <?php selected( $policy_verify_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
@@ -353,14 +327,14 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</td>
 			</tr>
 			<tr>
-				<td>
+				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Request Password Reset', 'nobloat-user-foundry' ); ?></strong>
 					<code style="font-size: 11px; margin-left: 5px;">[nbuf_request_reset_form]</code>
 				</td>
-				<td style="text-align: center;">
+				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_request_reset_enabled" value="1" <?php checked( $policy_request_reset_enabled, 1 ); ?>>
 				</td>
-				<td>
+				<td style="padding: 8px 10px;">
 					<select name="nbuf_policy_request_reset_position" style="width: 100%;">
 						<option value="right" <?php selected( $policy_request_reset_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
 						<option value="left" <?php selected( $policy_request_reset_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
@@ -368,14 +342,14 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</td>
 			</tr>
 			<tr>
-				<td>
+				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Password Reset Form', 'nobloat-user-foundry' ); ?></strong>
 					<code style="font-size: 11px; margin-left: 5px;">[nbuf_reset_form]</code>
 				</td>
-				<td style="text-align: center;">
+				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_reset_enabled" value="1" <?php checked( $policy_reset_enabled, 1 ); ?>>
 				</td>
-				<td>
+				<td style="padding: 8px 10px;">
 					<select name="nbuf_policy_reset_position" style="width: 100%;">
 						<option value="right" <?php selected( $policy_reset_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
 						<option value="left" <?php selected( $policy_reset_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
@@ -385,7 +359,9 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 		</tbody>
 	</table>
 
-	<h3 style="margin-top: 30px;"><?php esc_html_e( 'Account Page', 'nobloat-user-foundry' ); ?></h3>
+	<hr style="margin: 30px 0;">
+
+	<h3><?php esc_html_e( 'Account Page', 'nobloat-user-foundry' ); ?></h3>
 	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row">

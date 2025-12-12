@@ -37,6 +37,10 @@ class NBUF_Privacy {
 
 		/* Hook into user deletion to handle audit logs */
 		add_action( 'delete_user', array( __CLASS__, 'handle_user_deletion' ), 5 );
+
+		/* Customize privacy confirmation page */
+		add_action( 'login_enqueue_scripts', array( __CLASS__, 'enqueue_privacy_confirmation_styles' ) );
+		add_filter( 'user_request_action_confirmed_message', array( __CLASS__, 'customize_confirmation_message' ), 10, 2 );
 	}
 
 	/**
@@ -69,6 +73,11 @@ class NBUF_Privacy {
 		$exporters['nobloat-user-foundry-2fa-data'] = array(
 			'exporter_friendly_name' => __( 'NoBloat User Foundry - 2FA Settings', 'nobloat-user-foundry' ),
 			'callback'               => array( __CLASS__, 'export_2fa_data' ),
+		);
+
+		$exporters['nobloat-user-foundry-profile-photos'] = array(
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - Profile Photos', 'nobloat-user-foundry' ),
+			'callback'               => array( __CLASS__, 'export_profile_photos' ),
 		);
 
 		return $exporters;
@@ -384,10 +393,14 @@ class NBUF_Privacy {
 
 		/* Get security logs for this user */
 		if ( class_exists( 'NBUF_Security_Log' ) ) {
-			$logs = NBUF_Security_Log::get_user_logs(
-				$user->ID,
-				$per_page,
-				$offset
+			$logs = NBUF_Security_Log::get_logs(
+				array(
+					'user_id' => $user->ID,
+					'limit'   => $per_page,
+					'offset'  => $offset,
+					'orderby' => 'timestamp',
+					'order'   => 'DESC',
+				)
 			);
 
 			foreach ( $logs as $log ) {
@@ -398,7 +411,7 @@ class NBUF_Privacy {
 					'data'        => array(
 						array(
 							'name'  => __( 'Date/Time', 'nobloat-user-foundry' ),
-							'value' => $log->created_at,
+							'value' => $log->timestamp,
 						),
 						array(
 							'name'  => __( 'Event Type', 'nobloat-user-foundry' ),
@@ -410,7 +423,7 @@ class NBUF_Privacy {
 						),
 						array(
 							'name'  => __( 'Details', 'nobloat-user-foundry' ),
-							'value' => $log->description,
+							'value' => $log->message,
 						),
 						array(
 							'name'  => __( 'IP Address', 'nobloat-user-foundry' ),
@@ -482,6 +495,74 @@ class NBUF_Privacy {
 						'value' => $twofa_data->last_used ? $twofa_data->last_used : __( 'Never', 'nobloat-user-foundry' ),
 					),
 				),
+			);
+		}
+
+		return array(
+			'data' => $data_to_export,
+			'done' => true,
+		);
+	}
+
+	/**
+	 * Export profile photos
+	 *
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
+	 * @return array Export data.
+	 */
+	public static function export_profile_photos( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$data_to_export = array();
+		$files          = array();
+
+		/* Scan user's upload directory for all files */
+		$upload_dir = wp_upload_dir();
+		$user_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/users/' . $user->ID;
+
+		if ( is_dir( $user_dir ) ) {
+			$base_url = trailingslashit( $upload_dir['baseurl'] ) . 'nobloat/users/' . $user->ID . '/';
+
+			/* Get all files in the directory (non-recursive for security) */
+			$dir_files = scandir( $user_dir );
+			if ( $dir_files ) {
+				foreach ( $dir_files as $file ) {
+					/* Skip . and .. and hidden files */
+					if ( '.' === $file[0] ) {
+						continue;
+					}
+
+					$file_path = $user_dir . '/' . $file;
+
+					/* Only include actual files, not directories */
+					if ( is_file( $file_path ) ) {
+						/* Determine file type for label */
+						$extension = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+						$is_image  = in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg' ), true );
+
+						$files[] = array(
+							'name'  => $is_image ? __( 'Image', 'nobloat-user-foundry' ) : __( 'File', 'nobloat-user-foundry' ),
+							'value' => $base_url . $file,
+						);
+					}
+				}
+			}
+		}
+
+		if ( ! empty( $files ) ) {
+			$data_to_export[] = array(
+				'group_id'    => 'nobloat-user-foundry-profile-photos',
+				'group_label' => __( 'User Uploaded Files', 'nobloat-user-foundry' ),
+				'item_id'     => 'files-' . $user->ID,
+				'data'        => $files,
 			);
 		}
 
@@ -715,6 +796,195 @@ class NBUF_Privacy {
 		wp_add_privacy_policy_content(
 			'NoBloat User Foundry',
 			wp_kses_post( wpautop( $content, false ) )
+		);
+	}
+
+	/**
+	 * Enqueue custom styles for privacy confirmation page
+	 *
+	 * Improves the default WordPress privacy confirmation page appearance.
+	 */
+	public static function enqueue_privacy_confirmation_styles() {
+		/* Only load on privacy confirmation pages */
+		if ( ! isset( $_GET['action'] ) || 'confirmaction' !== $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check for page identification.
+			return;
+		}
+
+		/* Custom CSS for the confirmation page */
+		$css = '
+			/* Override WordPress login page styles for privacy confirmation */
+			body.login {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+			}
+
+			#login {
+				width: 420px;
+				padding: 8% 0 0;
+			}
+
+			#login h1 a {
+				background-image: none;
+				width: auto;
+				height: auto;
+				text-indent: -9999px;
+				margin: 0 auto 40px;
+				display: block;
+				position: relative;
+			}
+
+			#login h1 a::before {
+				content: "' . esc_js( get_bloginfo( 'name' ) ) . '";
+				display: block;
+				font-size: 28px;
+				font-weight: 600;
+				color: #fff;
+				text-align: center;
+				text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+				text-indent: 0;
+				position: absolute;
+				left: 0;
+				right: 0;
+			}
+
+			.login form {
+				background: #fff;
+				border-radius: 8px;
+				box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+				padding: 30px;
+				margin-top: 0;
+			}
+
+			.login .message {
+				background: #fff;
+				border: none;
+				border-radius: 8px;
+				box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+				padding: 30px;
+				margin: 0 0 20px;
+				text-align: center;
+			}
+
+			.login .message h2 {
+				color: #2e7d32;
+				font-size: 22px;
+				margin: 0 0 15px;
+				padding: 0;
+			}
+
+			.login .message .nbuf-privacy-icon {
+				font-size: 48px;
+				margin-bottom: 15px;
+			}
+
+			.login .message p {
+				color: #555;
+				font-size: 15px;
+				line-height: 1.6;
+				margin: 10px 0;
+			}
+
+			.login .message .nbuf-next-steps {
+				background: #f8f9fa;
+				border-radius: 6px;
+				padding: 15px;
+				margin-top: 20px;
+				text-align: left;
+			}
+
+			.login .message .nbuf-next-steps h4 {
+				color: #333;
+				font-size: 14px;
+				font-weight: 600;
+				margin: 0 0 10px;
+			}
+
+			.login .message .nbuf-next-steps p {
+				font-size: 13px;
+				margin: 5px 0;
+				color: #666;
+			}
+
+			#backtoblog {
+				text-align: center;
+			}
+
+			#backtoblog a {
+				color: rgba(255,255,255,0.8);
+				text-decoration: none;
+				font-size: 14px;
+				transition: color 0.2s;
+			}
+
+			#backtoblog a:hover {
+				color: #fff;
+			}
+
+			.login #nav {
+				text-align: center;
+			}
+
+			.login #nav a {
+				color: rgba(255,255,255,0.8);
+			}
+
+			.login #nav a:hover {
+				color: #fff;
+			}
+		';
+
+		/* phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Inline styles, no external file */
+		wp_add_inline_style( 'login', $css );
+	}
+
+	/**
+	 * Customize the privacy confirmation message
+	 *
+	 * @param string $message     The default confirmation message.
+	 * @param string $action_type The type of request (export_personal_data, remove_personal_data).
+	 * @return string Modified confirmation message.
+	 */
+	public static function customize_confirmation_message( $message, $action_type ) {
+		$site_name = get_bloginfo( 'name' );
+
+		if ( 'export_personal_data' === $action_type ) {
+			$icon  = '&#128230;'; /* Package/box emoji */
+			$title = __( 'Export Request Confirmed', 'nobloat-user-foundry' );
+			$body  = sprintf(
+				/* translators: %s: site name */
+				__( 'Thank you for confirming your data export request. The site administrator at %s has been notified and will process your request.', 'nobloat-user-foundry' ),
+				'<strong>' . esc_html( $site_name ) . '</strong>'
+			);
+			$next_steps = sprintf(
+				'<div class="nbuf-next-steps"><h4>%s</h4><p>%s</p><p>%s</p></div>',
+				__( 'What happens next?', 'nobloat-user-foundry' ),
+				__( 'You will receive an email with a download link once your data export is ready. This typically takes 24-48 hours.', 'nobloat-user-foundry' ),
+				__( 'The download link will be valid for 3 days. Make sure to save the file in a secure location.', 'nobloat-user-foundry' )
+			);
+		} elseif ( 'remove_personal_data' === $action_type ) {
+			$icon  = '&#128465;'; /* Wastebasket emoji */
+			$title = __( 'Erasure Request Confirmed', 'nobloat-user-foundry' );
+			$body  = sprintf(
+				/* translators: %s: site name */
+				__( 'Thank you for confirming your data erasure request. The site administrator at %s has been notified and will process your request.', 'nobloat-user-foundry' ),
+				'<strong>' . esc_html( $site_name ) . '</strong>'
+			);
+			$next_steps = sprintf(
+				'<div class="nbuf-next-steps"><h4>%s</h4><p>%s</p><p>%s</p></div>',
+				__( 'What happens next?', 'nobloat-user-foundry' ),
+				__( 'The administrator will review and process your request. You will receive a confirmation email once your data has been erased.', 'nobloat-user-foundry' ),
+				__( 'Note: Some data may be retained for legal compliance as outlined in our privacy policy.', 'nobloat-user-foundry' )
+			);
+		} else {
+			return $message;
+		}
+
+		return sprintf(
+			'<div class="nbuf-privacy-icon">%s</div><h2>%s</h2><p>%s</p>%s',
+			$icon,
+			$title,
+			$body,
+			$next_steps
 		);
 	}
 }

@@ -298,59 +298,297 @@ class NBUF_User_Notes {
 	}
 
 	/**
-	 * Initialize user notes profile link.
+	 * Initialize user notes profile section.
 	 *
-	 * Adds a link to the user notes page in the WordPress user editor.
+	 * Adds the notes tab to the WordPress user editor.
 	 *
 	 * @since 1.0.0
 	 */
 	public static function init_profile_link() {
 		if ( is_admin() ) {
-			add_action( 'show_user_profile', array( __CLASS__, 'render_profile_link' ) );
-			add_action( 'edit_user_profile', array( __CLASS__, 'render_profile_link' ) );
+			add_action( 'show_user_profile', array( __CLASS__, 'render_notes_section' ), 99 );
+			add_action( 'edit_user_profile', array( __CLASS__, 'render_notes_section' ), 99 );
+			add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_profile_assets' ) );
+			add_action( 'wp_ajax_nbuf_profile_add_note', array( __CLASS__, 'ajax_profile_add_note' ) );
+			add_action( 'wp_ajax_nbuf_profile_delete_note', array( __CLASS__, 'ajax_profile_delete_note' ) );
 		}
 	}
 
 	/**
-	 * Render user notes link in user profile.
+	 * Enqueue assets for user profile notes section.
 	 *
-	 * @since 1.0.0
-	 * @param WP_User $user User object.
+	 * @since 1.5.0
+	 * @param string $hook Current admin page hook.
 	 */
-	public static function render_profile_link( $user ) {
-		if ( ! current_user_can( 'manage_options' ) ) {
+	public static function enqueue_profile_assets( $hook ) {
+		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
 
-		$note_count = self::get_note_count( $user->ID );
-		$notes_url  = add_query_arg(
-			array(
-				'page'    => 'nobloat-foundry-notes',
-				'user_id' => $user->ID,
-			),
-			admin_url( 'admin.php' )
+		if ( ! current_user_can( 'edit_users' ) ) {
+			return;
+		}
+
+		wp_add_inline_style(
+			'wp-admin',
+			'
+			.nbuf-notes-list {
+				margin-bottom: 20px;
+			}
+			.nbuf-note-item {
+				padding: 15px;
+				border: 1px solid #dcdcde;
+				border-radius: 4px;
+				margin-bottom: 10px;
+				background: #f9f9f9;
+			}
+			.nbuf-note-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-start;
+				margin-bottom: 8px;
+			}
+			.nbuf-note-meta {
+				font-size: 12px;
+				color: #646970;
+			}
+			.nbuf-note-actions a {
+				color: #b32d2e;
+				text-decoration: none;
+				font-size: 12px;
+			}
+			.nbuf-note-actions a:hover {
+				color: #a00;
+			}
+			.nbuf-note-content {
+				white-space: pre-wrap;
+				word-wrap: break-word;
+				line-height: 1.5;
+			}
+			.nbuf-add-note-form textarea {
+				width: 100%;
+				max-width: 600px;
+			}
+			.nbuf-notes-empty {
+				color: #646970;
+				font-style: italic;
+				padding: 20px 0;
+			}
+			'
 		);
+	}
+
+	/**
+	 * Render full notes section in user profile.
+	 *
+	 * @since 1.5.0
+	 * @param WP_User $user User object.
+	 */
+	public static function render_notes_section( $user ) {
+		if ( ! current_user_can( 'edit_users' ) ) {
+			return;
+		}
+
+		$notes = self::get_user_notes( $user->ID );
+		$nonce = wp_create_nonce( 'nbuf_profile_notes_nonce' );
 		?>
-		<h2><?php esc_html_e( 'User Notes', 'nobloat-user-foundry' ); ?></h2>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th><?php esc_html_e( 'Admin Notes', 'nobloat-user-foundry' ); ?></th>
-				<td>
-					<p>
-						<a href="<?php echo esc_url( $notes_url ); ?>" class="button button-secondary">
+		<h2><?php esc_html_e( 'Notes', 'nobloat-user-foundry' ); ?></h2>
+		<div class="nbuf-notes-section-content">
+			<p class="description" style="margin-bottom: 15px;">
+				<?php esc_html_e( 'Administrative notes about this user. Only visible to admins.', 'nobloat-user-foundry' ); ?>
+			</p>
+
+			<!-- Existing Notes -->
+			<div class="nbuf-notes-list" id="nbuf-profile-notes-list">
+				<?php if ( empty( $notes ) ) : ?>
+					<p class="nbuf-notes-empty"><?php esc_html_e( 'No notes yet.', 'nobloat-user-foundry' ); ?></p>
+				<?php else : ?>
+					<?php foreach ( $notes as $note ) : ?>
+						<?php
+						$author = get_user_by( 'id', $note->created_by );
+						?>
+						<div class="nbuf-note-item" data-note-id="<?php echo esc_attr( $note->id ); ?>">
+							<div class="nbuf-note-header">
+								<span class="nbuf-note-meta">
+									<?php
+									printf(
+										/* translators: 1: author name, 2: date */
+										esc_html__( 'By %1$s on %2$s', 'nobloat-user-foundry' ),
+										'<strong>' . esc_html( $author ? $author->display_name : __( 'Unknown', 'nobloat-user-foundry' ) ) . '</strong>',
+										esc_html( mysql2date( 'M j, Y \a\t g:i A', $note->created_at ) )
+									);
+									?>
+								</span>
+								<span class="nbuf-note-actions">
+									<a href="#" class="nbuf-delete-note" data-note-id="<?php echo esc_attr( $note->id ); ?>">
+										<?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?>
+									</a>
+								</span>
+							</div>
+							<div class="nbuf-note-content"><?php echo esc_html( $note->note_content ); ?></div>
+						</div>
+					<?php endforeach; ?>
+				<?php endif; ?>
+			</div>
+
+			<!-- Add Note Form -->
+			<div class="nbuf-add-note-form">
+				<h3 style="font-size: 14px; margin-bottom: 10px;"><?php esc_html_e( 'Add Note', 'nobloat-user-foundry' ); ?></h3>
+				<textarea id="nbuf-new-profile-note" rows="4" class="large-text" placeholder="<?php esc_attr_e( 'Enter note...', 'nobloat-user-foundry' ); ?>"></textarea>
+				<p style="margin-top: 10px;">
+					<button type="button" id="nbuf-add-profile-note-btn" class="button button-primary">
+						<?php esc_html_e( 'Add Note', 'nobloat-user-foundry' ); ?>
+					</button>
+				</p>
+			</div>
+		</div>
+
+		<script>
+		jQuery(document).ready(function($) {
+			var userId = <?php echo absint( $user->ID ); ?>;
+			var nonce = '<?php echo esc_js( $nonce ); ?>';
+
+			/* Add note */
+			$('#nbuf-add-profile-note-btn').on('click', function() {
+				var $btn = $(this);
+				var content = $('#nbuf-new-profile-note').val().trim();
+
+				if (!content) {
+					alert('<?php echo esc_js( __( 'Please enter a note.', 'nobloat-user-foundry' ) ); ?>');
+					return;
+				}
+
+				$btn.prop('disabled', true).text('<?php echo esc_js( __( 'Adding...', 'nobloat-user-foundry' ) ); ?>');
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'nbuf_profile_add_note',
+						user_id: userId,
+						note_content: content,
+						nonce: nonce
+					},
+					success: function(response) {
+						if (response.success) {
+							location.reload();
+						} else {
+							alert(response.data.message || '<?php echo esc_js( __( 'Error adding note.', 'nobloat-user-foundry' ) ); ?>');
+							$btn.prop('disabled', false).text('<?php echo esc_js( __( 'Add Note', 'nobloat-user-foundry' ) ); ?>');
+						}
+					},
+					error: function() {
+						alert('<?php echo esc_js( __( 'Error adding note.', 'nobloat-user-foundry' ) ); ?>');
+						$btn.prop('disabled', false).text('<?php echo esc_js( __( 'Add Note', 'nobloat-user-foundry' ) ); ?>');
+					}
+				});
+			});
+
+			/* Delete note */
+			$(document).on('click', '.nbuf-delete-note', function(e) {
+				e.preventDefault();
+
+				if (!confirm('<?php echo esc_js( __( 'Are you sure you want to delete this note?', 'nobloat-user-foundry' ) ); ?>')) {
+					return;
+				}
+
+				var $link = $(this);
+				var noteId = $link.data('note-id');
+				var $noteItem = $link.closest('.nbuf-note-item');
+
+				$link.text('<?php echo esc_js( __( 'Deleting...', 'nobloat-user-foundry' ) ); ?>');
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'nbuf_profile_delete_note',
+						note_id: noteId,
+						nonce: nonce
+					},
+					success: function(response) {
+						if (response.success) {
+							$noteItem.fadeOut(300, function() {
+								$(this).remove();
+								/* Check if empty */
+								if ($('#nbuf-profile-notes-list .nbuf-note-item').length === 0) {
+									$('#nbuf-profile-notes-list').html('<p class="nbuf-notes-empty"><?php echo esc_js( __( 'No notes yet.', 'nobloat-user-foundry' ) ); ?></p>');
+								}
+							});
+						} else {
+							alert(response.data.message || '<?php echo esc_js( __( 'Error deleting note.', 'nobloat-user-foundry' ) ); ?>');
+							$link.text('<?php echo esc_js( __( 'Delete', 'nobloat-user-foundry' ) ); ?>');
+						}
+					},
+					error: function() {
+						alert('<?php echo esc_js( __( 'Error deleting note.', 'nobloat-user-foundry' ) ); ?>');
+						$link.text('<?php echo esc_js( __( 'Delete', 'nobloat-user-foundry' ) ); ?>');
+					}
+				});
+			});
+		});
+		</script>
 		<?php
-			/* translators: %d: number of notes */
-			printf( esc_html__( 'View Notes (%d)', 'nobloat-user-foundry' ), (int) $note_count );
-		?>
-						</a>
-					</p>
-					<p class="description">
-		<?php esc_html_e( 'View and manage administrative notes for this user.', 'nobloat-user-foundry' ); ?>
-					</p>
-				</td>
-			</tr>
-		</table>
-		<?php
+	}
+
+	/**
+	 * AJAX: Add note from profile page.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function ajax_profile_add_note() {
+		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+		$content = isset( $_POST['note_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note_content'] ) ) : '';
+
+		if ( ! $user_id || empty( $content ) ) {
+			wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify target user exists */
+		if ( ! get_userdata( $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$note_id = self::add_note( $user_id, $content, get_current_user_id() );
+
+		if ( $note_id ) {
+			wp_send_json_success( array( 'note_id' => $note_id ) );
+		}
+
+		wp_send_json_error( array( 'message' => __( 'Failed to add note.', 'nobloat-user-foundry' ) ) );
+	}
+
+	/**
+	 * AJAX: Delete note from profile page.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function ajax_profile_delete_note() {
+		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$note_id = isset( $_POST['note_id'] ) ? absint( $_POST['note_id'] ) : 0;
+
+		if ( ! $note_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid note ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$success = self::delete_note( $note_id );
+
+		if ( $success ) {
+			wp_send_json_success();
+		}
+
+		wp_send_json_error( array( 'message' => __( 'Failed to delete note.', 'nobloat-user-foundry' ) ) );
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -60,6 +60,10 @@ class NBUF_Template_Manager {
 		'2fa-verify'                => 'nbuf_2fa_verify_template',
 		'2fa-setup-totp'            => 'nbuf_2fa_setup_totp_template',
 		'2fa-backup-codes'          => 'nbuf_2fa_backup_codes_template',
+
+		// Policy templates.
+		'policy-privacy-html'       => 'nbuf_policy_privacy_html',
+		'policy-terms-html'         => 'nbuf_policy_terms_html',
 	);
 
 	/**
@@ -89,6 +93,8 @@ class NBUF_Template_Manager {
 		'2fa-verify'                => '2fa-verify.html',
 		'2fa-setup-totp'            => '2fa-setup-totp.html',
 		'2fa-backup-codes'          => '2fa-backup-codes.html',
+		'policy-privacy-html'       => 'policy-privacy.html',
+		'policy-terms-html'         => 'policy-terms.html',
 	);
 
 	/**
@@ -449,6 +455,10 @@ class NBUF_Template_Manager {
 			'2fa-verify'                => '{action_url}, {nonce_field}, {error_message}, {method}, {resend_link}',
 			'2fa-setup-totp'            => '{qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}',
 			'2fa-backup-codes'          => '{backup_codes}, {action_url}, {nonce_field}, {error_message}',
+
+			// Policy templates.
+			'policy-privacy-html'       => '{site_name}, {site_url}',
+			'policy-terms-html'         => '{site_name}, {site_url}',
 		);
 
 		return isset( $placeholders[ $template_name ] ) ? $placeholders[ $template_name ] : '';

@@ -3,7 +3,8 @@
  * Profile Fields Tab
  *
  * Configure which extended profile fields are enabled and visible
- * in user profiles and admin screens.
+ * in registration forms and account pages, set required status,
+ * and customize field labels.
  *
  * @package NoBloat_User_Foundry
  */
@@ -14,18 +15,71 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Handle form submission */
 if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_profile_fields_settings', 'nbuf_profile_fields_nonce' ) ) {
-	$enabled_fields = isset( $_POST['nbuf_enabled_profile_fields'] ) && is_array( $_POST['nbuf_enabled_profile_fields'] )
-	? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_enabled_profile_fields'] ) )
-	: array();
+	$registration_fields = isset( $_POST['nbuf_registration_profile_fields'] ) && is_array( $_POST['nbuf_registration_profile_fields'] )
+		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_registration_profile_fields'] ) )
+		: array();
 
-	NBUF_Options::update( 'nbuf_enabled_profile_fields', $enabled_fields );
+	$required_fields = isset( $_POST['nbuf_required_profile_fields'] ) && is_array( $_POST['nbuf_required_profile_fields'] )
+		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_required_profile_fields'] ) )
+		: array();
+
+	$account_fields = isset( $_POST['nbuf_account_profile_fields'] ) && is_array( $_POST['nbuf_account_profile_fields'] )
+		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_account_profile_fields'] ) )
+		: array();
+
+	$field_labels = isset( $_POST['nbuf_profile_field_labels'] ) && is_array( $_POST['nbuf_profile_field_labels'] )
+		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_profile_field_labels'] ) )
+		: array();
+
+	/* Filter out empty labels */
+	$field_labels = array_filter( $field_labels, function ( $label ) {
+		return ! empty( trim( $label ) );
+	} );
+
+	NBUF_Options::update( 'nbuf_registration_profile_fields', $registration_fields );
+	NBUF_Options::update( 'nbuf_required_profile_fields', $required_fields );
+	NBUF_Options::update( 'nbuf_account_profile_fields', $account_fields );
+	NBUF_Options::update( 'nbuf_profile_field_labels', $field_labels );
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile field settings saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
-/* Get current enabled fields */
-$enabled_fields = NBUF_Profile_Data::get_enabled_fields();
-$field_registry = NBUF_Profile_Data::get_field_registry();
+/* Get current settings */
+$registration_fields = NBUF_Options::get( 'nbuf_registration_profile_fields', array() );
+$required_fields     = NBUF_Options::get( 'nbuf_required_profile_fields', array() );
+$account_fields      = NBUF_Options::get( 'nbuf_account_profile_fields', array() );
+$field_labels        = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+$field_registry      = NBUF_Profile_Data::get_field_registry();
+
+/* For backward compatibility - migrate from old settings if new ones are empty */
+$old_enabled     = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
+$old_reg_fields  = NBUF_Options::get( 'nbuf_registration_fields', array() );
+
+if ( empty( $registration_fields ) && empty( $account_fields ) ) {
+	if ( ! empty( $old_enabled ) ) {
+		$registration_fields = $old_enabled;
+		$account_fields      = $old_enabled;
+	}
+	/* Migrate labels and required from old registration settings */
+	if ( ! empty( $old_reg_fields ) ) {
+		foreach ( $old_reg_fields as $key => $value ) {
+			if ( strpos( $key, '_label' ) !== false && ! empty( $value ) ) {
+				$field_key = str_replace( '_label', '', $key );
+				$field_labels[ $field_key ] = $value;
+			}
+			if ( strpos( $key, '_required' ) !== false && $value ) {
+				$field_key = str_replace( '_required', '', $key );
+				$required_fields[] = $field_key;
+			}
+			if ( strpos( $key, '_enabled' ) !== false && $value ) {
+				$field_key = str_replace( '_enabled', '', $key );
+				if ( ! in_array( $field_key, $registration_fields, true ) ) {
+					$registration_fields[] = $field_key;
+				}
+			}
+		}
+	}
+}
 ?>
 
 <form method="post" action="">
@@ -35,7 +89,7 @@ $field_registry = NBUF_Profile_Data::get_field_registry();
 
 	<h2><?php esc_html_e( 'Profile Field Configuration', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Enable or disable extended profile fields. Only enabled fields will appear in user profiles, registration forms, and admin edit screens.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'Configure which fields appear on registration and account pages. Fields marked "Required" must be filled during registration. Custom labels override the default field names.', 'nobloat-user-foundry' ); ?>
 	</p>
 
 	<?php foreach ( $field_registry as $category_key => $category_data ) : ?>
@@ -43,39 +97,85 @@ $field_registry = NBUF_Profile_Data::get_field_registry();
 		<table class="wp-list-table widefat fixed striped" style="margin-bottom: 30px;">
 			<thead>
 				<tr>
-					<th style="width: 50px; text-align: center;">
-						<input type="checkbox" class="nbuf-select-all" data-category="<?php echo esc_attr( $category_key ); ?>">
-					</th>
-					<th style="width: 40%;"><?php esc_html_e( 'Field', 'nobloat-user-foundry' ); ?></th>
-					<th style="width: 60%;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 18%;"><?php esc_html_e( 'Field', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Registration', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Required', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 10%; text-align: center;"><?php esc_html_e( 'Account', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 22%;"><?php esc_html_e( 'Custom Label', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 30%;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 		<?php
 		foreach ( $category_data['fields'] as $field_key => $field_label ) :
-			$is_enabled  = in_array( $field_key, $enabled_fields, true );
-			$description = get_field_description( $field_key );
+			$is_registration = in_array( $field_key, $registration_fields, true );
+			$is_required     = in_array( $field_key, $required_fields, true );
+			$is_account      = in_array( $field_key, $account_fields, true );
+			$custom_label    = $field_labels[ $field_key ] ?? '';
+			$description     = nbuf_get_field_description( $field_key );
 			?>
-					<tr>
-						<td style="text-align: center;">
-							<input type="checkbox"
-								name="nbuf_enabled_profile_fields[]"
-								value="<?php echo esc_attr( $field_key ); ?>"
-			<?php checked( $is_enabled, true ); ?>
-								class="nbuf-field-toggle"
-								data-category="<?php echo esc_attr( $category_key ); ?>">
-						</td>
-						<td><strong><?php echo esc_html( $field_label ); ?></strong></td>
-						<td><?php echo esc_html( $description ); ?></td>
-					</tr>
+				<tr>
+					<td><strong><?php echo esc_html( $field_label ); ?></strong></td>
+					<td style="text-align: center;">
+						<input type="checkbox"
+							name="nbuf_registration_profile_fields[]"
+							value="<?php echo esc_attr( $field_key ); ?>"
+							<?php checked( $is_registration, true ); ?>
+							class="nbuf-reg-toggle"
+							data-category="<?php echo esc_attr( $category_key ); ?>"
+							data-field="<?php echo esc_attr( $field_key ); ?>">
+					</td>
+					<td style="text-align: center;">
+						<input type="checkbox"
+							name="nbuf_required_profile_fields[]"
+							value="<?php echo esc_attr( $field_key ); ?>"
+							<?php checked( $is_required, true ); ?>
+							<?php disabled( ! $is_registration, true ); ?>
+							class="nbuf-required-toggle"
+							data-field="<?php echo esc_attr( $field_key ); ?>">
+					</td>
+					<td style="text-align: center;">
+						<input type="checkbox"
+							name="nbuf_account_profile_fields[]"
+							value="<?php echo esc_attr( $field_key ); ?>"
+							<?php checked( $is_account, true ); ?>
+							class="nbuf-account-toggle"
+							data-category="<?php echo esc_attr( $category_key ); ?>">
+					</td>
+					<td>
+						<input type="text"
+							name="nbuf_profile_field_labels[<?php echo esc_attr( $field_key ); ?>]"
+							value="<?php echo esc_attr( $custom_label ); ?>"
+							class="regular-text"
+							placeholder="<?php echo esc_attr( $field_label ); ?>"
+							style="width: 100%;">
+					</td>
+					<td><span class="description"><?php echo esc_html( $description ); ?></span></td>
+				</tr>
 		<?php endforeach; ?>
 			</tbody>
+			<tfoot>
+				<tr>
+					<td><em><?php esc_html_e( 'Select All', 'nobloat-user-foundry' ); ?></em></td>
+					<td style="text-align: center;">
+						<input type="checkbox" class="nbuf-select-all-reg" data-category="<?php echo esc_attr( $category_key ); ?>">
+					</td>
+					<td style="text-align: center;">
+						<!-- No select all for required -->
+					</td>
+					<td style="text-align: center;">
+						<input type="checkbox" class="nbuf-select-all-account" data-category="<?php echo esc_attr( $category_key ); ?>">
+					</td>
+					<td></td>
+					<td></td>
+				</tr>
+			</tfoot>
 		</table>
 	<?php endforeach; ?>
 
 	<p class="description">
 		<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
-		<?php esc_html_e( 'Unused fields will remain in the database but will not be displayed in forms. Data is never deleted when fields are disabled.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'First Name and Last Name are always available on both forms. The "Required" column only applies to registration. Data is never deleted when fields are disabled.', 'nobloat-user-foundry' ); ?>
 	</p>
 
 	<?php submit_button( __( 'Save Profile Fields', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_profile_fields' ); ?>
@@ -83,30 +183,72 @@ $field_registry = NBUF_Profile_Data::get_field_registry();
 
 <script>
 jQuery(document).ready(function($) {
-	/* Select/deselect all checkboxes in a category */
-	$('.nbuf-select-all').on('change', function() {
+	/* Enable/disable Required checkbox based on Registration checkbox */
+	$('.nbuf-reg-toggle').on('change', function() {
+		var field = $(this).data('field');
+		var isChecked = $(this).is(':checked');
+		var requiredCheckbox = $('.nbuf-required-toggle[data-field="' + field + '"]');
+
+		if (!isChecked) {
+			requiredCheckbox.prop('checked', false).prop('disabled', true);
+		} else {
+			requiredCheckbox.prop('disabled', false);
+		}
+
+		/* Update select all state */
+		var category = $(this).data('category');
+		var allCheckboxes = $('.nbuf-reg-toggle[data-category="' + category + '"]');
+		var checkedCount = allCheckboxes.filter(':checked').length;
+		$('.nbuf-select-all-reg[data-category="' + category + '"]').prop('checked', checkedCount === allCheckboxes.length);
+	});
+
+	/* Select/deselect all Registration checkboxes in a category */
+	$('.nbuf-select-all-reg').on('change', function() {
 		var category = $(this).data('category');
 		var isChecked = $(this).is(':checked');
-		$('.nbuf-field-toggle[data-category="' + category + '"]').prop('checked', isChecked);
+		$('.nbuf-reg-toggle[data-category="' + category + '"]').each(function() {
+			$(this).prop('checked', isChecked).trigger('change');
+		});
 	});
 
-	/* Update "select all" checkbox state when individual checkboxes change */
-	$('.nbuf-field-toggle').on('change', function() {
+	/* Select/deselect all Account checkboxes in a category */
+	$('.nbuf-select-all-account').on('change', function() {
 		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-field-toggle[data-category="' + category + '"]');
-		var checkedCount = allCheckboxes.filter(':checked').length;
-		var selectAllCheckbox = $('.nbuf-select-all[data-category="' + category + '"]');
-
-		selectAllCheckbox.prop('checked', checkedCount === allCheckboxes.length);
+		var isChecked = $(this).is(':checked');
+		$('.nbuf-account-toggle[data-category="' + category + '"]').prop('checked', isChecked);
 	});
 
-	/* Initialize "select all" checkbox state on page load */
-	$('.nbuf-select-all').each(function() {
+	/* Update "select all" checkbox state for Account */
+	$('.nbuf-account-toggle').on('change', function() {
 		var category = $(this).data('category');
-		var allCheckboxes = $('.nbuf-field-toggle[data-category="' + category + '"]');
+		var allCheckboxes = $('.nbuf-account-toggle[data-category="' + category + '"]');
 		var checkedCount = allCheckboxes.filter(':checked').length;
+		$('.nbuf-select-all-account[data-category="' + category + '"]').prop('checked', checkedCount === allCheckboxes.length);
+	});
 
-		$(this).prop('checked', checkedCount === allCheckboxes.length);
+	/* Initialize states on page load */
+	$('.nbuf-select-all-reg').each(function() {
+		var category = $(this).data('category');
+		var allCheckboxes = $('.nbuf-reg-toggle[data-category="' + category + '"]');
+		var checkedCount = allCheckboxes.filter(':checked').length;
+		$(this).prop('checked', checkedCount === allCheckboxes.length && allCheckboxes.length > 0);
+	});
+
+	$('.nbuf-select-all-account').each(function() {
+		var category = $(this).data('category');
+		var allCheckboxes = $('.nbuf-account-toggle[data-category="' + category + '"]');
+		var checkedCount = allCheckboxes.filter(':checked').length;
+		$(this).prop('checked', checkedCount === allCheckboxes.length && allCheckboxes.length > 0);
+	});
+
+	/* Initialize Required checkbox disabled state */
+	$('.nbuf-reg-toggle').each(function() {
+		var field = $(this).data('field');
+		var isChecked = $(this).is(':checked');
+		var requiredCheckbox = $('.nbuf-required-toggle[data-field="' + field + '"]');
+		if (!isChecked) {
+			requiredCheckbox.prop('disabled', true);
+		}
 	});
 });
 </script>
@@ -118,61 +260,72 @@ jQuery(document).ready(function($) {
  * @param  string $field_key Field key.
  * @return string Field description.
  */
-function get_field_description( $field_key ) {
+function nbuf_get_field_description( $field_key ) {
 	$descriptions = array(
 		'phone'                    => __( 'Primary phone number', 'nobloat-user-foundry' ),
 		'mobile_phone'             => __( 'Mobile/cell phone number', 'nobloat-user-foundry' ),
 		'work_phone'               => __( 'Work/office phone number', 'nobloat-user-foundry' ),
 		'fax'                      => __( 'Fax number', 'nobloat-user-foundry' ),
 		'preferred_name'           => __( 'Name the user prefers to be called', 'nobloat-user-foundry' ),
-		'pronouns'                 => __( 'Preferred pronouns (e.g., he/him, she/her, they/them)', 'nobloat-user-foundry' ),
-		'date_of_birth'            => __( 'Date of birth (format: YYYY-MM-DD)', 'nobloat-user-foundry' ),
-		'timezone'                 => __( 'User timezone (e.g., America/New_York)', 'nobloat-user-foundry' ),
+		'pronouns'                 => __( 'Preferred pronouns (e.g., he/him)', 'nobloat-user-foundry' ),
+		'gender'                   => __( 'Gender', 'nobloat-user-foundry' ),
+		'date_of_birth'            => __( 'Date of birth (YYYY-MM-DD)', 'nobloat-user-foundry' ),
+		'timezone'                 => __( 'User timezone', 'nobloat-user-foundry' ),
+		'secondary_email'          => __( 'Secondary email address', 'nobloat-user-foundry' ),
 		'address'                  => __( 'Full address (single field)', 'nobloat-user-foundry' ),
-		'address_line1'            => __( 'Address line 1 (street address)', 'nobloat-user-foundry' ),
-		'address_line2'            => __( 'Address line 2 (apt, suite, etc.)', 'nobloat-user-foundry' ),
+		'address_line1'            => __( 'Street address', 'nobloat-user-foundry' ),
+		'address_line2'            => __( 'Apt, suite, etc.', 'nobloat-user-foundry' ),
 		'city'                     => __( 'City', 'nobloat-user-foundry' ),
-		'state'                    => __( 'State, province, or region', 'nobloat-user-foundry' ),
+		'state'                    => __( 'State/province/region', 'nobloat-user-foundry' ),
 		'postal_code'              => __( 'ZIP or postal code', 'nobloat-user-foundry' ),
 		'country'                  => __( 'Country', 'nobloat-user-foundry' ),
-		'company'                  => __( 'Company or organization name', 'nobloat-user-foundry' ),
+		'company'                  => __( 'Company or organization', 'nobloat-user-foundry' ),
 		'job_title'                => __( 'Job title or position', 'nobloat-user-foundry' ),
-		'department'               => __( 'Department or division', 'nobloat-user-foundry' ),
+		'department'               => __( 'Department', 'nobloat-user-foundry' ),
 		'division'                 => __( 'Division or business unit', 'nobloat-user-foundry' ),
-		'employee_id'              => __( 'Employee ID or staff number', 'nobloat-user-foundry' ),
+		'employee_id'              => __( 'Employee ID number', 'nobloat-user-foundry' ),
 		'badge_number'             => __( 'Badge or ID card number', 'nobloat-user-foundry' ),
-		'manager_name'             => __( 'Direct manager or supervisor name', 'nobloat-user-foundry' ),
+		'manager_name'             => __( 'Manager or supervisor name', 'nobloat-user-foundry' ),
 		'supervisor_email'         => __( 'Supervisor email address', 'nobloat-user-foundry' ),
 		'office_location'          => __( 'Office location or building', 'nobloat-user-foundry' ),
 		'hire_date'                => __( 'Employment start date', 'nobloat-user-foundry' ),
 		'termination_date'         => __( 'Employment end date', 'nobloat-user-foundry' ),
-		'work_email'               => __( 'Work email address (separate from login)', 'nobloat-user-foundry' ),
-		'employment_type'          => __( 'Full-time, part-time, contractor, etc.', 'nobloat-user-foundry' ),
+		'work_email'               => __( 'Work email (separate from login)', 'nobloat-user-foundry' ),
+		'employment_type'          => __( 'Full-time, part-time, etc.', 'nobloat-user-foundry' ),
 		'license_number'           => __( 'Professional license number', 'nobloat-user-foundry' ),
-		'professional_memberships' => __( 'Professional associations and memberships', 'nobloat-user-foundry' ),
+		'professional_memberships' => __( 'Professional associations', 'nobloat-user-foundry' ),
 		'security_clearance'       => __( 'Security clearance level', 'nobloat-user-foundry' ),
 		'shift'                    => __( 'Work shift (day, night, swing)', 'nobloat-user-foundry' ),
 		'remote_status'            => __( 'Remote, hybrid, or on-site', 'nobloat-user-foundry' ),
 		'student_id'               => __( 'Student ID number', 'nobloat-user-foundry' ),
 		'school_name'              => __( 'School or university name', 'nobloat-user-foundry' ),
-		'degree'                   => __( 'Degree or diploma earned', 'nobloat-user-foundry' ),
+		'degree'                   => __( 'Degree or diploma', 'nobloat-user-foundry' ),
 		'major'                    => __( 'Major or field of study', 'nobloat-user-foundry' ),
 		'graduation_year'          => __( 'Year graduated', 'nobloat-user-foundry' ),
 		'gpa'                      => __( 'Grade point average', 'nobloat-user-foundry' ),
 		'certifications'           => __( 'Professional certifications', 'nobloat-user-foundry' ),
-		'twitter'                  => __( 'Twitter/X handle or profile URL', 'nobloat-user-foundry' ),
+		'twitter'                  => __( 'Twitter/X handle or URL', 'nobloat-user-foundry' ),
 		'facebook'                 => __( 'Facebook profile URL', 'nobloat-user-foundry' ),
 		'linkedin'                 => __( 'LinkedIn profile URL', 'nobloat-user-foundry' ),
-		'instagram'                => __( 'Instagram handle or profile URL', 'nobloat-user-foundry' ),
-		'github'                   => __( 'GitHub username or profile URL', 'nobloat-user-foundry' ),
+		'instagram'                => __( 'Instagram handle or URL', 'nobloat-user-foundry' ),
+		'github'                   => __( 'GitHub username or URL', 'nobloat-user-foundry' ),
 		'youtube'                  => __( 'YouTube channel URL', 'nobloat-user-foundry' ),
-		'tiktok'                   => __( 'TikTok handle or profile URL', 'nobloat-user-foundry' ),
+		'tiktok'                   => __( 'TikTok handle or URL', 'nobloat-user-foundry' ),
 		'discord_username'         => __( 'Discord username', 'nobloat-user-foundry' ),
-		'bio'                      => __( 'User biography or about section', 'nobloat-user-foundry' ),
-		'website'                  => __( 'Personal or professional website URL', 'nobloat-user-foundry' ),
+		'whatsapp'                 => __( 'WhatsApp number', 'nobloat-user-foundry' ),
+		'telegram'                 => __( 'Telegram handle', 'nobloat-user-foundry' ),
+		'viber'                    => __( 'Viber number', 'nobloat-user-foundry' ),
+		'twitch'                   => __( 'Twitch channel', 'nobloat-user-foundry' ),
+		'reddit'                   => __( 'Reddit username', 'nobloat-user-foundry' ),
+		'snapchat'                 => __( 'Snapchat handle', 'nobloat-user-foundry' ),
+		'soundcloud'               => __( 'SoundCloud profile', 'nobloat-user-foundry' ),
+		'vimeo'                    => __( 'Vimeo channel', 'nobloat-user-foundry' ),
+		'spotify'                  => __( 'Spotify profile', 'nobloat-user-foundry' ),
+		'pinterest'                => __( 'Pinterest profile', 'nobloat-user-foundry' ),
+		'website'                  => __( 'Personal or professional website', 'nobloat-user-foundry' ),
 		'nationality'              => __( 'Nationality or citizenship', 'nobloat-user-foundry' ),
 		'languages'                => __( 'Languages spoken', 'nobloat-user-foundry' ),
-		'emergency_contact'        => __( 'Emergency contact information', 'nobloat-user-foundry' ),
+		'emergency_contact'        => __( 'Emergency contact info', 'nobloat-user-foundry' ),
 	);
 
 	return isset( $descriptions[ $field_key ] ) ? $descriptions[ $field_key ] : '';

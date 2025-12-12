@@ -37,7 +37,7 @@ $admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-tex
 				<?php esc_html_e( 'Available placeholders: {site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
-				<button type="button" class="button button-secondary nbuf-reset-template-btn" data-template="admin-new-user" data-type="html">
+				<button type="button" class="button nbuf-reset-template" data-template="admin-new-user-html">
 					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
 				</button>
 			</p>
@@ -54,7 +54,7 @@ $admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-tex
 				<?php esc_html_e( 'Plain text version for email clients that don\'t support HTML. Same placeholders available.', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
-				<button type="button" class="button button-secondary nbuf-reset-template-btn" data-template="admin-new-user" data-type="text">
+				<button type="button" class="button nbuf-reset-template" data-template="admin-new-user-text">
 					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
 				</button>
 			</p>

@@ -14,6 +14,15 @@
  */
 
 jQuery(document).ready(function($) {
+	/* Button click triggers file input */
+	$('#nbuf_profile_photo_upload_btn').on('click', function() {
+		$('#nbuf_profile_photo_upload').trigger('click');
+	});
+
+	$('#nbuf_cover_photo_upload_btn').on('click', function() {
+		$('#nbuf_cover_photo_upload').trigger('click');
+	});
+
 	/* Profile Photo Upload */
 	$('#nbuf_profile_photo_upload').on('change', function(e) {
 		var file = e.target.files[0];

@@ -93,23 +93,6 @@ if ( in_array( 'tables', $cleanup, true ) || in_array( 'tokens', $cleanup, true 
 }
 
 /**
- * Remove verification usermeta fields (if requested)
- *
- * Deletes any orphaned usermeta from older versions.
- * User data is now stored in custom table.
- */
-if ( in_array( 'usermeta', $cleanup, true ) ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$wpdb->query(
-		$wpdb->prepare(
-			"DELETE FROM %i
-			WHERE meta_key IN ('nbuf_verified', 'nbuf_verified_date', 'nbuf_user_disabled')",
-			$wpdb->usermeta
-		)
-	);
-}
-
-/**
  * Delete pages containing NoBloat shortcodes (if requested)
  *
  * Searches for all pages that contain NoBloat shortcodes and deletes them.
@@ -169,28 +152,13 @@ if ( in_array( 'pages', $cleanup, true ) ) {
 }
 
 /**
- * GDPR: Delete all user photos (if requested)
+ * Delete uploads directory (if requested)
  *
- * Checks nbuf_gdpr_delete_on_uninstall setting. If enabled, permanently
- * deletes the entire /uploads/nobloat/ directory (including /nobloat/users/) and all user photos.
+ * Permanently deletes the entire /uploads/nobloat/ directory including
+ * all user profile photos, cover photos, and uploaded files.
  * This action cannot be undone. Disabled by default for safety.
  */
-$delete_photos = false;
-
-if ( $table_exists ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$delete_photos_setting = $wpdb->get_var(
-		$wpdb->prepare(
-			'SELECT option_value FROM %i WHERE option_name = %s',
-			$options_table,
-			'nbuf_gdpr_delete_on_uninstall'
-		)
-	);
-
-	$delete_photos = $delete_photos_setting ? (bool) maybe_unserialize( $delete_photos_setting ) : false;
-}
-
-if ( $delete_photos ) {
+if ( in_array( 'uploads', $cleanup, true ) ) {
 	$upload_dir = wp_upload_dir();
 	$nbuf_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/';
 
@@ -211,16 +179,13 @@ if ( $delete_photos ) {
 
 			if ( ! empty( $user_dirs ) && is_array( $user_dirs ) ) {
 				foreach ( $user_dirs as $user_dir ) {
-					/*
-					 * SECURITY: Delete files with proper error handling (no @ suppression).
-					 * GDPR compliance: Delete all user photo data.
-					 */
+					/* Delete all files in user directory */
 					$files = glob( $user_dir . '/*' );
 					if ( ! empty( $files ) && is_array( $files ) ) {
 						foreach ( $files as $file ) {
-						// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Required for GDPR file deletion validation.
+							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Required for file deletion validation.
 							if ( is_file( $file ) && is_writable( $file ) ) {
-								// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- GDPR data deletion.
+								// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Uninstall cleanup.
 								unlink( $file );
 							}
 						}

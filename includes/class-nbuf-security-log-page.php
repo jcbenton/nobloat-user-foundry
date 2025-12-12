@@ -26,7 +26,7 @@ class NBUF_Security_Log_Page {
 	 * Initialize security log page
 	 */
 	public static function init() {
-		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 13 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_purge' ) );
 	}

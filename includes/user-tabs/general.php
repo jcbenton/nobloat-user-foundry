@@ -12,20 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings   = NBUF_Options::get( 'nbuf_settings', array() );
-$cleanup    = (array) ( $settings['cleanup'] ?? array() );
-$hooks      = (array) ( $settings['hooks'] ?? array() );
-$custom     = sanitize_text_field( $settings['hooks_custom'] ?? '' );
-$verify_url = $settings['verification_page'] ?? '/verify';
-$reset_url  = $settings['password_reset_page'] ?? '/password-reset';
+$settings = NBUF_Options::get( 'nbuf_settings', array() );
+$cleanup  = (array) ( $settings['cleanup'] ?? array() );
+$hooks    = (array) ( $settings['hooks'] ?? array() );
+$custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 
 /* Feature toggles */
-$require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
-$enable_login              = NBUF_Options::get( 'nbuf_enable_login', true );
-$enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
-$notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
-$enable_password_reset     = NBUF_Options::get( 'nbuf_enable_password_reset', true );
-$enable_custom_roles       = NBUF_Options::get( 'nbuf_enable_custom_roles', true );
+$enable_login          = NBUF_Options::get( 'nbuf_enable_login', true );
+$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
+$enable_custom_roles   = NBUF_Options::get( 'nbuf_enable_custom_roles', true );
 
 /* Logout settings */
 $logout_behavior        = NBUF_Options::get( 'nbuf_logout_behavior', 'immediate' );
@@ -88,18 +83,6 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 	<h2><?php esc_html_e( 'Feature Toggles', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">
 		<tr>
-			<th><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<label>
-					<input type="checkbox" name="nbuf_require_verification" value="1" <?php checked( $require_verification, true ); ?>>
-					<?php esc_html_e( 'Require email verification for new user registrations', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'When enabled, new users must verify their email address before they can log in. When disabled, users can log in immediately after registration.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
 			<th><?php esc_html_e( 'Custom Login Form', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
@@ -108,30 +91,6 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				</label>
 				<p class="description">
 					<?php esc_html_e( 'Use NoBloat login form via [nbuf_login_form] shortcode. When disabled, the shortcode will display a message.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'User Registration', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<label>
-					<input type="checkbox" name="nbuf_enable_registration" value="1" <?php checked( $enable_registration, true ); ?>>
-					<?php esc_html_e( 'Enable user registration', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Allow new users to register via [nbuf_registration_form] shortcode. When disabled, the shortcode will display a message.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Admin Notifications', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<label>
-					<input type="checkbox" name="nbuf_notify_admin_registration" value="1" <?php checked( $notify_admin_registration, true ); ?>>
-					<?php esc_html_e( 'Notify administrators when new users register', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Send an email notification to the site administrator email when a new user creates an account.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -395,28 +354,6 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				?>
 				<p class="description">
 					<?php esc_html_e( 'Page must contain [nbuf_account_page] shortcode. Auto-created as "NoBloat User Account" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-	</table>
-
-	<h2><?php esc_html_e( 'Verification & Password URLs', 'nobloat-user-foundry' ); ?></h2>
-	<table class="form-table">
-		<tr>
-			<th><?php esc_html_e( 'Verification URL', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="text" name="nbuf_settings[verification_page]" value="<?php echo esc_attr( $verify_url ); ?>" class="regular-text" placeholder="/verify">
-				<p class="description">
-					<?php echo wp_kses_post( __( 'The slug must exist as a page. It must include the shortcode <code>[nbuf_verify_page]</code> and will use your theme.', 'nobloat-user-foundry' ) ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Password Reset URL', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="text" name="nbuf_settings[password_reset_page]" value="<?php echo esc_attr( $reset_url ); ?>" class="regular-text" placeholder="/password-reset">
-				<p class="description">
-					<?php echo wp_kses_post( __( 'The slug must exist as a page. It must include the shortcode <code>[nbuf_reset_form]</code> and will use your theme.', 'nobloat-user-foundry' ) ); ?>
 				</p>
 			</td>
 		</tr>

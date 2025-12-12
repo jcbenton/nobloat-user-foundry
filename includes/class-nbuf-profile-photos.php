@@ -28,23 +28,36 @@ class NBUF_Profile_Photos {
 	 * Initialize profile photos
 	 */
 	public static function init() {
-		/* Check if profiles are enabled */
-		$enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
-		if ( ! $enabled ) {
-			return;
+		$profiles_enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
+		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
+
+		/* Register sub-tab section hooks */
+		if ( $profiles_enabled || $gravatar_enabled ) {
+			add_action( 'nbuf_account_profile_photo_subtab', array( __CLASS__, 'render_profile_photo_subtab' ) );
 		}
 
-		/* Override WordPress get_avatar if custom photos enabled */
-		add_filter( 'get_avatar', array( __CLASS__, 'custom_avatar' ), 10, 5 );
+		if ( $profiles_enabled ) {
+			add_action( 'nbuf_account_cover_photo_subtab', array( __CLASS__, 'render_cover_photo_subtab' ) );
+			add_action( 'nbuf_account_visibility_subtab', array( __CLASS__, 'render_visibility_subtab' ) );
 
-		/* Add profile photos section to account page */
-		add_action( 'nbuf_account_profile_photos_section', array( __CLASS__, 'render_account_photos_section' ) );
+			/* Override WordPress get_avatar if custom photos enabled */
+			add_filter( 'get_avatar', array( __CLASS__, 'custom_avatar' ), 10, 5 );
 
-		/* AJAX handlers for photo uploads */
-		add_action( 'wp_ajax_nbuf_upload_profile_photo', array( __CLASS__, 'ajax_upload_profile_photo' ) );
-		add_action( 'wp_ajax_nbuf_upload_cover_photo', array( __CLASS__, 'ajax_upload_cover_photo' ) );
-		add_action( 'wp_ajax_nbuf_delete_profile_photo', array( __CLASS__, 'ajax_delete_profile_photo' ) );
-		add_action( 'wp_ajax_nbuf_delete_cover_photo', array( __CLASS__, 'ajax_delete_cover_photo' ) );
+			/* AJAX handlers for photo uploads */
+			add_action( 'wp_ajax_nbuf_upload_profile_photo', array( __CLASS__, 'ajax_upload_profile_photo' ) );
+			add_action( 'wp_ajax_nbuf_upload_cover_photo', array( __CLASS__, 'ajax_upload_cover_photo' ) );
+			add_action( 'wp_ajax_nbuf_delete_profile_photo', array( __CLASS__, 'ajax_delete_profile_photo' ) );
+			add_action( 'wp_ajax_nbuf_delete_cover_photo', array( __CLASS__, 'ajax_delete_cover_photo' ) );
+
+			/* Admin user profile - photo sections */
+			add_action( 'show_user_profile', array( __CLASS__, 'render_admin_photos_section' ), 5 );
+			add_action( 'edit_user_profile', array( __CLASS__, 'render_admin_photos_section' ), 5 );
+			add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
+
+			/* Admin AJAX handlers for photo deletion */
+			add_action( 'wp_ajax_nbuf_admin_delete_profile_photo', array( __CLASS__, 'ajax_admin_delete_profile_photo' ) );
+			add_action( 'wp_ajax_nbuf_admin_delete_cover_photo', array( __CLASS__, 'ajax_admin_delete_cover_photo' ) );
+		}
 	}
 
 	/**
@@ -141,7 +154,7 @@ class NBUF_Profile_Photos {
 	}
 
 	/**
-	 * Generate SVG initials avatar
+	 * Generate SVG initials avatar as data URI
 	 *
 	 * @param  string $first_name First name.
 	 * @param  string $last_name  Last name.
@@ -149,6 +162,20 @@ class NBUF_Profile_Photos {
 	 * @return string SVG data URI.
 	 */
 	public static function get_svg_avatar( $first_name, $last_name, $size = 96 ) {
+		$svg = self::get_svg_avatar_html( $first_name, $last_name, $size );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Used for SVG data URI encoding, not code obfuscation.
+		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
+	}
+
+	/**
+	 * Generate SVG initials avatar as raw HTML
+	 *
+	 * @param  string $first_name First name.
+	 * @param  string $last_name  Last name.
+	 * @param  int    $size       Size in pixels.
+	 * @return string SVG HTML markup.
+	 */
+	public static function get_svg_avatar_html( $first_name, $last_name, $size = 96 ) {
 		/* Get initials */
 		$initials = self::get_initials( $first_name, $last_name );
 
@@ -162,8 +189,8 @@ class NBUF_Profile_Photos {
 		$font_size = round( $size * 0.4 );
 
 		/* SVG markup */
-		$svg = sprintf(
-			'<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" class="nbuf-svg-avatar">
+		return sprintf(
+			'<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" class="nbuf-svg-avatar nbuf-avatar nbuf-avatar-large">
 				<rect width="%d" height="%d" fill="%s"/>
 				<text x="50%%" y="50%%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="%d" font-weight="600" fill="%s">%s</text>
 			</svg>',
@@ -178,12 +205,6 @@ class NBUF_Profile_Photos {
 			esc_attr( $text_color ),
 			esc_html( $initials )
 		);
-
-		/*
-		 * Return as data URI
-		 */
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Used for SVG data URI encoding, not code obfuscation.
-		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
 	}
 
 	/**
@@ -253,7 +274,7 @@ class NBUF_Profile_Photos {
 	 * @param  int    $size  Size in pixels.
 	 * @return string Gravatar URL.
 	 */
-	private static function get_gravatar_url( $email, $size = 96 ) {
+	public static function get_gravatar_url( $email, $size = 96 ) {
 		/*
 		 * SECURITY NOTE: MD5 is used here per Gravatar API specification.
 		 * This is NOT a security vulnerability - Gravatar requires MD5 hashes.
@@ -266,6 +287,173 @@ class NBUF_Profile_Photos {
 			$hash,
 			$size
 		);
+	}
+
+	/**
+	 * Enqueue admin scripts for user profile pages
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public static function enqueue_admin_scripts( $hook ) {
+		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
+			return;
+		}
+
+		wp_add_inline_style(
+			'wp-admin',
+			'
+			.nbuf-admin-photo-preview {
+				display: inline-block;
+				background: #f0f0f1;
+				border: 1px solid #c3c4c7;
+				border-radius: 4px;
+				padding: 10px;
+				margin-bottom: 10px;
+			}
+			.nbuf-admin-photo-preview img {
+				display: block;
+				max-width: 100%;
+				height: auto;
+				border-radius: 4px;
+			}
+			.nbuf-admin-photo-preview.profile-photo {
+				max-width: 150px;
+			}
+			.nbuf-admin-photo-preview.profile-photo img {
+				width: 96px;
+				height: 96px;
+				object-fit: cover;
+			}
+			.nbuf-admin-photo-preview.cover-photo {
+				max-width: 400px;
+			}
+			.nbuf-admin-photo-placeholder {
+				color: #646970;
+				font-style: italic;
+				padding: 20px;
+				text-align: center;
+			}
+			.nbuf-admin-photo-actions {
+				margin-top: 10px;
+			}
+			.nbuf-admin-delete-photo {
+				color: #b32d2e !important;
+			}
+			.nbuf-admin-delete-photo:hover {
+				color: #a00 !important;
+			}
+			'
+		);
+	}
+
+	/**
+	 * Render photos section on admin user profile
+	 *
+	 * @param WP_User $user User object being edited.
+	 */
+	public static function render_admin_photos_section( $user ) {
+		$profile_photo_url = self::get_profile_photo( $user->ID, 96 );
+		$cover_photo_url   = self::get_cover_photo( $user->ID );
+		$user_data         = NBUF_User_Data::get( $user->ID );
+
+		/* Check if user has a custom uploaded profile photo (not SVG fallback) */
+		$has_custom_profile = $user_data && ! empty( $user_data->profile_photo_url ) && ! empty( $user_data->profile_photo_path );
+		$has_cover          = ! empty( $cover_photo_url );
+
+		/* Only show if user can edit users */
+		if ( ! current_user_can( 'edit_users' ) ) {
+			return;
+		}
+
+		$delete_profile_nonce = wp_create_nonce( 'nbuf_admin_delete_profile_photo' );
+		$delete_cover_nonce   = wp_create_nonce( 'nbuf_admin_delete_cover_photo' );
+		?>
+		<h2><?php esc_html_e( 'User Photos', 'nobloat-user-foundry' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th><label><?php esc_html_e( 'Profile Photo', 'nobloat-user-foundry' ); ?></label></th>
+				<td>
+					<div class="nbuf-admin-photo-preview profile-photo">
+						<img src="<?php echo esc_attr( $profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Profile photo', 'nobloat-user-foundry' ); ?>">
+					</div>
+					<?php if ( $has_custom_profile ) : ?>
+						<div class="nbuf-admin-photo-actions">
+							<a href="#" class="nbuf-admin-delete-photo" data-type="profile" data-user="<?php echo esc_attr( $user->ID ); ?>" data-nonce="<?php echo esc_attr( $delete_profile_nonce ); ?>">
+								<span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Delete Photo', 'nobloat-user-foundry' ); ?>
+							</a>
+						</div>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'User has no custom photo (showing default avatar).', 'nobloat-user-foundry' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th><label><?php esc_html_e( 'Cover Photo', 'nobloat-user-foundry' ); ?></label></th>
+				<td>
+					<?php if ( $has_cover ) : ?>
+						<div class="nbuf-admin-photo-preview cover-photo">
+							<img src="<?php echo esc_url( $cover_photo_url ); ?>" alt="<?php esc_attr_e( 'Cover photo', 'nobloat-user-foundry' ); ?>">
+						</div>
+						<div class="nbuf-admin-photo-actions">
+							<a href="#" class="nbuf-admin-delete-photo" data-type="cover" data-user="<?php echo esc_attr( $user->ID ); ?>" data-nonce="<?php echo esc_attr( $delete_cover_nonce ); ?>">
+								<span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Delete Photo', 'nobloat-user-foundry' ); ?>
+							</a>
+						</div>
+					<?php else : ?>
+						<div class="nbuf-admin-photo-preview cover-photo">
+							<div class="nbuf-admin-photo-placeholder">
+								<?php esc_html_e( 'No cover photo set', 'nobloat-user-foundry' ); ?>
+							</div>
+						</div>
+					<?php endif; ?>
+				</td>
+			</tr>
+		</table>
+
+		<script>
+		jQuery(document).ready(function($) {
+			$('.nbuf-admin-delete-photo').on('click', function(e) {
+				e.preventDefault();
+
+				var $link = $(this);
+				var type = $link.data('type');
+				var userId = $link.data('user');
+				var nonce = $link.data('nonce');
+				var confirmMsg = type === 'profile'
+					? '<?php echo esc_js( __( 'Are you sure you want to delete this user\'s profile photo?', 'nobloat-user-foundry' ) ); ?>'
+					: '<?php echo esc_js( __( 'Are you sure you want to delete this user\'s cover photo?', 'nobloat-user-foundry' ) ); ?>';
+
+				if (!confirm(confirmMsg)) {
+					return;
+				}
+
+				$link.text('<?php echo esc_js( __( 'Deleting...', 'nobloat-user-foundry' ) ); ?>');
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'nbuf_admin_delete_' + type + '_photo',
+						user_id: userId,
+						nonce: nonce
+					},
+					success: function(response) {
+						if (response.success) {
+							location.reload();
+						} else {
+							alert(response.data.message || '<?php echo esc_js( __( 'Error deleting photo.', 'nobloat-user-foundry' ) ); ?>');
+							$link.html('<span class="dashicons dashicons-trash"></span> <?php echo esc_js( __( 'Delete Photo', 'nobloat-user-foundry' ) ); ?>');
+						}
+					},
+					error: function() {
+						alert('<?php echo esc_js( __( 'Error deleting photo.', 'nobloat-user-foundry' ) ); ?>');
+						$link.html('<span class="dashicons dashicons-trash"></span> <?php echo esc_js( __( 'Delete Photo', 'nobloat-user-foundry' ) ); ?>');
+					}
+				});
+			});
+		});
+		</script>
+		<?php
 	}
 
 	/**
@@ -298,14 +486,25 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Get custom photo URL */
-		$photo_url = self::get_profile_photo( $user_id, $size );
+		$photo_url    = self::get_profile_photo( $user_id, $size );
+		$photo_url_2x = self::get_profile_photo( $user_id, $size * 2 );
+
+		/*
+		 * Handle data URIs (SVG avatars) separately since esc_url() doesn't allow data: scheme.
+		 * We control the SVG generation so it's safe to use esc_attr() for data URIs.
+		 */
+		$is_data_uri    = 0 === strpos( $photo_url, 'data:' );
+		$is_data_uri_2x = 0 === strpos( $photo_url_2x, 'data:' );
+
+		$src    = $is_data_uri ? esc_attr( $photo_url ) : esc_url( $photo_url );
+		$srcset = $is_data_uri_2x ? esc_attr( $photo_url_2x ) : esc_url( $photo_url_2x );
 
 		/* Build avatar HTML */
 		$avatar = sprintf(
 			'<img alt="%s" src="%s" srcset="%s 2x" class="avatar avatar-%d photo nbuf-avatar" height="%d" width="%d" loading="lazy" decoding="async" />',
 			esc_attr( $alt ),
-			esc_url( $photo_url ),
-			esc_url( self::get_profile_photo( $user_id, $size * 2 ) ),
+			$src,
+			$srcset,
 			(int) $size,
 			(int) $size,
 			(int) $size
@@ -721,6 +920,78 @@ class NBUF_Profile_Photos {
 	}
 
 	/**
+	 * AJAX: Admin delete profile photo (moderation)
+	 */
+	public static function ajax_admin_delete_profile_photo() {
+		/* Verify nonce */
+		check_ajax_referer( 'nbuf_admin_delete_profile_photo', 'nonce' );
+
+		/* Check admin capability */
+		if ( ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to delete user photos.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get user ID from POST */
+		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+		if ( ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify user exists */
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Delete photo */
+		self::delete_user_photo( $user_id, 'profile' );
+
+		/* Return success */
+		wp_send_json_success(
+			array(
+				'message' => __( 'Profile photo deleted successfully.', 'nobloat-user-foundry' ),
+			)
+		);
+	}
+
+	/**
+	 * AJAX: Admin delete cover photo (moderation)
+	 */
+	public static function ajax_admin_delete_cover_photo() {
+		/* Verify nonce */
+		check_ajax_referer( 'nbuf_admin_delete_cover_photo', 'nonce' );
+
+		/* Check admin capability */
+		if ( ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to delete user photos.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get user ID from POST */
+		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+
+		if ( ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify user exists */
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Delete photo */
+		self::delete_user_photo( $user_id, 'cover' );
+
+		/* Return success */
+		wp_send_json_success(
+			array(
+				'message' => __( 'Cover photo deleted successfully.', 'nobloat-user-foundry' ),
+			)
+		);
+	}
+
+	/**
 	 * Delete user photo file and database entry
 	 *
 	 * @param int    $user_id User ID.
@@ -850,155 +1121,188 @@ class NBUF_Profile_Photos {
 	}
 
 	/**
-	 * Render profile photos section for account page
+	 * Render Profile Photo sub-tab content
 	 *
 	 * @param int $user_id User ID.
 	 */
-	public static function render_account_photos_section( $user_id ) {
+	public static function render_profile_photo_subtab( $user_id ) {
 		$user_data        = NBUF_User_Data::get( $user_id );
+		$profiles_enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
 		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-		$cover_enabled    = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 		$use_gravatar     = $user_data && ! empty( $user_data->use_gravatar );
-
-		/* Get current photo URLs */
-		$profile_photo_url  = self::get_profile_photo( $user_id, 150 );
-		$cover_photo_url    = self::get_cover_photo( $user_id );
 		$has_custom_profile = $user_data && ! empty( $user_data->profile_photo_url );
-		$has_cover          = ! empty( $cover_photo_url );
 
+		/* Get current photo - either custom upload, gravatar, or SVG avatar */
+		$user = get_userdata( $user_id );
 		?>
-		<div class="nbuf-profile-photos-section nbuf-section">
-			<h3><?php esc_html_e( 'Profile & Cover Photos', 'nobloat-user-foundry' ); ?></h3>
-
-			<!-- Profile Photo -->
-			<div class="nbuf-photo-upload-group">
-				<h4><?php esc_html_e( 'Profile Photo', 'nobloat-user-foundry' ); ?></h4>
-				<div class="nbuf-current-photo">
-					<img src="<?php echo esc_url( $profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Profile Photo', 'nobloat-user-foundry' ); ?>" class="nbuf-avatar nbuf-avatar-large" width="150" height="150">
-				</div>
-
-				<div class="nbuf-photo-actions">
-					<label for="nbuf_profile_photo_upload" class="nbuf-button nbuf-button-secondary">
-		<?php esc_html_e( 'Upload New Photo', 'nobloat-user-foundry' ); ?>
-					</label>
-					<input type="file" id="nbuf_profile_photo_upload" accept="image/*" style="display:none;">
-
-		<?php if ( $has_custom_profile ) : ?>
-						<button type="button" class="nbuf-button nbuf-button-danger" id="nbuf_delete_profile_photo">
-			<?php esc_html_e( 'Delete Photo', 'nobloat-user-foundry' ); ?>
-						</button>
-		<?php endif; ?>
-				</div>
-
-				<p class="description">
-		<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 5MB.', 'nobloat-user-foundry' ); ?>
-				</p>
-
-				<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px;">
-					<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
-		<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs to enhance privacy. However, photos are publicly accessible to anyone who has the URL. Do not upload photos containing sensitive or confidential information.', 'nobloat-user-foundry' ); ?>
-				</p>
-
-		<?php if ( $gravatar_enabled ) : ?>
-					<div class="nbuf-gravatar-toggle" style="margin-top: 15px;">
-						<label>
-							<input type="checkbox" name="nbuf_use_gravatar" value="1" <?php checked( $use_gravatar ); ?>>
-			<?php esc_html_e( 'Use Gravatar instead', 'nobloat-user-foundry' ); ?>
-						</label>
-						<p class="description">
-			<?php esc_html_e( 'Note: Gravatar requires external API calls which may have privacy implications.', 'nobloat-user-foundry' ); ?>
-						</p>
-					</div>
-		<?php endif; ?>
+		<div class="nbuf-photo-upload-group">
+			<div class="nbuf-current-photo">
+				<?php
+				if ( $has_custom_profile ) {
+					/* Custom uploaded photo */
+					$profile_photo_url = self::get_profile_photo( $user_id, 150 );
+					echo '<img src="' . esc_url( $profile_photo_url ) . '" alt="' . esc_attr__( 'Profile Photo', 'nobloat-user-foundry' ) . '" class="nbuf-avatar nbuf-avatar-large" width="150" height="150">';
+				} elseif ( $gravatar_enabled && $use_gravatar && $user ) {
+					/* Gravatar */
+					$gravatar_url = self::get_gravatar_url( $user->user_email, 150 );
+					echo '<img src="' . esc_url( $gravatar_url ) . '" alt="' . esc_attr__( 'Profile Photo', 'nobloat-user-foundry' ) . '" class="nbuf-avatar nbuf-avatar-large" width="150" height="150">';
+				} else {
+					/* SVG initials avatar - output directly */
+					$first_name = $user ? ( ! empty( $user->first_name ) ? $user->first_name : $user->user_login ) : '';
+					$last_name  = $user ? $user->last_name : '';
+					echo self::get_svg_avatar_html( $first_name, $last_name, 150 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG is generated internally with escaped values.
+				}
+				?>
 			</div>
 
-		<?php if ( $cover_enabled ) : ?>
-				<!-- Cover Photo -->
-				<div class="nbuf-photo-upload-group">
-					<h4><?php esc_html_e( 'Cover Photo', 'nobloat-user-foundry' ); ?></h4>
+			<div class="nbuf-photo-options" style="margin-top: 15px;">
+				<p class="description" style="margin-bottom: 10px;">
+					<?php esc_html_e( 'Choose how your profile photo is displayed:', 'nobloat-user-foundry' ); ?>
+				</p>
 
-			<?php if ( $has_cover ) : ?>
-						<div class="nbuf-current-cover">
-							<img src="<?php echo esc_url( $cover_photo_url ); ?>" alt="<?php esc_attr_e( 'Cover Photo', 'nobloat-user-foundry' ); ?>" class="nbuf-cover-photo" style="max-width: 100%; height: auto;">
-						</div>
-					<?php else : ?>
-						<p class="description"><?php esc_html_e( 'No cover photo uploaded yet.', 'nobloat-user-foundry' ); ?></p>
-					<?php endif; ?>
-
-					<div class="nbuf-photo-actions">
-						<label for="nbuf_cover_photo_upload" class="nbuf-button nbuf-button-secondary">
-			<?php
-			if ( $has_cover ) {
-				esc_html_e( 'Change Cover Photo', 'nobloat-user-foundry' );
-			} else {
-				esc_html_e( 'Upload Cover Photo', 'nobloat-user-foundry' );
-			}
-			?>
-						</label>
-						<input type="file" id="nbuf_cover_photo_upload" accept="image/*" style="display:none;">
-
-			<?php if ( $has_cover ) : ?>
-							<button type="button" class="nbuf-button nbuf-button-danger" id="nbuf_delete_cover_photo">
-				<?php esc_html_e( 'Delete Cover', 'nobloat-user-foundry' ); ?>
+				<?php if ( $profiles_enabled ) : ?>
+					<div class="nbuf-photo-option" style="margin-bottom: 15px;">
+						<div class="nbuf-photo-actions">
+							<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_profile_photo_upload_btn">
+								<?php esc_html_e( 'Upload Custom Photo', 'nobloat-user-foundry' ); ?>
 							</button>
-			<?php endif; ?>
+							<input type="file" id="nbuf_profile_photo_upload" accept="image/*" style="display:none;">
+
+							<?php if ( $has_custom_profile ) : ?>
+								<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_profile_photo">
+									<?php esc_html_e( 'Delete Photo', 'nobloat-user-foundry' ); ?>
+								</button>
+							<?php endif; ?>
+						</div>
+						<p class="description">
+							<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 5MB. Images are automatically converted to WebP for optimal performance.', 'nobloat-user-foundry' ); ?>
+						</p>
 					</div>
+				<?php endif; ?>
 
+				<?php if ( $gravatar_enabled ) : ?>
+					<form method="post" action="<?php echo esc_url( get_permalink() ); ?>" class="nbuf-gravatar-form">
+						<?php wp_nonce_field( 'nbuf_account_gravatar', 'nbuf_gravatar_nonce', false ); ?>
+						<input type="hidden" name="nbuf_account_action" value="update_gravatar">
+						<input type="hidden" name="nbuf_active_tab" value="profile">
+						<input type="hidden" name="nbuf_active_subtab" value="profile-photo">
+
+						<div class="nbuf-photo-option" style="margin-bottom: 15px; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+							<label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+								<input type="checkbox" name="nbuf_use_gravatar" id="nbuf_use_gravatar" value="1" <?php checked( $use_gravatar ); ?>>
+								<strong><?php esc_html_e( 'Use Gravatar', 'nobloat-user-foundry' ); ?></strong>
+							</label>
+							<p class="description" style="margin: 8px 0 0 26px;">
+								<?php esc_html_e( 'Display your Gravatar image linked to your email address.', 'nobloat-user-foundry' ); ?>
+								<br>
+								<em style="color: #856404;"><?php esc_html_e( 'Note: Gravatar requires external API calls which may have privacy implications.', 'nobloat-user-foundry' ); ?></em>
+							</p>
+							<button type="submit" class="nbuf-button nbuf-button-primary" style="margin-top: 12px;">
+								<?php esc_html_e( 'Save Gravatar Setting', 'nobloat-user-foundry' ); ?>
+							</button>
+						</div>
+					</form>
+				<?php endif; ?>
+
+				<?php if ( ! $profiles_enabled && ! $gravatar_enabled ) : ?>
 					<p class="description">
-			<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 10MB. Recommended size: 1500x500px.', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'Your profile displays a default avatar based on your initials.', 'nobloat-user-foundry' ); ?>
 					</p>
+				<?php endif; ?>
+			</div>
 
-					<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 10px;">
-						<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
-			<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs to enhance privacy. However, photos are publicly accessible to anyone who has the URL. Do not upload photos containing sensitive or confidential information.', 'nobloat-user-foundry' ); ?>
-					</p>
-				</div>
-		<?php endif; ?>
-
+			<?php if ( $profiles_enabled ) : ?>
+				<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 15px;">
+					<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
+					<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs. Photos are publicly accessible to anyone who has the URL.', 'nobloat-user-foundry' ); ?>
+				</p>
+			<?php endif; ?>
+		</div>
 		<?php
-		/* Profile Privacy Settings - only show if public profiles are enabled */
-		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
-		if ( $public_profiles_enabled ) :
-			$profile_privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
-			?>
-				<div class="nbuf-profile-privacy-group" style="margin-top: 25px; padding-top: 25px; border-top: 1px solid #ddd;">
-					<h4><?php esc_html_e( 'Profile Visibility', 'nobloat-user-foundry' ); ?></h4>
-					<p class="description">
-			<?php esc_html_e( 'Control who can see your public profile page.', 'nobloat-user-foundry' ); ?>
-					</p>
+	}
 
-					<select name="nbuf_profile_privacy" class="regular-text">
-						<option value="private" <?php selected( $profile_privacy, 'private' ); ?>>
-			<?php esc_html_e( 'Private - Only you can see your profile', 'nobloat-user-foundry' ); ?>
-						</option>
-						<option value="members_only" <?php selected( $profile_privacy, 'members_only' ); ?>>
-			<?php esc_html_e( 'Members Only - Only logged-in users', 'nobloat-user-foundry' ); ?>
-						</option>
-						<option value="public" <?php selected( $profile_privacy, 'public' ); ?>>
-			<?php esc_html_e( 'Public - Anyone can see', 'nobloat-user-foundry' ); ?>
-						</option>
-					</select>
+	/**
+	 * Render Cover Photo sub-tab content
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public static function render_cover_photo_subtab( $user_id ) {
+		$user_data       = NBUF_User_Data::get( $user_id );
+		$cover_photo_url = self::get_cover_photo( $user_id );
+		$has_cover       = ! empty( $cover_photo_url );
+		?>
+		<div class="nbuf-photo-upload-group">
+			<p class="description" style="margin-bottom: 15px;">
+				<?php esc_html_e( 'Cover photos appear at the top of your public profile page.', 'nobloat-user-foundry' ); ?>
+			</p>
+
+			<?php if ( $has_cover ) : ?>
+				<div class="nbuf-current-cover" style="margin-bottom: 15px;">
+					<img src="<?php echo esc_url( $cover_photo_url ); ?>" alt="<?php esc_attr_e( 'Cover Photo', 'nobloat-user-foundry' ); ?>" class="nbuf-cover-photo" style="max-width: 100%; height: auto; border-radius: 4px;">
+				</div>
+			<?php endif; ?>
+
+			<div class="nbuf-photo-actions">
+				<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_cover_photo_upload_btn">
+					<?php echo $has_cover ? esc_html__( 'Change Cover Photo', 'nobloat-user-foundry' ) : esc_html__( 'Upload Cover Photo', 'nobloat-user-foundry' ); ?>
+				</button>
+				<input type="file" id="nbuf_cover_photo_upload" accept="image/*" style="display:none;">
+
+				<?php if ( $has_cover ) : ?>
+					<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_cover_photo">
+						<?php esc_html_e( 'Delete Cover', 'nobloat-user-foundry' ); ?>
+					</button>
+				<?php endif; ?>
+			</div>
+
+			<p class="description" style="margin-top: 10px;">
+				<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 10MB. Recommended size: 1500x500px.', 'nobloat-user-foundry' ); ?>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render Visibility sub-tab content
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public static function render_visibility_subtab( $user_id ) {
+		$user_data       = NBUF_User_Data::get( $user_id );
+		$profile_privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+		?>
+		<div class="nbuf-profile-privacy-group">
+			<p class="description" style="margin-bottom: 15px;">
+				<?php esc_html_e( 'Control who can see your public profile page.', 'nobloat-user-foundry' ); ?>
+			</p>
+
+			<select name="nbuf_profile_privacy" class="regular-text">
+				<option value="private" <?php selected( $profile_privacy, 'private' ); ?>>
+					<?php esc_html_e( 'Private - Only you can see your profile', 'nobloat-user-foundry' ); ?>
+				</option>
+				<option value="members_only" <?php selected( $profile_privacy, 'members_only' ); ?>>
+					<?php esc_html_e( 'Members Only - Only logged-in users', 'nobloat-user-foundry' ); ?>
+				</option>
+				<option value="public" <?php selected( $profile_privacy, 'public' ); ?>>
+					<?php esc_html_e( 'Public - Anyone can see', 'nobloat-user-foundry' ); ?>
+				</option>
+			</select>
 
 			<?php
 			$profile_url = NBUF_Public_Profiles::get_profile_url( $user_id );
 			if ( $profile_url ) :
 				?>
-						<p class="description" style="margin-top: 10px;">
+				<p class="description" style="margin-top: 15px;">
 					<?php
 					printf(
-					/* translators: %s: Profile URL */
+						/* translators: %s: Profile URL */
 						esc_html__( 'Your profile URL: %s', 'nobloat-user-foundry' ),
 						'<a href="' . esc_url( $profile_url ) . '" target="_blank"><code>' . esc_html( $profile_url ) . '</code></a>'
 					);
 					?>
-						</p>
+				</p>
 			<?php endif; ?>
-				</div>
-		<?php endif; ?>
 		</div>
-
-
-		
 		<?php
 	}
 }

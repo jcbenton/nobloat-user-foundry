@@ -52,7 +52,6 @@ class NBUF_Profile_Data {
 					'work_phone'      => 'Work Phone',
 					'fax'             => 'Fax',
 					'preferred_name'  => 'Preferred Name',
-					'nickname'        => 'Nickname',
 					'pronouns'        => 'Pronouns',
 					'gender'          => 'Gender',
 					'date_of_birth'   => 'Date of Birth',
@@ -133,7 +132,6 @@ class NBUF_Profile_Data {
 			'personal'      => array(
 				'label'  => 'Personal',
 				'fields' => array(
-					'bio'               => 'Biography',
 					'website'           => 'Website',
 					'nationality'       => 'Nationality',
 					'languages'         => 'Languages Spoken',
@@ -175,6 +173,40 @@ class NBUF_Profile_Data {
 		}
 
 		return apply_filters( 'nbuf_profile_enabled_fields', $enabled );
+	}
+
+	/**
+	 * Get profile fields enabled for registration form.
+	 *
+	 * @since  1.5.0
+	 * @return array Enabled field keys for registration.
+	 */
+	public static function get_registration_fields() {
+		$fields = NBUF_Options::get( 'nbuf_registration_profile_fields', array() );
+
+		/* Backward compatibility - fall back to old setting if new one is empty */
+		if ( empty( $fields ) ) {
+			$fields = self::get_enabled_fields();
+		}
+
+		return apply_filters( 'nbuf_profile_registration_fields', $fields );
+	}
+
+	/**
+	 * Get profile fields enabled for account page.
+	 *
+	 * @since  1.5.0
+	 * @return array Enabled field keys for account page.
+	 */
+	public static function get_account_fields() {
+		$fields = NBUF_Options::get( 'nbuf_account_profile_fields', array() );
+
+		/* Backward compatibility - fall back to old setting if new one is empty */
+		if ( empty( $fields ) ) {
+			$fields = self::get_enabled_fields();
+		}
+
+		return apply_filters( 'nbuf_profile_account_fields', $fields );
 	}
 
 	/**
@@ -241,7 +273,7 @@ class NBUF_Profile_Data {
 				/* If filter didn't handle it, use default sanitization based on field type */
 				if ( $sanitized === $value ) {
 					/* Text areas */
-					if ( in_array( $key, array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
+					if ( in_array( $key, array( 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
 						$sanitized = sanitize_textarea_field( $value );
 					} elseif ( in_array( $key, array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok' ), true ) ) {
 						/* URLs */
@@ -365,7 +397,6 @@ class NBUF_Profile_Data {
 			'state'         => $data->state,
 			'postal_code'   => $data->postal_code,
 			'country'       => $data->country,
-			'bio'           => $data->bio,
 			'website'       => $data->website,
 		);
 	}

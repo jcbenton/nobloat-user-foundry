@@ -39,6 +39,7 @@ class NBUF_Settings {
 	 */
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_roles_submenu' ), 12 );
 		add_action( 'admin_menu', array( __CLASS__, 'remove_duplicate_submenu' ), 999 );
 		add_action( 'admin_init', array( __CLASS__, 'auto_detect_pages' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_migrate_wp_options' ) );
@@ -92,6 +93,9 @@ class NBUF_Settings {
 			'nbuf_notify_admin_registration'      => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_password_reset'          => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_custom_roles'            => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_allow_email_change'             => function ( $value ) {
+				return in_array( $value, array( 'disabled', 'enabled' ), true ) ? $value : 'disabled';
+			},
 
 			/* Admin Users List columns */
 			'nbuf_users_column_posts'             => array( __CLASS__, 'sanitize_checkbox' ),
@@ -133,6 +137,7 @@ class NBUF_Settings {
 			'nbuf_page_login'                     => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_registration'              => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_account'                   => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_page_profile'                   => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_logout'                    => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_2fa_verify'                => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_2fa_setup'                 => array( __CLASS__, 'sanitize_page_id' ),
@@ -192,6 +197,9 @@ class NBUF_Settings {
 			'nbuf_password_expiration_warning_days' => function ( $value ) {
 				return max( 0, min( 90, absint( $value ) ) );
 			},
+
+			/* Security - Application Passwords */
+			'nbuf_app_passwords_enabled'          => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Security - 2FA Email */
 			'nbuf_2fa_email_method'               => function ( $value ) {
@@ -319,13 +327,79 @@ class NBUF_Settings {
 			'nbuf_profile_page_slug'              => 'sanitize_title',
 			'nbuf_profile_default_privacy'        => function ( $value ) {
 				$valid = array( 'public', 'members_only', 'private' );
-				return in_array( $value, $valid, true ) ? $value : 'members_only';
+				return in_array( $value, $valid, true ) ? $value : 'private';
 			},
 			'nbuf_profile_allow_cover_photos'     => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_profile_custom_css'             => 'wp_strip_all_tags',
 
 			/* GDPR settings */
 			'nbuf_gdpr_delete_user_photos'        => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/* Policy display settings */
+			'nbuf_policy_login_enabled'           => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_policy_login_position'          => function ( $value ) {
+				return in_array( $value, array( 'left', 'right' ), true ) ? $value : 'right';
+			},
+			'nbuf_policy_registration_enabled'    => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_policy_registration_position'   => function ( $value ) {
+				return in_array( $value, array( 'left', 'right' ), true ) ? $value : 'right';
+			},
+			'nbuf_policy_verify_enabled'          => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_policy_verify_position'         => function ( $value ) {
+				return in_array( $value, array( 'left', 'right' ), true ) ? $value : 'right';
+			},
+			'nbuf_policy_request_reset_enabled'   => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_policy_request_reset_position'  => function ( $value ) {
+				return in_array( $value, array( 'left', 'right' ), true ) ? $value : 'right';
+			},
+			'nbuf_policy_reset_enabled'           => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_policy_reset_position'          => function ( $value ) {
+				return in_array( $value, array( 'left', 'right' ), true ) ? $value : 'right';
+			},
+			'nbuf_policy_account_tab_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/* Form templates - HTML sanitization via Template Manager */
+			'nbuf_login_form_template'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'login-form' );
+			},
+			'nbuf_registration_form_template'     => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'registration-form' );
+			},
+			'nbuf_request_reset_form_template'    => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'request-reset-form' );
+			},
+			'nbuf_reset_form_template'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'reset-form' );
+			},
+			'nbuf_account_page_template'          => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'account-page' );
+			},
+
+			/* Email templates - HTML sanitization via Template Manager */
+			'nbuf_email_template_html'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'email-verification-html' );
+			},
+			'nbuf_email_template_text'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'email-verification-text' );
+			},
+			'nbuf_welcome_email_html'             => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'welcome-email-html' );
+			},
+			'nbuf_welcome_email_text'             => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'welcome-email-text' );
+			},
+			'nbuf_admin_new_user_html'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'admin-new-user-html' );
+			},
+			'nbuf_admin_new_user_text'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'admin-new-user-text' );
+			},
+			'nbuf_policy_privacy_html'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'policy-privacy-html' );
+			},
+			'nbuf_policy_terms_html'              => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'policy-terms-html' );
+			},
 
 			/* WooCommerce integration */
 			'nbuf_wc_prevent_active_subs'         => array( __CLASS__, 'sanitize_checkbox' ),
@@ -390,13 +464,22 @@ class NBUF_Settings {
 		}
 
 		/* Build redirect URL with tab/subtab preserved */
-		$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users' );
+		$active_tab = isset( $_POST['nbuf_active_tab'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_active_tab'] ) ) : '';
+		$active_subtab = isset( $_POST['nbuf_active_subtab'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_active_subtab'] ) ) : '';
 
-		if ( isset( $_POST['nbuf_active_tab'] ) ) {
-			$redirect_url = add_query_arg( 'tab', sanitize_text_field( wp_unslash( $_POST['nbuf_active_tab'] ) ), $redirect_url );
+		/* Determine which page to redirect to based on tab */
+		$appearance_tabs = array( 'emails', 'policies', 'forms', 'styles', 'templates' );
+		if ( in_array( $active_tab, $appearance_tabs, true ) ) {
+			$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-appearance' );
+		} else {
+			$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users' );
 		}
-		if ( isset( $_POST['nbuf_active_subtab'] ) ) {
-			$redirect_url = add_query_arg( 'subtab', sanitize_text_field( wp_unslash( $_POST['nbuf_active_subtab'] ) ), $redirect_url );
+
+		if ( $active_tab ) {
+			$redirect_url = add_query_arg( 'tab', $active_tab, $redirect_url );
+		}
+		if ( $active_subtab ) {
+			$redirect_url = add_query_arg( 'subtab', $active_subtab, $redirect_url );
 		}
 
 		$redirect_url = add_query_arg( 'settings-updated', 'true', $redirect_url );
@@ -409,9 +492,11 @@ class NBUF_Settings {
 	 * Display settings saved notice.
 	 */
 	public static function display_settings_notices() {
-		/* Check if we're on the settings page */
+		/* Check if we're on a plugin settings page */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display check.
-		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-users' !== $_GET['page'] ) {
+		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+		$valid_pages = array( 'nobloat-foundry-users', 'nobloat-foundry-appearance' );
+		if ( ! in_array( $page, $valid_pages, true ) ) {
 			return;
 		}
 
@@ -551,31 +636,28 @@ class NBUF_Settings {
 			return;
 		}
 
-		$settings      = NBUF_Options::get( 'nbuf_settings', array() );
 		$missing_pages = array();
 
 		/* Check verification page */
-		$verify_path = isset( $settings['verification_page'] ) ? $settings['verification_page'] : '/nobloat-verify';
-		$verify_slug = ltrim( $verify_path, '/' );
-		$verify_page = get_page_by_path( $verify_slug );
+		$verify_page_id = NBUF_Options::get( 'nbuf_page_verification', 0 );
+		$verify_page    = $verify_page_id ? get_post( $verify_page_id ) : null;
 
 		if ( ! $verify_page || get_post_status( $verify_page->ID ) !== 'publish' ) {
-			$missing_pages[] = sprintf( 'Email Verification page at <code>%s</code>', esc_html( $verify_path ) );
+			$missing_pages[] = __( 'Email Verification page not configured in System → Pages', 'nobloat-user-foundry' );
 		} elseif ( strpos( $verify_page->post_content, '[nbuf_verify_page]' ) === false ) {
 			/* Check if page has the correct shortcode */
-			$missing_pages[] = sprintf( 'Email Verification page at <code>%s</code> (missing shortcode [nbuf_verify_page])', esc_html( $verify_path ) );
+			$missing_pages[] = sprintf( 'Email Verification page "%s" (missing shortcode [nbuf_verify_page])', esc_html( $verify_page->post_title ) );
 		}
 
 		/* Check password reset page */
-		$reset_path = isset( $settings['password_reset_page'] ) ? $settings['password_reset_page'] : '/nobloat-reset';
-		$reset_slug = ltrim( $reset_path, '/' );
-		$reset_page = get_page_by_path( $reset_slug );
+		$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+		$reset_page    = $reset_page_id ? get_post( $reset_page_id ) : null;
 
 		if ( ! $reset_page || get_post_status( $reset_page->ID ) !== 'publish' ) {
-			$missing_pages[] = sprintf( 'Password Reset page at <code>%s</code>', esc_html( $reset_path ) );
+			$missing_pages[] = __( 'Password Reset page not configured in System → Pages', 'nobloat-user-foundry' );
 		} elseif ( strpos( $reset_page->post_content, '[nbuf_reset_form]' ) === false ) {
 			/* Check if page has the correct shortcode */
-			$missing_pages[] = sprintf( 'Password Reset page at <code>%s</code> (missing shortcode [nbuf_reset_form])', esc_html( $reset_path ) );
+			$missing_pages[] = sprintf( 'Password Reset page "%s" (missing shortcode [nbuf_reset_form])', esc_html( $reset_page->post_title ) );
 		}
 
 		/* Display warning if any pages are missing */
@@ -641,8 +723,14 @@ class NBUF_Settings {
 			'nobloat-foundry-users',                               // Menu slug (UNIQUE to this plugin).
 			array( __CLASS__, 'render_settings_page' )            // Callback.
 		);
+	}
 
-		/* Add Roles submenu if custom roles are enabled */
+	/**
+	 * Add Roles submenu page.
+	 *
+	 * Added separately at priority 12 to ensure it appears after Appearance (priority 11).
+	 */
+	public static function add_roles_submenu() {
 		$enable_custom_roles = NBUF_Options::get( 'nbuf_enable_custom_roles', true );
 		if ( $enable_custom_roles ) {
 			add_submenu_page(
@@ -707,57 +795,10 @@ class NBUF_Settings {
 			? array_map( 'sanitize_text_field', (array) $input['cleanup'] )
 			: ( $existing['cleanup'] ?? array() );
 
-		$output['verification_page'] = isset( $input['verification_page'] )
-			? self::sanitize_path_field( $input['verification_page'], '/nobloat-verify', 'Verification' )
-			: ( $existing['verification_page'] ?? '/nobloat-verify' );
-
-		$output['password_reset_page'] = isset( $input['password_reset_page'] )
-			? self::sanitize_path_field( $input['password_reset_page'], '/nobloat-reset', 'Password Reset' )
-			: ( $existing['password_reset_page'] ?? '/nobloat-reset' );
-
 		/* Save to custom options table */
 		NBUF_Options::update( 'nbuf_settings', $output, true, 'settings' );
 
 		return $output;
-	}
-
-	/**
-	 * Sanitize path field
-	 *
-	 * @param string $raw     Raw input value.
-	 * @param string $default Default value.
-	 * @param string $label   Field label.
-	 * @return string Sanitized path.
-	 */
-	private static function sanitize_path_field( $raw, $default, $label ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase, Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- $default parameter name chosen for clarity in this internal method.
-		$raw = trim( $raw );
-
-		if ( preg_match( '#^https?://#i', $raw ) ) {
-			$parsed = wp_parse_url( $raw );
-			$raw    = isset( $parsed['path'] ) ? $parsed['path'] : $default;
-		}
-
-		$raw = '/' . ltrim( $raw, '/' );
-
-		if ( ! preg_match( '#^/[a-z0-9\-]+$#i', $raw ) ) {
-			add_settings_error(
-				'nbuf_settings',
-				'invalid_' . sanitize_title( $label ) . '_slug',
-				/* translators: 1: Field label, 2: Default path example */
-				esc_html( sprintf( __( '%1$s URL must be a simple single-level path (e.g., %2$s)', 'nobloat-user-foundry' ), $label, $default ) ),
-				'error'
-			);
-			return $default;
-		}
-
-		$slug = ltrim( $raw, '/' );
-
-		/*
-		* Note: We don't check if slug exists here because the activator
-		* creates our pages, and this would cause false errors.
-		*/
-
-		return $raw;
 	}
 
 	/**
@@ -929,11 +970,12 @@ class NBUF_Settings {
 			'security'    => array(
 				'label'   => __( 'Security', 'nobloat-user-foundry' ),
 				'subtabs' => array(
-					'login-limits' => __( 'Login Limits', 'nobloat-user-foundry' ),
-					'passwords'    => __( 'Passwords', 'nobloat-user-foundry' ),
-					'2fa-settings' => __( '2FA Config', 'nobloat-user-foundry' ),
-					'2fa-email'    => __( 'Email Auth', 'nobloat-user-foundry' ),
-					'2fa-totp'     => __( 'Authenticator', 'nobloat-user-foundry' ),
+					'login-limits'  => __( 'Login Limits', 'nobloat-user-foundry' ),
+					'passwords'     => __( 'Passwords', 'nobloat-user-foundry' ),
+					'app-passwords' => __( 'App Passwords', 'nobloat-user-foundry' ),
+					'2fa-settings'  => __( '2FA Config', 'nobloat-user-foundry' ),
+					'2fa-email'     => __( 'Email Auth', 'nobloat-user-foundry' ),
+					'2fa-totp'      => __( 'Authenticator', 'nobloat-user-foundry' ),
 				),
 			),
 			'media'       => array(
@@ -944,34 +986,12 @@ class NBUF_Settings {
 				'label'   => __( 'Users', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'registration'         => __( 'Registration', 'nobloat-user-foundry' ),
-					'verification'         => __( 'Verification', 'nobloat-user-foundry' ),
 					'expiration'           => __( 'Expiration', 'nobloat-user-foundry' ),
 					'profile-fields'       => __( 'Profile Fields', 'nobloat-user-foundry' ),
 					'profiles'             => __( 'Profiles & Photos', 'nobloat-user-foundry' ),
 					'directory'            => __( 'Member Directory', 'nobloat-user-foundry' ),
 					'version-history'      => __( 'Version History', 'nobloat-user-foundry' ),
 					'change-notifications' => __( 'Change Notifications', 'nobloat-user-foundry' ),
-				),
-			),
-			'templates'   => array(
-				'label'   => __( 'Email Templates', 'nobloat-user-foundry' ),
-				'subtabs' => array(
-					'verification'       => __( 'Verification', 'nobloat-user-foundry' ),
-					'welcome'            => __( 'Welcome', 'nobloat-user-foundry' ),
-					'expiration'         => __( 'Expiration', 'nobloat-user-foundry' ),
-					'2fa'                => __( '2FA', 'nobloat-user-foundry' ),
-					'password-reset'     => __( 'Password Reset', 'nobloat-user-foundry' ),
-					'admin-notification' => __( 'Admin Notification', 'nobloat-user-foundry' ),
-				),
-			),
-			'styles'      => array(
-				'label'   => __( 'Styles', 'nobloat-user-foundry' ),
-				'subtabs' => array(
-					'login'       => __( 'Login', 'nobloat-user-foundry' ),
-					'register'    => __( 'Register', 'nobloat-user-foundry' ),
-					'account'     => __( 'Account', 'nobloat-user-foundry' ),
-					'reset'       => __( 'Reset', 'nobloat-user-foundry' ),
-					'css-options' => __( 'CSS Options', 'nobloat-user-foundry' ),
 				),
 			),
 			'integration' => array(
@@ -1155,18 +1175,34 @@ class NBUF_Settings {
 
 		$type       = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
 		$file_map   = array(
-			'html'         => 'email-verification.html',
-			'text'         => 'email-verification.txt',
-			'welcome-html' => 'welcome-email.html',
-			'welcome-text' => 'welcome-email.txt',
-			'login-form'   => 'login-form.html',
+			'html'                => 'email-verification.html',
+			'text'                => 'email-verification.txt',
+			'welcome-html'        => 'welcome-email.html',
+			'welcome-text'        => 'welcome-email.txt',
+			'admin-new-user-html' => 'admin-new-user.html',
+			'admin-new-user-text' => 'admin-new-user.txt',
+			'login-form'          => 'login-form.html',
+			'registration-form'   => 'registration-form.html',
+			'account-page'        => 'account-page.html',
+			'request-reset-form'  => 'request-reset-form.html',
+			'reset-form'          => 'reset-form.html',
+			'policy-privacy-html' => 'policy-privacy.html',
+			'policy-terms-html'   => 'policy-terms.html',
 		);
 		$option_map = array(
-			'html'         => 'nbuf_email_template_html',
-			'text'         => 'nbuf_email_template_text',
-			'welcome-html' => 'nbuf_welcome_email_html',
-			'welcome-text' => 'nbuf_welcome_email_text',
-			'login-form'   => 'nbuf_login_form_template',
+			'html'                => 'nbuf_email_template_html',
+			'text'                => 'nbuf_email_template_text',
+			'welcome-html'        => 'nbuf_welcome_email_html',
+			'welcome-text'        => 'nbuf_welcome_email_text',
+			'admin-new-user-html' => 'nbuf_admin_new_user_html',
+			'admin-new-user-text' => 'nbuf_admin_new_user_text',
+			'login-form'          => 'nbuf_login_form_template',
+			'registration-form'   => 'nbuf_registration_form_template',
+			'account-page'        => 'nbuf_account_page_template',
+			'request-reset-form'  => 'nbuf_request_reset_form_template',
+			'reset-form'          => 'nbuf_reset_form_template',
+			'policy-privacy-html' => 'nbuf_policy_privacy_html',
+			'policy-terms-html'   => 'nbuf_policy_terms_html',
 		);
 
 		if ( empty( $file_map[ $type ] ) ) {
@@ -1221,12 +1257,14 @@ class NBUF_Settings {
 
 		$template   = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
 		$file_map   = array(
-			'reset-page' => 'reset-page.css',
-			'login-page' => 'login-page.css',
+			'reset-page'   => 'reset-page.css',
+			'login-page'   => 'login-page.css',
+			'account-page' => 'account-page.css',
 		);
 		$option_map = array(
-			'reset-page' => 'nbuf_reset_page_css',
-			'login-page' => 'nbuf_login_page_css',
+			'reset-page'   => 'nbuf_reset_page_css',
+			'login-page'   => 'nbuf_login_page_css',
+			'account-page' => 'nbuf_account_page_css',
 		);
 
 		if ( empty( $file_map[ $template ] ) ) {
@@ -1275,11 +1313,13 @@ class NBUF_Settings {
 	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_admin_assets( $hook ) {
-		/* Load CSS on both main menu page and settings submenu page */
+		/* Load CSS on main menu page, settings, and roles submenu pages */
 		$allowed_hooks = array(
 			'toplevel_page_nobloat-foundry',
 			'nobloat-foundry_page_nobloat-foundry-users',
 			'user-foundry_page_nobloat-foundry-users',
+			'nobloat-foundry_page_nobloat-foundry-roles',
+			'user-foundry_page_nobloat-foundry-roles',
 		);
 		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
 			return;

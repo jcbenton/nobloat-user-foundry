@@ -69,6 +69,33 @@ document.addEventListener("DOMContentLoaded", function () {
                         case "password":
                             targetTextarea = document.querySelector("textarea[name='nbuf_password_reset_template']");
                             break;
+                        case "policy-privacy-html":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_policy_privacy_html']");
+                            break;
+                        case "policy-terms-html":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_policy_terms_html']");
+                            break;
+                        case "admin-new-user-html":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_admin_new_user_html']");
+                            break;
+                        case "admin-new-user-text":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_admin_new_user_text']");
+                            break;
+                        case "login-form":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_login_form_template']");
+                            break;
+                        case "registration-form":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_registration_form_template']");
+                            break;
+                        case "account-page":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_account_page_template']");
+                            break;
+                        case "request-reset-form":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_request_reset_form_template']");
+                            break;
+                        case "reset-form":
+                            targetTextarea = document.querySelector("textarea[name='nbuf_reset_form_template']");
+                            break;
                     }
 
                     if (targetTextarea && data.data.content) {
@@ -125,6 +152,41 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             })
             .catch(() => alert("AJAX request failed. Please check your console or try again."));
+        });
+    });
+
+    /* ==========================================================
+       AJAX: Reset HTML Template to Default
+       ========================================================== */
+    document.querySelectorAll(".nbuf-reset-template-btn").forEach(button => {
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            const template = this.dataset.template;
+            if (!template) return;
+
+            if (!confirm(`Restore the ${template} HTML template to default? This will reload the page.`)) return;
+
+            const formData = new FormData();
+            formData.append("action", "nbuf_reset_template");
+            formData.append("nonce", nobloatEV.nonce);
+            formData.append("template", template);
+
+            fetch(nobloatEV.ajax_url, {
+                method: "POST",
+                credentials: "same-origin",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.data.message);
+                    location.reload();
+                } else {
+                    alert(data.data || "Failed to restore template.");
+                }
+            })
+            .catch(() => alert("AJAX request failed. Please try again."));
         });
     });
 

@@ -12,11 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Feature toggles */
-$require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
-$enable_login              = NBUF_Options::get( 'nbuf_enable_login', true );
-$enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
-$notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
-$enable_password_reset     = NBUF_Options::get( 'nbuf_enable_password_reset', true );
+$enable_login          = NBUF_Options::get( 'nbuf_enable_login', true );
+$enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 
 /* Admin Users List columns */
 $users_column_posts    = NBUF_Options::get( 'nbuf_users_column_posts', false );
@@ -40,19 +37,6 @@ $admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_ad
 	<h2><?php esc_html_e( 'Feature Toggles', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">
 		<tr>
-			<th><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_require_verification" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_require_verification" value="1" <?php checked( $require_verification, true ); ?>>
-					<?php esc_html_e( 'Require email verification for new user registrations', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'When enabled, new users must verify their email address before they can log in. When disabled, users can log in immediately after registration.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
 			<th><?php esc_html_e( 'Custom Login Form', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<input type="hidden" name="nbuf_enable_login" value="0">
@@ -62,32 +46,6 @@ $admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_ad
 				</label>
 				<p class="description">
 					<?php esc_html_e( 'Use NoBloat login form via [nbuf_login_form] shortcode. When disabled, the shortcode will display a message.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'User Registration', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_enable_registration" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_enable_registration" value="1" <?php checked( $enable_registration, true ); ?>>
-					<?php esc_html_e( 'Enable user registration', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Allow new users to register via [nbuf_registration_form] shortcode. When disabled, the shortcode will display a message.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Admin Notifications', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_notify_admin_registration" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_notify_admin_registration" value="1" <?php checked( $notify_admin_registration, true ); ?>>
-					<?php esc_html_e( 'Notify administrators when new users register', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Send an email notification to the site administrator email when a new user creates an account.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -105,6 +63,17 @@ $admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_ad
 			</td>
 		</tr>
 	</table>
+
+	<p class="description" style="margin-top: 10px;">
+		<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
+		<?php
+		printf(
+			/* translators: %s: Link to Registration tab */
+			esc_html__( 'Registration settings (Enable Registration, Email Verification, Admin Notifications) have moved to %s.', 'nobloat-user-foundry' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-user-foundry&tab=users&subtab=registration' ) ) . '">' . esc_html__( 'Users → Registration', 'nobloat-user-foundry' ) . '</a>'
+		);
+		?>
+	</p>
 
 	<h2><?php esc_html_e( 'Admin Users List Columns', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">

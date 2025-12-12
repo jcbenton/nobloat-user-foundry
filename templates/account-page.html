@@ -8,17 +8,15 @@
         <button type="button" class="nbuf-tab-button" data-tab="profile">Profile</button>
         <button type="button" class="nbuf-tab-button" data-tab="password">Password</button>
         {security_tab_button}
+        {policies_tab_button}
         <a href="{logout_url}" class="nbuf-tab-logout">Logout</a>
     </div>
 
     <!-- Account Tab -->
     <div class="nbuf-tab-content nbuf-tab-active" data-tab="account">
         <div class="nbuf-account-section">
-            <h2 class="nbuf-section-title">Account Information</h2>
             <div class="nbuf-account-layout">
-                <div class="nbuf-account-photo">
-                    {profile_photo}
-                </div>
+                {profile_photo_section}
                 <div class="nbuf-account-details">
                     <div class="nbuf-info-grid">
                         <div class="nbuf-info-label">Username:</div>
@@ -48,26 +46,58 @@
 
     <!-- Edit Profile Tab -->
     <div class="nbuf-tab-content" data-tab="profile">
-        <div class="nbuf-account-section">
-            <h2 class="nbuf-section-title">Edit Profile</h2>
-            <form method="post" action="{action_url}" class="nbuf-account-form">
-                {nonce_field}
-                <input type="hidden" name="nbuf_account_action" value="update_profile">
-
-                {profile_fields}
-
-                <button type="submit" class="nbuf-button nbuf-button-primary">Update Profile</button>
-            </form>
+        <!-- Profile Sub-tabs -->
+        <div class="nbuf-subtabs">
+            <button type="button" class="nbuf-subtab-button nbuf-subtab-active" data-subtab="details">Details</button>
+            <button type="button" class="nbuf-subtab-button" data-subtab="visibility">Visibility</button>
+            {photos_subtab_button}
         </div>
+
+        <!-- Details Sub-tab -->
+        <div class="nbuf-subtab-content nbuf-subtab-active" data-subtab="details">
+            <div class="nbuf-account-section">
+                <form method="post" action="{action_url}" class="nbuf-account-form">
+                    {nonce_field}
+                    <input type="hidden" name="nbuf_account_action" value="update_profile">
+                    <input type="hidden" name="nbuf_active_tab" value="profile">
+                    <input type="hidden" name="nbuf_active_subtab" value="details">
+
+                    {profile_fields}
+
+                    <button type="submit" class="nbuf-button nbuf-button-primary">Update Profile</button>
+                </form>
+
+                {email_change_section}
+            </div>
+        </div>
+
+        <!-- Visibility Sub-tab -->
+        <div class="nbuf-subtab-content" data-subtab="visibility">
+            <div class="nbuf-account-section">
+                <form method="post" action="{action_url}" class="nbuf-account-form">
+                    {nonce_field_visibility}
+                    <input type="hidden" name="nbuf_account_action" value="update_visibility">
+                    <input type="hidden" name="nbuf_active_tab" value="profile">
+                    <input type="hidden" name="nbuf_active_subtab" value="visibility">
+
+                    {visibility_section}
+
+                    <button type="submit" class="nbuf-button nbuf-button-primary">Update Visibility</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Photos Sub-tab (conditionally displayed) -->
+        {photos_subtab_content}
     </div>
 
     <!-- Change Password Tab -->
     <div class="nbuf-tab-content" data-tab="password">
         <div class="nbuf-account-section">
-            <h2 class="nbuf-section-title">Change Password</h2>
             <form method="post" action="{action_url}" class="nbuf-account-form">
                 {nonce_field_password}
                 <input type="hidden" name="nbuf_account_action" value="change_password">
+                <input type="hidden" name="nbuf_active_tab" value="password">
 
                 <div class="nbuf-form-group">
                     <label for="current_password" class="nbuf-form-label">Current Password</label>
@@ -93,25 +123,7 @@
     <!-- Security Tab (conditionally displayed if 2FA is available) -->
     {security_tab_content}
 
+    <!-- Policies Tab (conditionally displayed if enabled in settings) -->
+    {policies_tab_content}
+
 </div>
-
-<script>
-(function() {
-    var tabs = document.querySelectorAll('.nbuf-tab-button');
-    var contents = document.querySelectorAll('.nbuf-tab-content');
-
-    tabs.forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            var targetTab = this.getAttribute('data-tab');
-
-            // Remove active from all tabs and contents
-            tabs.forEach(function(t) { t.classList.remove('nbuf-tab-active'); });
-            contents.forEach(function(c) { c.classList.remove('nbuf-tab-active'); });
-
-            // Add active to clicked tab and matching content
-            this.classList.add('nbuf-tab-active');
-            document.querySelector('.nbuf-tab-content[data-tab="' + targetTab + '"]').classList.add('nbuf-tab-active');
-        });
-    });
-})();
-</script>

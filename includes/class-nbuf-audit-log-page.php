@@ -26,7 +26,7 @@ class NBUF_Audit_Log_Page {
 	 * Initialize audit log page
 	 */
 	public static function init() {
-		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 15 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_purge' ) );
 	}

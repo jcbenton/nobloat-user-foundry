@@ -254,6 +254,11 @@ $templates_data = array(
 					<p class="description">
 						<?php esc_html_e( 'Shortcode: [nbuf_login_form]', 'nobloat-user-foundry' ); ?>
 					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="login-form">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
 				</div>
 			</div>
 		</div>
@@ -277,6 +282,11 @@ $templates_data = array(
 					</p>
 					<p class="description">
 						<?php esc_html_e( 'Shortcode: [nbuf_registration_form]', 'nobloat-user-foundry' ); ?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="registration-form">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
 					</p>
 				</div>
 			</div>
@@ -302,6 +312,11 @@ $templates_data = array(
 					<p class="description">
 						<?php esc_html_e( 'Shortcode: [nbuf_account_page]', 'nobloat-user-foundry' ); ?>
 					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="account-page">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
 				</div>
 			</div>
 		</div>
@@ -326,6 +341,11 @@ $templates_data = array(
 					<p class="description">
 						<?php esc_html_e( 'Shortcode: [nbuf_request_reset_form]', 'nobloat-user-foundry' ); ?>
 					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="request-reset-form">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
 				</div>
 			</div>
 		</div>
@@ -349,6 +369,11 @@ $templates_data = array(
 					</p>
 					<p class="description">
 						<?php esc_html_e( 'Shortcode: [nbuf_reset_form]', 'nobloat-user-foundry' ); ?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="reset-form">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
 					</p>
 				</div>
 			</div>

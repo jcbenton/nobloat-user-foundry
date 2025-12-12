@@ -312,7 +312,7 @@ class NBUF_Roles_Page {
 						<label>
 							<input type="checkbox" name="capabilities[]" value="<?php echo esc_attr( $cap ); ?>"
 				<?php checked( isset( $current_caps[ $cap ] ) && $current_caps[ $cap ] ); ?>>
-							<code style="margin-left: 5px;"><?php echo esc_html( $cap ); ?></code>
+							<code><?php echo esc_html( $cap ); ?></code>
 						</label>
 			<?php endforeach; ?>
 				</div>
@@ -339,18 +339,30 @@ class NBUF_Roles_Page {
 			$('#nbuf-role-editor-form').on('submit', function(e) {
 				e.preventDefault();
 
-				const formData = $(this).serialize();
+				const $form = $(this);
+				const $submitBtn = $form.find('input[type="submit"]');
+				const originalText = $submitBtn.val();
+
+				/* Disable button and show loading state */
+				$submitBtn.prop('disabled', true).val('<?php echo esc_js( __( 'Saving...', 'nobloat-user-foundry' ) ); ?>');
 
 				$.ajax({
 					url: ajaxurl,
 					type: 'POST',
-					data: formData,
+					data: $form.serialize(),
 					success: function(response) {
 						if (response.success) {
 							window.location.href = '?page=nobloat-foundry-roles';
 						} else {
-							alert('<?php echo esc_js( __( 'Error:', 'nobloat-user-foundry' ) ); ?> ' + response.data.message);
+							alert('<?php echo esc_js( __( 'Error:', 'nobloat-user-foundry' ) ); ?> ' + (response.data ? response.data.message : '<?php echo esc_js( __( 'Unknown error', 'nobloat-user-foundry' ) ); ?>'));
+							$submitBtn.prop('disabled', false).val(originalText);
 						}
+					},
+					error: function(xhr, status, error) {
+						console.error('AJAX Error:', status, error);
+						console.error('Response:', xhr.responseText);
+						alert('<?php echo esc_js( __( 'Request failed. Please check the console for details.', 'nobloat-user-foundry' ) ); ?>');
+						$submitBtn.prop('disabled', false).val(originalText);
 					}
 				});
 			});
@@ -445,6 +457,3 @@ class NBUF_Roles_Page {
 		wp_send_json_success( array( 'json' => $json ) );
 	}
 }
-
-// Initialize Roles Page.
-NBUF_Roles_Page::init();

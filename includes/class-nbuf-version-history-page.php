@@ -32,18 +32,18 @@ class NBUF_Version_History_Page {
 			return;
 		}
 
-		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 16 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 	}
 
 	/**
-	 * Add version history menu page
+	 * Add user profile log menu page
 	 */
 	public static function add_menu_page() {
 		add_submenu_page(
 			'nobloat-foundry',
-			__( 'Version History', 'nobloat-user-foundry' ),
-			__( 'Version History', 'nobloat-user-foundry' ),
+			__( 'User Profile Log', 'nobloat-user-foundry' ),
+			__( 'User Profile Log', 'nobloat-user-foundry' ),
 			'manage_options',
 			'nobloat-foundry-version-history',
 			array( __CLASS__, 'render_page' )

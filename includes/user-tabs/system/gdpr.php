@@ -34,6 +34,35 @@ if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_settings' ) ) 
 	$delete_on_uninstall = isset( $_POST['nbuf_gdpr_delete_on_uninstall'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_gdpr_delete_on_uninstall', $delete_on_uninstall, true, 'gdpr' );
 
+	/* Policy Display Settings */
+	$policy_login_enabled = isset( $_POST['nbuf_policy_login_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_login_enabled', $policy_login_enabled, true, 'gdpr' );
+	$policy_login_position = isset( $_POST['nbuf_policy_login_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_login_position'] ) ) : 'right';
+	NBUF_Options::update( 'nbuf_policy_login_position', $policy_login_position, true, 'gdpr' );
+
+	$policy_registration_enabled = isset( $_POST['nbuf_policy_registration_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_registration_enabled', $policy_registration_enabled, true, 'gdpr' );
+	$policy_registration_position = isset( $_POST['nbuf_policy_registration_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_registration_position'] ) ) : 'right';
+	NBUF_Options::update( 'nbuf_policy_registration_position', $policy_registration_position, true, 'gdpr' );
+
+	$policy_verify_enabled = isset( $_POST['nbuf_policy_verify_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_verify_enabled', $policy_verify_enabled, true, 'gdpr' );
+	$policy_verify_position = isset( $_POST['nbuf_policy_verify_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_verify_position'] ) ) : 'right';
+	NBUF_Options::update( 'nbuf_policy_verify_position', $policy_verify_position, true, 'gdpr' );
+
+	$policy_request_reset_enabled = isset( $_POST['nbuf_policy_request_reset_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_request_reset_enabled', $policy_request_reset_enabled, true, 'gdpr' );
+	$policy_request_reset_position = isset( $_POST['nbuf_policy_request_reset_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_request_reset_position'] ) ) : 'right';
+	NBUF_Options::update( 'nbuf_policy_request_reset_position', $policy_request_reset_position, true, 'gdpr' );
+
+	$policy_reset_enabled = isset( $_POST['nbuf_policy_reset_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_reset_enabled', $policy_reset_enabled, true, 'gdpr' );
+	$policy_reset_position = isset( $_POST['nbuf_policy_reset_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_reset_position'] ) ) : 'right';
+	NBUF_Options::update( 'nbuf_policy_reset_position', $policy_reset_position, true, 'gdpr' );
+
+	$policy_account_tab_enabled = isset( $_POST['nbuf_policy_account_tab_enabled'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_policy_account_tab_enabled', $policy_account_tab_enabled, true, 'gdpr' );
+
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'GDPR settings saved.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
@@ -44,6 +73,19 @@ $include_2fa_data       = NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true 
 $include_login_attempts = NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false );
 $delete_user_photos     = NBUF_Options::get( 'nbuf_gdpr_delete_user_photos', true );
 $delete_on_uninstall    = NBUF_Options::get( 'nbuf_gdpr_delete_on_uninstall', false );
+
+/* Policy display settings */
+$policy_login_enabled          = NBUF_Options::get( 'nbuf_policy_login_enabled', true );
+$policy_login_position         = NBUF_Options::get( 'nbuf_policy_login_position', 'right' );
+$policy_registration_enabled   = NBUF_Options::get( 'nbuf_policy_registration_enabled', true );
+$policy_registration_position  = NBUF_Options::get( 'nbuf_policy_registration_position', 'right' );
+$policy_verify_enabled         = NBUF_Options::get( 'nbuf_policy_verify_enabled', false );
+$policy_verify_position        = NBUF_Options::get( 'nbuf_policy_verify_position', 'right' );
+$policy_request_reset_enabled  = NBUF_Options::get( 'nbuf_policy_request_reset_enabled', false );
+$policy_request_reset_position = NBUF_Options::get( 'nbuf_policy_request_reset_position', 'right' );
+$policy_reset_enabled          = NBUF_Options::get( 'nbuf_policy_reset_enabled', false );
+$policy_reset_position         = NBUF_Options::get( 'nbuf_policy_reset_position', 'right' );
+$policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_enabled', false );
 ?>
 
 <form method="post" action="">
@@ -250,6 +292,118 @@ $delete_on_uninstall    = NBUF_Options::get( 'nbuf_gdpr_delete_on_uninstall', fa
 			<li><?php esc_html_e( 'Go to Settings > Privacy to view suggested privacy policy text', 'nobloat-user-foundry' ); ?></li>
 		</ul>
 	</div>
+
+	<h3><?php esc_html_e( 'Policy Notices on Forms', 'nobloat-user-foundry' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Display Privacy Policy and Terms of Use in a tabbed panel alongside your forms. Templates can be customized in Policy Templates tab.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<table class="widefat" style="max-width: 700px; margin-top: 15px;">
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Form', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 80px; text-align: center;"><?php esc_html_e( 'Enable', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 120px;"><?php esc_html_e( 'Position', 'nobloat-user-foundry' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>
+					<strong><?php esc_html_e( 'Login Form', 'nobloat-user-foundry' ); ?></strong>
+					<code style="font-size: 11px; margin-left: 5px;">[nbuf_login_form]</code>
+				</td>
+				<td style="text-align: center;">
+					<input type="checkbox" name="nbuf_policy_login_enabled" value="1" <?php checked( $policy_login_enabled, 1 ); ?>>
+				</td>
+				<td>
+					<select name="nbuf_policy_login_position" style="width: 100%;">
+						<option value="right" <?php selected( $policy_login_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
+						<option value="left" <?php selected( $policy_login_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><?php esc_html_e( 'Registration Form', 'nobloat-user-foundry' ); ?></strong>
+					<code style="font-size: 11px; margin-left: 5px;">[nbuf_registration_form]</code>
+				</td>
+				<td style="text-align: center;">
+					<input type="checkbox" name="nbuf_policy_registration_enabled" value="1" <?php checked( $policy_registration_enabled, 1 ); ?>>
+				</td>
+				<td>
+					<select name="nbuf_policy_registration_position" style="width: 100%;">
+						<option value="right" <?php selected( $policy_registration_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
+						<option value="left" <?php selected( $policy_registration_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><?php esc_html_e( 'Verification Page', 'nobloat-user-foundry' ); ?></strong>
+					<code style="font-size: 11px; margin-left: 5px;">[nbuf_verify_page]</code>
+				</td>
+				<td style="text-align: center;">
+					<input type="checkbox" name="nbuf_policy_verify_enabled" value="1" <?php checked( $policy_verify_enabled, 1 ); ?>>
+				</td>
+				<td>
+					<select name="nbuf_policy_verify_position" style="width: 100%;">
+						<option value="right" <?php selected( $policy_verify_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
+						<option value="left" <?php selected( $policy_verify_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><?php esc_html_e( 'Request Password Reset', 'nobloat-user-foundry' ); ?></strong>
+					<code style="font-size: 11px; margin-left: 5px;">[nbuf_request_reset_form]</code>
+				</td>
+				<td style="text-align: center;">
+					<input type="checkbox" name="nbuf_policy_request_reset_enabled" value="1" <?php checked( $policy_request_reset_enabled, 1 ); ?>>
+				</td>
+				<td>
+					<select name="nbuf_policy_request_reset_position" style="width: 100%;">
+						<option value="right" <?php selected( $policy_request_reset_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
+						<option value="left" <?php selected( $policy_request_reset_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<strong><?php esc_html_e( 'Password Reset Form', 'nobloat-user-foundry' ); ?></strong>
+					<code style="font-size: 11px; margin-left: 5px;">[nbuf_reset_form]</code>
+				</td>
+				<td style="text-align: center;">
+					<input type="checkbox" name="nbuf_policy_reset_enabled" value="1" <?php checked( $policy_reset_enabled, 1 ); ?>>
+				</td>
+				<td>
+					<select name="nbuf_policy_reset_position" style="width: 100%;">
+						<option value="right" <?php selected( $policy_reset_position, 'right' ); ?>><?php esc_html_e( 'Right', 'nobloat-user-foundry' ); ?></option>
+						<option value="left" <?php selected( $policy_reset_position, 'left' ); ?>><?php esc_html_e( 'Left', 'nobloat-user-foundry' ); ?></option>
+					</select>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h3 style="margin-top: 30px;"><?php esc_html_e( 'Account Page', 'nobloat-user-foundry' ); ?></h3>
+	<table class="form-table" role="presentation">
+		<tr>
+			<th scope="row">
+				<label for="nbuf_policy_account_tab_enabled">
+					<?php esc_html_e( 'Policies Tab', 'nobloat-user-foundry' ); ?>
+				</label>
+			</th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_policy_account_tab_enabled" id="nbuf_policy_account_tab_enabled" value="1" <?php checked( $policy_account_tab_enabled, 1 ); ?>>
+					<?php esc_html_e( 'Add Policies tab to account page', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'Displays Privacy Policy and Terms of Use side-by-side in a "Policies" tab on the user account page.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
 
 	<?php submit_button(); ?>
 </form>

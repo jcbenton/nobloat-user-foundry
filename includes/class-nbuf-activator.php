@@ -90,6 +90,8 @@ class NBUF_Activator {
 			'nbuf_2fa_verify_template'         => '2fa-verify.html',
 			'nbuf_2fa_setup_totp_template'     => '2fa-setup-totp.html',
 			'nbuf_2fa_backup_codes_template'   => '2fa-backup-codes.html',
+			'nbuf_policy_privacy_html'         => 'policy-privacy.html',
+			'nbuf_policy_terms_html'           => 'policy-terms.html',
 		);
 		foreach ( $templates as $option => $file ) {
 			$path = NBUF_TEMPLATES_DIR . $file;
@@ -126,8 +128,6 @@ class NBUF_Activator {
 					'hooks_custom'             => '',
 					'custom_hook_enabled'      => 0,
 					'reverify_on_email_change' => 1,
-					'verification_page'        => '/nobloat-verify',
-					'password_reset_page'      => '/nobloat-reset',
 					'cleanup'                  => array(),
 					'auto_verify_existing'     => 1,
 				),
@@ -389,6 +389,19 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_gdpr_include_2fa_data', true, true, 'gdpr' );
 			NBUF_Options::update( 'nbuf_gdpr_include_login_attempts', false, true, 'gdpr' );
 
+			/* Policy display defaults */
+			NBUF_Options::update( 'nbuf_policy_login_enabled', true, true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_login_position', 'right', true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_registration_enabled', true, true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_registration_position', 'right', true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_verify_enabled', false, true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_verify_position', 'right', true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_request_reset_enabled', false, true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_request_reset_position', 'right', true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_reset_enabled', false, true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_reset_position', 'right', true, 'gdpr' );
+			NBUF_Options::update( 'nbuf_policy_account_tab_enabled', false, true, 'gdpr' );
+
 			/* Access Restrictions defaults */
 			NBUF_Options::update( 'nbuf_restrictions_enabled', true, true, 'restrictions' );
 			NBUF_Options::update( 'nbuf_restrictions_menu_enabled', true, true, 'restrictions' );
@@ -406,7 +419,7 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_enable_public_profiles', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_enable_gravatar', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_page_slug', 'nobloat-profile', true, 'profiles' );
-			NBUF_Options::update( 'nbuf_profile_default_privacy', 'members_only', true, 'profiles' );
+			NBUF_Options::update( 'nbuf_profile_default_privacy', 'private', true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_allow_cover_photos', true, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_max_photo_size', 5, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_max_cover_size', 10, true, 'profiles' );
@@ -455,7 +468,10 @@ class NBUF_Activator {
 			NBUF_Expiration::activate();
 		}
 
-		// 8. Create functional pages with standardized slugs.
+		// 8. Create uploads directory structure.
+		self::create_upload_directories();
+
+		// 9. Create functional pages with standardized slugs.
 
 		// Verification page.
 		self::create_page( 'nbuf_page_verification', 'NoBloat Verification', array( 'nobloat-verify' ), '[nbuf_verify_page]' );
@@ -474,6 +490,9 @@ class NBUF_Activator {
 
 		// Account page.
 		self::create_page( 'nbuf_page_account', 'NoBloat User Account', array( 'nobloat-account' ), '[nbuf_account_page]' );
+
+		// Public Profile page.
+		self::create_page( 'nbuf_page_profile', 'NoBloat Profile', array( 'nobloat-profile' ), '[nbuf_profile]' );
 
 		// Logout page.
 		self::create_page( 'nbuf_page_logout', 'NoBloat Logout', array( 'nobloat-logout' ), '[nbuf_logout]' );
@@ -504,6 +523,42 @@ class NBUF_Activator {
 			if ( ! NBUF_User_Data::is_verified( $user_id ) ) {
 				NBUF_User_Data::set_verified( $user_id );
 			}
+		}
+	}
+
+	/**
+	 * Create upload directories.
+	 *
+	 * Creates the /wp-content/uploads/nobloat/ directory structure
+	 * for storing user photos and other plugin uploads.
+	 */
+	private static function create_upload_directories() {
+		$upload_dir = wp_upload_dir();
+
+		if ( ! empty( $upload_dir['error'] ) ) {
+			return; // WordPress upload directory not available.
+		}
+
+		$nobloat_dir = trailingslashit( $upload_dir['basedir'] ) . 'nobloat';
+		$users_dir   = trailingslashit( $nobloat_dir ) . 'users';
+
+		/* Create main nobloat directory */
+		if ( ! file_exists( $nobloat_dir ) ) {
+			wp_mkdir_p( $nobloat_dir );
+		}
+
+		/* Create users subdirectory */
+		if ( ! file_exists( $users_dir ) ) {
+			wp_mkdir_p( $users_dir );
+		}
+
+		/* Add index.php for directory listing protection */
+		$index_content = '<?php // Silence is golden.';
+		if ( ! file_exists( $nobloat_dir . '/index.php' ) ) {
+			file_put_contents( $nobloat_dir . '/index.php', $index_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+		if ( ! file_exists( $users_dir . '/index.php' ) ) {
+			file_put_contents( $users_dir . '/index.php', $index_content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
 	}
 

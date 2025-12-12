@@ -130,7 +130,7 @@ class NBUF_Public_Profiles {
 	 */
 	public static function can_view_profile( $user_id ) {
 		$user_data = NBUF_User_Data::get( $user_id );
-		$privacy   = ! empty( $user_data['profile_privacy'] ) ? $user_data['profile_privacy'] : NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
+		$privacy   = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 
 		// Public profiles are visible to everyone.
 		if ( 'public' === $privacy ) {
@@ -163,7 +163,7 @@ class NBUF_Public_Profiles {
 		$profile_photo = NBUF_Profile_Photos::get_profile_photo( $user->ID, 150 );
 
 		// Get cover photo.
-		$cover_photo = ! empty( $user_data['cover_photo_url'] ) ? $user_data['cover_photo_url'] : '';
+		$cover_photo = ( $user_data && ! empty( $user_data->cover_photo_url ) ) ? $user_data->cover_photo_url : '';
 		$allow_cover = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 
 		// Get bio and other info.

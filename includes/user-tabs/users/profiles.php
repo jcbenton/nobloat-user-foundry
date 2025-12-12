@@ -15,9 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
 $public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 $gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-$profile_custom_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
 $profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
-$default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'members_only' );
+$default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 $allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 $max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
 $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
@@ -159,72 +158,6 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				</td>
 			</tr>
 
-			<!-- Custom CSS -->
-			<tr>
-				<th><?php esc_html_e( 'Custom Profile CSS', 'nobloat-user-foundry' ); ?></th>
-				<td>
-					<textarea name="nbuf_profile_custom_css" rows="10" class="large-text code"><?php echo esc_textarea( $profile_custom_css ); ?></textarea>
-					<p class="description">
-						<?php esc_html_e( 'Add custom CSS for profile pages. The plugin provides minimal default styles with lots of CSS classes for customization.', 'nobloat-user-foundry' ); ?>
-					</p>
-					<details style="margin-top: 15px;">
-						<summary style="cursor: pointer; font-weight: 600; color: #0073aa;">
-							<?php esc_html_e( '📋 Available CSS Classes', 'nobloat-user-foundry' ); ?>
-						</summary>
-						<div style="background: #f9f9f9; padding: 15px; margin-top: 10px; border-left: 4px solid #0073aa;">
-							<h4><?php esc_html_e( 'Profile Container Classes:', 'nobloat-user-foundry' ); ?></h4>
-							<ul style="font-family: monospace; line-height: 1.8;">
-								<li><code>.nbuf-profile-page</code> - Main profile wrapper</li>
-								<li><code>.nbuf-profile-header</code> - Header section with cover photo</li>
-								<li><code>.nbuf-profile-cover</code> - Cover photo container</li>
-								<li><code>.nbuf-profile-avatar-wrap</code> - Avatar wrapper</li>
-								<li><code>.nbuf-profile-avatar</code> - Avatar image</li>
-								<li><code>.nbuf-profile-info</code> - User info section</li>
-								<li><code>.nbuf-profile-name</code> - User display name</li>
-								<li><code>.nbuf-profile-username</code> - Username</li>
-								<li><code>.nbuf-profile-bio</code> - Bio/description</li>
-								<li><code>.nbuf-profile-meta</code> - Meta information (joined date, etc.)</li>
-								<li><code>.nbuf-profile-content</code> - Main content area</li>
-								<li><code>.nbuf-profile-actions</code> - Action buttons</li>
-							</ul>
-
-							<h4 style="margin-top: 20px;"><?php esc_html_e( 'Avatar Classes:', 'nobloat-user-foundry' ); ?></h4>
-							<ul style="font-family: monospace; line-height: 1.8;">
-								<li><code>.nbuf-avatar</code> - Avatar image (replaces WordPress default)</li>
-								<li><code>.nbuf-svg-avatar</code> - SVG initials avatar</li>
-								<li><code>.nbuf-avatar-small</code> - Small size (32px)</li>
-								<li><code>.nbuf-avatar-medium</code> - Medium size (64px)</li>
-								<li><code>.nbuf-avatar-large</code> - Large size (96px)</li>
-								<li><code>.nbuf-avatar-xl</code> - Extra large size (150px)</li>
-							</ul>
-
-							<h4 style="margin-top: 20px;"><?php esc_html_e( 'Example Custom CSS:', 'nobloat-user-foundry' ); ?></h4>
-							<pre style="background: #fff; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">/* Business-like styling */
-.nbuf-profile-page {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 20px;
-}
-
-.nbuf-profile-cover {
-	height: 300px;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.nbuf-profile-name {
-	font-size: 2rem;
-	font-weight: 700;
-	color: #1a202c;
-}
-
-.nbuf-profile-bio {
-	color: #4a5568;
-	line-height: 1.6;
-}</pre>
-						</div>
-					</details>
-				</td>
-			</tr>
 		</table>
 
 		<?php submit_button( __( 'Save Profile Settings', 'nobloat-user-foundry' ) ); ?>

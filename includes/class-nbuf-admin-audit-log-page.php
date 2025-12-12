@@ -23,6 +23,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NBUF_Admin_Audit_Log_Page {
 
 	/**
+	 * Initialize admin audit log page
+	 */
+	public static function init() {
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 14 );
+	}
+
+	/**
+	 * Add admin audit log menu page
+	 */
+	public static function add_menu_page() {
+		add_submenu_page(
+			'nobloat-foundry',
+			__( 'Admin Actions Log', 'nobloat-user-foundry' ),
+			__( 'Admin Actions Log', 'nobloat-user-foundry' ),
+			'manage_options',
+			'nobloat-foundry-admin-audit-log',
+			array( __CLASS__, 'render' )
+		);
+	}
+
+	/**
 	 * Render the admin audit log page
 	 *
 	 * @return void

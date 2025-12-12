@@ -128,13 +128,22 @@ add_action(
 		// Initialize admin settings (ALWAYS - needed to configure when disabled).
 		if ( is_admin() ) {
 			NBUF_Settings::init();
-			NBUF_Logs_Menu::init();
+			NBUF_Appearance::init();
+			NBUF_Roles_Page::init();
+			NBUF_Multi_Role::init();
+			NBUF_Username_Changer::init();
+			NBUF_User_Profile_Tabs::init();
+			NBUF_Admin_Profile_Fields::init();
 			NBUF_Audit_Log_Page::init();
 			NBUF_Security_Log_Page::init();
+			NBUF_Admin_Audit_Log_Page::init();
 			NBUF_Version_History_Page::init();
 			NBUF_Migration::init();
 			NBUF_Admin_User_Search::init();
 			NBUF_Diagnostics::init();
+
+			// User Notes - triggers autoloader which calls init_profile_link() at file end.
+			class_exists( 'NBUF_User_Notes' );
 		}
 
 		// Initialize WordPress privacy integration (ALWAYS - for GDPR compliance).
@@ -286,16 +295,18 @@ add_action(
 			NBUF_Member_Directory::init();
 		}
 
-		// Initialize Profile Photos (if enabled).
-		$profiles_enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
-		if ( $profiles_enabled ) {
-			NBUF_Profile_Photos::init();
+		// Initialize Profile Photos (handles own enable checks for profiles/gravatar).
+		NBUF_Profile_Photos::init();
 
-			// Initialize Public Profiles (if enabled).
-			$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
-			if ( $public_profiles_enabled ) {
-				NBUF_Public_Profiles::init();
-			}
+		// Initialize 2FA Account management (for application passwords AJAX handlers).
+		// Triggers autoloader which calls init() at file end to register AJAX handlers.
+		class_exists( 'NBUF_2FA_Account' );
+
+		// Initialize Public Profiles (if enabled).
+		$profiles_enabled        = NBUF_Options::get( 'nbuf_enable_profiles', false );
+		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
+		if ( $profiles_enabled && $public_profiles_enabled ) {
+			NBUF_Public_Profiles::init();
 		}
 
 		// Initialize Data Management Tools (admin only).

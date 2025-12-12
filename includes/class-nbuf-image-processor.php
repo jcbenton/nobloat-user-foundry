@@ -266,8 +266,10 @@ class NBUF_Image_Processor {
 		try {
 			$image = new Imagick( $source_path );
 
-			/* Auto-rotate based on EXIF orientation */
-			$image->autoOrientImage();
+			/* Auto-rotate based on EXIF orientation (requires ImageMagick 6.8.9+ / Imagick 3.3.0+) */
+			if ( method_exists( $image, 'autoOrientImage' ) ) {
+				$image->autoOrientImage();
+			}
 
 			/* Strip EXIF if requested */
 			if ( $strip_exif ) {
@@ -797,65 +799,13 @@ class NBUF_Image_Processor {
 		}
 
 		/*
-		 * SECURITY: Create directories with restrictive permissions.
-		 * 0750 = owner + group only, no world access.
+		 * Create directories with standard WordPress permissions.
+		 * 0755 = owner rwx, group rx, others rx (standard for web-accessible directories).
+		 * Security is provided by randomized filenames (SHA hash) making URLs unguessable.
 		 */
 		if ( ! file_exists( $nobloat_dir ) ) {
 			if ( ! wp_mkdir_p( $nobloat_dir ) ) {
 				return new WP_Error( 'mkdir_failed', __( 'Could not create upload directory.', 'nobloat-user-foundry' ) );
-			}
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Required for security: restrictive permissions (0750).
-			$chmod_result = chmod( $nobloat_dir, 0750 );
-			if ( false === $chmod_result ) {
-				NBUF_Security_Log::log(
-					'chmod_failed',
-					'critical',
-					'Failed to set restrictive permissions on nobloat upload directory',
-					array(
-						'directory'            => $nobloat_dir,
-						'intended_permissions' => '0750',
-					)
-				);
-				return new WP_Error( 'chmod_failed', __( 'Could not secure upload directory.', 'nobloat-user-foundry' ) );
-			}
-
-			/*
-			 * SECURITY: Add .htaccess to block direct file access.
-			 * Photos should only be served through WordPress with permission checks.
-			 */
-			$htaccess_file     = trailingslashit( $nobloat_dir ) . '.htaccess';
-			$htaccess_content  = "# NoBloat User Foundry - Block direct access\n";
-			$htaccess_content .= "# Photos are served through WordPress with permission checks\n";
-			$htaccess_content .= "Order Deny,Allow\n";
-			$htaccess_content .= "Deny from all\n";
-
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for .htaccess creation.
-			$htaccess_result = file_put_contents( $htaccess_file, $htaccess_content );
-			if ( false === $htaccess_result ) {
-				NBUF_Security_Log::log(
-					'htaccess_write_failed',
-					'critical',
-					'Failed to create .htaccess file for photo upload directory',
-					array(
-						'file_path' => $htaccess_file,
-						'directory' => $nobloat_dir,
-					)
-				);
-				/* Continue anyway - directory permissions still provide some protection */
-			} else {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Required for security: restrictive permissions (0640).
-				$htaccess_chmod = chmod( $htaccess_file, 0640 );
-				if ( false === $htaccess_chmod ) {
-					NBUF_Security_Log::log(
-						'chmod_failed',
-						'warning',
-						'Failed to set permissions on .htaccess file',
-						array(
-							'file_path'            => $htaccess_file,
-							'intended_permissions' => '0640',
-						)
-					);
-				}
 			}
 		}
 
@@ -864,40 +814,11 @@ class NBUF_Image_Processor {
 			if ( ! wp_mkdir_p( $users_dir ) ) {
 				return new WP_Error( 'mkdir_failed', __( 'Could not create users directory.', 'nobloat-user-foundry' ) );
 			}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Required for security: restrictive permissions (0750).
-			$users_chmod = chmod( $users_dir, 0750 );
-			if ( false === $users_chmod ) {
-				NBUF_Security_Log::log(
-					'chmod_failed',
-					'critical',
-					'Failed to set restrictive permissions on users upload directory',
-					array(
-						'directory'            => $users_dir,
-						'intended_permissions' => '0750',
-					)
-				);
-				return new WP_Error( 'chmod_failed', __( 'Could not secure users directory.', 'nobloat-user-foundry' ) );
-			}
 		}
 
 		if ( ! file_exists( $user_dir ) ) {
 			if ( ! wp_mkdir_p( $user_dir ) ) {
 				return new WP_Error( 'mkdir_failed', __( 'Could not create user upload directory.', 'nobloat-user-foundry' ) );
-			}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Required for security: restrictive permissions (0750).
-			$user_chmod = chmod( $user_dir, 0750 );
-			if ( false === $user_chmod ) {
-				NBUF_Security_Log::log(
-					'chmod_failed',
-					'critical',
-					'Failed to set restrictive permissions on user upload directory',
-					array(
-						'directory'            => $user_dir,
-						'user_id'              => $user_id,
-						'intended_permissions' => '0750',
-					)
-				);
-				return new WP_Error( 'chmod_failed', __( 'Could not secure user upload directory.', 'nobloat-user-foundry' ) );
 			}
 		}
 

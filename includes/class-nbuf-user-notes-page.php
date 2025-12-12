@@ -31,7 +31,7 @@ class NBUF_User_Notes_Page {
 	 * @since 1.0.0
 	 */
 	public static function init() {
-		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 17 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_nbuf_search_users', array( __CLASS__, 'ajax_search_users' ) );
 		add_action( 'wp_ajax_nbuf_get_user_notes', array( __CLASS__, 'ajax_get_user_notes' ) );

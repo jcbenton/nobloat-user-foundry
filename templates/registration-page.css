@@ -101,10 +101,7 @@
 }
 
 .nbuf-registration-form {
-    background: var(--nbuf-surface);
     padding: var(--nbuf-space-2xl);
-    border-radius: var(--nbuf-radius-md);
-    box-shadow: var(--nbuf-shadow-md);
 }
 
 /* ==========================================================
@@ -367,6 +364,129 @@ textarea.nbuf-registration-input {
 
     /* Reset wrapper width on mobile */
     .nbuf-registration-wrapper:has(.nbuf-form-grid) {
+        max-width: 480px;
+    }
+}
+
+/* ==========================================================
+   TWO-COLUMN LAYOUT WITH POLICY PANEL
+   ========================================================== */
+
+.nbuf-registration-container.nbuf-with-policies {
+    display: flex;
+    gap: var(--nbuf-space-2xl);
+    max-width: 1024px;
+    margin: var(--nbuf-space-3xl) auto;
+    padding: 0 var(--nbuf-space-lg);
+}
+
+/* Form on left, policies on right */
+.nbuf-registration-container.nbuf-policies-right {
+    flex-direction: row;
+}
+
+/* Policies on left, form on right */
+.nbuf-registration-container.nbuf-policies-left {
+    flex-direction: row-reverse;
+}
+
+.nbuf-registration-container .nbuf-registration-main {
+    flex: 0 0 auto;
+    width: 480px;
+    max-width: 100%;
+}
+
+.nbuf-registration-container .nbuf-registration-main .nbuf-registration-wrapper {
+    margin: 0;
+}
+
+/* Policy panel styles */
+.nbuf-registration-container .nbuf-policy-panel {
+    flex: 0 0 auto;
+    width: 480px;
+    max-width: 100%;
+}
+
+.nbuf-registration-container .nbuf-policy-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--nbuf-border);
+}
+
+.nbuf-registration-container .nbuf-policy-tab-link {
+    padding: var(--nbuf-space-lg) 0;
+    margin-right: var(--nbuf-space-xl);
+    margin-left: var(--nbuf-space-xl);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 15px;
+    color: #3a3a56;
+    transition: all var(--nbuf-transition-base);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+
+.nbuf-registration-container .nbuf-policy-tab-link:first-child {
+    margin-left: var(--nbuf-space-xl);
+}
+
+.nbuf-registration-container .nbuf-policy-tab-link:hover {
+    border-bottom-color: #1a325e;
+}
+
+.nbuf-registration-container .nbuf-policy-tab-link.active {
+    color: #09092c;
+    font-weight: 500;
+    border-bottom-color: #1a325e;
+}
+
+.nbuf-registration-container .nbuf-policy-tab-content {
+    display: none;
+    padding: var(--nbuf-space-xl);
+}
+
+.nbuf-registration-container .nbuf-policy-tab-content.active {
+    display: block;
+}
+
+/* Policy content styling - inherit theme fonts */
+.nbuf-registration-container .nbuf-policy-list {
+    list-style: disc;
+    padding-left: 1.5em;
+    margin: 0;
+}
+
+.nbuf-registration-container .nbuf-policy-list li {
+    padding: var(--nbuf-space-xs) 0;
+}
+
+.nbuf-registration-container .nbuf-policy-footer {
+    margin-top: var(--nbuf-space-lg);
+}
+
+.nbuf-registration-container .nbuf-policy-footer a {
+    color: var(--nbuf-primary);
+}
+
+/* ==========================================================
+   RESPONSIVE - Stack on mobile
+   ========================================================== */
+
+@media (max-width: 1024px) {
+    .nbuf-registration-container.nbuf-with-policies {
+        flex-direction: column !important;
+        padding: var(--nbuf-space-lg);
+        align-items: center;
+    }
+
+    .nbuf-registration-container .nbuf-registration-main {
+        width: 100%;
+        max-width: 480px;
+    }
+
+    .nbuf-registration-container .nbuf-policy-panel {
+        width: 100%;
         max-width: 480px;
     }
 }

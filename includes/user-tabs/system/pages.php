@@ -18,6 +18,7 @@ $page_request_reset = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
 $page_login         = NBUF_Options::get( 'nbuf_page_login', 0 );
 $page_registration  = NBUF_Options::get( 'nbuf_page_registration', 0 );
 $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
+$page_profile       = NBUF_Options::get( 'nbuf_page_profile', 0 );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -141,6 +142,24 @@ $page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 				?>
 				<p class="description">
 					<?php esc_html_e( 'Page must contain [nbuf_account_page] shortcode. Auto-created as "NoBloat User Account" during activation.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Public Profile Page', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<?php
+				wp_dropdown_pages(
+					array(
+						'name'              => 'nbuf_page_profile',
+						'selected'          => absint( $page_profile ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
+						'option_none_value' => 0,
+					)
+				);
+				?>
+				<p class="description">
+					<?php esc_html_e( 'Page must contain [nbuf_profile] shortcode. Auto-created as "NoBloat Profile" during activation.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

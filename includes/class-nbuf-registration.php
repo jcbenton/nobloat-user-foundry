@@ -281,11 +281,18 @@ class NBUF_Registration {
 	/**
 	 * Get enabled registration fields based on settings.
 	 *
+	 * Uses profile field configuration from Users > Profile Fields tab:
+	 * - Registration column: which fields to show
+	 * - Required column: which fields are required
+	 * - Custom Label column: field label overrides
+	 *
 	 * @return array Array of enabled fields with their settings.
 	 */
 	public static function get_enabled_fields() {
-		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
-		$address_mode = $reg_settings['address_mode'] ?? 'simplified';
+		/* Get profile fields enabled for registration (from Profile Fields tab) */
+		$profile_reg_fields = NBUF_Profile_Data::get_registration_fields();
+		$required_fields    = NBUF_Options::get( 'nbuf_required_profile_fields', array() );
+		$custom_labels      = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
 
 		/* Get all available fields from registry */
 		$field_registry = NBUF_Profile_Data::get_field_registry();
@@ -303,32 +310,28 @@ class NBUF_Registration {
 		$enabled_fields = array();
 
 		foreach ( $all_fields as $field => $default_label ) {
-			$enabled  = ! empty( $reg_settings[ $field . '_enabled' ] ) && '0' !== $reg_settings[ $field . '_enabled' ];
-			$required = ! empty( $reg_settings[ $field . '_required' ] ) && '0' !== $reg_settings[ $field . '_required' ];
-			$label    = $reg_settings[ $field . '_label' ] ?? $default_label;
+			/*
+			 * A field is shown if:
+			 * 1. It's a core field (first_name/last_name - always shown)
+			 * 2. It's enabled in Profile Fields > Registration column
+			 */
+			$is_core_field       = in_array( $field, array( 'first_name', 'last_name' ), true );
+			$in_profile_reg_list = in_array( $field, $profile_reg_fields, true );
 
-			/* Use default label if custom label is empty */
-			if ( empty( $label ) ) {
-				$label = $default_label;
+			if ( ! $is_core_field && ! $in_profile_reg_list ) {
+				continue;
 			}
 
-			if ( $enabled ) {
-				/* Handle address mode */
-				if ( 'simplified' === $address_mode ) {
-					/* Skip individual address fields in simplified mode */
-					if ( in_array( $field, array( 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country' ), true ) ) {
-						continue;
-					}
-				} elseif ( 'address' === $field ) {
-					/* Skip single address field in full mode */
-					continue;
-				}
+			/* Get required status from Profile Fields > Required column */
+			$required = in_array( $field, $required_fields, true );
 
-				$enabled_fields[ $field ] = array(
-					'label'    => $label,
-					'required' => $required,
-				);
-			}
+			/* Get custom label from Profile Fields > Custom Label column */
+			$label = ! empty( $custom_labels[ $field ] ) ? $custom_labels[ $field ] : $default_label;
+
+			$enabled_fields[ $field ] = array(
+				'label'    => $label,
+				'required' => $required,
+			);
 		}
 
 		return $enabled_fields;

@@ -37,13 +37,12 @@ class NBUF_Email {
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
 		$mode     = isset( $settings['email_mode'] ) && 'text' === $settings['email_mode'] ? 'text' : 'html';
 
-		// Determine verification page path.
-		$relative_path = ! empty( $settings['verification_page'] )
-		? '/' . ltrim( $settings['verification_page'], '/' )
-		: '/nobloat-verify';
+		// Get verification page URL from page ID.
+		$verification_page_id = NBUF_Options::get( 'nbuf_page_verification', 0 );
+		$verification_base    = $verification_page_id ? get_permalink( $verification_page_id ) : home_url( '/nobloat-verify' );
 
 		// Construct verification URL.
-		$verification_url = add_query_arg( 'token', rawurlencode( $token ), home_url( $relative_path ) );
+		$verification_url = add_query_arg( 'token', rawurlencode( $token ), $verification_base );
 
 		// Load email template.
 		$template = self::get_template_content( $mode );

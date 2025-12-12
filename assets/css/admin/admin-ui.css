@@ -409,14 +409,49 @@
 
 .capability-checkboxes {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 	gap: var(--nbuf-spacing-sm);
 	margin-top: var(--nbuf-spacing-md);
+	padding: var(--nbuf-spacing-md);
+	background: var(--nbuf-gray-50);
+	border: 1px solid var(--nbuf-border);
+	border-radius: var(--nbuf-radius);
 }
 
 .capability-checkboxes label {
 	display: flex;
 	align-items: center;
+	padding: 8px 12px;
+	background: #fff;
+	border: 1px solid var(--nbuf-gray-400);
+	border-radius: var(--nbuf-radius-sm);
+	cursor: pointer;
+	transition: border-color var(--nbuf-transition-fast), background-color var(--nbuf-transition-fast);
+}
+
+.capability-checkboxes label:hover {
+	border-color: var(--nbuf-primary);
+	background: var(--nbuf-bg-info);
+}
+
+.capability-checkboxes label:has(input:checked) {
+	border-color: var(--nbuf-primary);
+	background: var(--nbuf-bg-info);
+}
+
+.capability-checkboxes input[type="checkbox"] {
+	margin: 0;
+	margin-right: 10px;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+}
+
+.capability-checkboxes code {
+	font-size: 12px;
+	background: transparent;
+	padding: 0;
+	color: var(--nbuf-gray-700);
 }
 
 /* Tabs */

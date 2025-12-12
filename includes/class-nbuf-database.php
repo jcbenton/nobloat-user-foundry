@@ -758,7 +758,7 @@ class NBUF_Database {
 		/* Add profile_privacy column */
 		if ( ! self::column_exists( $table_name, 'profile_privacy' ) ) {
          // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN profile_privacy VARCHAR(20) DEFAULT 'members_only' AFTER password_changed_at" );
+			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN profile_privacy VARCHAR(20) DEFAULT 'private' AFTER password_changed_at" );
 			$needs_update = true;
 		}
 

@@ -87,10 +87,7 @@ body.nbuf-reset-page {
     max-width: 480px;
     width: 100%;
     margin: var(--nbuf-space-2xl) auto;
-    background: var(--nbuf-surface);
     padding: var(--nbuf-space-2xl);
-    border-radius: var(--nbuf-radius-lg);
-    box-shadow: var(--nbuf-shadow-md);
 }
 
 .nbuf-reset-title {
@@ -309,5 +306,129 @@ body.nbuf-reset-page {
 
     .nbuf-reset-title {
         font-size: var(--nbuf-font-size-xl);
+    }
+}
+
+/* ==========================================================
+   TWO-COLUMN LAYOUT WITH POLICY PANEL
+   ========================================================== */
+
+.nbuf-reset-container.nbuf-with-policies {
+    display: flex;
+    gap: var(--nbuf-space-2xl);
+    max-width: 1024px;
+    margin: var(--nbuf-space-2xl) auto;
+    padding: 0 var(--nbuf-space-lg);
+}
+
+/* Form on left, policies on right */
+.nbuf-reset-container.nbuf-policies-right {
+    flex-direction: row;
+}
+
+/* Policies on left, form on right */
+.nbuf-reset-container.nbuf-policies-left {
+    flex-direction: row-reverse;
+}
+
+.nbuf-reset-container .nbuf-reset-main {
+    flex: 0 0 auto;
+    width: 480px;
+    max-width: 100%;
+}
+
+.nbuf-reset-container .nbuf-reset-main .nbuf-reset-wrapper,
+.nbuf-reset-container .nbuf-reset-main .nbuf-request-reset-wrapper {
+    margin: 0;
+}
+
+/* Policy panel styles */
+.nbuf-reset-container .nbuf-policy-panel {
+    flex: 0 0 auto;
+    width: 480px;
+    max-width: 100%;
+}
+
+.nbuf-reset-container .nbuf-policy-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--nbuf-border);
+}
+
+.nbuf-reset-container .nbuf-policy-tab-link {
+    padding: var(--nbuf-space-lg) 0;
+    margin-right: var(--nbuf-space-xl);
+    margin-left: var(--nbuf-space-xl);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-size: 15px;
+    color: #3a3a56;
+    transition: all var(--nbuf-transition-base);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+
+.nbuf-reset-container .nbuf-policy-tab-link:first-child {
+    margin-left: var(--nbuf-space-xl);
+}
+
+.nbuf-reset-container .nbuf-policy-tab-link:hover {
+    border-bottom-color: #1a325e;
+}
+
+.nbuf-reset-container .nbuf-policy-tab-link.active {
+    color: #09092c;
+    font-weight: 500;
+    border-bottom-color: #1a325e;
+}
+
+.nbuf-reset-container .nbuf-policy-tab-content {
+    display: none;
+    padding: var(--nbuf-space-xl);
+}
+
+.nbuf-reset-container .nbuf-policy-tab-content.active {
+    display: block;
+}
+
+/* Policy content styling - inherit theme fonts */
+.nbuf-reset-container .nbuf-policy-list {
+    list-style: disc;
+    padding-left: 1.5em;
+    margin: 0;
+}
+
+.nbuf-reset-container .nbuf-policy-list li {
+    padding: var(--nbuf-space-xs) 0;
+}
+
+.nbuf-reset-container .nbuf-policy-footer {
+    margin-top: var(--nbuf-space-lg);
+}
+
+.nbuf-reset-container .nbuf-policy-footer a {
+    color: var(--nbuf-primary);
+}
+
+/* ==========================================================
+   RESPONSIVE - Stack on mobile
+   ========================================================== */
+
+@media (max-width: 1024px) {
+    .nbuf-reset-container.nbuf-with-policies {
+        flex-direction: column !important;
+        padding: var(--nbuf-space-lg);
+        align-items: center;
+    }
+
+    .nbuf-reset-container .nbuf-reset-main {
+        width: 100%;
+        max-width: 480px;
+    }
+
+    .nbuf-reset-container .nbuf-policy-panel {
+        width: 100%;
+        max-width: 480px;
     }
 }

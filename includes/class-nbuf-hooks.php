@@ -181,11 +181,9 @@ class NBUF_Hooks {
 	 * @return string Modified message.
 	 */
 	public static function rewrite_password_reset_link( $message, $key, $user_login, $user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		$settings    = NBUF_Options::get( 'nbuf_settings', array() );
-		$custom_path = $settings['password_reset_page'] ?? '/nobloat-reset';
-		$custom_path = '/' . ltrim( $custom_path, '/' );
-
-		$reset_url = home_url( $custom_path );
+		/* Get password reset page URL from page ID */
+		$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+		$reset_url     = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
 		$reset_url = add_query_arg(
 			array(
 				'key'    => rawurlencode( $key ),
@@ -321,10 +319,16 @@ class NBUF_Hooks {
 			return $wp_new_user_notification_email;
 		}
 
-		/* Get custom password reset page URL */
-		$settings            = NBUF_Options::get( 'nbuf_settings', array() );
-		$reset_path          = isset( $settings['password_reset_page'] ) ? $settings['password_reset_page'] : '/nobloat-reset';
-		$password_reset_link = site_url( $reset_path . '?key=' . $key . '&login=' . rawurlencode( $user_login ) );
+		/* Get custom password reset page URL from page ID */
+		$reset_page_id       = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+		$reset_base          = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
+		$password_reset_link = add_query_arg(
+			array(
+				'key'   => $key,
+				'login' => rawurlencode( $user_login ),
+			),
+			$reset_base
+		);
 
 		/* Prepare placeholders */
 		$placeholders = array(
@@ -431,6 +435,12 @@ class NBUF_Hooks {
 	public static function handle_default_wordpress_redirects() {
 		/* Only run on wp-login.php */
 		if ( ! isset( $GLOBALS['pagenow'] ) || 'wp-login.php' !== $GLOBALS['pagenow'] ) {
+			return;
+		}
+
+		/* Check if user management system is enabled */
+		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
+		if ( ! $system_enabled ) {
 			return;
 		}
 

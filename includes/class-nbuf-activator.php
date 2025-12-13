@@ -166,7 +166,7 @@ class NBUF_Activator {
 			/* Expiration feature defaults */
 			NBUF_Options::update( 'nbuf_enable_expiration', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_expiration_warning_days', 7, true, 'settings' );
-			NBUF_Options::update( 'nbuf_wc_prevent_active_subs', false, true, 'settings' );
+			NBUF_Options::update( 'nbuf_wc_prevent_active_subs', true, true, 'settings' );
 			NBUF_Options::update( 'nbuf_wc_prevent_recent_orders', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_wc_recent_order_days', 90, true, 'settings' );
 
@@ -187,7 +187,7 @@ class NBUF_Activator {
 					 */
 					'username_method'      => 'auto_random', // 'user_entered', 'auto_email', 'auto_random'
 					// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Preserved for reference during development
-					'login_method'         => 'email_only',  // 'email_only', 'username_only', 'email_or_username'
+					'login_method'         => 'email_or_username',  // 'email_only', 'username_only', 'email_or_username'
 					// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- Preserved for reference during development
 					'address_mode'         => 'simplified',  // 'simplified', 'full'
 
@@ -450,7 +450,7 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_version_history_allow_user_revert', false, true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_retention_days', 365, true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_max_versions', 50, true, 'version_history' );
-			NBUF_Options::update( 'nbuf_version_history_ip_tracking', 'off', true, 'version_history' );
+			NBUF_Options::update( 'nbuf_version_history_ip_tracking', 'anonymized', true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_auto_cleanup', true, true, 'version_history' );
 		}
 

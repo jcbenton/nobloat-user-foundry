@@ -324,12 +324,17 @@ class NBUF_Settings {
 			'nbuf_logging_security_retention'     => 'sanitize_text_field',
 
 			/* Profile settings */
+			'nbuf_enable_profiles'                => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_enable_public_profiles'         => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_profile_enable_gravatar'        => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_profile_page_slug'              => 'sanitize_title',
 			'nbuf_profile_default_privacy'        => function ( $value ) {
 				$valid = array( 'public', 'members_only', 'private' );
 				return in_array( $value, $valid, true ) ? $value : 'private';
 			},
 			'nbuf_profile_allow_cover_photos'     => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_profile_max_photo_size'         => 'absint',
+			'nbuf_profile_max_cover_size'         => 'absint',
 			'nbuf_profile_custom_css'             => 'wp_strip_all_tags',
 
 			/* GDPR settings */
@@ -455,6 +460,20 @@ class NBUF_Settings {
 			$result = NBUF_Options::update( $key, $sanitized_value, true, 'settings' );
 			if ( $result ) {
 				++$saved_count;
+			}
+		}
+
+		/* Handle unchecked checkboxes - only for checkboxes declared on the current form */
+		if ( isset( $_POST['nbuf_form_checkboxes'] ) && is_array( $_POST['nbuf_form_checkboxes'] ) ) {
+			foreach ( $_POST['nbuf_form_checkboxes'] as $checkbox_key ) {
+				$checkbox_key = sanitize_key( $checkbox_key );
+				/* If checkbox was declared but not submitted, it was unchecked */
+				if ( ! isset( $_POST[ $checkbox_key ] ) && isset( $registry[ $checkbox_key ] ) ) {
+					$result = NBUF_Options::update( $checkbox_key, false, true, 'settings' );
+					if ( $result ) {
+						++$saved_count;
+					}
+				}
 			}
 		}
 

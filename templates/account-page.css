@@ -715,6 +715,33 @@ textarea.nbuf-account-input {
 }
 
 /* ==========================================================
+   ACCOUNT INFO (READ-ONLY)
+   ========================================================== */
+
+.nbuf-account-info {
+    margin-bottom: var(--nbuf-space-xl);
+    padding-bottom: var(--nbuf-space-xl);
+    border-bottom: 1px solid var(--nbuf-border);
+}
+
+/* ==========================================================
+   VISIBILITY SECTION
+   ========================================================== */
+
+.nbuf-visibility-section {
+    margin-top: var(--nbuf-space-xl);
+    padding-top: var(--nbuf-space-xl);
+    border-top: 1px solid var(--nbuf-border);
+}
+
+.nbuf-visibility-section h4 {
+    margin: 0 0 var(--nbuf-space-md) 0;
+    color: var(--nbuf-text-primary);
+    font-size: 1em;
+    font-weight: 600;
+}
+
+/* ==========================================================
    EMAIL CHANGE SECTION
    ========================================================== */
 

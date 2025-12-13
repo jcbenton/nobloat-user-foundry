@@ -247,22 +247,6 @@ $policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_tab_ena
 				</p>
 			</td>
 		</tr>
-		<tr>
-			<th scope="row">
-				<?php esc_html_e( 'Email Configuration', 'nobloat-user-foundry' ); ?>
-			</th>
-			<td>
-				<p class="description" style="margin: 0;">
-					<?php
-					printf(
-						/* translators: %s: Link to test emails page */
-						esc_html__( 'Privacy tools require working email. If export/erasure emails fail to send, verify your email configuration in %s or install an SMTP plugin.', 'nobloat-user-foundry' ),
-						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=system&subtab=status' ) ) . '">' . esc_html__( 'System → Status', 'nobloat-user-foundry' ) . '</a>'
-					);
-					?>
-				</p>
-			</td>
-		</tr>
 	</table>
 
 	<hr style="margin: 30px 0;">

@@ -258,7 +258,7 @@ class NBUF_Version_History {
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
 		/* Get IP tracking setting */
-		$ip_tracking = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'off' );
+		$ip_tracking = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'anonymized' );
 		$ip_address  = null;
 
 		if ( 'off' !== $ip_tracking ) {

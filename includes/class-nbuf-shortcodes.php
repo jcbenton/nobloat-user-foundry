@@ -1264,25 +1264,30 @@ class NBUF_Shortcodes {
 		$cover_enabled           = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 
-		/* Visibility sub-tab - always show if public profiles enabled */
-		$visibility_section = '';
+		/* Visibility section - show if public profiles enabled */
+		$visibility_section        = '';
+		$visibility_section_inline = '';
 		if ( $profiles_enabled && $public_profiles_enabled ) {
 			ob_start();
 			do_action( 'nbuf_account_visibility_subtab', $user_id );
 			$visibility_section = ob_get_clean();
-		}
-		if ( empty( $visibility_section ) ) {
-			$visibility_section = '<p class="description">' . esc_html__( 'Profile visibility settings are not available.', 'nobloat-user-foundry' ) . '</p>';
+
+			if ( ! empty( $visibility_section ) ) {
+				$visibility_section_inline = '<div class="nbuf-visibility-section">
+					<h4>' . esc_html__( 'Profile Visibility', 'nobloat-user-foundry' ) . '</h4>
+					' . $visibility_section . '
+				</div>';
+			}
 		}
 
-		/* Photos sub-tab (combined profile photo and cover photo) */
-		$photos_subtab_button  = '';
-		$photos_subtab_content = '';
-		$show_profile_photo    = $profiles_enabled || $gravatar_enabled;
-		$show_cover_photo      = $profiles_enabled && $cover_enabled;
+		/* Photos tab (primary tab - combined profile photo and cover photo) */
+		$photos_tab_button  = '';
+		$photos_tab_content = '';
+		$show_profile_photo = $profiles_enabled || $gravatar_enabled;
+		$show_cover_photo   = $profiles_enabled && $cover_enabled;
 
 		if ( $show_profile_photo || $show_cover_photo ) {
-			$photos_subtab_button = '<button type="button" class="nbuf-subtab-button" data-subtab="photos">' . esc_html__( 'Photos', 'nobloat-user-foundry' ) . '</button>';
+			$photos_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="photos">' . esc_html__( 'Photos', 'nobloat-user-foundry' ) . '</button>';
 
 			$photos_content = '';
 
@@ -1306,7 +1311,7 @@ class NBUF_Shortcodes {
 				$photos_content .= '</div>';
 			}
 
-			$photos_subtab_content = '<div class="nbuf-subtab-content" data-subtab="photos"><div class="nbuf-account-section">' . $photos_content . '</div></div>';
+			$photos_tab_content = '<div class="nbuf-tab-content" data-tab="photos"><div class="nbuf-account-section">' . $photos_content . '</div></div>';
 		}
 
 		/* Build version history section HTML */
@@ -1428,7 +1433,6 @@ class NBUF_Shortcodes {
 			'{status_badges}'                => $status_badges,
 			'{username}'                     => esc_html( $current_user->user_login ),
 			'{email}'                        => esc_html( $current_user->user_email ),
-			'{display_name}'                 => esc_html( $current_user->display_name ? $current_user->display_name : $current_user->user_login ),
 			'{registered_date}'              => esc_html( date_i18n( get_option( 'date_format' ), strtotime( $current_user->user_registered ) ) ),
 			'{expiration_info}'              => $expiration_info,
 			'{action_url}'                   => esc_url( get_permalink() ),
@@ -1437,14 +1441,19 @@ class NBUF_Shortcodes {
 			'{nonce_field_visibility}'       => $nonce_field_visibility,
 			'{profile_fields}'               => $profile_fields_html,
 			'{email_change_section}'         => $email_change_section,
+			'{visibility_section_inline}'    => $visibility_section_inline,
+			'{photos_tab_button}'            => $photos_tab_button,
+			'{photos_tab_content}'           => $photos_tab_content,
+			/* Backward compatibility - old placeholders */
 			'{visibility_section}'           => $visibility_section,
-			'{photos_subtab_button}'         => $photos_subtab_button,
-			'{photos_subtab_content}'        => $photos_subtab_content,
-			/* Backward compatibility - old separate photo placeholders */
+			'{visibility_section_wrapper}'   => '',
+			'{photos_subtab_button}'         => '',
+			'{photos_subtab_content}'        => '',
 			'{profile_photo_subtab_button}'  => '',
 			'{cover_photo_subtab_button}'    => '',
 			'{profile_photo_subtab_content}' => '',
 			'{cover_photo_subtab_content}'   => '',
+			'{display_name}'                 => esc_html( $current_user->display_name ? $current_user->display_name : $current_user->user_login ),
 			'{version_history_section}'      => $version_history_section_html,
 			'{logout_url}'                   => esc_url( wp_logout_url( home_url() ) ),
 			'{password_requirements}'        => esc_html( $password_requirements_text ),
@@ -1743,6 +1752,16 @@ class NBUF_Shortcodes {
 		/* Update profile data */
 		if ( ! empty( $profile_data ) ) {
 			NBUF_Profile_Data::update( $user_id, $profile_data );
+		}
+
+		/* Update profile visibility if submitted */
+		if ( isset( $_POST['nbuf_profile_privacy'] ) ) {
+			$privacy       = sanitize_key( wp_unslash( $_POST['nbuf_profile_privacy'] ) );
+			$valid_options = array( 'public', 'members_only', 'private' );
+			if ( ! in_array( $privacy, $valid_options, true ) ) {
+				$privacy = 'private';
+			}
+			NBUF_User_Data::update( $user_id, array( 'profile_privacy' => $privacy ) );
 		}
 
 		/* PERFORMANCE: Invalidate user cache after profile update */

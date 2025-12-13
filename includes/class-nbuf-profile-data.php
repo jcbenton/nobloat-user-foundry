@@ -167,11 +167,6 @@ class NBUF_Profile_Data {
 	public static function get_enabled_fields() {
 		$enabled = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
 
-		/* If no settings exist yet, enable basic defaults */
-		if ( empty( $enabled ) ) {
-			$enabled = array( 'phone', 'company', 'job_title', 'website' );
-		}
-
 		return apply_filters( 'nbuf_profile_enabled_fields', $enabled );
 	}
 

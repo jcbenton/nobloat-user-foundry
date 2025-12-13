@@ -28,6 +28,11 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 		<?php NBUF_Settings::settings_nonce_field(); ?>
 		<input type="hidden" name="nbuf_active_tab" value="users">
 		<input type="hidden" name="nbuf_active_subtab" value="profiles">
+		<!-- Declare checkboxes on this form for proper unchecked handling -->
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_profiles">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_public_profiles">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_profile_allow_cover_photos">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_profile_enable_gravatar">
 
 		<h2><?php esc_html_e( 'Profile & Cover Photos', 'nobloat-user-foundry' ); ?></h2>
 		<p class="description">
@@ -39,6 +44,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Enable Profile System', 'nobloat-user-foundry' ); ?></th>
 				<td>
+					<input type="hidden" name="nbuf_enable_profiles" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_enable_profiles" value="1" <?php checked( $profiles_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable profile photos and profile system', 'nobloat-user-foundry' ); ?>
@@ -53,6 +59,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Public Profiles', 'nobloat-user-foundry' ); ?></th>
 				<td>
+					<input type="hidden" name="nbuf_enable_public_profiles" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_enable_public_profiles" value="1" <?php checked( $public_profiles, true ); ?>>
 						<?php esc_html_e( 'Enable public profile pages', 'nobloat-user-foundry' ); ?>
@@ -105,6 +112,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Cover Photos', 'nobloat-user-foundry' ); ?></th>
 				<td>
+					<input type="hidden" name="nbuf_profile_allow_cover_photos" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_profile_allow_cover_photos" value="1" <?php checked( $allow_cover_photos, true ); ?>>
 						<?php esc_html_e( 'Allow users to upload cover photos', 'nobloat-user-foundry' ); ?>
@@ -119,6 +127,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Gravatar Integration', 'nobloat-user-foundry' ); ?></th>
 				<td>
+					<input type="hidden" name="nbuf_profile_enable_gravatar" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_profile_enable_gravatar" value="1" <?php checked( $gravatar_enabled, true ); ?>>
 						<?php esc_html_e( 'Allow users to opt-in to Gravatar', 'nobloat-user-foundry' ); ?>

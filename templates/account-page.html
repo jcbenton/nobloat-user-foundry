@@ -5,7 +5,7 @@
     <!-- Tab Navigation -->
     <div class="nbuf-account-tabs">
         <button type="button" class="nbuf-tab-button nbuf-tab-active" data-tab="account">Account</button>
-        <button type="button" class="nbuf-tab-button" data-tab="profile">Profile</button>
+        {photos_tab_button}
         <button type="button" class="nbuf-tab-button" data-tab="password">Password</button>
         {security_tab_button}
         {policies_tab_button}
@@ -15,81 +15,47 @@
     <!-- Account Tab -->
     <div class="nbuf-tab-content nbuf-tab-active" data-tab="account">
         <div class="nbuf-account-section">
-            <div class="nbuf-account-layout">
-                {profile_photo_section}
-                <div class="nbuf-account-details">
-                    <div class="nbuf-info-grid">
-                        <div class="nbuf-info-label">Username:</div>
-                        <div class="nbuf-info-value">{username}</div>
+            <!-- Read-only Account Info -->
+            <div class="nbuf-account-info">
+                <div class="nbuf-info-grid">
+                    <div class="nbuf-info-label">Member Since:</div>
+                    <div class="nbuf-info-value">{registered_date}</div>
 
-                        <div class="nbuf-info-label">Email:</div>
-                        <div class="nbuf-info-value">{email}</div>
+                    <div class="nbuf-info-label">Status:</div>
+                    <div class="nbuf-info-value">{status_badges}</div>
 
-                        <div class="nbuf-info-label">Display Name:</div>
-                        <div class="nbuf-info-value">{display_name}</div>
+                    {expiration_info}
 
-                        <div class="nbuf-info-label">Member Since:</div>
-                        <div class="nbuf-info-value">{registered_date}</div>
+                    <div class="nbuf-info-label">Username:</div>
+                    <div class="nbuf-info-value">{username}</div>
 
-                        <div class="nbuf-info-label">Status:</div>
-                        <div class="nbuf-info-value">{status_badges}</div>
-
-                        {expiration_info}
-                    </div>
+                    <div class="nbuf-info-label">Email:</div>
+                    <div class="nbuf-info-value">{email}</div>
                 </div>
             </div>
+
+            <!-- Editable Profile Fields + Visibility -->
+            <form method="post" action="{action_url}" class="nbuf-account-form">
+                {nonce_field}
+                <input type="hidden" name="nbuf_account_action" value="update_profile">
+                <input type="hidden" name="nbuf_active_tab" value="account">
+
+                {profile_fields}
+
+                {visibility_section_inline}
+
+                <button type="submit" class="nbuf-button nbuf-button-primary">Save Changes</button>
+            </form>
+
+            {email_change_section}
         </div>
 
         <!-- Version History Section (conditionally displayed) -->
         {version_history_section}
     </div>
 
-    <!-- Edit Profile Tab -->
-    <div class="nbuf-tab-content" data-tab="profile">
-        <!-- Profile Sub-tabs -->
-        <div class="nbuf-subtabs">
-            <button type="button" class="nbuf-subtab-button nbuf-subtab-active" data-subtab="details">Details</button>
-            <button type="button" class="nbuf-subtab-button" data-subtab="visibility">Visibility</button>
-            {photos_subtab_button}
-        </div>
-
-        <!-- Details Sub-tab -->
-        <div class="nbuf-subtab-content nbuf-subtab-active" data-subtab="details">
-            <div class="nbuf-account-section">
-                <form method="post" action="{action_url}" class="nbuf-account-form">
-                    {nonce_field}
-                    <input type="hidden" name="nbuf_account_action" value="update_profile">
-                    <input type="hidden" name="nbuf_active_tab" value="profile">
-                    <input type="hidden" name="nbuf_active_subtab" value="details">
-
-                    {profile_fields}
-
-                    <button type="submit" class="nbuf-button nbuf-button-primary">Update Profile</button>
-                </form>
-
-                {email_change_section}
-            </div>
-        </div>
-
-        <!-- Visibility Sub-tab -->
-        <div class="nbuf-subtab-content" data-subtab="visibility">
-            <div class="nbuf-account-section">
-                <form method="post" action="{action_url}" class="nbuf-account-form">
-                    {nonce_field_visibility}
-                    <input type="hidden" name="nbuf_account_action" value="update_visibility">
-                    <input type="hidden" name="nbuf_active_tab" value="profile">
-                    <input type="hidden" name="nbuf_active_subtab" value="visibility">
-
-                    {visibility_section}
-
-                    <button type="submit" class="nbuf-button nbuf-button-primary">Update Visibility</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Photos Sub-tab (conditionally displayed) -->
-        {photos_subtab_content}
-    </div>
+    <!-- Photos Tab (conditionally displayed) -->
+    {photos_tab_content}
 
     <!-- Change Password Tab -->
     <div class="nbuf-tab-content" data-tab="password">

@@ -9,6 +9,7 @@
         <button type="button" class="nbuf-tab-button" data-tab="password">Password</button>
         {email_tab_button}
         {security_tab_button}
+        {history_tab_button}
         {policies_tab_button}
         <a href="{logout_url}" class="nbuf-tab-logout">Logout</a>
     </div>
@@ -48,9 +49,6 @@
                 <button type="submit" class="nbuf-button nbuf-button-primary">Save Changes</button>
             </form>
         </div>
-
-        <!-- Version History Section (conditionally displayed) -->
-        {version_history_section}
     </div>
 
     <!-- Photos Tab (conditionally displayed) -->
@@ -90,6 +88,9 @@
 
     <!-- Security Tab (conditionally displayed if 2FA is available) -->
     {security_tab_content}
+
+    <!-- History Tab (conditionally displayed if user access enabled) -->
+    {history_tab_content}
 
     <!-- Policies Tab (conditionally displayed if enabled in settings) -->
     {policies_tab_content}

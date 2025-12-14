@@ -18,6 +18,21 @@ jQuery(document).ready(function($) {
 	'use strict';
 
 	const $viewer = $('.nbuf-version-history-viewer');
+
+	/* Check if viewer exists */
+	if (!$viewer.length) {
+		console.log('NBUF Version History: Viewer element not found');
+		return;
+	}
+
+	/* Check if localization object exists */
+	if (typeof NBUF_VersionHistory === 'undefined') {
+		console.error('NBUF Version History: NBUF_VersionHistory not defined - AJAX handlers may not be registered');
+		$viewer.find('.nbuf-vh-loading').hide();
+		$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Version History is not available. Please check plugin settings.');
+		return;
+	}
+
 	const userId = $viewer.data('user-id');
 	const context = $viewer.data('context');
 	const canRevert = NBUF_VersionHistory.can_revert;
@@ -37,7 +52,7 @@ jQuery(document).ready(function($) {
 		$viewer.find('.nbuf-vh-empty').hide();
 
 		$.ajax({
-			url: ajaxurl,
+			url: NBUF_VersionHistory.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'nbuf_get_version_timeline',
@@ -46,6 +61,14 @@ jQuery(document).ready(function($) {
 				page: page
 			},
 			success: function(response) {
+				/* Check for WordPress AJAX error (action not registered) */
+				if (response === 0 || response === '0' || response === '-1') {
+					console.error('NBUF Version History: AJAX action not registered (response: ' + response + ')');
+					$viewer.find('.nbuf-vh-loading').hide();
+					$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Version History AJAX handler not available. The feature may be disabled.');
+					return;
+				}
+
 				if (response.success) {
 					versions = response.data.versions;
 					totalVersions = response.data.total;
@@ -68,13 +91,16 @@ jQuery(document).ready(function($) {
 					$viewer.find('.nbuf-vh-timeline').show();
 					$viewer.find('.nbuf-vh-pagination').show();
 				} else {
-					alert(response.data.message || 'Failed to load version history.');
+					console.error('NBUF Version History: AJAX error', response);
+					var message = (response.data && response.data.message) ? response.data.message : 'Failed to load version history.';
 					$viewer.find('.nbuf-vh-loading').hide();
+					$viewer.find('.nbuf-vh-empty').show().find('p:first').text(message);
 				}
 			},
-			error: function() {
-				alert('An error occurred while loading version history.');
+			error: function(xhr, status, error) {
+				console.error('NBUF Version History: AJAX request failed', status, error);
 				$viewer.find('.nbuf-vh-loading').hide();
+				$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Failed to load version history: ' + error);
 			}
 		});
 	}
@@ -196,7 +222,7 @@ jQuery(document).ready(function($) {
 		}
 
 		$.ajax({
-			url: ajaxurl,
+			url: NBUF_VersionHistory.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'nbuf_revert_version',
@@ -206,7 +232,7 @@ jQuery(document).ready(function($) {
 			success: function(response) {
 				if (response.success) {
 					alert(response.data.message || NBUF_VersionHistory.i18n.revert_success);
-					loadTimeline(1); // Reload timeline
+					location.reload(); // Refresh page to update all data
 				} else {
 					alert(response.data.message || NBUF_VersionHistory.i18n.revert_failed);
 				}
@@ -234,7 +260,7 @@ jQuery(document).ready(function($) {
 		$result.hide().empty();
 
 		$.ajax({
-			url: ajaxurl,
+			url: NBUF_VersionHistory.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'nbuf_get_version_diff',

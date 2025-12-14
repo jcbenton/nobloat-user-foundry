@@ -315,8 +315,19 @@ class NBUF_Settings {
 			},
 
 			/* Version History */
-			'nbuf_version_history_enabled'        => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_version_history_auto_cleanup'   => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_version_history_enabled'           => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_version_history_user_visible'      => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_version_history_allow_user_revert' => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_version_history_retention_days'    => function ( $value ) {
+				return max( 1, min( 3650, absint( $value ) ) );
+			},
+			'nbuf_version_history_max_versions'      => function ( $value ) {
+				return max( 10, min( 500, absint( $value ) ) );
+			},
+			'nbuf_version_history_ip_tracking'       => function ( $value ) {
+				return in_array( $value, array( 'off', 'anonymized', 'on' ), true ) ? $value : 'anonymized';
+			},
+			'nbuf_version_history_auto_cleanup'      => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Logging */
 			'nbuf_logging_user_audit_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),

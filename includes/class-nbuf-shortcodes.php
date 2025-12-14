@@ -1375,10 +1375,78 @@ class NBUF_Shortcodes {
 		$photos_tab_button  = $profile_tab_button;
 		$photos_tab_content = $profile_tab_content;
 
-		/* Build version history section HTML */
-		ob_start();
-		do_action( 'nbuf_account_version_history_section', $user_id );
-		$version_history_section_html = ob_get_clean();
+		/* Build history tab content if version history is enabled AND user access is enabled */
+		$history_tab_button  = '';
+		$history_tab_content = '';
+		$version_history_enabled      = NBUF_Options::get( 'nbuf_version_history_enabled', true );
+		$version_history_user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', false );
+		if ( $version_history_enabled && $version_history_user_visible ) {
+			/* Build history tab content directly */
+			$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
+
+			ob_start();
+			?>
+			<div class="nbuf-account-section nbuf-vh-account">
+				<?php if ( ! $allow_user_revert ) : ?>
+					<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">
+						<?php esc_html_e( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
+					</div>
+				<?php endif; ?>
+				<?php
+				/* Include the version history viewer template - $user_id already defined at line 1153 */
+				$context    = 'account';
+				$can_revert = $allow_user_revert;
+				include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+				?>
+			</div>
+			<?php
+			$version_history_html = ob_get_clean();
+
+			/* Enqueue version history assets */
+			wp_enqueue_style(
+				'nbuf-version-history',
+				plugin_dir_url( __DIR__ ) . 'assets/css/admin/version-history.css',
+				array(),
+				'1.4.0'
+			);
+			wp_enqueue_script(
+				'nbuf-version-history',
+				plugin_dir_url( __DIR__ ) . 'assets/js/admin/version-history.js',
+				array( 'jquery' ),
+				'1.4.0',
+				true
+			);
+			wp_localize_script(
+				'nbuf-version-history',
+				'NBUF_VersionHistory',
+				array(
+					'ajax_url'   => admin_url( 'admin-ajax.php' ),
+					'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
+					'can_revert' => $allow_user_revert,
+					'i18n'       => array(
+						'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
+						'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
+						'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
+						'import'         => __( 'Import', 'nobloat-user-foundry' ),
+						'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
+						'self'           => __( 'Self', 'nobloat-user-foundry' ),
+						'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
+						'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
+						'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
+						'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
+						'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
+						'before'         => __( 'Before:', 'nobloat-user-foundry' ),
+						'after'          => __( 'After:', 'nobloat-user-foundry' ),
+						'field'          => __( 'Field', 'nobloat-user-foundry' ),
+						'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
+						'after_value'    => __( 'After', 'nobloat-user-foundry' ),
+					),
+				)
+			);
+
+			$history_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="history">' . esc_html__( 'History', 'nobloat-user-foundry' ) . '</button>';
+			$history_tab_content = '<div class="nbuf-tab-content" data-tab="history">' . $version_history_html . '</div>';
+		}
 
 		/* Generate nonce fields */
 		ob_start();
@@ -1531,7 +1599,9 @@ class NBUF_Shortcodes {
 			'{profile_photo_subtab_content}' => '',
 			'{cover_photo_subtab_content}'   => '',
 			'{display_name}'                 => esc_html( $current_user->display_name ? $current_user->display_name : $current_user->user_login ),
-			'{version_history_section}'      => $version_history_section_html,
+			'{version_history_section}'      => '', /* Deprecated - moved to History tab */
+			'{history_tab_button}'           => $history_tab_button,
+			'{history_tab_content}'          => $history_tab_content,
 			'{logout_url}'                   => esc_url( wp_logout_url( home_url() ) ),
 			'{password_requirements}'        => esc_html( $password_requirements_text ),
 			'{security_tab_button}'          => $security_tab_button,
@@ -1819,6 +1889,9 @@ class NBUF_Shortcodes {
 		}
 
 		$user_id = get_current_user_id();
+
+		/* Fire action before profile update (for version history, etc.) */
+		do_action( 'nbuf_before_profile_update', $user_id );
 
 		/* Update native WordPress user meta fields */
 		if ( isset( $_POST['first_name'] ) ) {

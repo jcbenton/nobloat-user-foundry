@@ -56,7 +56,11 @@ class NBUF_Version_History_Page {
 	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_assets( $hook ) {
-		if ( 'nobloat-user-foundry_page_nobloat-foundry-version-history' !== $hook ) {
+		$allowed_hooks = array(
+			'nobloat-foundry_page_nobloat-foundry-version-history',
+			'user-foundry_page_nobloat-foundry-version-history',
+		);
+		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
 			return;
 		}
 

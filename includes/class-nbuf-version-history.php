@@ -47,13 +47,15 @@ class NBUF_Version_History {
 			return;
 		}
 
-		/* Hook into profile updates */
+		/* Hook into profile updates (WordPress core + frontend account page) */
 		add_action( 'profile_update', array( $this, 'track_profile_update' ), 10, 2 );
 		add_action( 'user_register', array( $this, 'track_user_registration' ), 10, 1 );
+		add_action( 'nbuf_after_profile_update', array( $this, 'track_frontend_profile_update' ), 10, 1 );
 
-		/* Store original data before updates */
+		/* Store original data before updates (admin + frontend) */
 		add_action( 'personal_options_update', array( $this, 'store_original_data' ), 1 );
 		add_action( 'edit_user_profile_update', array( $this, 'store_original_data' ), 1 );
+		add_action( 'nbuf_before_profile_update', array( $this, 'store_original_data' ), 1 );
 
 		/* Cleanup cron */
 		add_action( 'nbuf_cleanup_version_history', array( $this, 'cleanup_old_versions' ) );
@@ -63,11 +65,8 @@ class NBUF_Version_History {
 		add_action( 'wp_ajax_nbuf_get_version_diff', array( $this, 'ajax_get_version_diff' ) );
 		add_action( 'wp_ajax_nbuf_revert_version', array( $this, 'ajax_revert_version' ) );
 
-		/* Account page section (if user visibility enabled) */
-		$user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', false );
-		if ( $user_visible ) {
-			add_action( 'nbuf_account_version_history_section', array( $this, 'render_account_section' ) );
-		}
+		/* Account page section - always register, visibility checked in shortcode */
+		add_action( 'nbuf_account_version_history_section', array( $this, 'render_account_section' ) );
 	}
 
 	/**
@@ -76,7 +75,20 @@ class NBUF_Version_History {
 	 * @param int $user_id User ID.
 	 */
 	public function store_original_data( $user_id ) {
-		$this->original_data[ $user_id ] = $this->get_user_snapshot( $user_id );
+		/*
+		 * Use output buffering to prevent any database warnings/notices
+		 * from corrupting AJAX JSON responses.
+		 */
+		ob_start();
+
+		try {
+			$this->original_data[ $user_id ] = $this->get_user_snapshot( $user_id );
+			ob_end_clean();
+		} catch ( \Throwable $e ) {
+			/* Silently fail - don't break the profile update */
+			$this->original_data[ $user_id ] = array();
+			ob_end_clean();
+		}
 	}
 
 	/**
@@ -86,12 +98,17 @@ class NBUF_Version_History {
 	 * @param object $old_user_data Old user object (WP_User).
 	 */
 	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
-		/* Get before/after snapshots */
-		$before = isset( $this->original_data[ $user_id ] )
-		? $this->original_data[ $user_id ]
-		: $this->get_user_snapshot( $user_id );
+		/* Skip if no original data captured (prevents duplicate logging) */
+		if ( ! isset( $this->original_data[ $user_id ] ) ) {
+			return;
+		}
 
-		$after = $this->get_user_snapshot( $user_id );
+		/* Get before/after snapshots */
+		$before = $this->original_data[ $user_id ];
+		$after  = $this->get_user_snapshot( $user_id );
+
+		/* Clear original data to prevent duplicate logging from other hooks */
+		unset( $this->original_data[ $user_id ] );
 
 		/* Detect changed fields */
 		$changed_fields = $this->detect_changed_fields( $before, $after );
@@ -133,6 +150,57 @@ class NBUF_Version_History {
 			'registration',
 			null
 		);
+	}
+
+	/**
+	 * Track frontend profile update (from account page)
+	 *
+	 * This fires after nbuf_after_profile_update action, which captures
+	 * changes made via update_user_meta() that don't trigger profile_update.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public function track_frontend_profile_update( $user_id ) {
+		/*
+		 * Use output buffering to prevent any database warnings/notices
+		 * from corrupting AJAX JSON responses.
+		 */
+		ob_start();
+
+		try {
+			/* Skip if already tracked by profile_update hook (original_data cleared) */
+			if ( ! isset( $this->original_data[ $user_id ] ) ) {
+				ob_end_clean();
+				return;
+			}
+
+			/* Get before/after snapshots */
+			$before = $this->original_data[ $user_id ];
+			$after  = $this->get_user_snapshot( $user_id );
+
+			/* Clear original data to prevent duplicate logging */
+			unset( $this->original_data[ $user_id ] );
+
+			/* Detect changed fields */
+			$changed_fields = $this->detect_changed_fields( $before, $after );
+
+			/* Only save if something changed */
+			if ( empty( $changed_fields ) ) {
+				ob_end_clean();
+				return;
+			}
+
+			/* Frontend updates are always self-updates */
+			$this->save_version( $user_id, $after, $changed_fields, 'profile_update', null );
+
+			/* Cleanup old versions for this user */
+			$this->enforce_max_versions( $user_id );
+
+			ob_end_clean();
+		} catch ( \Throwable $e ) {
+			/* Silently fail - don't break the profile update */
+			ob_end_clean();
+		}
 	}
 
 	/**
@@ -257,6 +325,20 @@ class NBUF_Version_History {
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
+		/* Check if table exists - fail gracefully if not */
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+		if ( ! $table_exists ) {
+			/* Table doesn't exist - try to create it */
+			if ( class_exists( 'NBUF_Database' ) && method_exists( 'NBUF_Database', 'create_profile_versions_table' ) ) {
+				/* Use output buffering to prevent dbDelta() from corrupting AJAX responses */
+				ob_start();
+				NBUF_Database::create_profile_versions_table();
+				ob_end_clean();
+			} else {
+				return false;
+			}
+		}
+
 		/* Get IP tracking setting */
 		$ip_tracking = NBUF_Options::get( 'nbuf_version_history_ip_tracking', 'anonymized' );
 		$ip_address  = null;
@@ -270,21 +352,34 @@ class NBUF_Version_History {
 		? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 500 )
 		: null;
 
-		/* Insert version record */
-		$inserted = $wpdb->insert(
-			$table_name,
-			array(
-				'user_id'        => $user_id,
-				'changed_at'     => current_time( 'mysql', true ),
-				'changed_by'     => $changed_by,
-				'change_type'    => $change_type,
-				'fields_changed' => wp_json_encode( $changed_fields ),
-				'snapshot_data'  => wp_json_encode( $snapshot ),
-				'ip_address'     => $ip_address,
-				'user_agent'     => $user_agent,
-			),
-			array( '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s' )
+		/* Build data and format arrays (handle NULL values properly) */
+		$data = array(
+			'user_id'        => $user_id,
+			'changed_at'     => current_time( 'mysql', true ),
+			'change_type'    => $change_type,
+			'fields_changed' => wp_json_encode( $changed_fields ),
+			'snapshot_data'  => wp_json_encode( $snapshot ),
 		);
+		$format = array( '%d', '%s', '%s', '%s', '%s' );
+
+		/* Add changed_by only if not null (to preserve NULL in database) */
+		if ( null !== $changed_by ) {
+			$data['changed_by'] = $changed_by;
+			$format[]           = '%d';
+		}
+
+		/* Add optional fields */
+		if ( null !== $ip_address ) {
+			$data['ip_address'] = $ip_address;
+			$format[]           = '%s';
+		}
+		if ( null !== $user_agent ) {
+			$data['user_agent'] = $user_agent;
+			$format[]           = '%s';
+		}
+
+		/* Insert version record */
+		$inserted = $wpdb->insert( $table_name, $data, $format );
 
 		return (bool) $inserted;
 	}
@@ -751,7 +846,7 @@ class NBUF_Version_History {
 
 		/* Users can view their own if enabled */
 		$user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', true );
-		if ( $user_visible && $current_user_id === $user_id ) {
+		if ( $user_visible && (int) $current_user_id === (int) $user_id ) {
 			return true;
 		}
 
@@ -774,7 +869,7 @@ class NBUF_Version_History {
 
 		/* Users can revert their own if allowed */
 		$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-		if ( $allow_user_revert && $current_user_id === $user_id ) {
+		if ( $allow_user_revert && (int) $current_user_id === (int) $user_id ) {
 			return true;
 		}
 
@@ -854,11 +949,10 @@ class NBUF_Version_History {
 
 		?>
 		<div class="nbuf-account-section nbuf-vh-account">
-			<h2 class="nbuf-section-title"><?php esc_html_e( 'Profile History', 'nobloat-user-foundry' ); ?></h2>
 
 		<?php if ( ! $allow_user_revert ) : ?>
 				<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">
-			<?php esc_html_e( 'You can view your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
 				</div>
 		<?php endif; ?>
 

@@ -104,7 +104,7 @@ jQuery(document).ready(function($) {
 				}
 			},
 			error: function() {
-				alert(NBUF_ProfilePhotos.i18n.upload_error);
+				alert(NBUF_ProfilePhotos.i18n.delete_failed);
 			}
 		});
 	});
@@ -132,7 +132,7 @@ jQuery(document).ready(function($) {
 				}
 			},
 			error: function() {
-				alert(NBUF_ProfilePhotos.i18n.upload_error);
+				alert(NBUF_ProfilePhotos.i18n.delete_failed);
 			}
 		});
 	});

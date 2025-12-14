@@ -28,6 +28,40 @@ class NBUF_Admin_Audit_Log_Page {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 14 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_early_actions' ) );
+	}
+
+	/**
+	 * Handle export/purge actions early before any output
+	 */
+	public static function handle_early_actions() {
+		/* Only process on our page */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below for specific actions
+		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-admin-audit-log' !== $_GET['page'] ) {
+			return;
+		}
+
+		/* Security check */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		/* Handle export action */
+		if ( isset( $_GET['action'] ) && 'export' === $_GET['action'] ) {
+			/* Verify nonce for export action */
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_export_admin_logs' ) ) {
+				wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
+			}
+			self::handle_export();
+		}
+
+		/* Handle purge action */
+		if ( isset( $_GET['action'] ) && 'purge' === $_GET['action'] ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_purge_admin_logs' ) ) {
+				wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
+			}
+			self::handle_purge();
+		}
 	}
 
 	/**
@@ -79,19 +113,7 @@ class NBUF_Admin_Audit_Log_Page {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Handle export action */
-		if ( isset( $_GET['action'] ) && 'export' === $_GET['action'] ) {
-			/* Verify nonce for export action */
-			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_export_admin_logs' ) ) {
-				wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
-			}
-			self::handle_export();
-		}
-
-		/* Handle purge action */
-		if ( isset( $_GET['action'] ) && 'purge' === $_GET['action'] && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'nbuf_purge_admin_logs' ) ) {
-			self::handle_purge();
-		}
+		/* Export and purge actions are handled in handle_early_actions() via admin_init */
 
 		/* Get statistics */
 		$stats = NBUF_Admin_Audit_Log::get_stats();
@@ -138,10 +160,10 @@ class NBUF_Admin_Audit_Log_Page {
 				</div>
 
 				<div class="nbuf-stats-actions">
-					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nbuf-admin-audit-log&action=export' ), 'nbuf_export_admin_logs' ) ); ?>" class="button button-secondary">
+					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=export' ), 'nbuf_export_admin_logs' ) ); ?>" class="button button-secondary">
 						<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
 					</a>
-					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nbuf-admin-audit-log&action=purge' ), 'nbuf_purge_admin_logs' ) ); ?>" class="button button-link-delete nbuf-purge-logs-btn">
+					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=purge' ), 'nbuf_purge_admin_logs' ) ); ?>" class="button button-link-delete nbuf-purge-logs-btn">
 						<span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
 					</a>
 				</div>
@@ -291,7 +313,7 @@ class NBUF_Admin_Audit_Log_Page {
 
 		/* Redirect with notice */
 		wp_safe_redirect(
-			admin_url( 'admin.php?page=nbuf-admin-audit-log&purged=' . $result['count'] )
+			admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&purged=' . $result['count'] )
 		);
 		exit;
 	}

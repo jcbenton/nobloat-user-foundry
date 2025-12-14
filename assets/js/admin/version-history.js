@@ -245,8 +245,88 @@ jQuery(document).ready(function($) {
 
 	/* Show snapshot modal */
 	function showSnapshotModal(version) {
-		alert('Snapshot viewer coming soon!\n\nVersion ID: ' + version.id + '\nChange Type: ' + version.change_type);
-		// TODO: Implement full snapshot viewer in future update
+		const $modal = $viewer.find('.nbuf-vh-diff-modal');
+		const $loading = $modal.find('.nbuf-vh-diff-loading');
+		const $result = $modal.find('.nbuf-vh-diff-result');
+
+		/* Update modal title */
+		$modal.find('.nbuf-vh-diff-header h3').text('Profile Snapshot');
+
+		$modal.show();
+		$loading.hide();
+		$result.show();
+
+		const date = new Date(version.changed_at).toLocaleString();
+		const snapshot = version.snapshot_data || {};
+
+		let html = '<div class="nbuf-vh-snapshot-header">';
+		html += '<p><strong>Date:</strong> ' + date + '</p>';
+		html += '<p><strong>Change Type:</strong> ' + (version.change_type || 'Unknown') + '</p>';
+		html += '</div>';
+
+		html += '<table class="nbuf-vh-diff-table nbuf-vh-snapshot-table">';
+		html += '<thead><tr><th>Field</th><th>Value</th></tr></thead>';
+		html += '<tbody>';
+
+		/* Core user fields */
+		const coreFields = ['user_login', 'user_email', 'display_name', 'first_name', 'last_name', 'description', 'user_url', 'role'];
+		coreFields.forEach(function(field) {
+			if (snapshot[field] !== undefined && snapshot[field] !== '') {
+				html += '<tr>';
+				html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+				html += '<td>' + escapeHtml(String(snapshot[field])) + '</td>';
+				html += '</tr>';
+			}
+		});
+
+		/* NBUF user data */
+		if (snapshot.nbuf_user_data) {
+			Object.keys(snapshot.nbuf_user_data).forEach(function(field) {
+				const value = snapshot.nbuf_user_data[field];
+				if (value !== null && value !== '') {
+					html += '<tr>';
+					html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+					html += '<td>' + escapeHtml(String(value)) + '</td>';
+					html += '</tr>';
+				}
+			});
+		}
+
+		/* NBUF profile fields */
+		if (snapshot.nbuf_profile) {
+			Object.keys(snapshot.nbuf_profile).forEach(function(field) {
+				const value = snapshot.nbuf_profile[field];
+				if (value !== null && value !== '') {
+					html += '<tr>';
+					html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+					html += '<td>' + escapeHtml(String(value)) + '</td>';
+					html += '</tr>';
+				}
+			});
+		}
+
+		/* Meta fields */
+		const metaFields = ['nbuf_2fa_enabled', 'nbuf_profile_privacy', 'nbuf_show_in_directory'];
+		metaFields.forEach(function(field) {
+			if (snapshot[field] !== undefined && snapshot[field] !== '') {
+				html += '<tr>';
+				html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+				html += '<td>' + escapeHtml(String(snapshot[field])) + '</td>';
+				html += '</tr>';
+			}
+		});
+
+		html += '</tbody></table>';
+
+		$result.html(html);
+	}
+
+	/* Format field name for display */
+	function formatFieldName(field) {
+		return field
+			.replace(/^nbuf_/, '')
+			.replace(/_/g, ' ')
+			.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
 	}
 
 	/* Show diff modal */
@@ -293,12 +373,12 @@ jQuery(document).ready(function($) {
 		const date2 = new Date(version2.changed_at).toLocaleString();
 
 		let html = '<div class="nbuf-vh-diff-header-info">';
-		html += '<div class="nbuf-vh-diff-version"><strong>NBUF_VersionHistory.i18n.before</strong> ' + date1 + '</div>';
-		html += '<div class="nbuf-vh-diff-version"><strong>NBUF_VersionHistory.i18n.after</strong> ' + date2 + '</div>';
+		html += '<div class="nbuf-vh-diff-version"><strong>' + NBUF_VersionHistory.i18n.before + '</strong> ' + date1 + '</div>';
+		html += '<div class="nbuf-vh-diff-version"><strong>' + NBUF_VersionHistory.i18n.after + '</strong> ' + date2 + '</div>';
 		html += '</div>';
 
 		html += '<table class="nbuf-vh-diff-table">';
-		html += '<thead><tr><th>NBUF_VersionHistory.i18n.field</th><th>NBUF_VersionHistory.i18n.before_value</th><th>NBUF_VersionHistory.i18n.after_value</th></tr></thead>';
+		html += '<thead><tr><th>' + NBUF_VersionHistory.i18n.field + '</th><th>' + NBUF_VersionHistory.i18n.before_value + '</th><th>' + NBUF_VersionHistory.i18n.after_value + '</th></tr></thead>';
 		html += '<tbody>';
 
 		Object.keys(diff).forEach(function(key) {

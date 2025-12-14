@@ -110,6 +110,22 @@ class NBUF_Version_History_Page {
 				),
 			)
 		);
+
+		/* Enqueue Select2 for searchable user dropdown */
+		wp_enqueue_style( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0' );
+		wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0', true );
+
+		/* Initialize Select2 on user dropdown */
+		wp_add_inline_script(
+			'select2',
+			'jQuery(document).ready(function($) {
+				$("#user_id").select2({
+					placeholder: "' . esc_js( __( 'Search for a user...', 'nobloat-user-foundry' ) ) . '",
+					allowClear: true,
+					width: "300px"
+				});
+			});'
+		);
 	}
 
 	/**

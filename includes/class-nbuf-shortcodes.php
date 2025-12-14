@@ -41,7 +41,7 @@ class NBUF_Shortcodes {
 			'registration' => array( 'nbuf-registration', 'registration-page', 'nbuf_registration_page_css', 'nbuf_css_write_failed_registration' ),
 			'reset'        => array( 'nbuf-reset', 'reset-page', 'nbuf_reset_page_css', 'nbuf_css_write_failed_reset' ),
 			'account'      => array( 'nbuf-account', 'account-page', 'nbuf_account_page_css', 'nbuf_css_write_failed_account' ),
-			'2fa'          => array( 'nbuf-2fa', '2fa-setup', 'nbuf_2fa_setup_css', 'nbuf_css_write_failed_2fa' ),
+			'2fa'          => array( 'nbuf-2fa', '2fa-setup', 'nbuf_2fa_page_css', 'nbuf_css_write_failed_2fa' ),
 		);
 
 		if ( ! isset( $css_files[ $page_type ] ) ) {
@@ -1216,15 +1216,18 @@ class NBUF_Shortcodes {
 		$backup_codes = get_transient( 'nbuf_backup_codes_' . $user_id );
 		if ( $backup_codes && is_array( $backup_codes ) ) {
 			delete_transient( 'nbuf_backup_codes_' . $user_id );
+			$codes_text = implode( "\n", $backup_codes );
+			$codes_id   = 'nbuf-backup-codes-' . wp_rand( 1000, 9999 );
+
 			$messages .= '<div class="nbuf-backup-codes-display">';
 			$messages .= '<h3>' . esc_html__( 'Your New Backup Codes', 'nobloat-user-foundry' ) . '</h3>';
 			$messages .= '<p class="nbuf-backup-codes-warning">' . esc_html__( 'Save these codes in a safe place. They will only be shown once!', 'nobloat-user-foundry' ) . '</p>';
-			$messages .= '<div class="nbuf-backup-codes-list">';
-			foreach ( $backup_codes as $code ) {
-				$messages .= '<div class="nbuf-backup-code">' . esc_html( $code ) . '</div>';
-			}
+			$messages .= '<textarea id="' . esc_attr( $codes_id ) . '" class="nbuf-backup-codes-textarea" readonly rows="' . count( $backup_codes ) . '">' . esc_textarea( $codes_text ) . '</textarea>';
+			$messages .= '<div class="nbuf-backup-codes-actions">';
+			$messages .= '<button type="button" class="nbuf-button nbuf-button-secondary" onclick="navigator.clipboard.writeText(document.getElementById(\'' . esc_js( $codes_id ) . '\').value);this.textContent=\'' . esc_js( __( 'Copied!', 'nobloat-user-foundry' ) ) . '\';setTimeout(function(){document.querySelector(\'.nbuf-backup-codes-actions button:first-child\').textContent=\'' . esc_js( __( 'Copy All Codes', 'nobloat-user-foundry' ) ) . '\';},2000);">' . esc_html__( 'Copy All Codes', 'nobloat-user-foundry' ) . '</button>';
+			$messages .= '<button type="button" class="nbuf-button nbuf-button-primary" onclick="document.querySelector(\'.nbuf-backup-codes-display\').remove();">' . esc_html__( 'Done', 'nobloat-user-foundry' ) . '</button>';
 			$messages .= '</div>';
-			$messages .= '<p><small>' . esc_html__( 'Each code can only be used once. Use them if you lose access to your authenticator app.', 'nobloat-user-foundry' ) . '</small></p>';
+			$messages .= '<p><small>' . esc_html__( 'Each code can only be used once. Use them if you lose access to your primary 2FA method.', 'nobloat-user-foundry' ) . '</small></p>';
 			$messages .= '</div>';
 		}
 
@@ -1258,61 +1261,119 @@ class NBUF_Shortcodes {
 		/* Build profile fields HTML */
 		$profile_fields_html = self::build_profile_fields_html( $current_user, $profile_data );
 
-		/* Build Profile sub-tab content sections */
+		/* Build Profile tab with sub-tabs */
 		$profiles_enabled        = NBUF_Options::get( 'nbuf_enable_profiles', false );
 		$gravatar_enabled        = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 		$cover_enabled           = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 
-		/* Visibility section - show if public profiles enabled */
-		$visibility_section        = '';
-		$visibility_section_inline = '';
-		if ( $profiles_enabled && $public_profiles_enabled ) {
-			ob_start();
-			do_action( 'nbuf_account_visibility_subtab', $user_id );
-			$visibility_section = ob_get_clean();
-
-			if ( ! empty( $visibility_section ) ) {
-				$visibility_section_inline = '<div class="nbuf-visibility-section">
-					<h4>' . esc_html__( 'Profile Visibility', 'nobloat-user-foundry' ) . '</h4>
-					' . $visibility_section . '
-				</div>';
-			}
-		}
-
-		/* Photos tab (primary tab - combined profile photo and cover photo) */
-		$photos_tab_button  = '';
-		$photos_tab_content = '';
+		/* Determine what sub-tabs to show */
+		$show_visibility    = $profiles_enabled && $public_profiles_enabled;
 		$show_profile_photo = $profiles_enabled || $gravatar_enabled;
 		$show_cover_photo   = $profiles_enabled && $cover_enabled;
 
-		if ( $show_profile_photo || $show_cover_photo ) {
-			$photos_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="photos">' . esc_html__( 'Photos', 'nobloat-user-foundry' ) . '</button>';
+		/* Build Profile tab (primary tab with sub-tabs) */
+		$profile_tab_button  = '';
+		$profile_tab_content = '';
 
-			$photos_content = '';
+		/* Clear old visibility variables (no longer used in Account tab - kept for backward compatibility) */
+		$visibility_section_inline = '';
+		$visibility_section        = '';
 
-			/* Profile photo section */
+		if ( $show_visibility || $show_profile_photo || $show_cover_photo ) {
+			$profile_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="profile">' . esc_html__( 'Profile', 'nobloat-user-foundry' ) . '</button>';
+
+			/* Build sub-tab navigation */
+			$subtabs      = array();
+			$subtab_links = '';
+			$first_subtab = '';
+
+			if ( $show_visibility ) {
+				$subtabs['visibility'] = __( 'Visibility', 'nobloat-user-foundry' );
+				if ( empty( $first_subtab ) ) {
+					$first_subtab = 'visibility';
+				}
+			}
+			if ( $show_profile_photo ) {
+				$subtabs['profile-photo'] = __( 'Profile Photo', 'nobloat-user-foundry' );
+				if ( empty( $first_subtab ) ) {
+					$first_subtab = 'profile-photo';
+				}
+			}
+			if ( $show_cover_photo ) {
+				$subtabs['cover-photo'] = __( 'Cover Photo', 'nobloat-user-foundry' );
+				if ( empty( $first_subtab ) ) {
+					$first_subtab = 'cover-photo';
+				}
+			}
+
+			/* Build sub-tab links */
+			$subtab_count = 0;
+			foreach ( $subtabs as $key => $label ) {
+				$is_first     = ( $subtab_count === 0 );
+				$subtab_links .= '<button type="button" class="nbuf-subtab-link' . ( $is_first ? ' active' : '' ) . '" data-subtab="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
+				++$subtab_count;
+			}
+
+			/* Generate nonce for profile tab */
+			ob_start();
+			wp_nonce_field( 'nbuf_account_profile_tab', 'nbuf_profile_tab_nonce', false );
+			$profile_tab_nonce = ob_get_clean();
+
+			/* Build sub-tab contents */
+			$subtab_contents = '';
+
+			/* Visibility sub-tab (with save button) */
+			if ( $show_visibility ) {
+				ob_start();
+				do_action( 'nbuf_account_visibility_subtab', $user_id );
+				$visibility_html  = ob_get_clean();
+				$is_first         = ( $first_subtab === 'visibility' );
+				$subtab_contents .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="visibility">';
+				$subtab_contents .= '<form method="post" action="' . esc_url( get_permalink() ) . '" class="nbuf-account-form nbuf-profile-tab-form">';
+				$subtab_contents .= $profile_tab_nonce;
+				$subtab_contents .= '<input type="hidden" name="nbuf_account_action" value="update_profile_tab">';
+				$subtab_contents .= '<input type="hidden" name="nbuf_active_tab" value="profile">';
+				$subtab_contents .= '<div class="nbuf-profile-subtab-section">' . $visibility_html . '</div>';
+				$subtab_contents .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Save Visibility', 'nobloat-user-foundry' ) . '</button>';
+				$subtab_contents .= '</form>';
+				$subtab_contents .= '</div>';
+			}
+
+			/* Profile Photo sub-tab */
 			if ( $show_profile_photo ) {
 				ob_start();
 				do_action( 'nbuf_account_profile_photo_subtab', $user_id );
-				$photos_content .= '<div class="nbuf-photos-section nbuf-profile-photo-section">';
-				$photos_content .= '<h3>' . esc_html__( 'Profile Photo', 'nobloat-user-foundry' ) . '</h3>';
-				$photos_content .= ob_get_clean();
-				$photos_content .= '</div>';
+				$profile_photo_html = ob_get_clean();
+				$is_first           = ( $first_subtab === 'profile-photo' );
+				$subtab_contents   .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="profile-photo">';
+				$subtab_contents   .= '<div class="nbuf-profile-subtab-section">' . $profile_photo_html . '</div>';
+				$subtab_contents   .= '</div>';
 			}
 
-			/* Cover photo section */
+			/* Cover Photo sub-tab */
 			if ( $show_cover_photo ) {
 				ob_start();
 				do_action( 'nbuf_account_cover_photo_subtab', $user_id );
-				$photos_content .= '<div class="nbuf-photos-section nbuf-cover-photo-section">';
-				$photos_content .= '<h3>' . esc_html__( 'Cover Photo', 'nobloat-user-foundry' ) . '</h3>';
-				$photos_content .= ob_get_clean();
-				$photos_content .= '</div>';
+				$cover_photo_html = ob_get_clean();
+				$is_first         = ( $first_subtab === 'cover-photo' );
+				$subtab_contents .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="cover-photo">';
+				$subtab_contents .= '<div class="nbuf-profile-subtab-section">' . $cover_photo_html . '</div>';
+				$subtab_contents .= '</div>';
 			}
 
-			$photos_tab_content = '<div class="nbuf-tab-content" data-tab="photos"><div class="nbuf-account-section">' . $photos_content . '</div></div>';
+			/* Assemble Profile tab content */
+			$profile_tab_content  = '<div class="nbuf-tab-content" data-tab="profile">';
+			$profile_tab_content .= '<div class="nbuf-account-section">';
+			$profile_tab_content .= '<div class="nbuf-subtabs">' . $subtab_links . '</div>';
+			$profile_tab_content .= $subtab_contents;
+			$profile_tab_content .= '</div>';
+			$profile_tab_content .= '</div>';
 		}
+
+		/* Backward compatibility placeholders */
+		$photos_tab_button  = $profile_tab_button;
+		$photos_tab_content = $profile_tab_content;
 
 		/* Build version history section HTML */
 		ob_start();
@@ -1383,37 +1444,52 @@ class NBUF_Shortcodes {
 			$policies_tab_content = '<div class="nbuf-tab-content" data-tab="policies"><div class="nbuf-account-section">' . self::get_policy_tab_content() . '</div></div>';
 		}
 
-		/* Build email change section if enabled */
-		$email_change_section = '';
-		$allow_email_change   = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
+		/* Build email tab if email changes are enabled */
+		$email_tab_button   = '';
+		$email_tab_content  = '';
+		$allow_email_change = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
 		if ( 'enabled' === $allow_email_change ) {
 			ob_start();
 			wp_nonce_field( 'nbuf_change_email', 'nbuf_email_nonce', false );
 			$nonce_field_email = ob_get_clean();
 
-			$email_change_section = '
-				<div class="nbuf-email-change-section">
-					<h3>' . esc_html__( 'Change Email Address', 'nobloat-user-foundry' ) . '</h3>
-					<form method="post" action="' . esc_url( get_permalink() ) . '" class="nbuf-account-form nbuf-email-change-form">
-						' . $nonce_field_email . '
-						<input type="hidden" name="nbuf_account_action" value="change_email">
-						<input type="hidden" name="nbuf_active_tab" value="profile">
-						<input type="hidden" name="nbuf_active_subtab" value="details">
-						<div class="nbuf-form-group">
-							<label for="current_email" class="nbuf-form-label">' . esc_html__( 'Current Email', 'nobloat-user-foundry' ) . '</label>
-							<input type="email" id="current_email" class="nbuf-form-input" value="' . esc_attr( $current_user->user_email ) . '" disabled>
-						</div>
-						<div class="nbuf-form-group">
-							<label for="new_email" class="nbuf-form-label">' . esc_html__( 'New Email Address', 'nobloat-user-foundry' ) . '</label>
-							<input type="email" id="new_email" name="new_email" class="nbuf-form-input" required>
-						</div>
-						<div class="nbuf-form-group">
-							<label for="email_confirm_password" class="nbuf-form-label">' . esc_html__( 'Confirm Your Password', 'nobloat-user-foundry' ) . '</label>
-							<input type="password" id="email_confirm_password" name="email_confirm_password" class="nbuf-form-input" required>
-							<small class="nbuf-form-help">' . esc_html__( 'Enter your current password to confirm this change.', 'nobloat-user-foundry' ) . '</small>
-						</div>
-						<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Update Email', 'nobloat-user-foundry' ) . '</button>
-					</form>
+			/* Check if email verification is required */
+			$verify_email_change = NBUF_Options::get( 'nbuf_verify_email_change', true );
+			$verification_notice = '';
+			if ( $verify_email_change ) {
+				$verification_notice = '
+					<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-bottom: 20px;">
+						<strong>' . esc_html__( 'Verification Required:', 'nobloat-user-foundry' ) . '</strong> ' .
+						esc_html__( 'A verification link will be sent to your new email address. The change will not take effect until you click the link to confirm.', 'nobloat-user-foundry' ) . '
+					</p>';
+			}
+
+			$email_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="email">' . esc_html__( 'Email', 'nobloat-user-foundry' ) . '</button>';
+
+			$email_tab_content = '
+				<div class="nbuf-tab-content" data-tab="email">
+					<div class="nbuf-account-section">
+						' . $verification_notice . '
+						<form method="post" action="' . esc_url( get_permalink() ) . '" class="nbuf-account-form nbuf-email-change-form">
+							' . $nonce_field_email . '
+							<input type="hidden" name="nbuf_account_action" value="change_email">
+							<input type="hidden" name="nbuf_active_tab" value="email">
+							<div class="nbuf-form-group">
+								<label for="current_email" class="nbuf-form-label">' . esc_html__( 'Current Email', 'nobloat-user-foundry' ) . '</label>
+								<input type="email" id="current_email" class="nbuf-form-input" value="' . esc_attr( $current_user->user_email ) . '" disabled>
+							</div>
+							<div class="nbuf-form-group">
+								<label for="new_email" class="nbuf-form-label">' . esc_html__( 'New Email Address', 'nobloat-user-foundry' ) . '</label>
+								<input type="email" id="new_email" name="new_email" class="nbuf-form-input" required>
+							</div>
+							<div class="nbuf-form-group">
+								<label for="email_confirm_password" class="nbuf-form-label">' . esc_html__( 'Confirm Your Password', 'nobloat-user-foundry' ) . '</label>
+								<input type="password" id="email_confirm_password" name="email_confirm_password" class="nbuf-form-input" required>
+								<small class="nbuf-form-help">' . esc_html__( 'Enter your current password to confirm this change.', 'nobloat-user-foundry' ) . '</small>
+							</div>
+							<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Update Email', 'nobloat-user-foundry' ) . '</button>
+						</form>
+					</div>
 				</div>';
 		}
 
@@ -1440,10 +1516,11 @@ class NBUF_Shortcodes {
 			'{nonce_field_password}'         => $nonce_field_password,
 			'{nonce_field_visibility}'       => $nonce_field_visibility,
 			'{profile_fields}'               => $profile_fields_html,
-			'{email_change_section}'         => $email_change_section,
 			'{visibility_section_inline}'    => $visibility_section_inline,
 			'{photos_tab_button}'            => $photos_tab_button,
 			'{photos_tab_content}'           => $photos_tab_content,
+			'{email_tab_button}'             => $email_tab_button,
+			'{email_tab_content}'            => $email_tab_content,
 			/* Backward compatibility - old placeholders */
 			'{visibility_section}'           => $visibility_section,
 			'{visibility_section_wrapper}'   => '',
@@ -1483,36 +1560,45 @@ class NBUF_Shortcodes {
 	 */
 	private static function build_profile_fields_html( $user, $profile_data ) {
 		/* Get enabled account profile fields */
-		$enabled_fields = NBUF_Profile_Data::get_account_fields();
-		$field_registry = NBUF_Profile_Data::get_field_registry();
-		$custom_labels  = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+		$enabled_fields    = NBUF_Profile_Data::get_account_fields();
+		$field_registry    = NBUF_Profile_Data::get_field_registry();
+		$custom_labels     = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+		$show_description  = NBUF_Options::get( 'nbuf_show_description_field', false );
 
 		/* Build flat field labels array (defaults from registry) */
 		$default_labels = array(
-			'first_name' => __( 'First Name', 'nobloat-user-foundry' ),
-			'last_name'  => __( 'Last Name', 'nobloat-user-foundry' ),
+			'first_name'   => __( 'First Name', 'nobloat-user-foundry' ),
+			'last_name'    => __( 'Last Name', 'nobloat-user-foundry' ),
+			'display_name' => __( 'Public Display Name', 'nobloat-user-foundry' ),
+			'user_url'     => __( 'Website', 'nobloat-user-foundry' ),
+			'description'  => __( 'Biography', 'nobloat-user-foundry' ),
 		);
 		foreach ( $field_registry as $category_data ) {
 			$default_labels = array_merge( $default_labels, $category_data['fields'] );
 		}
 
-		/* Count total fields (first name + last name + enabled fields) */
-		$field_count = 2 + count( $enabled_fields );
+		/* Count total fields (native WP fields + enabled fields) */
+		$native_field_count = $show_description ? 5 : 4; /* first, last, display, url, (bio if enabled) */
+		$field_count        = $native_field_count + count( $enabled_fields );
 
 		/* Use two columns if more than 5 fields */
 		$use_two_columns = $field_count > 5;
 
 		/* Textarea fields that should always span full width */
-		$full_width_fields = array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
+		$full_width_fields = array( 'description', 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
 
 		/* Collect field items */
 		$field_items = array();
 
-		/* Add first name and last name (always available) */
+		/* Native WordPress fields */
 		$first_name       = get_user_meta( $user->ID, 'first_name', true );
 		$last_name        = get_user_meta( $user->ID, 'last_name', true );
+		$description      = get_user_meta( $user->ID, 'description', true );
 		$first_name_label = ! empty( $custom_labels['first_name'] ) ? $custom_labels['first_name'] : $default_labels['first_name'];
 		$last_name_label  = ! empty( $custom_labels['last_name'] ) ? $custom_labels['last_name'] : $default_labels['last_name'];
+		$display_name_label = ! empty( $custom_labels['display_name'] ) ? $custom_labels['display_name'] : $default_labels['display_name'];
+		$user_url_label   = ! empty( $custom_labels['user_url'] ) ? $custom_labels['user_url'] : $default_labels['user_url'];
+		$description_label = ! empty( $custom_labels['description'] ) ? $custom_labels['description'] : $default_labels['description'];
 
 		$field_items[] = array(
 			'html'       => '<div class="nbuf-form-group">
@@ -1529,6 +1615,33 @@ class NBUF_Shortcodes {
 			</div>',
 			'full_width' => false,
 		);
+
+		$field_items[] = array(
+			'html'       => '<div class="nbuf-form-group">
+				<label for="display_name" class="nbuf-form-label">' . esc_html( $display_name_label ) . '</label>
+				<input type="text" id="display_name" name="display_name" class="nbuf-form-input" value="' . esc_attr( $user->display_name ) . '">
+			</div>',
+			'full_width' => false,
+		);
+
+		$field_items[] = array(
+			'html'       => '<div class="nbuf-form-group">
+				<label for="user_url" class="nbuf-form-label">' . esc_html( $user_url_label ) . '</label>
+				<input type="url" id="user_url" name="user_url" class="nbuf-form-input" value="' . esc_attr( $user->user_url ) . '">
+			</div>',
+			'full_width' => false,
+		);
+
+		/* Only show description/biography field if enabled in settings */
+		if ( $show_description ) {
+			$field_items[] = array(
+				'html'       => '<div class="nbuf-form-group nbuf-form-group-full">
+					<label for="description" class="nbuf-form-label">' . esc_html( $description_label ) . '</label>
+					<textarea id="description" name="description" class="nbuf-form-input nbuf-form-textarea" rows="4">' . esc_textarea( $description ) . '</textarea>
+				</div>',
+				'full_width' => true,
+			);
+		}
 
 		/* Add profile fields based on enabled settings */
 		foreach ( $enabled_fields as $field_key ) {
@@ -1601,6 +1714,8 @@ class NBUF_Shortcodes {
 				self::handle_visibility_update();
 			} elseif ( 'update_gravatar' === $action ) {
 				self::handle_gravatar_update();
+			} elseif ( 'update_profile_tab' === $action ) {
+				self::handle_profile_tab_update();
 			}
 		}
 
@@ -1705,15 +1820,32 @@ class NBUF_Shortcodes {
 
 		$user_id = get_current_user_id();
 
-		/* Update first name and last name */
+		/* Update native WordPress user meta fields */
 		if ( isset( $_POST['first_name'] ) ) {
 			update_user_meta( $user_id, 'first_name', sanitize_text_field( wp_unslash( $_POST['first_name'] ) ) );
 		}
 		if ( isset( $_POST['last_name'] ) ) {
 			update_user_meta( $user_id, 'last_name', sanitize_text_field( wp_unslash( $_POST['last_name'] ) ) );
 		}
+		if ( isset( $_POST['description'] ) ) {
+			/* SECURITY: Enforce maximum length for biography (5000 chars) */
+			$description = sanitize_textarea_field( wp_unslash( $_POST['description'] ) );
+			update_user_meta( $user_id, 'description', mb_substr( $description, 0, 5000 ) );
+		}
 
-		/* Collect profile fields */
+		/* Update native WordPress user table fields (display_name, user_url) */
+		$user_data = array( 'ID' => $user_id );
+		if ( isset( $_POST['display_name'] ) ) {
+			$user_data['display_name'] = sanitize_text_field( wp_unslash( $_POST['display_name'] ) );
+		}
+		if ( isset( $_POST['user_url'] ) ) {
+			$user_data['user_url'] = esc_url_raw( wp_unslash( $_POST['user_url'] ) );
+		}
+		if ( count( $user_data ) > 1 ) {
+			wp_update_user( $user_data );
+		}
+
+		/* Collect NoBloat profile fields */
 		$profile_fields = array(
 			'phone',
 			'company',
@@ -2096,6 +2228,61 @@ Best regards,
 
 		/* Set flash message and redirect (preserving tab state) */
 		self::set_flash_message( $user_id, __( 'Gravatar setting updated!', 'nobloat-user-foundry' ), 'success' );
+		wp_safe_redirect( self::build_account_redirect() );
+		exit;
+	}
+
+	/**
+	 * ==========================================================
+	 * HANDLE PROFILE TAB UPDATE
+	 * ----------------------------------------------------------
+	 * Process Profile tab form submission (visibility + photos).
+	 * ==========================================================
+	 */
+	private static function handle_profile_tab_update() {
+		/* Verify nonce */
+		if ( ! isset( $_POST['nbuf_profile_tab_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_profile_tab_nonce'] ) ), 'nbuf_account_profile_tab' ) ) {
+			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Require logged in user */
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( wp_login_url() );
+			exit;
+		}
+
+		$user_id = get_current_user_id();
+
+		/* Update profile visibility if submitted */
+		if ( isset( $_POST['nbuf_profile_privacy'] ) ) {
+			$privacy       = sanitize_key( wp_unslash( $_POST['nbuf_profile_privacy'] ) );
+			$valid_options = array( 'public', 'members_only', 'private' );
+			if ( ! in_array( $privacy, $valid_options, true ) ) {
+				$privacy = 'private';
+			}
+			NBUF_User_Data::update( $user_id, array( 'profile_privacy' => $privacy ) );
+		}
+
+		/* Update visible fields preference */
+		$visible_fields = array();
+		if ( isset( $_POST['nbuf_visible_fields'] ) && is_array( $_POST['nbuf_visible_fields'] ) ) {
+			$visible_fields = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_visible_fields'] ) );
+		}
+		NBUF_User_Data::update( $user_id, array( 'visible_fields' => maybe_serialize( $visible_fields ) ) );
+
+		/* Update gravatar preference if submitted */
+		if ( isset( $_POST['nbuf_use_gravatar'] ) ) {
+			$use_gravatar = absint( $_POST['nbuf_use_gravatar'] );
+			NBUF_User_Data::update( $user_id, array( 'use_gravatar' => $use_gravatar ) );
+		}
+
+		/* PERFORMANCE: Invalidate user cache after profile tab update */
+		if ( class_exists( 'NBUF_User' ) && method_exists( 'NBUF_User', 'invalidate_cache' ) ) {
+			NBUF_User::invalidate_cache( $user_id );
+		}
+
+		/* Set flash message and redirect (preserving tab state) */
+		self::set_flash_message( $user_id, __( 'Profile settings updated!', 'nobloat-user-foundry' ), 'success' );
 		wp_safe_redirect( self::build_account_redirect() );
 		exit;
 	}

@@ -33,6 +33,58 @@ class NBUF_Diagnostics {
 	 */
 	public static function init() {
 		add_action( 'admin_post_nbuf_export_diagnostics', array( __CLASS__, 'handle_export' ) );
+		add_action( 'admin_post_nbuf_repair_tables', array( __CLASS__, 'handle_repair_tables' ) );
+	}
+
+	/**
+	 * Handle database table repair.
+	 *
+	 * Creates any missing database tables.
+	 */
+	public static function handle_repair_tables() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized.', 'nobloat-user-foundry' ) );
+		}
+
+		check_admin_referer( 'nbuf_repair_tables' );
+
+		/* Run all table creation functions (safe - uses CREATE TABLE IF NOT EXISTS) */
+		NBUF_Database::create_table();
+		NBUF_Database::create_user_data_table();
+		NBUF_Database::create_options_table();
+		NBUF_Database::create_user_profile_table();
+		NBUF_Database::create_login_attempts_table();
+		NBUF_Database::create_user_2fa_table();
+		NBUF_Database::create_user_audit_log_table();
+		NBUF_Database::create_admin_audit_log_table();
+		NBUF_Database::create_user_notes_table();
+		NBUF_Database::create_import_history_table();
+		NBUF_Database::create_menu_restrictions_table();
+		NBUF_Database::create_content_restrictions_table();
+		NBUF_Database::create_user_roles_table();
+		NBUF_Database::create_profile_versions_table();
+
+		/* Run update functions for columns */
+		NBUF_Database::update_user_data_table_for_privacy();
+		NBUF_Database::update_user_data_table_for_photos();
+		NBUF_Database::update_user_data_table_for_password_expiration();
+		NBUF_Database::update_user_profile_table_for_account_merging();
+
+		/* Create security log table if class exists */
+		if ( class_exists( 'NBUF_Security_Log' ) ) {
+			NBUF_Security_Log::create_table();
+		}
+
+		/* Redirect back to the originating page with success message */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce already verified above.
+		$redirect_to = isset( $_POST['redirect_to'] ) ? sanitize_text_field( wp_unslash( $_POST['redirect_to'] ) ) : 'status';
+
+		if ( 'diagnostics' === $redirect_to ) {
+			wp_safe_redirect( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=diagnostics&tables_repaired=1' ) );
+		} else {
+			wp_safe_redirect( admin_url( 'admin.php?page=nobloat-foundry-users&tab=system&subtab=status&tables_repaired=1' ) );
+		}
+		exit;
 	}
 
 	/**
@@ -91,6 +143,7 @@ class NBUF_Diagnostics {
 			'options'        => $wpdb->prefix . 'nbuf_options',
 			'audit_log'      => $wpdb->prefix . 'nbuf_user_audit_log',
 			'user_notes'     => $wpdb->prefix . 'nbuf_user_notes',
+			'user_roles'     => $wpdb->prefix . 'nbuf_user_roles',
 		);
 
 		$total_size = 0;

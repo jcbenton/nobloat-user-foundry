@@ -52,14 +52,12 @@ class NBUF_2FA_Account {
 
 		$html = '<div class="nbuf-account-section">';
 
-		/* 2FA Status overview */
-		$html .= '<div class="nbuf-2fa-status">';
+		/* 2FA Status overview - only show if enabled */
 		if ( $current_method ) {
+			$html .= '<div class="nbuf-2fa-status">';
 			$html .= '<p class="nbuf-2fa-enabled"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Two-factor authentication is enabled on your account.', 'nobloat-user-foundry' ) . '</p>';
-		} else {
-			$html .= '<p class="nbuf-2fa-disabled"><span class="nbuf-icon">&#9888;</span> ' . esc_html__( 'Two-factor authentication is not enabled. Enable it below for extra security.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
 		}
-		$html .= '</div>';
 
 		/* TOTP (Authenticator App) section */
 		if ( $totp_available ) {
@@ -75,6 +73,7 @@ class NBUF_2FA_Account {
 				$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</button>';
 				$html .= '</form>';
 			} else {
+				$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Not Active', 'nobloat-user-foundry' ) . '</p>';
 				/* Link to 2FA setup page */
 				$setup_page_id = NBUF_Options::get( 'nbuf_page_2fa_setup', 0 );
 				$setup_url     = $setup_page_id ? get_permalink( $setup_page_id ) : '';
@@ -102,6 +101,7 @@ class NBUF_2FA_Account {
 				$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
 				$html .= '</form>';
 			} else {
+				$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Not Active', 'nobloat-user-foundry' ) . '</p>';
 				$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
 				$html .= wp_nonce_field( 'nbuf_2fa_enable_email', 'nbuf_2fa_nonce', true, false );
 				$html .= '<input type="hidden" name="nbuf_2fa_action" value="enable_email">';
@@ -421,6 +421,15 @@ class NBUF_2FA_Account {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below per action.
 		$action = isset( $_POST['nbuf_2fa_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_action'] ) ) : '';
 
+		/* Get redirect URL with fallback to account page */
+		$redirect_url = wp_get_referer();
+		if ( ! $redirect_url ) {
+			$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
+			$redirect_url    = $account_page_id ? get_permalink( $account_page_id ) : home_url();
+		}
+		/* Append security tab parameter */
+		$redirect_url = add_query_arg( 'tab', 'security', $redirect_url );
+
 		/* Handle each 2FA action */
 		switch ( $action ) {
 			case 'enable_email':
@@ -429,7 +438,7 @@ class NBUF_2FA_Account {
 				}
 				NBUF_2FA::enable_for_user( $user_id, 'email' );
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication enabled!', 'nobloat-user-foundry' ), 'success' );
-				wp_safe_redirect( wp_get_referer() );
+				wp_safe_redirect( $redirect_url );
 				exit;
 
 			case 'disable_email':
@@ -445,7 +454,7 @@ class NBUF_2FA_Account {
 					NBUF_2FA::disable_for_user( $user_id );
 				}
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication disabled.', 'nobloat-user-foundry' ), 'success' );
-				wp_safe_redirect( wp_get_referer() );
+				wp_safe_redirect( $redirect_url );
 				exit;
 
 			case 'disable_totp':
@@ -467,7 +476,7 @@ class NBUF_2FA_Account {
 					NBUF_2FA::disable_for_user( $user_id );
 				}
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication disabled.', 'nobloat-user-foundry' ), 'success' );
-				wp_safe_redirect( wp_get_referer() );
+				wp_safe_redirect( $redirect_url );
 				exit;
 
 			case 'generate_backup_codes':
@@ -478,7 +487,7 @@ class NBUF_2FA_Account {
 				$codes = NBUF_2FA::generate_backup_codes( $user_id );
 				/* Store in transient to display once (account page will retrieve and delete) */
 				set_transient( 'nbuf_backup_codes_' . $user_id, $codes, 300 );
-				wp_safe_redirect( wp_get_referer() );
+				wp_safe_redirect( $redirect_url );
 				exit;
 		}
 	}

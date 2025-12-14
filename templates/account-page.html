@@ -7,6 +7,7 @@
         <button type="button" class="nbuf-tab-button nbuf-tab-active" data-tab="account">Account</button>
         {photos_tab_button}
         <button type="button" class="nbuf-tab-button" data-tab="password">Password</button>
+        {email_tab_button}
         {security_tab_button}
         {policies_tab_button}
         <a href="{logout_url}" class="nbuf-tab-logout">Logout</a>
@@ -46,8 +47,6 @@
 
                 <button type="submit" class="nbuf-button nbuf-button-primary">Save Changes</button>
             </form>
-
-            {email_change_section}
         </div>
 
         <!-- Version History Section (conditionally displayed) -->
@@ -85,6 +84,9 @@
             </form>
         </div>
     </div>
+
+    <!-- Email Tab (conditionally displayed if email changes are enabled) -->
+    {email_tab_content}
 
     <!-- Security Tab (conditionally displayed if 2FA is available) -->
     {security_tab_content}

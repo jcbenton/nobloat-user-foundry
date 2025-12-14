@@ -411,8 +411,8 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 	<table class="form-table">
 		<?php
 		$backup_enabled = NBUF_Options::get( 'nbuf_2fa_backup_enabled', true );
-		$backup_count   = NBUF_Options::get( 'nbuf_2fa_backup_count', 10 );
-		$backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 8 );
+		$backup_count   = NBUF_Options::get( 'nbuf_2fa_backup_count', 4 );
+		$backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 32 );
 		?>
 		<tr>
 			<th><?php esc_html_e( 'Enable Backup Codes', 'nobloat-user-foundry' ); ?></th>
@@ -429,20 +429,20 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 		<tr>
 			<th><?php esc_html_e( 'Number of Codes', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_backup_count" value="<?php echo esc_attr( $backup_count ); ?>" min="5" max="20" class="small-text">
+				<input type="number" name="nbuf_2fa_backup_count" value="<?php echo esc_attr( $backup_count ); ?>" min="4" max="20" class="small-text">
 				<span><?php esc_html_e( 'codes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'Number of backup codes to generate. Default: 10', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Number of backup codes to generate. Default: 4', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
 		<tr>
 			<th><?php esc_html_e( 'Code Length', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_backup_length" value="<?php echo esc_attr( $backup_length ); ?>" min="6" max="12" class="small-text">
+				<input type="number" name="nbuf_2fa_backup_length" value="<?php echo esc_attr( $backup_length ); ?>" min="8" max="64" class="small-text">
 				<span><?php esc_html_e( 'characters', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'Length of each backup code. Default: 8', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Length of each backup code. Longer codes are more secure. Default: 32', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

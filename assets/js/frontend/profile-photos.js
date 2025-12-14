@@ -41,7 +41,6 @@ jQuery(document).ready(function($) {
 			contentType: false,
 			success: function(response) {
 				if (response.success) {
-					alert(NBUF_ProfilePhotos.i18n.profile_uploaded);
 					location.reload();
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.upload_failed);
@@ -71,7 +70,6 @@ jQuery(document).ready(function($) {
 			contentType: false,
 			success: function(response) {
 				if (response.success) {
-					alert(NBUF_ProfilePhotos.i18n.cover_uploaded);
 					location.reload();
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.upload_failed);
@@ -100,7 +98,6 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					alert(NBUF_ProfilePhotos.i18n.profile_deleted);
 					location.reload();
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.delete_failed);
@@ -129,7 +126,6 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					alert(NBUF_ProfilePhotos.i18n.cover_deleted);
 					location.reload();
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.delete_failed);

@@ -40,8 +40,8 @@ class NBUF_2FA {
 	const EMAIL_CODE_COOLDOWN   = 60;  // Cooldown between code requests in seconds.
 
 	/* Backup code constants */
-	const BACKUP_CODE_COUNT  = 10;  // Default number of backup codes to generate.
-	const BACKUP_CODE_LENGTH = 8;   // Length of each backup code.
+	const BACKUP_CODE_COUNT  = 4;   // Default number of backup codes to generate.
+	const BACKUP_CODE_LENGTH = 32;  // Length of each backup code.
 
 	/* Device trust constants */
 	const DEVICE_TRUST_DURATION = 2592000; // 30 days in seconds (30 * 24 * 60 * 60)
@@ -63,6 +63,17 @@ class NBUF_2FA {
 		if ( ! self::is_enabled( $user_id ) ) {
 			/* Check if 2FA is required but user hasn't set it up */
 			if ( self::is_required( $user_id ) ) {
+				$required_method = self::get_required_method();
+
+				/*
+				 * Email 2FA can be auto-applied immediately - no grace period needed.
+				 * TOTP requires user setup, so grace period applies.
+				 */
+				if ( 'email' === $required_method ) {
+					return true;
+				}
+
+				/* For TOTP, check grace period */
 				$grace_remaining = self::get_grace_period_remaining( $user_id );
 
 				/* If grace period expired, challenge anyway to force setup */
@@ -95,6 +106,11 @@ class NBUF_2FA {
 		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
 
 		/* Check if either method requires 2FA for all users */
+		if ( 'required' === $email_method || 'required' === $totp_method ) {
+			return true;
+		}
+
+		/* Legacy values for backwards compatibility */
 		if ( 'required_all' === $email_method || 'required_all' === $totp_method ) {
 			return true;
 		}
@@ -131,6 +147,35 @@ class NBUF_2FA {
 		}
 
 		return NBUF_User_2FA_Data::get_method( $user_id );
+	}
+
+	/**
+	 * Get the required 2FA method based on admin settings
+	 *
+	 * Used when user hasn't set up 2FA but it's required.
+	 * Returns the method that admin has set as required.
+	 *
+	 * @return string|false 'email', 'totp', or false if none required.
+	 */
+	public static function get_required_method() {
+		$email_method = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
+		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+
+		/* Check what methods are required */
+		$email_required = in_array( $email_method, array( 'required', 'required_all', 'required_admin' ), true );
+		$totp_required  = in_array( $totp_method, array( 'required', 'required_all', 'required_admin' ), true );
+
+		/* Email 2FA can be auto-applied; TOTP requires user setup */
+		if ( $email_required ) {
+			return 'email';
+		}
+
+		/* TOTP is required but can't be auto-applied */
+		if ( $totp_required ) {
+			return 'totp';
+		}
+
+		return false;
 	}
 
 	/**
@@ -198,14 +243,11 @@ class NBUF_2FA {
 		}
 
 		/*
-		* SECURITY: Atomic rate limiting check using add_transient()
-		*
-		* add_transient() returns false if transient already exists, providing
-		* atomic check-and-set operation that prevents race conditions.
-		* This ensures only one code generation request succeeds within the 60-second window.
-		*/
+		 * SECURITY: Rate limiting check.
+		 * MySQL GET_LOCK above provides atomicity. Check if rate limit transient exists.
+		 */
 		$rate_limit_key = 'nbuf_2fa_email_rate_limit_' . $user_id;
-		if ( ! add_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN ) ) {
+		if ( false !== get_transient( $rate_limit_key ) ) {
 			/* Release lock before returning */
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 			/* Transient already exists - user is rate limited */
@@ -214,6 +256,9 @@ class NBUF_2FA {
 				__( 'Please wait before requesting another verification code.', 'nobloat-user-foundry' )
 			);
 		}
+
+		/* Set rate limit transient */
+		set_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN );
 
 		/* Get settings */
 		$code_length        = NBUF_Options::get( 'nbuf_2fa_email_code_length', self::EMAIL_CODE_LENGTH );
@@ -283,11 +328,7 @@ If you did not request this code, please ignore this email.
 			get_bloginfo( 'name' )
 		);
 
-		/* Use NBUF_Email if available, otherwise wp_mail */
-		if ( class_exists( 'NBUF_Email' ) ) {
-			return NBUF_Email::send_email( $user->user_email, $subject, $message );
-		}
-
+		/* Send email using wp_mail */
 		return wp_mail( $user->user_email, $subject, $message );
 	}
 
@@ -323,7 +364,7 @@ If you did not request this code, please ignore this email.
 		 * Remove all non-numeric characters first.
 		 */
 		$code            = preg_replace( '/[^0-9]/', '', $code );
-		$expected_length = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
+		$expected_length = (int) NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
 
 		/*
 		 * SECURITY: Normalize code length to prevent timing attack.
@@ -579,7 +620,8 @@ If you did not request this code, please ignore this email.
 
 		/* Check if token exists and is not expired */
 		if ( isset( $trusted_devices[ $token ] ) ) {
-			$expires = $trusted_devices[ $token ];
+			$device_data = $trusted_devices[ $token ];
+			$expires     = is_array( $device_data ) ? ( $device_data['expires'] ?? 0 ) : $device_data;
 
 			if ( $expires > time() ) {
 				/* Rotate token for enhanced security (prevents long-term token theft). */
@@ -590,7 +632,13 @@ If you did not request this code, please ignore this email.
 
 				/* Remove old token and add new one */
 				NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
-				NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_expires );
+				$new_device_data = array(
+					'expires'    => $new_expires,
+					'created'    => is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time(),
+					'user_agent' => is_array( $device_data ) ? ( $device_data['user_agent'] ?? '' ) : '',
+					'ip'         => is_array( $device_data ) ? ( $device_data['ip'] ?? '' ) : '',
+				);
+				NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_device_data );
 
 				/*
 				Update cookie with new token
@@ -660,7 +708,13 @@ If you did not request this code, please ignore this email.
 		);
 
 		/* Store token in database */
-		NBUF_User_2FA_Data::add_trusted_device( $user_id, $token, $expires );
+		$device_data = array(
+			'expires'    => $expires,
+			'created'    => time(),
+			'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+			'ip'         => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+		);
+		NBUF_User_2FA_Data::add_trusted_device( $user_id, $token, $device_data );
 
 		return true;
 	}

@@ -672,12 +672,13 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => $validation->get_error_message() ) );
 		}
 
-		/* Save photo URL to user data (old photo already deleted by image processor) */
+		/* Save photo URL to user data and disable Gravatar (old photo already deleted by image processor) */
 		NBUF_User_Data::update(
 			$user_id,
 			array(
 				'profile_photo_url'  => $processed['url'],
 				'profile_photo_path' => $processed['path'],
+				'use_gravatar'       => 0,
 			)
 		);
 
@@ -1180,7 +1181,7 @@ class NBUF_Profile_Photos {
 					</div>
 				<?php endif; ?>
 
-				<?php if ( $gravatar_enabled ) : ?>
+				<?php if ( $gravatar_enabled && ! $has_custom_profile ) : ?>
 					<form method="post" action="<?php echo esc_url( get_permalink() ); ?>" class="nbuf-gravatar-form">
 						<?php wp_nonce_field( 'nbuf_account_gravatar', 'nbuf_gravatar_nonce', false ); ?>
 						<input type="hidden" name="nbuf_account_action" value="update_gravatar">
@@ -1258,6 +1259,11 @@ class NBUF_Profile_Photos {
 			<p class="description" style="margin-top: 10px;">
 				<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 10MB. Recommended size: 1500x500px.', 'nobloat-user-foundry' ); ?>
 			</p>
+
+			<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 15px;">
+				<strong><?php esc_html_e( 'Privacy Notice:', 'nobloat-user-foundry' ); ?></strong>
+				<?php esc_html_e( 'Uploaded photos are stored with randomly-generated URLs. Photos are publicly accessible to anyone who has the URL.', 'nobloat-user-foundry' ); ?>
+			</p>
 		</div>
 		<?php
 	}
@@ -1270,6 +1276,15 @@ class NBUF_Profile_Photos {
 	public static function render_visibility_subtab( $user_id ) {
 		$user_data       = NBUF_User_Data::get( $user_id );
 		$profile_privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+
+		/* Get user's visible fields preference (default to all enabled) */
+		$visible_fields = array();
+		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
+			$visible_fields = maybe_unserialize( $user_data->visible_fields );
+			if ( ! is_array( $visible_fields ) ) {
+				$visible_fields = array();
+			}
+		}
 		?>
 		<div class="nbuf-profile-privacy-group">
 			<p class="description" style="margin-bottom: 15px;">
@@ -1302,6 +1317,63 @@ class NBUF_Profile_Photos {
 					?>
 				</p>
 			<?php endif; ?>
+
+			<!-- Profile Fields Visibility -->
+			<div class="nbuf-visible-fields" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd;">
+				<h4 style="margin: 0 0 10px 0;"><?php esc_html_e( 'Fields to Display on Public Profile', 'nobloat-user-foundry' ); ?></h4>
+				<p class="description" style="margin-bottom: 15px;">
+					<?php esc_html_e( 'Select which fields to show on your public profile page.', 'nobloat-user-foundry' ); ?>
+				</p>
+
+				<?php
+				/* Native WordPress fields */
+				$native_fields = array(
+					'display_name' => __( 'Display Name', 'nobloat-user-foundry' ),
+					'first_name'   => __( 'First Name', 'nobloat-user-foundry' ),
+					'last_name'    => __( 'Last Name', 'nobloat-user-foundry' ),
+					'user_url'     => __( 'Website', 'nobloat-user-foundry' ),
+					'description'  => __( 'Biography', 'nobloat-user-foundry' ),
+				);
+
+				/* Get enabled custom fields for account page */
+				$enabled_custom_fields = array();
+				if ( class_exists( 'NBUF_Profile_Data' ) ) {
+					$enabled_keys   = NBUF_Profile_Data::get_account_fields();
+					$field_registry = NBUF_Profile_Data::get_field_registry();
+					$custom_labels  = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+
+					foreach ( $field_registry as $category ) {
+						if ( isset( $category['fields'] ) && is_array( $category['fields'] ) ) {
+							foreach ( $category['fields'] as $key => $default_label ) {
+								if ( in_array( $key, $enabled_keys, true ) ) {
+									/* Use custom label if set, otherwise default */
+									$label = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : $default_label;
+									$enabled_custom_fields[ $key ] = $label;
+								}
+							}
+						}
+					}
+				}
+
+				/* Combine all available fields */
+				$all_fields = array_merge( $native_fields, $enabled_custom_fields );
+
+				if ( ! empty( $all_fields ) ) :
+					?>
+					<div class="nbuf-field-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
+						<?php foreach ( $all_fields as $field_key => $field_label ) : ?>
+							<label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+								<input type="checkbox" name="nbuf_visible_fields[]" value="<?php echo esc_attr( $field_key ); ?>" <?php checked( in_array( $field_key, $visible_fields, true ) ); ?>>
+								<?php echo esc_html( $field_label ); ?>
+							</label>
+						<?php endforeach; ?>
+					</div>
+				<?php else : ?>
+					<p class="description">
+						<?php esc_html_e( 'No profile fields are currently enabled.', 'nobloat-user-foundry' ); ?>
+					</p>
+				<?php endif; ?>
+			</div>
 		</div>
 		<?php
 	}

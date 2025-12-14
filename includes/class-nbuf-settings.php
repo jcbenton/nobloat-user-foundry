@@ -40,7 +40,9 @@ class NBUF_Settings {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'add_roles_submenu' ), 12 );
+		add_action( 'admin_menu', array( __CLASS__, 'add_users_submenu' ), 13 );
 		add_action( 'admin_menu', array( __CLASS__, 'remove_duplicate_submenu' ), 999 );
+		add_action( 'admin_head', array( __CLASS__, 'highlight_users_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'auto_detect_pages' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_migrate_wp_options' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'check_required_pages' ) );
@@ -96,6 +98,7 @@ class NBUF_Settings {
 			'nbuf_allow_email_change'             => function ( $value ) {
 				return in_array( $value, array( 'disabled', 'enabled' ), true ) ? $value : 'disabled';
 			},
+			'nbuf_verify_email_change'            => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Admin Users List columns */
 			'nbuf_users_column_posts'             => array( __CLASS__, 'sanitize_checkbox' ),
@@ -244,10 +247,10 @@ class NBUF_Settings {
 			/* Security - 2FA Backup codes */
 			'nbuf_2fa_backup_enabled'             => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_2fa_backup_count'               => function ( $value ) {
-				return max( 5, min( 20, absint( $value ) ) );
+				return max( 4, min( 20, absint( $value ) ) );
 			},
 			'nbuf_2fa_backup_length'              => function ( $value ) {
-				return max( 6, min( 12, absint( $value ) ) );
+				return max( 8, min( 64, absint( $value ) ) );
 			},
 
 			/* Security - 2FA General */
@@ -378,6 +381,9 @@ class NBUF_Settings {
 			},
 			'nbuf_account_page_template'          => function ( $value ) {
 				return NBUF_Template_Manager::sanitize_template( $value, 'account-page' );
+			},
+			'nbuf_2fa_verify_template'            => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, '2fa-verify' );
 			},
 
 			/* Email templates - HTML sanitization via Template Manager */
@@ -725,23 +731,31 @@ class NBUF_Settings {
 			add_menu_page(
 				__( 'User Foundry', 'nobloat-user-foundry' ),          // Page title.
 				__( 'User Foundry', 'nobloat-user-foundry' ),          // Menu title.
-				'manage_options',                                      // Capability.
-				'nobloat-foundry',                                     // Menu slug (SHARED across all NoBloat plugins).
-				array( __CLASS__, 'render_settings_page' ),           // Callback (first plugin loaded handles this).
+				'list_users',                                          // Capability (same as Users menu).
+				'nobloat-foundry',                                     // Menu slug.
+				array( __CLASS__, 'render_settings_page' ),           // Callback.
 				'dashicons-superhero',                                 // Icon.
 				30                                                     // Position (after Comments).
 			);
 		}
 
-		/* Add Settings submenu */
+		/* Add Settings submenu (first item - clicking "User Foundry" goes here) */
 		add_submenu_page(
-			'nobloat-foundry',                                     // Parent slug (SHARED).
+			'nobloat-foundry',                                     // Parent slug.
 			__( 'Settings', 'nobloat-user-foundry' ),             // Page title.
 			__( 'Settings', 'nobloat-user-foundry' ),             // Menu title.
 			'manage_options',                                      // Capability.
-			'nobloat-foundry-users',                               // Menu slug (UNIQUE to this plugin).
+			'nobloat-foundry-users',                               // Menu slug.
 			array( __CLASS__, 'render_settings_page' )            // Callback.
 		);
+	}
+
+	/**
+	 * Redirect top-level menu click to WordPress Users page
+	 */
+	public static function redirect_to_users() {
+		wp_safe_redirect( admin_url( 'users.php' ) );
+		exit;
 	}
 
 	/**
@@ -761,6 +775,56 @@ class NBUF_Settings {
 				array( 'NBUF_Roles_Page', 'render_page' )        // Callback.
 			);
 		}
+	}
+
+	/**
+	 * Add All Users submenu page.
+	 *
+	 * Added at priority 13 to appear last (after Roles).
+	 * This links to the native WordPress users.php page.
+	 */
+	public static function add_users_submenu() {
+		add_submenu_page(
+			'nobloat-foundry',                                 // Parent slug.
+			__( 'All Users', 'nobloat-user-foundry' ),        // Page title.
+			__( 'All Users', 'nobloat-user-foundry' ),        // Menu title.
+			'list_users',                                      // Capability.
+			'users.php'                                        // Menu slug - links to WP Users.
+		);
+
+		/* Hide the native WordPress Users menu (replaced by User Foundry) */
+		remove_menu_page( 'users.php' );
+	}
+
+	/**
+	 * Keep User Foundry menu expanded when on users.php
+	 *
+	 * Since users.php is a core WordPress page, the menu would normally collapse.
+	 * This adds inline JS to keep our menu highlighted when viewing the users list.
+	 */
+	public static function highlight_users_menu() {
+		global $pagenow;
+
+		/* Only run on users.php and user-edit.php */
+		if ( ! in_array( $pagenow, array( 'users.php', 'user-edit.php', 'user-new.php', 'profile.php' ), true ) ) {
+			return;
+		}
+		?>
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			var menu = document.getElementById('toplevel_page_nobloat-foundry');
+			if (menu) {
+				menu.classList.remove('wp-not-current-submenu');
+				menu.classList.add('wp-has-current-submenu', 'wp-menu-open');
+				var submenuLink = menu.querySelector('a[href="users.php"]');
+				if (submenuLink) {
+					submenuLink.classList.add('current');
+					submenuLink.closest('li').classList.add('current');
+				}
+			}
+		});
+		</script>
+		<?php
 	}
 
 
@@ -995,6 +1059,7 @@ class NBUF_Settings {
 					'2fa-settings'  => __( '2FA Config', 'nobloat-user-foundry' ),
 					'2fa-email'     => __( 'Email Auth', 'nobloat-user-foundry' ),
 					'2fa-totp'      => __( 'Authenticator', 'nobloat-user-foundry' ),
+					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
 				),
 			),
 			'users'       => array(
@@ -1208,6 +1273,7 @@ class NBUF_Settings {
 			'account-page'        => 'account-page.html',
 			'request-reset-form'  => 'request-reset-form.html',
 			'reset-form'          => 'reset-form.html',
+			'2fa-verify'          => '2fa-verify.html',
 			'policy-privacy-html' => 'policy-privacy.html',
 			'policy-terms-html'   => 'policy-terms.html',
 		);
@@ -1223,6 +1289,7 @@ class NBUF_Settings {
 			'account-page'        => 'nbuf_account_page_template',
 			'request-reset-form'  => 'nbuf_request_reset_form_template',
 			'reset-form'          => 'nbuf_reset_form_template',
+			'2fa-verify'          => 'nbuf_2fa_verify_template',
 			'policy-privacy-html' => 'nbuf_policy_privacy_html',
 			'policy-terms-html'   => 'nbuf_policy_terms_html',
 		);

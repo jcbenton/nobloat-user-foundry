@@ -67,7 +67,7 @@ class NBUF_User_2FA_Data {
 	 */
 	public static function is_enabled( int $user_id ): bool {
 		$data = self::get( $user_id );
-		return $data && 1 === $data->enabled;
+		return $data && 1 === (int) $data->enabled;
 	}
 
 	/**
@@ -178,7 +178,7 @@ class NBUF_User_2FA_Data {
 	 */
 	public static function is_setup_completed( int $user_id ): bool {
 		$data = self::get( $user_id );
-		return $data && 1 === $data->setup_completed;
+		return $data && 1 === (int) $data->setup_completed;
 	}
 
 	/**
@@ -363,8 +363,8 @@ class NBUF_User_2FA_Data {
 
 		/* Detect 2FA enable/disable events for audit logging. */
 		if ( isset( $data['enabled'] ) ) {
-			$was_enabled = $exists && 1 === $exists->enabled;
-			$now_enabled = 1 === $data['enabled'];
+			$was_enabled = $exists && 1 === (int) $exists->enabled;
+			$now_enabled = 1 === (int) $data['enabled'];
 
 			if ( ! $was_enabled && $now_enabled ) {
 				/* 2FA being enabled */

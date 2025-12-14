@@ -196,6 +196,7 @@
     border-bottom: 1px solid var(--nbuf-border-light);
 }
 
+.nbuf-subtab-link,
 .nbuf-subtab-button {
     padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
     background: transparent;
@@ -209,23 +210,27 @@
                 background-color var(--nbuf-transition-base);
 }
 
+.nbuf-subtab-link:hover,
 .nbuf-subtab-button:hover {
-    color: var(--nbuf-primary-dark, #1a5490);
+    color: var(--nbuf-primary-hover);
     background: rgba(34, 113, 177, 0.08);
 }
 
+.nbuf-subtab-link.active,
 .nbuf-subtab-button.nbuf-subtab-active {
-    color: var(--nbuf-text);
+    color: var(--nbuf-text-primary);
     background: rgba(34, 113, 177, 0.1);
     font-weight: 600;
 }
 
+.nbuf-subtab-link:focus-visible,
 .nbuf-subtab-button:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
 }
 
 /* Pipe separator between subtabs */
+.nbuf-subtab-link::after,
 .nbuf-subtab-button::after {
     content: '|';
     margin-left: var(--nbuf-space-sm);
@@ -233,6 +238,7 @@
     font-weight: 300;
 }
 
+.nbuf-subtab-link:last-child::after,
 .nbuf-subtab-button:last-child::after {
     content: none;
 }
@@ -245,8 +251,27 @@
     display: none;
 }
 
+.nbuf-subtab-content.active,
 .nbuf-subtab-content.nbuf-subtab-active {
     display: block;
+}
+
+/* ==========================================================
+   PROFILE TAB SECTIONS
+   ========================================================== */
+
+.nbuf-profile-subtab-section {
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-profile-privacy-notice {
+    background: var(--nbuf-info-bg);
+    color: var(--nbuf-info);
+    border: 1px solid var(--nbuf-info-border);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-xl);
+    font-size: 0.9em;
 }
 
 /* ==========================================================
@@ -279,18 +304,25 @@
 .nbuf-account-status {
     display: inline-block;
     margin-right: var(--nbuf-space-sm);
+    padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: 0.85em;
+    font-weight: 600;
 }
 
 .nbuf-status-verified {
+    background: var(--nbuf-success-bg);
     color: var(--nbuf-success);
 }
 
 .nbuf-status-unverified {
+    background: var(--nbuf-warning-bg);
     color: var(--nbuf-warning);
 }
 
 .nbuf-status-expired {
-    color: var(--nbuf-expired);
+    background: var(--nbuf-error-bg);
+    color: var(--nbuf-error);
 }
 
 /* ==========================================================
@@ -544,6 +576,10 @@ textarea.nbuf-account-input {
     color: var(--nbuf-success);
 }
 
+.nbuf-status-inactive {
+    color: var(--nbuf-text-muted);
+}
+
 .nbuf-codes-remaining {
     margin-bottom: var(--nbuf-space-md);
 }
@@ -560,14 +596,41 @@ textarea.nbuf-account-input {
 .nbuf-backup-codes-display {
     padding: var(--nbuf-space-lg);
     margin-bottom: var(--nbuf-space-xl);
+    background: var(--nbuf-surface);
+    border: 2px solid var(--nbuf-warning);
+    border-radius: var(--nbuf-radius);
 }
 
 .nbuf-backup-codes-display h3 {
     margin: 0 0 var(--nbuf-space-sm) 0;
+    color: var(--nbuf-warning);
 }
 
 .nbuf-backup-codes-warning {
     margin-bottom: var(--nbuf-space-md);
+    font-weight: 600;
+}
+
+.nbuf-backup-codes-textarea {
+    width: 100%;
+    line-height: 1.8;
+    padding: var(--nbuf-space-md);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius);
+    background: var(--nbuf-background);
+    resize: none;
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-backup-codes-actions {
+    display: flex;
+    gap: var(--nbuf-space-sm);
+    margin-bottom: var(--nbuf-space-md);
+}
+
+.nbuf-backup-codes-card .nbuf-button {
+    white-space: nowrap;
+    min-width: max-content;
 }
 
 .nbuf-backup-codes-list {

@@ -20,7 +20,8 @@ $login_method = $reg_settings['login_method'] ?? 'email_only';
 $enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 
 /* Email settings */
-$allow_email_change = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
+$allow_email_change    = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
+$verify_email_change   = NBUF_Options::get( 'nbuf_verify_email_change', true );
 
 /* Expiration settings */
 $enable_expiration = NBUF_Options::get( 'nbuf_enable_expiration', false );
@@ -80,6 +81,19 @@ $warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'Allow users to change their email address from the frontend account page.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Verify Changed Email', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="hidden" name="nbuf_verify_email_change" value="0">
+				<label>
+					<input type="checkbox" name="nbuf_verify_email_change" value="1" <?php checked( $verify_email_change, true ); ?>>
+					<?php esc_html_e( 'Require verification for email changes', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, the new email address must be verified before the change takes effect. A verification link will be sent to the new email address.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

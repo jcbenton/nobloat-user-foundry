@@ -30,6 +30,8 @@ class NBUF_Roles_Page {
 		add_action( 'wp_ajax_nbuf_save_role', array( __CLASS__, 'ajax_save_role' ) );
 		add_action( 'wp_ajax_nbuf_delete_role', array( __CLASS__, 'ajax_delete_role' ) );
 		add_action( 'wp_ajax_nbuf_export_role', array( __CLASS__, 'ajax_export_role' ) );
+		add_action( 'wp_ajax_nbuf_adopt_role', array( __CLASS__, 'ajax_adopt_role' ) );
+		add_action( 'wp_ajax_nbuf_delete_orphan_role', array( __CLASS__, 'ajax_delete_orphan_role' ) );
 	}
 
 	/**
@@ -103,11 +105,12 @@ class NBUF_Roles_Page {
 		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
 
 		foreach ( $wp_roles as $role_key => $role_data ) :
-			$is_native  = in_array( $role_key, $native_roles, true );
-			$is_custom  = isset( $custom_roles[ $role_key ] );
-			$user_count = NBUF_Role_Manager::get_user_count( $role_key );
-			$cap_count  = count( $role_data['capabilities'] );
-			$priority   = $is_custom ? $custom_roles[ $role_key ]['priority'] : 0;
+			$is_native   = in_array( $role_key, $native_roles, true );
+			$is_custom   = isset( $custom_roles[ $role_key ] );
+			$is_orphaned = ! $is_native && ! $is_custom; /* Exists in WP but not in our DB */
+			$user_count  = NBUF_Role_Manager::get_user_count( $role_key );
+			$cap_count   = count( $role_data['capabilities'] );
+			$priority    = $is_custom ? $custom_roles[ $role_key ]['priority'] : 0;
 			?>
 					<tr>
 						<td>
@@ -117,7 +120,10 @@ class NBUF_Roles_Page {
 									<a href="?page=nobloat-foundry-roles&action=edit&role=<?php echo esc_attr( $role_key ); ?>"><?php esc_html_e( 'Edit', 'nobloat-user-foundry' ); ?></a> |
 									<a href="#" class="nbuf-delete-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?></a> |
 									<a href="#" class="nbuf-export-role" data-role="<?php echo esc_attr( $role_key ); ?>"><?php esc_html_e( 'Export', 'nobloat-user-foundry' ); ?></a>
-								<?php else : ?>
+								<?php elseif ( $is_orphaned ) : ?>
+									<a href="#" class="nbuf-adopt-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Adopt', 'nobloat-user-foundry' ); ?></a> |
+									<a href="#" class="nbuf-delete-orphan-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?></a>
+								<?php elseif ( $is_native ) : ?>
 									<span style="color: #888;"><?php esc_html_e( 'Native WordPress role', 'nobloat-user-foundry' ); ?></span>
 								<?php endif; ?>
 							</div>
@@ -130,6 +136,8 @@ class NBUF_Roles_Page {
 								<span class="role-badge native"><?php esc_html_e( 'WordPress', 'nobloat-user-foundry' ); ?></span>
 							<?php elseif ( $is_custom ) : ?>
 								<span class="role-badge"><?php esc_html_e( 'Custom', 'nobloat-user-foundry' ); ?></span>
+							<?php elseif ( $is_orphaned ) : ?>
+								<span class="role-badge" style="background: #dba617; color: #fff;"><?php esc_html_e( 'Orphaned', 'nobloat-user-foundry' ); ?></span>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $priority ); ?></td>
@@ -190,6 +198,62 @@ class NBUF_Roles_Page {
 							a.href = url;
 							a.download = 'role-' + roleKey + '.json';
 							a.click();
+						} else {
+							alert('<?php echo esc_js( __( 'Error:', 'nobloat-user-foundry' ) ); ?> ' + response.data.message);
+						}
+					}
+				});
+			});
+
+			/* Adopt orphaned role */
+			$('.nbuf-adopt-role').on('click', function(e) {
+				e.preventDefault();
+				const roleKey = $(this).data('role');
+				const roleName = $(this).data('name');
+
+				if (!confirm('<?php echo esc_js( __( 'Adopt this role into NoBloat User Foundry?', 'nobloat-user-foundry' ) ); ?>\n\n' + roleName + '\n\n<?php echo esc_js( __( 'This will allow you to edit and manage this role.', 'nobloat-user-foundry' ) ); ?>')) {
+					return;
+				}
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'nbuf_adopt_role',
+						nonce: '<?php echo esc_js( wp_create_nonce( 'nbuf_roles_nonce' ) ); ?>',
+						role_key: roleKey
+					},
+					success: function(response) {
+						if (response.success) {
+							location.reload();
+						} else {
+							alert('<?php echo esc_js( __( 'Error:', 'nobloat-user-foundry' ) ); ?> ' + response.data.message);
+						}
+					}
+				});
+			});
+
+			/* Delete orphaned role */
+			$('.nbuf-delete-orphan-role').on('click', function(e) {
+				e.preventDefault();
+				const roleKey = $(this).data('role');
+				const roleName = $(this).data('name');
+
+				if (!confirm('<?php echo esc_js( __( 'Are you sure you want to delete this orphaned role?', 'nobloat-user-foundry' ) ); ?>\n\n' + roleName + '\n\n<?php echo esc_js( __( 'All users with this role will be reassigned to Subscriber.', 'nobloat-user-foundry' ) ); ?>')) {
+					return;
+				}
+
+				$.ajax({
+					url: ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'nbuf_delete_orphan_role',
+						nonce: '<?php echo esc_js( wp_create_nonce( 'nbuf_roles_nonce' ) ); ?>',
+						role_key: roleKey
+					},
+					success: function(response) {
+						if (response.success) {
+							location.reload();
 						} else {
 							alert('<?php echo esc_js( __( 'Error:', 'nobloat-user-foundry' ) ); ?> ' + response.data.message);
 						}
@@ -455,5 +519,113 @@ class NBUF_Roles_Page {
 		}
 
 		wp_send_json_success( array( 'json' => $json ) );
+	}
+
+	/**
+	 * AJAX: Adopt an orphaned role into NoBloat
+	 *
+	 * Imports an existing WordPress role into the NoBloat database
+	 * so it can be edited and managed.
+	 */
+	public static function ajax_adopt_role() {
+		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
+		}
+
+		$role_key = isset( $_POST['role_key'] ) ? sanitize_text_field( wp_unslash( $_POST['role_key'] ) ) : '';
+
+		if ( empty( $role_key ) ) {
+			wp_send_json_error( array( 'message' => __( 'Role key is required.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get the WordPress role */
+		$wp_role = get_role( $role_key );
+		if ( ! $wp_role ) {
+			wp_send_json_error( array( 'message' => __( 'Role not found in WordPress.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get role display name from wp_roles */
+		$wp_roles  = wp_roles();
+		$role_name = isset( $wp_roles->role_names[ $role_key ] ) ? $wp_roles->role_names[ $role_key ] : $role_key;
+
+		/* Check if already in our database */
+		$custom_roles = NBUF_Role_Manager::get_all_roles();
+		if ( isset( $custom_roles[ $role_key ] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Role is already managed by NoBloat.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Insert into our database */
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_user_roles';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		$result = $wpdb->insert(
+			$table,
+			array(
+				'role_key'     => $role_key,
+				'role_name'    => $role_name,
+				'capabilities' => wp_json_encode( $wp_role->capabilities ),
+				'parent_role'  => null,
+				'priority'     => 0,
+				'created_at'   => current_time( 'mysql' ),
+				'updated_at'   => current_time( 'mysql' ),
+			)
+		);
+
+		if ( false === $result ) {
+			wp_send_json_error( array( 'message' => __( 'Failed to adopt role. Database error.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Clear caches */
+		NBUF_Role_Manager::clear_cache();
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * AJAX: Delete an orphaned role (exists in WP but not in NoBloat DB)
+	 */
+	public static function ajax_delete_orphan_role() {
+		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
+		}
+
+		$role_key = isset( $_POST['role_key'] ) ? sanitize_text_field( wp_unslash( $_POST['role_key'] ) ) : '';
+
+		if ( empty( $role_key ) ) {
+			wp_send_json_error( array( 'message' => __( 'Role key is required.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Don't allow deletion of native WordPress roles */
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		if ( in_array( $role_key, $native_roles, true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot delete native WordPress roles.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Check that role exists in WordPress */
+		$wp_role = get_role( $role_key );
+		if ( ! $wp_role ) {
+			wp_send_json_error( array( 'message' => __( 'Role not found.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Reassign users to subscriber */
+		$users = get_users( array( 'role' => $role_key ) );
+		foreach ( $users as $user ) {
+			$user_obj = new WP_User( $user->ID );
+			$user_obj->remove_role( $role_key );
+			$user_obj->add_role( 'subscriber' );
+		}
+
+		/* Remove from WordPress */
+		remove_role( $role_key );
+
+		/* Clear caches */
+		NBUF_Role_Manager::clear_cache();
+
+		wp_send_json_success();
 	}
 }

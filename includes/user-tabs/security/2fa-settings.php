@@ -2,7 +2,7 @@
 /**
  * Security > 2FA Settings Tab
  *
- * Backup codes, device trust, and general 2FA options.
+ * Device trust and general 2FA options.
  *
  * @package NoBloat_User_Foundry
  */
@@ -10,11 +10,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-/* Backup codes */
-$backup_enabled = NBUF_Options::get( 'nbuf_2fa_backup_enabled', true );
-$backup_count   = NBUF_Options::get( 'nbuf_2fa_backup_count', 10 );
-$backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 8 );
 
 /* General 2FA options */
 $device_trust     = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
@@ -36,46 +31,6 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="2fa-settings">
-
-	<h2><?php esc_html_e( 'Backup Codes', 'nobloat-user-foundry' ); ?></h2>
-	<p class="description">
-		<?php esc_html_e( 'One-time use backup codes for emergency access if user loses their 2FA device.', 'nobloat-user-foundry' ); ?>
-	</p>
-
-	<table class="form-table">
-		<tr>
-			<th><?php esc_html_e( 'Enable Backup Codes', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<label>
-					<input type="checkbox" name="nbuf_2fa_backup_enabled" value="1" <?php checked( $backup_enabled, true ); ?>>
-					<?php esc_html_e( 'Allow users to generate backup codes', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'One-time use codes for emergency access if user loses authenticator device.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Number of Codes', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="number" name="nbuf_2fa_backup_count" value="<?php echo esc_attr( $backup_count ); ?>" min="5" max="20" class="small-text">
-				<span><?php esc_html_e( 'codes', 'nobloat-user-foundry' ); ?></span>
-				<p class="description">
-					<?php esc_html_e( 'Number of backup codes to generate. Default: 10', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Code Length', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="number" name="nbuf_2fa_backup_length" value="<?php echo esc_attr( $backup_length ); ?>" min="6" max="12" class="small-text">
-				<span><?php esc_html_e( 'characters', 'nobloat-user-foundry' ); ?></span>
-				<p class="description">
-					<?php esc_html_e( 'Length of each backup code. Default: 8', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-	</table>
 
 	<h2><?php esc_html_e( 'General 2FA Options', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">

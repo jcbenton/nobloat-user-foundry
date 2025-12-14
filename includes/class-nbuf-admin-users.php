@@ -1313,7 +1313,8 @@ class NBUF_Admin_Users {
 		$trusted_device_count = 0;
 		if ( is_array( $trusted_devices ) ) {
 			/* Count non-expired devices */
-			foreach ( $trusted_devices as $token => $expires ) {
+			foreach ( $trusted_devices as $token => $device_data ) {
+				$expires = is_array( $device_data ) ? ( $device_data['expires'] ?? 0 ) : $device_data;
 				if ( $expires > time() ) {
 					++$trusted_device_count;
 				}

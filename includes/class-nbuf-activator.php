@@ -288,8 +288,8 @@ class NBUF_Activator {
 
 			/* Two-Factor Authentication - Backup codes defaults */
 			NBUF_Options::update( 'nbuf_2fa_backup_enabled', true, true, 'settings' );
-			NBUF_Options::update( 'nbuf_2fa_backup_count', 10, true, 'settings' );
-			NBUF_Options::update( 'nbuf_2fa_backup_length', 8, true, 'settings' );
+			NBUF_Options::update( 'nbuf_2fa_backup_count', 4, true, 'settings' );
+			NBUF_Options::update( 'nbuf_2fa_backup_length', 32, true, 'settings' );
 
 			/* Two-Factor Authentication - General defaults */
 			NBUF_Options::update( 'nbuf_2fa_device_trust', true, true, 'settings' );

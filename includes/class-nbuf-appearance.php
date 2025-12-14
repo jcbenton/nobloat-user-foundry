@@ -127,6 +127,7 @@ class NBUF_Appearance {
 					'request-reset' => __( 'Request Reset', 'nobloat-user-foundry' ),
 					'reset'         => __( 'Password Reset', 'nobloat-user-foundry' ),
 					'account'       => __( 'Account Page', 'nobloat-user-foundry' ),
+					'2fa'           => __( '2FA Verify', 'nobloat-user-foundry' ),
 				),
 			),
 			'styles'     => array(
@@ -136,6 +137,7 @@ class NBUF_Appearance {
 					'register' => __( 'Register', 'nobloat-user-foundry' ),
 					'account'  => __( 'Account', 'nobloat-user-foundry' ),
 					'reset'    => __( 'Reset', 'nobloat-user-foundry' ),
+					'2fa'      => __( '2FA', 'nobloat-user-foundry' ),
 					'profiles' => __( 'Profiles', 'nobloat-user-foundry' ),
 					'settings' => __( 'Settings', 'nobloat-user-foundry' ),
 				),
@@ -290,6 +292,7 @@ class NBUF_Appearance {
 				'request-reset' => 'forms/request-reset.php',
 				'reset'         => 'forms/reset.php',
 				'account'       => 'forms/account.php',
+				'2fa'           => 'forms/2fa.php',
 			),
 			/* CSS Styles */
 			'styles' => array(
@@ -297,6 +300,7 @@ class NBUF_Appearance {
 				'register' => 'styles/register.php',
 				'account'  => 'styles/account.php',
 				'reset'    => 'styles/reset.php',
+				'2fa'      => 'styles/2fa.php',
 				'profiles' => 'styles/profiles.php',
 				'settings' => 'styles/settings.php',
 			),

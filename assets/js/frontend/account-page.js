@@ -30,7 +30,7 @@
     function initTabs() {
         var tabs = document.querySelectorAll('.nbuf-tab-button');
         var contents = document.querySelectorAll('.nbuf-tab-content');
-        var subtabs = document.querySelectorAll('.nbuf-subtab-button');
+        var subtabs = document.querySelectorAll('.nbuf-subtab-button, .nbuf-subtab-link');
 
         /* Helper: Get URL parameter */
         function getUrlParam(name) {
@@ -56,19 +56,21 @@
 
         /* Helper: Activate a sub-tab within a parent */
         function activateSubtab(parent, subtabName) {
-            var subtabBtn = parent.querySelector('.nbuf-subtab-button[data-subtab="' + subtabName + '"]');
+            var subtabBtn = parent.querySelector('.nbuf-subtab-button[data-subtab="' + subtabName + '"], .nbuf-subtab-link[data-subtab="' + subtabName + '"]');
             var subtabContent = parent.querySelector('.nbuf-subtab-content[data-subtab="' + subtabName + '"]');
             if (subtabBtn && subtabContent) {
-                var parentSubtabs = parent.querySelectorAll('.nbuf-subtab-button');
+                var parentSubtabs = parent.querySelectorAll('.nbuf-subtab-button, .nbuf-subtab-link');
                 var parentContents = parent.querySelectorAll('.nbuf-subtab-content');
                 for (var i = 0; i < parentSubtabs.length; i++) {
                     parentSubtabs[i].classList.remove('nbuf-subtab-active');
+                    parentSubtabs[i].classList.remove('active');
                 }
                 for (var j = 0; j < parentContents.length; j++) {
                     parentContents[j].classList.remove('nbuf-subtab-active');
+                    parentContents[j].classList.remove('active');
                 }
-                subtabBtn.classList.add('nbuf-subtab-active');
-                subtabContent.classList.add('nbuf-subtab-active');
+                subtabBtn.classList.add('active');
+                subtabContent.classList.add('active');
             }
         }
 

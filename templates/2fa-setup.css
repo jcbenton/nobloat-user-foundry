@@ -374,3 +374,247 @@
         max-width: 200px;
     }
 }
+
+/* ==========================================================
+   2FA VERIFICATION PAGE
+   ----------------------------------------------------------
+   Styles matching the login form for consistency.
+   ========================================================== */
+
+.nbuf-2fa-verify-wrapper {
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--nbuf-surface, #fff);
+    border: 1px solid var(--nbuf-border, #ddd);
+    border-radius: var(--nbuf-radius-md, 8px);
+    box-shadow: var(--nbuf-shadow-md, 0 2px 4px rgba(0, 0, 0, 0.05));
+}
+
+.nbuf-2fa-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.nbuf-2fa-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--nbuf-text-primary, #333);
+    font-weight: 600;
+}
+
+.nbuf-2fa-instructions {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 14px;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-verify-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nbuf-2fa-verify-form .nbuf-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nbuf-2fa-verify-form label {
+    font-weight: 600;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-verify-form .nbuf-checkbox-group label {
+    font-weight: normal;
+    font-size: 14px;
+    color: var(--nbuf-text-primary, #333);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.nbuf-2fa-verify-form .nbuf-form-group label input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.nbuf-2fa-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #888;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1.5rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-input:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.2);
+    outline: none;
+}
+
+.nbuf-2fa-input::placeholder {
+    color: #999;
+    letter-spacing: 0.3em;
+}
+
+.nbuf-2fa-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background: #0073aa;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    text-align: center;
+}
+
+.nbuf-2fa-button:hover {
+    background: #005177;
+}
+
+.nbuf-2fa-button:focus-visible {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.nbuf-field-description {
+    margin: 0.5rem 0 0 0;
+    font-size: 14px;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-form-actions {
+    margin-top: 0.5rem;
+}
+
+/* Status Messages */
+.nbuf-2fa-verify-wrapper .nbuf-error {
+    color: var(--nbuf-error, #721c24);
+    background: var(--nbuf-error-bg, #f8d7da);
+    border: 1px solid var(--nbuf-error-border, #f5c6cb);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.nbuf-2fa-verify-wrapper .nbuf-success {
+    color: var(--nbuf-success, #155724);
+    background: var(--nbuf-success-bg, #d4edda);
+    border: 1px solid var(--nbuf-success-border, #c3e6cb);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.nbuf-2fa-verify-wrapper .nbuf-warning {
+    color: var(--nbuf-warning, #856404);
+    background: var(--nbuf-warning-bg, #fff3cd);
+    border: 1px solid var(--nbuf-warning-border, #ffc107);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+/* Help Section */
+.nbuf-2fa-help {
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--nbuf-border, #ddd);
+    text-align: center;
+    font-size: 14px;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-help a {
+    color: var(--nbuf-primary, #0073aa);
+    text-decoration: none;
+    margin: 0 0.5rem;
+}
+
+.nbuf-2fa-help a:hover {
+    text-decoration: underline;
+}
+
+/* Resend link */
+.nbuf-2fa-resend {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.nbuf-2fa-resend a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.nbuf-2fa-resend a:hover {
+    text-decoration: underline;
+}
+
+/* Backup code option */
+.nbuf-2fa-backup-option {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+}
+
+.nbuf-backup-link {
+    text-align: center;
+    margin: 0;
+}
+
+.nbuf-backup-link a {
+    color: var(--nbuf-primary, #0073aa);
+    text-decoration: none;
+}
+
+.nbuf-backup-link a:hover {
+    color: #0073aa;
+    text-decoration: underline;
+}
+
+#nbuf-backup-form {
+    margin-top: 1rem;
+}
+
+/* Setup required message */
+.nbuf-2fa-setup-required {
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.nbuf-2fa-setup-required p {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+}
+
+.nbuf-2fa-setup-required p:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .nbuf-2fa-verify-wrapper {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .nbuf-2fa-input {
+        font-size: 1.1rem;
+        letter-spacing: 0.2em;
+    }
+}

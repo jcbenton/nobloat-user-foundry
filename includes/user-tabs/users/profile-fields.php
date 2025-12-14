@@ -36,6 +36,10 @@ if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_p
 		return ! empty( trim( $label ) );
 	} );
 
+	/* Save WordPress native field settings */
+	$show_description = isset( $_POST['nbuf_show_description_field'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_show_description_field', $show_description );
+
 	NBUF_Options::update( 'nbuf_registration_profile_fields', $registration_fields );
 	NBUF_Options::update( 'nbuf_required_profile_fields', $required_fields );
 	NBUF_Options::update( 'nbuf_account_profile_fields', $account_fields );
@@ -91,6 +95,53 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 	<p class="description">
 		<?php esc_html_e( 'Configure which fields appear on registration and account pages. Fields marked "Required" must be filled during registration. Custom labels override the default field names.', 'nobloat-user-foundry' ); ?>
 	</p>
+
+	<!-- WordPress Native Fields -->
+	<h3><?php esc_html_e( 'WordPress Native Fields', 'nobloat-user-foundry' ); ?></h3>
+	<p class="description" style="margin-bottom: 15px;">
+		<?php esc_html_e( 'First Name, Last Name, Public Display Name, and Website are always shown. The Biography field is optional.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<?php
+	$show_description    = NBUF_Options::get( 'nbuf_show_description_field', false );
+	$description_label   = isset( $field_labels['description'] ) ? $field_labels['description'] : '';
+	?>
+
+	<table style="margin-bottom: 30px; border-collapse: collapse; width: 100%;">
+		<thead>
+			<tr>
+				<th style="width: 18%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Field', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 10%; text-align: center; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Show', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 22%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Custom Label', 'nobloat-user-foundry' ); ?></th>
+				<th style="width: 50%; text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td style="padding: 8px 10px;"><strong><?php esc_html_e( 'Biography', 'nobloat-user-foundry' ); ?></strong></td>
+				<td style="text-align: center; padding: 8px 10px;">
+					<input type="checkbox"
+						name="nbuf_show_description_field"
+						value="1"
+						<?php checked( $show_description, true ); ?>>
+				</td>
+				<td style="padding: 8px 10px;">
+					<input type="text"
+						name="nbuf_profile_field_labels[description]"
+						value="<?php echo esc_attr( $description_label ); ?>"
+						class="regular-text"
+						placeholder="<?php esc_attr_e( 'Biography', 'nobloat-user-foundry' ); ?>"
+						style="width: 100%;">
+				</td>
+				<td style="padding: 8px 10px;">
+					<span class="description"><?php esc_html_e( 'WordPress "Biographical Info" field. Useful for public profiles, but often not needed for business applications.', 'nobloat-user-foundry' ); ?></span>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<!-- Extended Profile Fields -->
+	<h3 style="margin-top: 30px;"><?php esc_html_e( 'Extended Profile Fields', 'nobloat-user-foundry' ); ?></h3>
 
 	<?php foreach ( $field_registry as $category_key => $category_data ) : ?>
 		<h3><?php echo esc_html( $category_data['label'] ); ?></h3>

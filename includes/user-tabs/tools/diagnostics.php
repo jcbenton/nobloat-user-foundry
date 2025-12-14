@@ -30,6 +30,7 @@ $tables = array(
 	'options'        => $wpdb->prefix . 'nbuf_options',
 	'audit_log'      => $wpdb->prefix . 'nbuf_user_audit_log',
 	'user_notes'     => $wpdb->prefix . 'nbuf_user_notes',
+	'user_roles'     => $wpdb->prefix . 'nbuf_user_roles',
 );
 
 $table_stats = array();
@@ -142,6 +143,16 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 	<!-- Database Health -->
 	<div class="nbuf-diag-section">
 		<h3><?php esc_html_e( 'Database Health', 'nobloat-user-foundry' ); ?></h3>
+
+		<?php
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display only, no action.
+		if ( isset( $_GET['tables_repaired'] ) && '1' === $_GET['tables_repaired'] ) :
+			?>
+			<div class="notice notice-success inline" style="margin: 0 0 15px 0;">
+				<p><?php esc_html_e( 'Database tables have been repaired successfully.', 'nobloat-user-foundry' ); ?></p>
+			</div>
+		<?php endif; ?>
+
 		<table class="nbuf-diag-table">
 			<thead>
 				<tr>
@@ -172,6 +183,20 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 				</tr>
 			</tbody>
 		</table>
+
+		<div style="margin-top: 15px;">
+			<p class="description" style="margin-bottom: 10px;">
+				<?php esc_html_e( 'If any tables show as "Missing", use the repair button to create them.', 'nobloat-user-foundry' ); ?>
+			</p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display: inline;">
+				<input type="hidden" name="action" value="nbuf_repair_tables">
+				<input type="hidden" name="redirect_to" value="diagnostics">
+				<?php wp_nonce_field( 'nbuf_repair_tables' ); ?>
+				<button type="submit" class="button" onclick="return confirm('<?php echo esc_js( __( 'This will create any missing database tables. Existing data will not be affected. Continue?', 'nobloat-user-foundry' ) ); ?>');">
+					<?php esc_html_e( 'Repair Database Tables', 'nobloat-user-foundry' ); ?>
+				</button>
+			</form>
+		</div>
 	</div>
 
 	<!-- Zero Bloat Verification -->

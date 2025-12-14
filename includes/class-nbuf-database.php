@@ -776,6 +776,13 @@ class NBUF_Database {
 			$needs_update = true;
 		}
 
+		/* Add visible_fields column for user-selected public profile fields */
+		if ( ! self::column_exists( $table_name, 'visible_fields' ) ) {
+         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
+			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN visible_fields TEXT DEFAULT NULL AFTER privacy_settings" );
+			$needs_update = true;
+		}
+
 		/* Add composite index for directory queries if we made updates */
 		if ( $needs_update ) {
 			/*

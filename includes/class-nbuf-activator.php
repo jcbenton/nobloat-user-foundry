@@ -274,7 +274,7 @@ class NBUF_Activator {
 			/* Two-Factor Authentication - Email defaults */
 			NBUF_Options::update( 'nbuf_2fa_email_method', 'disabled', true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_email_code_length', 6, true, 'settings' );
-			NBUF_Options::update( 'nbuf_2fa_email_expiration', 5, true, 'settings' );
+			NBUF_Options::update( 'nbuf_2fa_email_expiration', 10, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_email_rate_limit', 5, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_email_rate_window', 15, true, 'settings' );
 
@@ -296,7 +296,7 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_2fa_admin_bypass', false, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_lockout_attempts', 5, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_grace_period', 7, true, 'settings' );
-			NBUF_Options::update( 'nbuf_2fa_notify_lockout', false, true, 'settings' );
+			NBUF_Options::update( 'nbuf_2fa_notify_lockout', true, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_notify_disable', false, true, 'settings' );
 
 			/* Audit Log defaults */

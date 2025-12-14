@@ -111,25 +111,28 @@ class NBUF_Login_Limiting {
 			array( '%s', '%s', '%s' )
 		);
 
-		/* Log failed login attempt */
+		/* Log failed login attempt to audit log */
 		$user = get_user_by( 'login', $username );
 		if ( ! $user ) {
 			$user = get_user_by( 'email', $username );
 		}
 
-		if ( $user ) {
-			$attempt_count = self::get_recent_attempt_count( $ip_address, $username, NBUF_Options::get( 'nbuf_login_lockout_duration', 10 ) );
-			NBUF_Audit_Log::log(
-				$user->ID,
-				'login_failed',
-				'failure',
-				'Failed login attempt',
-				array(
-					'username'      => $username,
-					'attempt_count' => $attempt_count,
-				)
-			);
-		}
+		$attempt_count = self::get_recent_attempt_count( $ip_address, $username, NBUF_Options::get( 'nbuf_login_lockout_duration', 10 ) );
+		$user_id       = $user ? $user->ID : 0;
+		$message       = $user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
+
+		NBUF_Audit_Log::log(
+			$user_id,
+			'login_failed',
+			'failure',
+			$message,
+			array(
+				'username'      => $username,
+				'attempt_count' => $attempt_count,
+				'ip_address'    => $ip_address,
+				'user_exists'   => $user ? true : false,
+			)
+		);
 
 		/*
 		Clean up old attempts (older than 24 hours)
@@ -216,39 +219,37 @@ class NBUF_Login_Limiting {
 	}
 
 	/**
-	 * Get count of recent failed login attempts.
+	 * Get count of recent failed login attempts by IP address.
 	 *
-	 * SECURITY NOTE: Uses OR logic for IP and username checks.
-	 * This protects against single-IP attacks but allows distributed brute force
-	 * using multiple IPs. For enhanced protection against distributed attacks,
-	 * consider implementing per-username rate limiting with stricter thresholds.
+	 * SECURITY: Only counts attempts from the specific IP address.
+	 * This blocks the attacker's IP without affecting the legitimate account holder
+	 * who may be trying to log in from a different IP. This prevents denial-of-service
+	 * attacks where an attacker could lock out a victim by intentionally failing logins.
 	 *
 	 * @param  string $ip_address       IP address to check.
-	 * @param  string $username         Username to check.
+	 * @param  string $username         Username (unused, kept for backwards compatibility).
 	 * @param  int    $lockout_duration Lockout duration in minutes.
-	 * @return int Number of recent attempts.
+	 * @return int Number of recent attempts from this IP.
 	 */
-	private static function get_recent_attempt_count( $ip_address, $username, $lockout_duration ) {
+	private static function get_recent_attempt_count( $ip_address, $username, $lockout_duration ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed -- $username kept for compatibility
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
 
 		/*
-		* SECURITY: Count attempts for this IP OR username within lockout window
-		*
-		* Future enhancement: Add separate per-username global rate limiting
-		* to prevent distributed brute force attacks across multiple IPs.
-		* Suggested: MAX 10 attempts per username per hour regardless of IP.
-		*/
+		 * SECURITY: Count attempts from this IP only.
+		 * This blocks the attacker's IP without locking out the legitimate user.
+		 * Distributed brute force protection is handled separately by
+		 * get_recent_attempt_count_by_username() with a higher threshold.
+		 */
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
 				"SELECT COUNT(*) FROM {$table_name}
-				WHERE (ip_address = %s OR username = %s)
+				WHERE ip_address = %s
 				AND attempt_time > %s",
 				$ip_address,
-				sanitize_text_field( $username ),
 				$cutoff_time
 			)
 		);
@@ -351,27 +352,26 @@ class NBUF_Login_Limiting {
 	}
 
 	/**
-	 * Get remaining lockout time for IP/username.
+	 * Get remaining lockout time for IP address.
 	 *
 	 * @param  string $ip_address       IP address to check.
-	 * @param  string $username         Username to check.
+	 * @param  string $username         Username (unused, kept for backwards compatibility).
 	 * @param  int    $lockout_duration Lockout duration in minutes.
 	 * @return int Minutes remaining in lockout, 0 if not locked out.
 	 */
-	public static function get_lockout_time_remaining( $ip_address, $username, $lockout_duration ) {
+	public static function get_lockout_time_remaining( $ip_address, $username, $lockout_duration ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed -- $username kept for compatibility
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
-		/* Get most recent attempt within lockout window */
+		/* Get most recent attempt from this IP within lockout window */
 		$last_attempt = $wpdb->get_var(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
 				"SELECT MAX(attempt_time) FROM {$table_name}
-				WHERE (ip_address = %s OR username = %s)
+				WHERE ip_address = %s
 				AND attempt_time > %s",
 				$ip_address,
-				sanitize_text_field( $username ),
 				$cutoff_time
 			)
 		);

@@ -176,6 +176,9 @@ class NBUF_Options {
 		global $wpdb;
 		self::init();
 
+		/* Get old value for audit logging before update */
+		$old_value = self::get( $key );
+
 		$serialized_value = maybe_serialize( $value );
 
 		$result = $wpdb->replace(
@@ -201,9 +204,87 @@ class NBUF_Options {
 			/* Clear in-memory cache for current pageload */
 			self::$all_options_loaded = false;
 			self::$cache              = array();
+
+			/* Log critical setting changes to admin audit log */
+			self::maybe_log_setting_change( $key, $old_value, $value );
 		}
 
 		return false !== $result;
+	}
+
+	/**
+	 * Log critical setting changes to admin audit log.
+	 *
+	 * @param string $key       Option name.
+	 * @param mixed  $old_value Old value.
+	 * @param mixed  $new_value New value.
+	 */
+	private static function maybe_log_setting_change( string $key, $old_value, $new_value ): void {
+		/* Skip if values are the same */
+		if ( $old_value === $new_value ) {
+			return;
+		}
+
+		/* Skip if not in admin or no user logged in */
+		$admin_id = get_current_user_id();
+		if ( ! $admin_id || ! is_admin() ) {
+			return;
+		}
+
+		/* Skip if admin audit log class doesn't exist */
+		if ( ! class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			return;
+		}
+
+		/* Define critical settings to log */
+		$critical_settings = array(
+			'nbuf_user_manager_enabled'        => 'Master Toggle',
+			'nbuf_require_verification'        => 'Email Verification Required',
+			'nbuf_enable_login_limiting'       => 'Login Limiting',
+			'nbuf_login_max_attempts'          => 'Login Max Attempts',
+			'nbuf_login_lockout_duration'      => 'Login Lockout Duration',
+			'nbuf_2fa_email_method'            => '2FA Email Method',
+			'nbuf_2fa_totp_method'             => '2FA TOTP Method',
+			'nbuf_2fa_backup_enabled'          => '2FA Backup Codes',
+			'nbuf_enable_custom_roles'         => 'Custom Roles',
+			'nbuf_logging_user_audit_enabled'  => 'User Audit Logging',
+			'nbuf_logging_admin_audit_enabled' => 'Admin Audit Logging',
+			'nbuf_logging_security_enabled'    => 'Security Logging',
+			'nbuf_password_min_length'         => 'Password Minimum Length',
+			'nbuf_password_require_uppercase'  => 'Password Require Uppercase',
+			'nbuf_password_require_lowercase'  => 'Password Require Lowercase',
+			'nbuf_password_require_numbers'    => 'Password Require Numbers',
+			'nbuf_password_require_special'    => 'Password Require Special Chars',
+		);
+
+		/* Check if this is a critical setting */
+		if ( ! isset( $critical_settings[ $key ] ) ) {
+			return;
+		}
+
+		/* Format values for logging */
+		$old_str = is_bool( $old_value ) ? ( $old_value ? 'enabled' : 'disabled' ) : (string) $old_value;
+		$new_str = is_bool( $new_value ) ? ( $new_value ? 'enabled' : 'disabled' ) : (string) $new_value;
+
+		/* Log the setting change */
+		NBUF_Admin_Audit_Log::log(
+			$admin_id,
+			NBUF_Admin_Audit_Log::EVENT_SETTINGS_CHANGED,
+			'success',
+			sprintf(
+				'Setting "%s" changed from %s to %s',
+				$critical_settings[ $key ],
+				$old_str,
+				$new_str
+			),
+			null,
+			array(
+				'setting'   => $key,
+				'label'     => $critical_settings[ $key ],
+				'old_value' => $old_value,
+				'new_value' => $new_value,
+			)
+		);
 	}
 
 	/**

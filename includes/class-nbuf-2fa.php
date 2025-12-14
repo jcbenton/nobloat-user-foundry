@@ -36,7 +36,7 @@ class NBUF_2FA {
 
 	/* Email 2FA code constants */
 	const EMAIL_CODE_LENGTH     = 6;   // Default email verification code length.
-	const EMAIL_CODE_EXPIRATION = 300; // Email code expiration in seconds (5 minutes).
+	const EMAIL_CODE_EXPIRATION = 600; // Email code expiration in seconds (10 minutes).
 	const EMAIL_CODE_COOLDOWN   = 60;  // Cooldown between code requests in seconds.
 
 	/* Backup code constants */

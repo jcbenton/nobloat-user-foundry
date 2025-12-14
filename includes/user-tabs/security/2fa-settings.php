@@ -18,7 +18,7 @@ $lockout_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
 $grace_period     = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
 
 /* Admin notifications */
-$notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', false );
+$notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', true );
 $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 ?>
 

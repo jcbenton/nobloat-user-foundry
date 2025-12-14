@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $email_method      = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
 $email_length      = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
-$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 5 );
+$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 10 );
 $email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
 $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 ?>
@@ -69,7 +69,7 @@ $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 				<input type="number" name="nbuf_2fa_email_expiration" value="<?php echo esc_attr( $email_expiration ); ?>" min="1" max="60" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'How long verification codes remain valid. Default: 5 minutes', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'How long verification codes remain valid. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

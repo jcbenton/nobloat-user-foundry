@@ -54,7 +54,7 @@ $trusted_proxies_str = is_array( $trusted_proxies ) ? implode( ', ', $trusted_pr
 			<td>
 				<input type="number" name="nbuf_login_max_attempts" value="<?php echo esc_attr( $login_max_attempts ); ?>" min="1" max="100" class="small-text">
 				<p class="description">
-					<?php esc_html_e( 'Number of failed login attempts allowed before account lockout. Default: 5', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Number of failed login attempts allowed before the IP address is blocked. Default: 5', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -64,7 +64,7 @@ $trusted_proxies_str = is_array( $trusted_proxies ) ? implode( ', ', $trusted_pr
 				<input type="number" name="nbuf_login_lockout_duration" value="<?php echo esc_attr( $login_lockout_duration ); ?>" min="1" max="1440" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'How long to lock out users after exceeding max attempts. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'How long to block the IP address after exceeding max attempts. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

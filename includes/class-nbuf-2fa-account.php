@@ -37,6 +37,10 @@ class NBUF_2FA_Account {
 		$email_available = in_array( $email_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
 		$totp_available  = in_array( $totp_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
 
+		/* Check if methods are user-configurable (optional) vs required/forced */
+		$email_user_can_toggle = in_array( $email_method, array( 'optional_all', 'user_configurable' ), true );
+		$totp_user_can_toggle  = in_array( $totp_method, array( 'optional_all', 'user_configurable' ), true );
+
 		/* Check if application passwords are enabled */
 		$app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false );
 
@@ -87,8 +91,8 @@ class NBUF_2FA_Account {
 			$html .= '</div>';
 		}
 
-		/* Email 2FA section */
-		if ( $email_available ) {
+		/* Email 2FA section - only show if user can toggle it (optional mode) */
+		if ( $email_available && $email_user_can_toggle ) {
 			$html .= '<div class="nbuf-2fa-method-card">';
 			$html .= '<h3>' . esc_html__( 'Email Verification', 'nobloat-user-foundry' ) . '</h3>';
 			$html .= '<p class="nbuf-method-description">' . esc_html__( 'Receive a verification code via email each time you log in.', 'nobloat-user-foundry' ) . '</p>';
@@ -111,8 +115,8 @@ class NBUF_2FA_Account {
 			$html .= '</div>';
 		}
 
-		/* Backup codes section - only show if 2FA is enabled */
-		if ( $current_method && NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
+		/* Backup codes section - show if any 2FA method is available AND backup codes are enabled */
+		if ( ( $email_available || $totp_available ) && NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
 			$backup_codes    = NBUF_User_2FA_Data::get_backup_codes( $user_id );
 			$used_indexes    = NBUF_User_2FA_Data::get_backup_codes_used( $user_id );
 			$codes_remaining = is_array( $backup_codes ) ? count( $backup_codes ) - count( (array) $used_indexes ) : 0;

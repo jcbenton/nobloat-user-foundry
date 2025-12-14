@@ -233,7 +233,6 @@ body.nbuf-reset-page {
     padding: var(--nbuf-space-md);
     margin-bottom: var(--nbuf-space-lg);
     border-radius: var(--nbuf-radius-md);
-    font-size: var(--nbuf-font-size-sm);
 }
 
 /* Shared error message styles */

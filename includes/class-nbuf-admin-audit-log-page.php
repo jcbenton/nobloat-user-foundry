@@ -27,6 +27,31 @@ class NBUF_Admin_Audit_Log_Page {
 	 */
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 14 );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
+	}
+
+	/**
+	 * Enqueue admin scripts and styles for this page
+	 *
+	 * @param string $hook The current admin page hook.
+	 */
+	public static function enqueue_admin_scripts( $hook ) {
+		/* Only load on admin audit log page */
+		$allowed_hooks = array(
+			'nobloat-foundry_page_nobloat-foundry-admin-audit-log',
+			'user-foundry_page_nobloat-foundry-admin-audit-log',
+		);
+		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
+			return;
+		}
+
+		/* Enqueue admin CSS (contains modal and dashboard styles) */
+		wp_enqueue_style(
+			'nbuf-admin-css',
+			NBUF_PLUGIN_URL . 'assets/css/admin/admin.css',
+			array(),
+			NBUF_VERSION
+		);
 	}
 
 	/**
@@ -130,76 +155,6 @@ class NBUF_Admin_Audit_Log_Page {
 				?>
 			</form>
 		</div>
-
-		<style>
-			.nbuf-log-stats-dashboard {
-				background: #fff;
-				border: 1px solid #c3c4c7;
-				border-radius: 4px;
-				padding: 20px;
-				margin: 20px 0;
-			}
-			.nbuf-log-stats-dashboard h2 {
-				margin-top: 0;
-				margin-bottom: 15px;
-				font-size: 18px;
-			}
-			.nbuf-stats-grid {
-				display: grid;
-				grid-template-columns: repeat(4, 1fr);
-				gap: 15px;
-				margin-bottom: 20px;
-			}
-			.nbuf-stat-box {
-				background: #f6f7f7;
-				border: 1px solid #dcdcde;
-				border-radius: 4px;
-				padding: 15px;
-				text-align: center;
-			}
-			.nbuf-stat-label {
-				font-size: 12px;
-				color: #646970;
-				margin-bottom: 8px;
-			}
-			.nbuf-stat-value {
-				font-size: 28px;
-				font-weight: 600;
-				color: #2271b1;
-			}
-			.nbuf-stats-actions {
-				display: flex;
-				gap: 10px;
-			}
-			.nbuf-stats-actions .button .dashicons {
-				margin-top: 4px;
-			}
-			.nbuf-action-badge {
-				display: inline-block;
-				padding: 3px 8px;
-				border-radius: 3px;
-				font-size: 11px;
-				font-weight: 600;
-				text-transform: uppercase;
-				background: #f0f0f1;
-				color: #50575e;
-			}
-			.nbuf-status-badge {
-				display: inline-block;
-				padding: 3px 8px;
-				border-radius: 3px;
-				font-size: 11px;
-				font-weight: 600;
-			}
-			.nbuf-status-success {
-				background: #d7f0d7;
-				color: #007017;
-			}
-			.nbuf-status-failure {
-				background: #f8d7da;
-				color: #b32d2e;
-			}
-		</style>
 
 		<script>
 		jQuery(document).ready(function($) {

@@ -63,7 +63,7 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 			<td>
 				<input type="number" name="nbuf_login_max_attempts" value="<?php echo esc_attr( $login_max_attempts ); ?>" min="1" max="100" class="small-text">
 				<p class="description">
-					<?php esc_html_e( 'Number of failed login attempts allowed before account lockout. Default: 5', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Number of failed login attempts allowed before the IP address is blocked. Default: 5', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -73,7 +73,7 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 				<input type="number" name="nbuf_login_lockout_duration" value="<?php echo esc_attr( $login_lockout_duration ); ?>" min="1" max="1440" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'How long to lock out users after exceeding max attempts. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'How long to block the IP address after exceeding max attempts. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -247,7 +247,7 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 		<?php
 		$email_method      = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
 		$email_length      = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
-		$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 5 );
+		$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 10 );
 		$email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
 		$email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 		?>
@@ -289,7 +289,7 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 				<input type="number" name="nbuf_2fa_email_expiration" value="<?php echo esc_attr( $email_expiration ); ?>" min="1" max="60" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'How long verification codes remain valid. Default: 5 minutes', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'How long verification codes remain valid. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -505,7 +505,7 @@ $password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_period', 7
 	<h3><?php esc_html_e( 'Admin Notifications', 'nobloat-user-foundry' ); ?></h3>
 	<table class="form-table">
 		<?php
-		$notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', false );
+		$notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', true );
 		$notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 		?>
 		<tr>

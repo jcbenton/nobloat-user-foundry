@@ -189,9 +189,7 @@ class NBUF_Multi_Role {
 			return;
 		}
 
-		echo '<style>
-			.user-role-wrap { display: none !important; }
-		</style>';
+		/* CSS moved to assets/css/admin/admin.css */
 	}
 
 	/**

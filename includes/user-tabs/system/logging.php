@@ -349,47 +349,6 @@ function nbuf_render_logging_statistics() {
 	$admin_stats    = class_exists( 'NBUF_Admin_Audit_Log' ) ? NBUF_Admin_Audit_Log::get_stats() : array( 'total' => 0 );
 	$security_stats = class_exists( 'NBUF_Security_Log' ) ? NBUF_Security_Log::get_stats() : array( 'total_entries' => 0 );
 	?>
-	<style>
-		.nbuf-log-stats {
-			display: grid;
-			grid-template-columns: repeat(3, 1fr);
-			gap: 20px;
-			margin-top: 10px;
-		}
-		.nbuf-log-stat-box {
-			background: #fff;
-			border: 1px solid #c3c4c7;
-			border-radius: 4px;
-			padding: 20px;
-			text-align: center;
-		}
-		.nbuf-log-stat-box h4 {
-			margin: 0 0 10px 0;
-			font-size: 14px;
-			color: #1d2327;
-		}
-		.nbuf-log-stat-number {
-			font-size: 32px;
-			font-weight: 600;
-			color: #2271b1;
-			margin: 10px 0;
-		}
-		.nbuf-log-stat-label {
-			font-size: 12px;
-			color: #646970;
-		}
-		.nbuf-log-stat-detail {
-			margin-top: 15px;
-			padding-top: 15px;
-			border-top: 1px solid #dcdcde;
-			font-size: 12px;
-			color: #646970;
-			text-align: left;
-		}
-		.nbuf-log-stat-detail div {
-			margin: 5px 0;
-		}
-	</style>
 	<div class="nbuf-log-stats">
 		<div class="nbuf-log-stat-box">
 			<h4><?php esc_html_e( 'User Activity Log', 'nobloat-user-foundry' ); ?></h4>

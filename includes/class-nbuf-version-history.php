@@ -836,7 +836,7 @@ class NBUF_Version_History {
 					'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
 					'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
 					'import'         => __( 'Import', 'nobloat-user-foundry' ),
-					'reverted'       => __( 'Reverted', 'nobloat-user-foundry' ),
+					'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
 					'self'           => __( 'Self', 'nobloat-user-foundry' ),
 					'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
 					'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),

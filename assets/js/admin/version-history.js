@@ -93,11 +93,11 @@ jQuery(document).ready(function($) {
 				: fieldsChanged.join(', ');
 
 			const changeTypeLabels = {
-				'registration': NBUF_VersionHistory.i18n.registration',
-				'profile_update': NBUF_VersionHistory.i18n.profile_update',
-				'admin_update': NBUF_VersionHistory.i18n.admin_update',
-				'import': NBUF_VersionHistory.i18n.import',
-				'revert': NBUF_VersionHistory.i18n.reverted'
+				'registration': NBUF_VersionHistory.i18n.registration,
+				'profile_update': NBUF_VersionHistory.i18n.profile_update,
+				'admin_update': NBUF_VersionHistory.i18n.admin_update,
+				'import': NBUF_VersionHistory.i18n.import,
+				'revert': NBUF_VersionHistory.i18n.revert
 			};
 
 			const icons = {
@@ -112,9 +112,9 @@ jQuery(document).ready(function($) {
 			const dateStr = date.toLocaleDateString();
 			const timeStr = date.toLocaleTimeString();
 
-			let changedByText = NBUF_VersionHistory.i18n.self';
+			let changedByText = NBUF_VersionHistory.i18n.self;
 			if (item.changed_by) {
-				changedByText = NBUF_VersionHistory.i18n.admin'; // Could fetch actual admin name
+				changedByText = NBUF_VersionHistory.i18n.admin; // Could fetch actual admin name
 			}
 
 			let html = template
@@ -191,7 +191,7 @@ jQuery(document).ready(function($) {
 	$viewer.on('click', '.nbuf-vh-revert', function() {
 		const versionId = $(this).data('version-id');
 
-		if (!confirm(NBUF_VersionHistory.i18n.confirm_revert')) {
+		if (!confirm(NBUF_VersionHistory.i18n.confirm_revert)) {
 			return;
 		}
 
@@ -205,14 +205,14 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					alert(response.data.message || NBUF_VersionHistory.i18n.revert_success');
+					alert(response.data.message || NBUF_VersionHistory.i18n.revert_success);
 					loadTimeline(1); // Reload timeline
 				} else {
-					alert(response.data.message || NBUF_VersionHistory.i18n.revert_failed');
+					alert(response.data.message || NBUF_VersionHistory.i18n.revert_failed);
 				}
 			},
 			error: function() {
-				alert(NBUF_VersionHistory.i18n.error');
+				alert(NBUF_VersionHistory.i18n.error);
 			}
 		});
 	});

@@ -1809,21 +1809,23 @@ class NBUF_Shortcodes {
 	private static function build_account_redirect( $args = array() ) {
 		$url = get_permalink();
 
-		/* Get active tab from POST */
-		if ( isset( $_POST['nbuf_active_tab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		/* Get active tab from POST - nonce verified by calling function before redirect */
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Tab/subtab values are only used for redirect URL, nonce verified by form handler.
+		if ( isset( $_POST['nbuf_active_tab'] ) ) {
 			$tab = sanitize_key( wp_unslash( $_POST['nbuf_active_tab'] ) );
 			if ( $tab ) {
 				$args['tab'] = $tab;
 			}
 		}
 
-		/* Get active subtab from POST */
-		if ( isset( $_POST['nbuf_active_subtab'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		/* Get active subtab from POST - nonce verified by calling function before redirect */
+		if ( isset( $_POST['nbuf_active_subtab'] ) ) {
 			$subtab = sanitize_key( wp_unslash( $_POST['nbuf_active_subtab'] ) );
 			if ( $subtab ) {
 				$args['subtab'] = $subtab;
 			}
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		return add_query_arg( $args, $url );
 	}

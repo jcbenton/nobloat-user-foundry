@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$allow_import     = NBUF_Options::get( 'nbuf_config_allow_import', true );
-$export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
+$nbuf_allow_import     = NBUF_Options::get( 'nbuf_config_allow_import', true );
+$nbuf_export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 ?>
 
 <div class="nbuf-settings-section">
@@ -47,7 +47,7 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 					<th scope="row">Advanced Options</th>
 					<td>
 						<label>
-							<input type="checkbox" name="export_sensitive" id="export_sensitive" value="1" <?php checked( $export_sensitive ); ?> />
+							<input type="checkbox" name="export_sensitive" id="export_sensitive" value="1" <?php checked( $nbuf_export_sensitive ); ?> />
 							Include sensitive data (API keys, tokens)
 						</label>
 						<p class="description">⚠️ Only enable if you trust the export destination.</p>
@@ -76,7 +76,7 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 	<div class="nbuf-card" style="margin-top: 30px;">
 		<h3>Import Configuration</h3>
 
-		<?php if ( ! $allow_import ) : ?>
+		<?php if ( ! $nbuf_allow_import ) : ?>
 			<div class="notice notice-warning">
 				<p><strong>Configuration import is currently disabled.</strong> Enable it in settings to import configurations.</p>
 			</div>
@@ -142,7 +142,7 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 								name="nbuf_config_allow_import"
 								id="nbuf_config_allow_import"
 								value="1"
-								<?php checked( $allow_import ); ?> />
+								<?php checked( $nbuf_allow_import ); ?> />
 						Enable configuration import functionality
 					</label>
 					<p class="description">For security, you can disable imports when not needed.</p>
@@ -159,7 +159,7 @@ $export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', false );
 								name="nbuf_config_export_sensitive"
 								id="nbuf_config_export_sensitive"
 								value="1"
-								<?php checked( $export_sensitive ); ?> />
+								<?php checked( $nbuf_export_sensitive ); ?> />
 						Include sensitive data in exports by default
 					</label>
 					<p class="description">⚠️ Not recommended. Disable to exclude API keys and tokens.</p>

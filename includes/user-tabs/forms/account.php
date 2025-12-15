@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$account_page = NBUF_Options::get( 'nbuf_account_page_template', '' );
+$nbuf_account_page = NBUF_Options::get( 'nbuf_account_page_template', '' );
 
 /* If empty, load from default template */
-if ( empty( $account_page ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'account-page.html';
-	if ( file_exists( $template_path ) ) {
-		$account_page = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_account_page ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'account-page.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_account_page = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $account_page ) ) {
 				name="nbuf_account_page_template"
 				rows="40"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $account_page ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_account_page ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'This is a complex template with multiple tabs and sections. Available placeholders include:', 'nobloat-user-foundry' ); ?>
 			</p>

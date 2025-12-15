@@ -12,14 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* General 2FA options */
-$device_trust     = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
-$admin_bypass     = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
-$lockout_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
-$grace_period     = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
+$nbuf_device_trust     = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
+$nbuf_admin_bypass     = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
+$nbuf_lockout_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
+$nbuf_grace_period     = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
 
 /* Admin notifications */
-$notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', true );
-$notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
+$nbuf_notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', true );
+$nbuf_notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -38,7 +38,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 			<th><?php esc_html_e( 'Device Trust', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_2fa_device_trust" value="1" <?php checked( $device_trust, true ); ?>>
+					<input type="checkbox" name="nbuf_2fa_device_trust" value="1" <?php checked( $nbuf_device_trust, true ); ?>>
 					<?php esc_html_e( 'Allow users to trust devices for 30 days', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -50,7 +50,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 			<th><?php esc_html_e( 'Administrator Bypass', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_2fa_admin_bypass" value="1" <?php checked( $admin_bypass, true ); ?>>
+					<input type="checkbox" name="nbuf_2fa_admin_bypass" value="1" <?php checked( $nbuf_admin_bypass, true ); ?>>
 					<?php esc_html_e( 'Allow administrators to bypass 2FA requirements', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -61,7 +61,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 		<tr>
 			<th><?php esc_html_e( 'Failed Attempt Lockout', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_lockout_attempts" value="<?php echo esc_attr( $lockout_attempts ); ?>" min="3" max="20" class="small-text">
+				<input type="number" name="nbuf_2fa_lockout_attempts" value="<?php echo esc_attr( $nbuf_lockout_attempts ); ?>" min="3" max="20" class="small-text">
 				<span><?php esc_html_e( 'attempts', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Lock out after this many failed 2FA attempts. Default: 5', 'nobloat-user-foundry' ); ?>
@@ -71,7 +71,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 		<tr>
 			<th><?php esc_html_e( 'Setup Grace Period', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_grace_period" value="<?php echo esc_attr( $grace_period ); ?>" min="0" max="30" class="small-text">
+				<input type="number" name="nbuf_2fa_grace_period" value="<?php echo esc_attr( $nbuf_grace_period ); ?>" min="0" max="30" class="small-text">
 				<span><?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'When 2FA is made required, users have this many days to set it up. Default: 7', 'nobloat-user-foundry' ); ?>
@@ -90,7 +90,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 			<th><?php esc_html_e( 'Notify on Lockout', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_2fa_notify_lockout" value="1" <?php checked( $notify_lockout, true ); ?>>
+					<input type="checkbox" name="nbuf_2fa_notify_lockout" value="1" <?php checked( $nbuf_notify_lockout, true ); ?>>
 					<?php esc_html_e( 'Email admins when a user is locked out from failed 2FA attempts', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -102,7 +102,7 @@ $notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 			<th><?php esc_html_e( 'Notify on Self-Disable', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_2fa_notify_disable" value="1" <?php checked( $notify_disable, true ); ?>>
+					<input type="checkbox" name="nbuf_2fa_notify_disable" value="1" <?php checked( $nbuf_notify_disable, true ); ?>>
 					<?php esc_html_e( 'Email admins when a user disables their own 2FA', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">

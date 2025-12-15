@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$twofa_email_html = NBUF_Options::get( 'nbuf_2fa_email_html', '' );
-$twofa_email_text = NBUF_Options::get( 'nbuf_2fa_email_text', '' );
+$nbuf_twofa_email_html = NBUF_Options::get( 'nbuf_2fa_email_html', '' );
+$nbuf_twofa_email_text = NBUF_Options::get( 'nbuf_2fa_email_text', '' );
 
 /* If empty, load from default templates */
-if ( empty( $twofa_email_html ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.html';
-	if ( file_exists( $template_path ) ) {
-		$twofa_email_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_twofa_email_html ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_twofa_email_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
-if ( empty( $twofa_email_text ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.txt';
-	if ( file_exists( $template_path ) ) {
-		$twofa_email_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_twofa_email_text ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.txt';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_twofa_email_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -46,7 +46,7 @@ if ( empty( $twofa_email_text ) ) {
 				name="nbuf_2fa_email_html"
 				rows="15"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $twofa_email_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_twofa_email_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {verification_code}, {user_email}, {username}, {site_url}, {expiry_minutes}', 'nobloat-user-foundry' ); ?>
 			</p>
@@ -67,7 +67,7 @@ if ( empty( $twofa_email_text ) ) {
 				name="nbuf_2fa_email_text"
 				rows="10"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $twofa_email_text ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_twofa_email_text ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {verification_code}, {user_email}, {username}, {site_url}, {expiry_minutes}', 'nobloat-user-foundry' ); ?>
 			</p>

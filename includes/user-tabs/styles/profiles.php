@@ -16,17 +16,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( isset( $_POST['nbuf_save_profile_css'] ) && check_admin_referer( 'nbuf_profile_css_save', 'nbuf_profile_css_nonce' ) ) {
 	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via NBUF_CSS_Manager::sanitize_css().
-	$profile_css = isset( $_POST['profile_custom_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['profile_custom_css'] ) ) : '';
+	$nbuf_profile_css = isset( $_POST['profile_custom_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['profile_custom_css'] ) ) : '';
 	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	/* Save to database */
-	NBUF_Options::update( 'nbuf_profile_custom_css', $profile_css, false, 'css' );
+	NBUF_Options::update( 'nbuf_profile_custom_css', $nbuf_profile_css, false, 'css' );
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
 /* Load current CSS value */
-$profile_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
+$nbuf_profile_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
 
 ?>
 
@@ -47,7 +47,7 @@ $profile_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
 				rows="25"
 				class="large-text code nbuf-css-editor"
 				spellcheck="false"
-			><?php echo esc_textarea( $profile_css ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_profile_css ); ?></textarea>
 
 			<p>
 				<button

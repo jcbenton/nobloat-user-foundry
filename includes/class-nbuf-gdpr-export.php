@@ -951,15 +951,21 @@ class NBUF_GDPR_Export {
 			RecursiveIteratorIterator::CHILD_FIRST
 		);
 
+		global $wp_filesystem;
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
 		foreach ( $files as $fileinfo ) {
 			if ( $fileinfo->isDir() ) {
-				rmdir( $fileinfo->getRealPath() );
+				$wp_filesystem->rmdir( $fileinfo->getRealPath() );
 			} else {
-				unlink( $fileinfo->getRealPath() );
+				wp_delete_file( $fileinfo->getRealPath() );
 			}
 		}
 
-		rmdir( $dir );
+		$wp_filesystem->rmdir( $dir );
 	}
 
 	/**
@@ -985,7 +991,7 @@ class NBUF_GDPR_Export {
 
 		foreach ( $files as $file ) {
 			if ( is_file( $file ) && ( time() - filemtime( $file ) ) > $max_age ) {
-				unlink( $file );
+				wp_delete_file( $file );
 			}
 		}
 	}
@@ -1132,6 +1138,7 @@ class NBUF_GDPR_Export {
 	 * @return void
 	 */
 	public static function handle_download_request() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Security is handled via one-time use token stored in transient, which provides equivalent protection to nonces while supporting email-based download links.
 		if ( ! isset( $_GET['nbuf_download'] ) || 'export' !== $_GET['nbuf_download'] ) {
 			return;
 		}
@@ -1144,6 +1151,7 @@ class NBUF_GDPR_Export {
 		$current_user_id = get_current_user_id();
 		$request_user_id = isset( $_GET['user_id'] ) ? absint( $_GET['user_id'] ) : 0;
 		$token           = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		/* Verify user ID matches current user (unless admin) */
 		if ( $request_user_id !== $current_user_id && ! current_user_can( 'manage_options' ) ) {
@@ -1182,7 +1190,7 @@ class NBUF_GDPR_Export {
 		readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streaming export file download.
 
 		/* Delete file after download */
-		unlink( $file_path );
+		wp_delete_file( $file_path );
 
 		exit;
 	}

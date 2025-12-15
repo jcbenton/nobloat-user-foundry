@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$twofa_form = NBUF_Options::get( 'nbuf_2fa_verify_template', '' );
+$nbuf_twofa_form = NBUF_Options::get( 'nbuf_2fa_verify_template', '' );
 
 /* If empty, load from default template */
-if ( empty( $twofa_form ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . '2fa-verify.html';
-	if ( file_exists( $template_path ) ) {
-		$twofa_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_twofa_form ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . '2fa-verify.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_twofa_form = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $twofa_form ) ) {
 				name="nbuf_2fa_verify_template"
 				rows="30"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $twofa_form ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_twofa_form ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {nonce_field}, {error_message}, {success_message}, {instructions_text}, {code_length}, {device_trust_checkbox}, {resend_email_link}, {backup_code_link}, {help_text}, {grace_period_notice}, {locked_out_notice}', 'nobloat-user-foundry' ); ?>
 			</p>

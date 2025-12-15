@@ -104,7 +104,7 @@ class NBUF_Admin_Audit_Log {
 			'metadata'        => ! empty( $metadata ) ? wp_json_encode( $metadata ) : null,
 			'ip_address'      => $ip_address,
 			'user_agent'      => $user_agent,
-			'created_at'      => current_time( 'mysql' ),
+			'created_at'      => gmdate( 'Y-m-d H:i:s' ),
 		);
 
 		$format = array( '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
@@ -230,9 +230,9 @@ class NBUF_Admin_Audit_Log {
 		$values[] = $limit;
 		$values[] = $offset;
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is dynamically built with proper placeholders and prepared below.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic WHERE clause built with placeholders.
 		$prepared = $wpdb->prepare( $query, $values );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom audit log table, prepared query, no caching needed for audit logs.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom audit log table, query already prepared above, filters are sanitized.
 		$results = $wpdb->get_results( $prepared, ARRAY_A );
 
 		return $results ? $results : array();
@@ -281,13 +281,13 @@ class NBUF_Admin_Audit_Log {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause contains placeholders, prepared below.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause contains validated placeholders.
 		$query = "SELECT COUNT(*) FROM %i WHERE {$where_clause}";
 		array_unshift( $values, $table );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is dynamically built with proper placeholders and prepared below.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic WHERE clause built with placeholders.
 		$prepared = $wpdb->prepare( $query, $values );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom audit log table, prepared query, no caching needed for audit logs.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom audit log table, query already prepared above, filters are sanitized.
 		$count = $wpdb->get_var( $prepared );
 
 		return absint( $count );

@@ -17,16 +17,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( isset( $_POST['nbuf_save_expiration'] ) && check_admin_referer( 'nbuf_expiration_save', 'nbuf_expiration_nonce' ) ) {
 
 	/* Get and sanitize inputs */
-	$enable_expiration = isset( $_POST['enable_expiration'] ) ? 1 : 0;
-	$warning_days      = isset( $_POST['expiration_warning_days'] ) ? absint( wp_unslash( $_POST['expiration_warning_days'] ) ) : 7;
-	$warning_html      = isset( $_POST['expiration_warning_html'] ) ? wp_kses_post( wp_unslash( $_POST['expiration_warning_html'] ) ) : '';
-	$warning_text      = isset( $_POST['expiration_warning_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['expiration_warning_text'] ) ) : '';
+	$nbuf_enable_expiration = isset( $_POST['enable_expiration'] ) ? 1 : 0;
+	$nbuf_warning_days      = isset( $_POST['expiration_warning_days'] ) ? absint( wp_unslash( $_POST['expiration_warning_days'] ) ) : 7;
+	$nbuf_warning_html      = isset( $_POST['expiration_warning_html'] ) ? wp_kses_post( wp_unslash( $_POST['expiration_warning_html'] ) ) : '';
+	$nbuf_warning_text      = isset( $_POST['expiration_warning_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['expiration_warning_text'] ) ) : '';
 
 	/* Save options */
-	NBUF_Options::update( 'nbuf_enable_expiration', $enable_expiration, true, 'settings' );
-	NBUF_Options::update( 'nbuf_expiration_warning_days', $warning_days, true, 'settings' );
-	NBUF_Options::update( 'nbuf_expiration_warning_html', $warning_html, false, 'templates' );
-	NBUF_Options::update( 'nbuf_expiration_warning_text', $warning_text, false, 'templates' );
+	NBUF_Options::update( 'nbuf_enable_expiration', $nbuf_enable_expiration, true, 'settings' );
+	NBUF_Options::update( 'nbuf_expiration_warning_days', $nbuf_warning_days, true, 'settings' );
+	NBUF_Options::update( 'nbuf_expiration_warning_html', $nbuf_warning_html, false, 'templates' );
+	NBUF_Options::update( 'nbuf_expiration_warning_text', $nbuf_warning_text, false, 'templates' );
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Expiration settings saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 }
@@ -34,51 +34,51 @@ if ( isset( $_POST['nbuf_save_expiration'] ) && check_admin_referer( 'nbuf_expir
 /**
  * Load current user expiration values
  */
-$enable_expiration = NBUF_Options::get( 'nbuf_enable_expiration', false );
-$warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
-$warning_html      = NBUF_Options::get( 'nbuf_expiration_warning_html', '' );
-$warning_text      = NBUF_Options::get( 'nbuf_expiration_warning_text', '' );
+$nbuf_enable_expiration = NBUF_Options::get( 'nbuf_enable_expiration', false );
+$nbuf_warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
+$nbuf_warning_html      = NBUF_Options::get( 'nbuf_expiration_warning_html', '' );
+$nbuf_warning_text      = NBUF_Options::get( 'nbuf_expiration_warning_text', '' );
 
 /* Load from defaults if empty */
-if ( empty( $warning_html ) ) {
-	$default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.html';
-	if ( file_exists( $default_path ) ) {
+if ( empty( $nbuf_warning_html ) ) {
+	$nbuf_default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.html';
+	if ( file_exists( $nbuf_default_path ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
-		$warning_html = file_get_contents( $default_path );
+		$nbuf_warning_html = file_get_contents( $nbuf_default_path );
 
-		if ( false === $warning_html ) {
+		if ( false === $nbuf_warning_html ) {
 			NBUF_Security_Log::log(
 				'file_read_failed',
 				'warning',
 				'Failed to read default expiration warning HTML template',
 				array(
-					'file_path' => $default_path,
+					'file_path' => $nbuf_default_path,
 					'context'   => 'user_expiration_settings_load',
 					'user_id'   => get_current_user_id(),
 				)
 			);
-			$warning_html = '';
+			$nbuf_warning_html = '';
 		}
 	}
 }
-if ( empty( $warning_text ) ) {
-	$default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.txt';
-	if ( file_exists( $default_path ) ) {
+if ( empty( $nbuf_warning_text ) ) {
+	$nbuf_default_path = NBUF_TEMPLATES_DIR . 'expiration-warning.txt';
+	if ( file_exists( $nbuf_default_path ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file, not remote URL
-		$warning_text = file_get_contents( $default_path );
+		$nbuf_warning_text = file_get_contents( $nbuf_default_path );
 
-		if ( false === $warning_text ) {
+		if ( false === $nbuf_warning_text ) {
 			NBUF_Security_Log::log(
 				'file_read_failed',
 				'warning',
 				'Failed to read default expiration warning text template',
 				array(
-					'file_path' => $default_path,
+					'file_path' => $nbuf_default_path,
 					'context'   => 'user_expiration_settings_load',
 					'user_id'   => get_current_user_id(),
 				)
 			);
-			$warning_text = '';
+			$nbuf_warning_text = '';
 		}
 	}
 }
@@ -103,7 +103,7 @@ if ( empty( $warning_text ) ) {
 				</th>
 				<td>
 					<label>
-						<input type="checkbox" id="enable_expiration" name="enable_expiration" value="1" <?php checked( $enable_expiration, 1 ); ?>>
+						<input type="checkbox" id="enable_expiration" name="enable_expiration" value="1" <?php checked( $nbuf_enable_expiration, 1 ); ?>>
 						<?php esc_html_e( 'Enable expiration feature', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -118,7 +118,7 @@ if ( empty( $warning_text ) ) {
 					<label for="expiration_warning_days"><?php esc_html_e( 'Warning Days', 'nobloat-user-foundry' ); ?></label>
 				</th>
 				<td>
-					<input type="number" id="expiration_warning_days" name="expiration_warning_days" value="<?php echo esc_attr( $warning_days ); ?>" min="1" max="90" class="small-text">
+					<input type="number" id="expiration_warning_days" name="expiration_warning_days" value="<?php echo esc_attr( $nbuf_warning_days ); ?>" min="1" max="90" class="small-text">
 					<?php esc_html_e( 'days before expiration', 'nobloat-user-foundry' ); ?>
 					<p class="description">
 						<?php esc_html_e( 'Send a warning email this many days before the account expires. Default: 7 days.', 'nobloat-user-foundry' ); ?>
@@ -142,7 +142,7 @@ if ( empty( $warning_text ) ) {
 			);
 			?>
 		</p>
-		<textarea name="expiration_warning_html" rows="15" class="large-text code" style="width:100%;font-family:monospace;"><?php echo esc_textarea( $warning_html ); ?></textarea>
+		<textarea name="expiration_warning_html" rows="15" class="large-text code" style="width:100%;font-family:monospace;"><?php echo esc_textarea( $nbuf_warning_html ); ?></textarea>
 
 		<h3 style="margin-top:30px;"><?php esc_html_e( 'Plain Text Email Template', 'nobloat-user-foundry' ); ?></h3>
 		<p class="description" style="margin-bottom:10px;">
@@ -154,7 +154,7 @@ if ( empty( $warning_text ) ) {
 			);
 			?>
 		</p>
-		<textarea name="expiration_warning_text" rows="15" class="large-text code" style="width:100%;font-family:monospace;"><?php echo esc_textarea( $warning_text ); ?></textarea>
+		<textarea name="expiration_warning_text" rows="15" class="large-text code" style="width:100%;font-family:monospace;"><?php echo esc_textarea( $nbuf_warning_text ); ?></textarea>
 
 		<p class="submit">
 			<button type="submit" name="nbuf_save_expiration" class="button button-primary">

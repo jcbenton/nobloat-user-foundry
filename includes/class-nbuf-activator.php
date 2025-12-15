@@ -315,8 +315,7 @@ class NBUF_Activator {
 				true,
 				'audit_log'
 			);
-			NBUF_Options::update( 'nbuf_audit_log_store_user_agent', true, true, 'audit_log' );
-			NBUF_Options::update( 'nbuf_audit_log_anonymize_ip', false, true, 'audit_log' );
+			/* Privacy settings now consolidated under nbuf_logging_* in logging category */
 			NBUF_Options::update( 'nbuf_audit_log_max_message_length', 500, true, 'audit_log' );
 
 			/*

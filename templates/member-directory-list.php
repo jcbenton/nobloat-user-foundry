@@ -23,10 +23,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
-$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
+$nbuf_current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
-$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
-$viewer_id    = get_current_user_id();
+$nbuf_current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
+$nbuf_viewer_id    = get_current_user_id();
 ?>
 
 <div class="nbuf-member-directory" data-view="list">
@@ -37,10 +37,10 @@ $viewer_id    = get_current_user_id();
 				<?php /* Preserve existing query vars */ ?>
 				<?php
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
-				foreach ( $_GET as $key => $value ) :
+				foreach ( $_GET as $nbuf_key => $nbuf_value ) :
 					?>
-					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
-						<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
+					<?php if ( ! in_array( $nbuf_key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
+						<input type="hidden" name="<?php echo esc_attr( $nbuf_key ); ?>" value="<?php echo esc_attr( $nbuf_value ); ?>">
 					<?php endif; ?>
 				<?php endforeach; ?>
 
@@ -50,7 +50,7 @@ $viewer_id    = get_current_user_id();
 							type="text"
 							name="member_search"
 							placeholder="<?php esc_attr_e( 'Search members...', 'nobloat-user-foundry' ); ?>"
-							value="<?php echo esc_attr( $current_search ); ?>"
+							value="<?php echo esc_attr( $nbuf_current_search ); ?>"
 							class="nbuf-search-input"
 						>
 						<button type="submit" class="nbuf-search-button">
@@ -64,11 +64,11 @@ $viewer_id    = get_current_user_id();
 						<select name="member_role" class="nbuf-filter-select">
 							<option value=""><?php esc_html_e( 'All Roles', 'nobloat-user-foundry' ); ?></option>
 							<?php
-							$roles = wp_roles()->get_names();
-							foreach ( $roles as $role_slug => $role_name ) :
+							$nbuf_roles = wp_roles()->get_names();
+							foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_name ) :
 								?>
-								<option value="<?php echo esc_attr( $role_slug ); ?>" <?php selected( $current_role, $role_slug ); ?>>
-									<?php echo esc_html( $role_name ); ?>
+								<option value="<?php echo esc_attr( $nbuf_role_slug ); ?>" <?php selected( $nbuf_current_role, $nbuf_role_slug ); ?>>
+									<?php echo esc_html( $nbuf_role_name ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -77,7 +77,7 @@ $viewer_id    = get_current_user_id();
 							<?php esc_html_e( 'Filter', 'nobloat-user-foundry' ); ?>
 						</button>
 
-						<?php if ( $current_search || $current_role ) : ?>
+						<?php if ( $nbuf_current_search || $nbuf_current_role ) : ?>
 							<a href="?" class="nbuf-clear-filters">
 								<?php esc_html_e( 'Clear', 'nobloat-user-foundry' ); ?>
 							</a>
@@ -97,25 +97,25 @@ $viewer_id    = get_current_user_id();
 
 	<?php if ( ! empty( $members ) ) : ?>
 		<div class="nbuf-members-list">
-			<?php foreach ( $members as $member ) : ?>
-				<div class="nbuf-member-item" data-user-id="<?php echo esc_attr( $member->ID ); ?>">
+			<?php foreach ( $members as $nbuf_member ) : ?>
+				<div class="nbuf-member-item" data-user-id="<?php echo esc_attr( $nbuf_member->ID ); ?>">
 					<div class="nbuf-member-avatar-small">
-						<?php echo get_avatar( $member->ID, 48 ); ?>
+						<?php echo get_avatar( $nbuf_member->ID, 48 ); ?>
 					</div>
 
 					<div class="nbuf-member-details">
 						<h4 class="nbuf-member-name">
-							<?php echo esc_html( $member->display_name ); ?>
+							<?php echo esc_html( $nbuf_member->display_name ); ?>
 						</h4>
 
 						<div class="nbuf-member-meta-inline">
-							<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'location', $viewer_id ) ) : ?>
-								<?php if ( ! empty( $member->city ) || ! empty( $member->country ) ) : ?>
+							<?php if ( NBUF_Privacy_Manager::can_view_field( $nbuf_member->ID, 'location', $nbuf_viewer_id ) ) : ?>
+								<?php if ( ! empty( $nbuf_member->city ) || ! empty( $nbuf_member->country ) ) : ?>
 									<span class="nbuf-member-location-inline">
 										<span class="dashicons dashicons-location"></span>
 										<?php
-										$location_parts = array_filter( array( $member->city, $member->state, $member->country ) );
-										echo esc_html( implode( ', ', $location_parts ) );
+										$nbuf_location_parts = array_filter( array( $nbuf_member->city, $nbuf_member->state, $nbuf_member->country ) );
+										echo esc_html( implode( ', ', $nbuf_location_parts ) );
 										?>
 									</span>
 								<?php endif; ?>
@@ -124,21 +124,21 @@ $viewer_id    = get_current_user_id();
 							<span class="nbuf-member-joined-inline">
 								<?php
 								/* translators: %s: registration date */
-								printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $member->user_registered ) ) ) );
+								printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $nbuf_member->user_registered ) ) ) );
 								?>
 							</span>
 						</div>
 
-						<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && ! empty( $member->bio ) ) : ?>
+						<?php if ( NBUF_Privacy_Manager::can_view_field( $nbuf_member->ID, 'bio', $nbuf_viewer_id ) && ! empty( $nbuf_member->bio ) ) : ?>
 							<div class="nbuf-member-bio-inline">
-								<?php echo esc_html( wp_trim_words( $member->bio, 15 ) ); ?>
+								<?php echo esc_html( wp_trim_words( $nbuf_member->bio, 15 ) ); ?>
 							</div>
 						<?php endif; ?>
 					</div>
 
-					<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && ! empty( $member->website ) ) : ?>
+					<?php if ( NBUF_Privacy_Manager::can_view_field( $nbuf_member->ID, 'website', $nbuf_viewer_id ) && ! empty( $nbuf_member->website ) ) : ?>
 						<div class="nbuf-member-actions">
-							<a href="<?php echo esc_url( $member->website ); ?>" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">
+							<a href="<?php echo esc_url( $nbuf_member->website ); ?>" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">
 								<?php esc_html_e( 'Website', 'nobloat-user-foundry' ); ?>
 							</a>
 						</div>
@@ -151,12 +151,12 @@ $viewer_id    = get_current_user_id();
 			<div class="nbuf-directory-pagination">
 				<?php
 				/* Build pagination links */
-				$base_url = remove_query_arg( 'member_page' );
+				$nbuf_base_url = remove_query_arg( 'member_page' );
 
 				if ( $current_page > 1 ) :
-					$prev_url = add_query_arg( 'member_page', $current_page - 1, $base_url );
+					$nbuf_prev_url = add_query_arg( 'member_page', $current_page - 1, $nbuf_base_url );
 					?>
-					<a href="<?php echo esc_url( $prev_url ); ?>" class="nbuf-page-prev">
+					<a href="<?php echo esc_url( $nbuf_prev_url ); ?>" class="nbuf-page-prev">
 						<?php esc_html_e( '&laquo; Previous', 'nobloat-user-foundry' ); ?>
 					</a>
 				<?php endif; ?>
@@ -164,13 +164,13 @@ $viewer_id    = get_current_user_id();
 				<span class="nbuf-page-numbers">
 					<?php
 					/* Show page numbers */
-					for ( $i = 1; $i <= $total_pages; $i++ ) :
-						if ( $current_page === $i ) :
+					for ( $nbuf_i = 1; $nbuf_i <= $total_pages; $nbuf_i++ ) :
+						if ( $current_page === $nbuf_i ) :
 							?>
-							<span class="nbuf-page-number current"><?php echo (int) $i; ?></span>
+							<span class="nbuf-page-number current"><?php echo (int) $nbuf_i; ?></span>
 						<?php else : ?>
-							<a href="<?php echo esc_url( add_query_arg( 'member_page', $i, $base_url ) ); ?>" class="nbuf-page-number">
-								<?php echo (int) $i; ?>
+							<a href="<?php echo esc_url( add_query_arg( 'member_page', $nbuf_i, $nbuf_base_url ) ); ?>" class="nbuf-page-number">
+								<?php echo (int) $nbuf_i; ?>
 							</a>
 							<?php
 						endif;
@@ -179,8 +179,8 @@ $viewer_id    = get_current_user_id();
 				</span>
 
 				<?php if ( $current_page < $total_pages ) : ?>
-					<?php $next_url = add_query_arg( 'member_page', $current_page + 1, $base_url ); ?>
-					<a href="<?php echo esc_url( $next_url ); ?>" class="nbuf-page-next">
+					<?php $nbuf_next_url = add_query_arg( 'member_page', $current_page + 1, $nbuf_base_url ); ?>
+					<a href="<?php echo esc_url( $nbuf_next_url ); ?>" class="nbuf-page-next">
 						<?php esc_html_e( 'Next &raquo;', 'nobloat-user-foundry' ); ?>
 					</a>
 				<?php endif; ?>
@@ -190,7 +190,7 @@ $viewer_id    = get_current_user_id();
 	<?php else : ?>
 		<div class="nbuf-no-members">
 			<p><?php esc_html_e( 'No members found.', 'nobloat-user-foundry' ); ?></p>
-			<?php if ( $current_search || $current_role ) : ?>
+			<?php if ( $nbuf_current_search || $nbuf_current_role ) : ?>
 				<p>
 					<a href="?"><?php esc_html_e( 'Clear filters and show all members', 'nobloat-user-foundry' ); ?></a>
 				</p>

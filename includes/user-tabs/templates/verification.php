@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$verification_html = NBUF_Options::get( 'nbuf_email_template_html', '' );
-$verification_text = NBUF_Options::get( 'nbuf_email_template_text', '' );
+$nbuf_verification_html = NBUF_Options::get( 'nbuf_email_template_html', '' );
+$nbuf_verification_text = NBUF_Options::get( 'nbuf_email_template_text', '' );
 
 /* If empty, load from default templates */
-if ( empty( $verification_html ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'email-verification.html';
-	if ( file_exists( $template_path ) ) {
-		$verification_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_verification_html ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'email-verification.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_verification_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
-if ( empty( $verification_text ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'email-verification.txt';
-	if ( file_exists( $template_path ) ) {
-		$verification_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_verification_text ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'email-verification.txt';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_verification_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -46,7 +46,7 @@ if ( empty( $verification_text ) ) {
 				name="nbuf_email_template_html"
 				rows="15"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $verification_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_verification_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}', 'nobloat-user-foundry' ); ?>
 			</p>
@@ -67,7 +67,7 @@ if ( empty( $verification_text ) ) {
 				name="nbuf_email_template_text"
 				rows="10"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $verification_text ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_verification_text ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}', 'nobloat-user-foundry' ); ?>
 			</p>

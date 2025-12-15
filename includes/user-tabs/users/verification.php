@@ -11,9 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings   = NBUF_Options::get( 'nbuf_settings', array() );
-$verify_url = $settings['verification_page'] ?? '/verify';
-$reset_url  = $settings['password_reset_page'] ?? '/password-reset';
+$nbuf_settings   = NBUF_Options::get( 'nbuf_settings', array() );
+$nbuf_verify_url = $nbuf_settings['verification_page'] ?? '/verify';
+$nbuf_reset_url  = $nbuf_settings['password_reset_page'] ?? '/password-reset';
 ?>
 
 <form method="post" action="options.php">
@@ -35,7 +35,7 @@ $reset_url  = $settings['password_reset_page'] ?? '/password-reset';
 		<tr>
 			<th><?php esc_html_e( 'Verification URL', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="text" name="nbuf_settings[verification_page]" value="<?php echo esc_attr( $verify_url ); ?>" class="regular-text" placeholder="/verify">
+				<input type="text" name="nbuf_settings[verification_page]" value="<?php echo esc_attr( $nbuf_verify_url ); ?>" class="regular-text" placeholder="/verify">
 				<p class="description">
 					<?php echo wp_kses_post( __( 'The slug must exist as a page. It must include the shortcode <code>[nbuf_verify_page]</code> and will use your theme.', 'nobloat-user-foundry' ) ); ?>
 				</p>
@@ -44,7 +44,7 @@ $reset_url  = $settings['password_reset_page'] ?? '/password-reset';
 		<tr>
 			<th><?php esc_html_e( 'Password Reset URL', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="text" name="nbuf_settings[password_reset_page]" value="<?php echo esc_attr( $reset_url ); ?>" class="regular-text" placeholder="/password-reset">
+				<input type="text" name="nbuf_settings[password_reset_page]" value="<?php echo esc_attr( $nbuf_reset_url ); ?>" class="regular-text" placeholder="/password-reset">
 				<p class="description">
 					<?php echo wp_kses_post( __( 'The slug must exist as a page. It must include the shortcode <code>[nbuf_reset_form]</code> and will use your theme.', 'nobloat-user-foundry' ) ); ?>
 				</p>

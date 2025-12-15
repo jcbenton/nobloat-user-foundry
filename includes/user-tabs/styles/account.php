@@ -16,37 +16,37 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( isset( $_POST['nbuf_save_account_css'] ) && check_admin_referer( 'nbuf_account_css_save', 'nbuf_account_css_nonce' ) ) {
 	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via NBUF_CSS_Manager::sanitize_css().
-	$account_css = isset( $_POST['account_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['account_page_css'] ) ) : '';
+	$nbuf_account_css = isset( $_POST['account_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['account_page_css'] ) ) : '';
 	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	/* Save to database */
-	NBUF_Options::update( 'nbuf_account_page_css', $account_css, false, 'css' );
+	NBUF_Options::update( 'nbuf_account_page_css', $nbuf_account_css, false, 'css' );
 
 	/* Write to disk */
-	$success = NBUF_CSS_Manager::save_css_to_disk( $account_css, 'account-page', 'nbuf_css_write_failed_account' );
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed_account' );
 
 	/* Rebuild combined file if enabled */
-	$css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
-	if ( $css_combine_files ) {
-		$reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
-		$registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
+	$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
+	if ( $nbuf_css_combine_files ) {
+		$nbuf_reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
+		$nbuf_login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
+		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
 
-		if ( empty( $reset_css ) ) {
-			$reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
+		if ( empty( $nbuf_reset_css ) ) {
+			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
 		}
-		if ( empty( $login_css ) ) {
-			$login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
+		if ( empty( $nbuf_login_css ) ) {
+			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
 		}
-		if ( empty( $registration_css ) ) {
-			$registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
+		if ( empty( $nbuf_registration_css ) ) {
+			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
 		}
 
-		$combined_css = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
+		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
+		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
 	}
 
-	if ( $success ) {
+	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Account page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 	} else {
 		echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Styles saved to database, but could not write to disk. Check file permissions.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -54,18 +54,18 @@ if ( isset( $_POST['nbuf_save_account_css'] ) && check_admin_referer( 'nbuf_acco
 }
 
 /* Load current CSS value */
-$account_css = NBUF_Options::get( 'nbuf_account_page_css' );
-if ( empty( $account_css ) ) {
-	$account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
+$nbuf_account_css = NBUF_Options::get( 'nbuf_account_page_css' );
+if ( empty( $nbuf_account_css ) ) {
+	$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
 }
 
-$has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' );
+$nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' );
 
 ?>
 
 <div class="nbuf-styles-tab">
 
-	<?php if ( $has_write_failure ) : ?>
+	<?php if ( $nbuf_has_write_failure ) : ?>
 		<div class="notice notice-error inline">
 			<p>
 				<strong><?php esc_html_e( 'File Write Permission Issue:', 'nobloat-user-foundry' ); ?></strong>
@@ -89,7 +89,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 				rows="30"
 				class="large-text code nbuf-css-editor"
 				spellcheck="false"
-			><?php echo esc_textarea( $account_css ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_account_css ); ?></textarea>
 
 			<p>
 				<button

@@ -382,7 +382,7 @@ class NBUF_User {
 			$sql .= ' GROUP BY u.ID';
 		}
 
-     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with prepare() above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query built with prepare() above, $select/$from are from hardcoded field arrays.
 		return $wpdb->get_row( $sql );
 	}
 
@@ -422,7 +422,7 @@ class NBUF_User {
 			$sql .= ' GROUP BY u.ID';
 		}
 
-     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with prepare() above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query built with prepare() above, $select/$from are from hardcoded field arrays.
 		return $wpdb->get_results( $sql );
 	}
 

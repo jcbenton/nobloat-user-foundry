@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Available migration plugins (for dropdown rendering) */
-$available_plugins = array(
+$nbuf_available_plugins = array(
 	'ultimate-member' => array( 'name' => 'Ultimate Member' ),
 	'buddypress'      => array( 'name' => 'BuddyPress' ),
 );
@@ -37,8 +37,8 @@ $available_plugins = array(
 				<td>
 					<select id="nbuf-source-plugin" class="regular-text">
 						<option value=""><?php esc_html_e( '-- Select a plugin to migrate from --', 'nobloat-user-foundry' ); ?></option>
-						<?php foreach ( $available_plugins as $slug => $available_plugin ) : ?>
-							<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $available_plugin['name'] ); ?></option>
+						<?php foreach ( $nbuf_available_plugins as $nbuf_slug => $nbuf_available_plugin ) : ?>
+							<option value="<?php echo esc_attr( $nbuf_slug ); ?>"><?php echo esc_html( $nbuf_available_plugin['name'] ); ?></option>
 						<?php endforeach; ?>
 					</select>
 					<p class="description">
@@ -182,9 +182,9 @@ $available_plugins = array(
 	<div class="nbuf-migration-card">
 		<h3><?php esc_html_e( 'Migration History', 'nobloat-user-foundry' ); ?></h3>
 		<?php
-		$history = NBUF_Migration::get_import_history( 10 );
+		$nbuf_history = NBUF_Migration::get_import_history( 10 );
 
-		if ( empty( $history ) ) {
+		if ( empty( $nbuf_history ) ) {
 			?>
 			<p><em><?php esc_html_e( 'No migrations have been performed yet.', 'nobloat-user-foundry' ); ?></em></p>
 			<?php
@@ -201,15 +201,15 @@ $available_plugins = array(
 					</tr>
 				</thead>
 				<tbody>
-			<?php foreach ( $history as $record ) : ?>
+			<?php foreach ( $nbuf_history as $nbuf_record ) : ?>
 						<tr>
-							<td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $record->imported_at ) ) ); ?></td>
-							<td><?php echo esc_html( $record->source_plugin ); ?></td>
-							<td><?php echo esc_html( $record->migration_type ?? 'unknown' ); ?></td>
-							<td><?php echo esc_html( $record->successful ); ?> / <?php echo esc_html( $record->total_rows ); ?></td>
+							<td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $nbuf_record->imported_at ) ) ); ?></td>
+							<td><?php echo esc_html( $nbuf_record->source_plugin ); ?></td>
+							<td><?php echo esc_html( $nbuf_record->migration_type ?? 'unknown' ); ?></td>
+							<td><?php echo esc_html( $nbuf_record->successful ); ?> / <?php echo esc_html( $nbuf_record->total_rows ); ?></td>
 							<td>
-				<?php if ( $record->failed > 0 ) : ?>
-									<span style="color: orange;">⚠ <?php echo esc_html( $record->failed ); ?> errors</span>
+				<?php if ( $nbuf_record->failed > 0 ) : ?>
+									<span style="color: orange;">⚠ <?php echo esc_html( $nbuf_record->failed ); ?> errors</span>
 								<?php else : ?>
 									<span style="color: green;">✓ Success</span>
 								<?php endif; ?>

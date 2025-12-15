@@ -16,19 +16,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Get active merge tab
  */
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation
-$merge_tab  = isset( $_GET['merge_tab'] ) ? sanitize_text_field( wp_unslash( $_GET['merge_tab'] ) ) : 'WordPress';
-$valid_tabs = array( 'wordpress', 'woocommerce', 'edd' );
-if ( ! in_array( $merge_tab, $valid_tabs, true ) ) {
-	$merge_tab = 'WordPress';
+$nbuf_merge_tab  = isset( $_GET['merge_tab'] ) ? sanitize_text_field( wp_unslash( $_GET['merge_tab'] ) ) : 'WordPress';
+$nbuf_valid_tabs = array( 'wordpress', 'woocommerce', 'edd' );
+if ( ! in_array( $nbuf_merge_tab, $nbuf_valid_tabs, true ) ) {
+	$nbuf_merge_tab = 'WordPress';
 }
 
 /* Check if accounts were pre-selected via bulk action */
-$preselected_accounts = array();
+$nbuf_preselected_accounts = array();
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI pre-population parameter
 if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only UI pre-population parameter
-	$users_param          = sanitize_text_field( wp_unslash( $_GET['users'] ) );
-	$preselected_accounts = array_map( 'intval', explode( ',', $users_param ) );
+	$nbuf_users_param          = sanitize_text_field( wp_unslash( $_GET['users'] ) );
+	$nbuf_preselected_accounts = array_map( 'intval', explode( ',', $nbuf_users_param ) );
 }
 ?>
 
@@ -41,16 +41,16 @@ if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) ) {
 	<!-- Merge Type Tabs -->
 	<h2 class="nav-tab-wrapper" style="margin-top: 20px;">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=merge-accounts&merge_tab=WordPress' ) ); ?>"
-			class="nav-tab <?php echo ( 'WordPress' === $merge_tab ) ? 'nav-tab-active' : ''; ?>">
+			class="nav-tab <?php echo ( 'WordPress' === $nbuf_merge_tab ) ? 'nav-tab-active' : ''; ?>">
 			<?php esc_html_e( 'WordPress Accounts', 'nobloat-user-foundry' ); ?>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=merge-accounts&merge_tab=woocommerce' ) ); ?>"
-			class="nav-tab <?php echo ( 'woocommerce' === $merge_tab ) ? 'nav-tab-active' : ''; ?>">
+			class="nav-tab <?php echo ( 'woocommerce' === $nbuf_merge_tab ) ? 'nav-tab-active' : ''; ?>">
 			<?php esc_html_e( 'WooCommerce', 'nobloat-user-foundry' ); ?>
 			<span class="dashicons dashicons-cart" style="font-size: 16px; vertical-align: middle;"></span>
 		</a>
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=merge-accounts&merge_tab=edd' ) ); ?>"
-			class="nav-tab <?php echo ( 'edd' === $merge_tab ) ? 'nav-tab-active' : ''; ?>">
+			class="nav-tab <?php echo ( 'edd' === $nbuf_merge_tab ) ? 'nav-tab-active' : ''; ?>">
 			<?php esc_html_e( 'Easy Digital Downloads', 'nobloat-user-foundry' ); ?>
 			<span class="dashicons dashicons-download" style="font-size: 16px; vertical-align: middle;"></span>
 		</a>
@@ -59,13 +59,13 @@ if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) ) {
 	<div class="nbuf-merge-tab-content" style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-top: none;">
 		<?php
 		/* WordPress Accounts Tab */
-		if ( 'WordPress' === $merge_tab ) {
+		if ( 'WordPress' === $nbuf_merge_tab ) {
 			include NBUF_INCLUDE_DIR . 'user-tabs/tools/merge-tabs/wordpress.php';
 			/* WooCommerce Tab */
-		} elseif ( 'woocommerce' === $merge_tab ) {
+		} elseif ( 'woocommerce' === $nbuf_merge_tab ) {
 			include NBUF_INCLUDE_DIR . 'user-tabs/tools/merge-tabs/woocommerce.php';
 			/* Easy Digital Downloads Tab */
-		} elseif ( 'edd' === $merge_tab ) {
+		} elseif ( 'edd' === $nbuf_merge_tab ) {
 			include NBUF_INCLUDE_DIR . 'user-tabs/tools/merge-tabs/edd.php';
 		}
 		?>

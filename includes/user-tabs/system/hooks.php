@@ -11,9 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = NBUF_Options::get( 'nbuf_settings', array() );
-$hooks    = (array) ( $settings['hooks'] ?? array() );
-$custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
+$nbuf_settings = NBUF_Options::get( 'nbuf_settings', array() );
+$nbuf_hooks    = (array) ( $nbuf_settings['hooks'] ?? array() );
+$nbuf_custom   = sanitize_text_field( $nbuf_settings['hooks_custom'] ?? '' );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -37,7 +37,7 @@ $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 			<td>
 				<fieldset>
 					<label style="display:block;">
-						<input type="checkbox" name="nbuf_settings[hooks][]" value="register_new_user" <?php checked( in_array( 'register_new_user', $hooks, true ), true ); ?>>
+						<input type="checkbox" name="nbuf_settings[hooks][]" value="register_new_user" <?php checked( in_array( 'register_new_user', $nbuf_hooks, true ), true ); ?>>
 						<strong>register_new_user</strong>
 					</label>
 					<p class="description" style="margin: 4px 0 12px 24px;">
@@ -45,7 +45,7 @@ $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 					</p>
 
 					<label style="display:block;">
-						<input type="checkbox" name="nbuf_settings[hooks][]" value="user_register" <?php checked( in_array( 'user_register', $hooks, true ), true ); ?>>
+						<input type="checkbox" name="nbuf_settings[hooks][]" value="user_register" <?php checked( in_array( 'user_register', $nbuf_hooks, true ), true ); ?>>
 						<strong>user_register</strong>
 					</label>
 					<p class="description" style="margin: 4px 0 12px 24px;">
@@ -58,7 +58,7 @@ $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 			<th><?php esc_html_e( 'Email Change Re-verification', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_settings[reverify_on_email_change]" value="1" <?php checked( ! empty( $settings['reverify_on_email_change'] ), true ); ?>>
+					<input type="checkbox" name="nbuf_settings[reverify_on_email_change]" value="1" <?php checked( ! empty( $nbuf_settings['reverify_on_email_change'] ), true ); ?>>
 					<?php esc_html_e( 'Require re-verification when a user changes their email address', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -70,11 +70,11 @@ $custom   = sanitize_text_field( $settings['hooks_custom'] ?? '' );
 			<th><?php esc_html_e( 'Custom Hook', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_settings[custom_hook_enabled]" value="1" <?php checked( ! empty( $settings['custom_hook_enabled'] ), true ); ?>>
+					<input type="checkbox" name="nbuf_settings[custom_hook_enabled]" value="1" <?php checked( ! empty( $nbuf_settings['custom_hook_enabled'] ), true ); ?>>
 					<?php esc_html_e( 'Enable custom hook listener', 'nobloat-user-foundry' ); ?>
 				</label>
 				<div style="margin-top:6px;">
-					<input type="text" name="nbuf_settings[hooks_custom]" value="<?php echo esc_attr( $custom ); ?>" placeholder="custom_user_register_hook" class="regular-text">
+					<input type="text" name="nbuf_settings[hooks_custom]" value="<?php echo esc_attr( $nbuf_custom ); ?>" placeholder="custom_user_register_hook" class="regular-text">
 					<p class="description"><?php esc_html_e( 'Custom action name fired after user creation (e.g., from custom registration logic).', 'nobloat-user-foundry' ); ?></p>
 				</div>
 			</td>

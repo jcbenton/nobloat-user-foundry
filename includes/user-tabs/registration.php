@@ -12,16 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
+$nbuf_reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 /* Default values if not set */
-$username_method = $reg_settings['username_method'] ?? 'auto_random';
-$login_method    = $reg_settings['login_method'] ?? 'email_only';
+$nbuf_username_method = $nbuf_reg_settings['username_method'] ?? 'auto_random';
+$nbuf_login_method    = $nbuf_reg_settings['login_method'] ?? 'email_only';
 
 /* Feature toggles (moved from General tab) */
-$enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
-$require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
-$notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
+$nbuf_enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
+$nbuf_require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
+$nbuf_notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="nbuf-registration-form">
@@ -34,7 +34,7 @@ $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration'
 			<th><?php esc_html_e( 'User Registration', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_enable_registration" value="1" <?php checked( $enable_registration, true ); ?>>
+					<input type="checkbox" name="nbuf_enable_registration" value="1" <?php checked( $nbuf_enable_registration, true ); ?>>
 					<?php esc_html_e( 'Enable user registration', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -46,7 +46,7 @@ $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration'
 			<th><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_require_verification" value="1" <?php checked( $require_verification, true ); ?>>
+					<input type="checkbox" name="nbuf_require_verification" value="1" <?php checked( $nbuf_require_verification, true ); ?>>
 					<?php esc_html_e( 'Require email verification for new user registrations', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -58,7 +58,7 @@ $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration'
 			<th><?php esc_html_e( 'Admin Notifications', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_notify_admin_registration" value="1" <?php checked( $notify_admin_registration, true ); ?>>
+					<input type="checkbox" name="nbuf_notify_admin_registration" value="1" <?php checked( $nbuf_notify_admin_registration, true ); ?>>
 					<?php esc_html_e( 'Notify administrators when new users register', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -74,13 +74,13 @@ $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration'
 			<th><?php esc_html_e( 'Username Generation', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_registration_fields[username_method]">
-					<option value="auto_random" <?php selected( $username_method, 'auto_random' ); ?>>
+					<option value="auto_random" <?php selected( $nbuf_username_method, 'auto_random' ); ?>>
 						<?php esc_html_e( 'Auto Random - Generate random username (Best for privacy)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="auto_email" <?php selected( $username_method, 'auto_email' ); ?>>
+					<option value="auto_email" <?php selected( $nbuf_username_method, 'auto_email' ); ?>>
 						<?php esc_html_e( 'Auto from Email - Extract from email prefix (john@example.com → john)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="user_entered" <?php selected( $username_method, 'user_entered' ); ?>>
+					<option value="user_entered" <?php selected( $nbuf_username_method, 'user_entered' ); ?>>
 						<?php esc_html_e( 'User Entered - User chooses their own username', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -94,13 +94,13 @@ $notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration'
 			<th><?php esc_html_e( 'Login Method', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_registration_fields[login_method]">
-					<option value="email_only" <?php selected( $login_method, 'email_only' ); ?>>
+					<option value="email_only" <?php selected( $nbuf_login_method, 'email_only' ); ?>>
 						<?php esc_html_e( 'Email Only - Users login with email address', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="username_only" <?php selected( $login_method, 'username_only' ); ?>>
+					<option value="username_only" <?php selected( $nbuf_login_method, 'username_only' ); ?>>
 						<?php esc_html_e( 'Username Only - Users login with username', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="email_or_username" <?php selected( $login_method, 'email_or_username' ); ?>>
+					<option value="email_or_username" <?php selected( $nbuf_login_method, 'email_or_username' ); ?>>
 						<?php esc_html_e( 'Email or Username - Users can use either', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>

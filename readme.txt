@@ -3,14 +3,14 @@
 Contributors: nobloat
 Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user management, email verification, account expiration, user lifecycle, registration
-Requires at least: 5.8
-Tested up to: 6.8
-Stable tag: 1.0.0
+Requires at least: 6.2
+Tested up to: 6.9
+Stable tag: 1.4.0
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Lightweight WordPress user management system - email verification, account expiration, and user lifecycle management without the bloat.
+Lightweight GDPR business focused user management system - email verification, account expiration, and user lifecycle management without the bloat.
 
 == Description ==
 

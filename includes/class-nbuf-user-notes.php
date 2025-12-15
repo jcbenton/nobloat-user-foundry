@@ -57,12 +57,15 @@ class NBUF_User_Notes {
 			$order_by = 'created_at';
 		}
 
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $order_by and $order are whitelisted above, user_id is prepared.
 		$notes = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM $table_name WHERE user_id = %d ORDER BY $order_by $order", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM %i WHERE user_id = %d ORDER BY $order_by $order",
+				$table_name,
 				$user_id
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		return $notes ? $notes : array();
 	}
@@ -80,8 +83,8 @@ class NBUF_User_Notes {
 
 		$note = $wpdb->get_row(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT * FROM $table_name WHERE id = %d",
+				'SELECT * FROM %i WHERE id = %d',
+				$table_name,
 				$note_id
 			)
 		);
@@ -242,8 +245,8 @@ class NBUF_User_Notes {
 
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT COUNT(*) FROM $table_name WHERE user_id = %d",
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+				$table_name,
 				$user_id
 			)
 		);
@@ -287,8 +290,8 @@ class NBUF_User_Notes {
 
 		$user_ids = $wpdb->get_col(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT DISTINCT user_id FROM $table_name WHERE note_content LIKE %s LIMIT %d",
+				'SELECT DISTINCT user_id FROM %i WHERE note_content LIKE %s LIMIT %d',
+				$table_name,
 				'%' . $wpdb->esc_like( $search_term ) . '%',
 				$limit
 			)

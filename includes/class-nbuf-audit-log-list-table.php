@@ -97,11 +97,17 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 * Render date/time column
 	 *
 	 * @param  object $item Log entry.
-	 * @return string Formatted date/time
+	 * @return string Formatted date/time in user's local timezone
 	 */
 	public function column_created_at( $item ) {
-		$date = mysql2date( 'Y/m/d g:i:s A', $item->created_at );
-		return esc_html( $date );
+		/* Convert UTC to user's browser timezone (from cookie) */
+		$local_time = NBUF_Options::format_local_time( $item->created_at );
+		return sprintf(
+			'<span title="%s">%s</span>',
+			/* translators: %s: UTC timestamp */
+			esc_attr( sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item->created_at ) ),
+			esc_html( $local_time )
+		);
 	}
 
 	/**

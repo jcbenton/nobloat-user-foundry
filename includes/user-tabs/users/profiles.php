@@ -12,14 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
-$public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
-$gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-$profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
-$default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
-$allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
-$max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
-$max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
+$nbuf_profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
+$nbuf_public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
+$nbuf_gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
+$nbuf_profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
+$nbuf_default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+$nbuf_allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
+$nbuf_max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
+$nbuf_max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 
 ?>
 
@@ -46,7 +46,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				<td>
 					<input type="hidden" name="nbuf_enable_profiles" value="0">
 					<label>
-						<input type="checkbox" name="nbuf_enable_profiles" value="1" <?php checked( $profiles_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_enable_profiles" value="1" <?php checked( $nbuf_profiles_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable profile photos and profile system', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -61,7 +61,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				<td>
 					<input type="hidden" name="nbuf_enable_public_profiles" value="0">
 					<label>
-						<input type="checkbox" name="nbuf_enable_public_profiles" value="1" <?php checked( $public_profiles, true ); ?>>
+						<input type="checkbox" name="nbuf_enable_public_profiles" value="1" <?php checked( $nbuf_public_profiles, true ); ?>>
 						<?php esc_html_e( 'Enable public profile pages', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -74,13 +74,13 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Profile Page Slug', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<input type="text" name="nbuf_profile_page_slug" value="<?php echo esc_attr( $profile_page_slug ); ?>" class="regular-text">
+					<input type="text" name="nbuf_profile_page_slug" value="<?php echo esc_attr( $nbuf_profile_page_slug ); ?>" class="regular-text">
 					<p class="description">
 						<?php
 						printf(
 						/* translators: %s: Example profile URL */
 							esc_html__( 'Base URL for profile pages. Example: %s', 'nobloat-user-foundry' ),
-							'<code>' . esc_html( home_url( '/' . $profile_page_slug . '/username' ) ) . '</code>'
+							'<code>' . esc_html( home_url( '/' . $nbuf_profile_page_slug . '/username' ) ) . '</code>'
 						);
 						?>
 					</p>
@@ -98,9 +98,9 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				<th><?php esc_html_e( 'Default Profile Privacy', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<select name="nbuf_profile_default_privacy" class="regular-text">
-						<option value="private" <?php selected( $default_privacy, 'private' ); ?>><?php esc_html_e( 'Private (Hidden)', 'nobloat-user-foundry' ); ?></option>
-						<option value="members_only" <?php selected( $default_privacy, 'members_only' ); ?>><?php esc_html_e( 'Members Only', 'nobloat-user-foundry' ); ?></option>
-						<option value="public" <?php selected( $default_privacy, 'public' ); ?>><?php esc_html_e( 'Public', 'nobloat-user-foundry' ); ?></option>
+						<option value="private" <?php selected( $nbuf_default_privacy, 'private' ); ?>><?php esc_html_e( 'Private (Hidden)', 'nobloat-user-foundry' ); ?></option>
+						<option value="members_only" <?php selected( $nbuf_default_privacy, 'members_only' ); ?>><?php esc_html_e( 'Members Only', 'nobloat-user-foundry' ); ?></option>
+						<option value="public" <?php selected( $nbuf_default_privacy, 'public' ); ?>><?php esc_html_e( 'Public', 'nobloat-user-foundry' ); ?></option>
 					</select>
 					<p class="description">
 						<?php esc_html_e( 'Default privacy setting for new user profiles. Users can change this in their account settings.', 'nobloat-user-foundry' ); ?>
@@ -114,7 +114,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				<td>
 					<input type="hidden" name="nbuf_profile_allow_cover_photos" value="0">
 					<label>
-						<input type="checkbox" name="nbuf_profile_allow_cover_photos" value="1" <?php checked( $allow_cover_photos, true ); ?>>
+						<input type="checkbox" name="nbuf_profile_allow_cover_photos" value="1" <?php checked( $nbuf_allow_cover_photos, true ); ?>>
 						<?php esc_html_e( 'Allow users to upload cover photos', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -129,7 +129,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 				<td>
 					<input type="hidden" name="nbuf_profile_enable_gravatar" value="0">
 					<label>
-						<input type="checkbox" name="nbuf_profile_enable_gravatar" value="1" <?php checked( $gravatar_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_profile_enable_gravatar" value="1" <?php checked( $nbuf_gravatar_enabled, true ); ?>>
 						<?php esc_html_e( 'Allow users to opt-in to Gravatar', 'nobloat-user-foundry' ); ?>
 					</label>
 					<div class="nbuf-gravatar-warning" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 10px;">
@@ -150,7 +150,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Profile Photo Size Limit', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<input type="number" name="nbuf_profile_max_photo_size" value="<?php echo esc_attr( $max_photo_size ); ?>" min="1" max="50" class="small-text"> MB
+					<input type="number" name="nbuf_profile_max_photo_size" value="<?php echo esc_attr( $nbuf_max_photo_size ); ?>" min="1" max="50" class="small-text"> MB
 					<p class="description">
 						<?php esc_html_e( 'Maximum file size for profile photos (recommended: 5MB or less).', 'nobloat-user-foundry' ); ?>
 					</p>
@@ -160,7 +160,7 @@ $max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 			<tr>
 				<th><?php esc_html_e( 'Cover Photo Size Limit', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<input type="number" name="nbuf_profile_max_cover_size" value="<?php echo esc_attr( $max_cover_size ); ?>" min="1" max="50" class="small-text"> MB
+					<input type="number" name="nbuf_profile_max_cover_size" value="<?php echo esc_attr( $nbuf_max_cover_size ); ?>" min="1" max="50" class="small-text"> MB
 					<p class="description">
 						<?php esc_html_e( 'Maximum file size for cover photos (recommended: 10MB or less).', 'nobloat-user-foundry' ); ?>
 					</p>

@@ -13,14 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get preselected accounts from bulk action */
-$preselected_accounts = array();
+$nbuf_preselected_accounts = array();
 if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bulk_action_nonce' ) ) {
-	$users_param          = sanitize_text_field( wp_unslash( $_GET['users'] ) );
-	$preselected_accounts = array_map( 'intval', explode( ',', $users_param ) );
+	$nbuf_users_param          = sanitize_text_field( wp_unslash( $_GET['users'] ) );
+	$nbuf_preselected_accounts = array_map( 'intval', explode( ',', $nbuf_users_param ) );
 }
 
 /* Get all users for selection */
-$all_users = get_users(
+$nbuf_all_users = get_users(
 	array(
 		'orderby' => 'display_name',
 		'order'   => 'ASC',
@@ -49,15 +49,15 @@ $all_users = get_users(
 					</th>
 					<td>
 						<select id="nbuf-merge-accounts" name="nbuf_merge_accounts[]" multiple="multiple" style="width: 100%; min-height: 200px;">
-							<?php foreach ( $all_users as $user ) : ?>
-								<option value="<?php echo esc_attr( $user->ID ); ?>"
-								<?php echo in_array( $user->ID, $preselected_accounts, true ) ? 'selected' : ''; ?>>
+							<?php foreach ( $nbuf_all_users as $nbuf_user ) : ?>
+								<option value="<?php echo esc_attr( $nbuf_user->ID ); ?>"
+								<?php echo in_array( $nbuf_user->ID, $nbuf_preselected_accounts, true ) ? 'selected' : ''; ?>>
 								<?php
 								printf(
 									'%s (%s) - ID: %d',
-									esc_html( $user->display_name ),
-									esc_html( $user->user_email ),
-									(int) $user->ID
+									esc_html( $nbuf_user->display_name ),
+									esc_html( $nbuf_user->user_email ),
+									(int) $nbuf_user->ID
 								);
 								?>
 								</option>
@@ -229,13 +229,13 @@ $all_users = get_users(
 /* Enqueue merge accounts JavaScript */
 
 /* Check if minified version exists, otherwise use regular version */
-$script_file = file_exists( NBUF_PLUGIN_DIR . 'assets/js/admin/merge-accounts.min.js' )
+$nbuf_script_file = file_exists( NBUF_PLUGIN_DIR . 'assets/js/admin/merge-accounts.min.js' )
 	? 'assets/js/admin/merge-accounts.min.js'
 	: 'assets/js/admin/merge-accounts.js';
 
 wp_enqueue_script(
 	'nbuf-merge-accounts',
-	NBUF_PLUGIN_URL . $script_file,
+	NBUF_PLUGIN_URL . $nbuf_script_file,
 	array( 'jquery' ),
 	NBUF_VERSION,
 	true
@@ -248,7 +248,7 @@ wp_localize_script(
 	array(
 		'ajaxurl'     => admin_url( 'admin-ajax.php' ),
 		'nonce'       => wp_create_nonce( 'nbuf_merge_load' ),
-		'preselected' => $preselected_accounts,
+		'preselected' => $nbuf_preselected_accounts,
 		'i18n'        => array(
 			'minimum_users'        => __( 'Please select at least 2 accounts to merge.', 'nobloat-user-foundry' ),
 			'loading'              => __( 'Loading...', 'nobloat-user-foundry' ),

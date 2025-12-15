@@ -56,15 +56,16 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 		$table        = $wpdb->prefix . 'nbuf_menu_restrictions';
 		$placeholders = implode( ',', array_fill( 0, count( $menu_item_ids ), '%d' ) );
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom menu restrictions table, dynamic IN clause with spread operator.
 		$restrictions = $wpdb->get_results(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN clause with variable placeholders
-				"SELECT * FROM {$table} WHERE menu_item_id IN ($placeholders)",
+				"SELECT * FROM %i WHERE menu_item_id IN ($placeholders)",
+				$table,
 				...$menu_item_ids
 			),
 			OBJECT_K
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		/* Filter items */
 		$filtered_items = array();
@@ -119,11 +120,11 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom menu restrictions table.
 		$restriction = $wpdb->get_row(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT * FROM {$table} WHERE menu_item_id = %d",
+				'SELECT * FROM %i WHERE menu_item_id = %d',
+				$table,
 				$item_id
 			)
 		);
@@ -238,14 +239,12 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 			'updated_at'    => self::get_current_timestamp(),
 		);
 
-		/*
-		* Check if exists
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/* Check if exists */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom menu restrictions table.
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT menu_item_id FROM {$table} WHERE menu_item_id = %d",
+				'SELECT menu_item_id FROM %i WHERE menu_item_id = %d',
+				$table,
 				$menu_item_id
 			)
 		);

@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$reset_form = NBUF_Options::get( 'nbuf_reset_form_template', '' );
+$nbuf_reset_form = NBUF_Options::get( 'nbuf_reset_form_template', '' );
 
 /* If empty, load from default template */
-if ( empty( $reset_form ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'reset-form.html';
-	if ( file_exists( $template_path ) ) {
-		$reset_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_reset_form ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'reset-form.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_reset_form = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $reset_form ) ) {
 				name="nbuf_reset_form_template"
 				rows="25"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $reset_form ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_reset_form ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {error_message}, {password_requirements}, {action_url}, {nonce_field}, {login_url}', 'nobloat-user-foundry' ); ?>
 			</p>

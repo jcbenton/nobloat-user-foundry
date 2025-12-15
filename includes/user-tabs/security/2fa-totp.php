@@ -11,12 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$totp_method    = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
-$totp_length    = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
-$totp_window    = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
-$totp_tolerance = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
-$totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
-$totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
+$nbuf_totp_method    = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+$nbuf_totp_length    = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+$nbuf_totp_window    = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+$nbuf_totp_tolerance = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
+$nbuf_totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
+$nbuf_totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -39,13 +39,13 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 			<th><?php esc_html_e( 'TOTP Method', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_totp_method">
-					<option value="disabled" <?php selected( $totp_method, 'disabled' ); ?>>
+					<option value="disabled" <?php selected( $nbuf_totp_method, 'disabled' ); ?>>
 						<?php esc_html_e( 'Off', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="user_configurable" <?php selected( $totp_method, 'user_configurable' ); ?><?php selected( $totp_method, 'optional' ); ?><?php selected( $totp_method, 'optional_all' ); ?>>
+					<option value="user_configurable" <?php selected( $nbuf_totp_method, 'user_configurable' ); ?><?php selected( $nbuf_totp_method, 'optional' ); ?><?php selected( $nbuf_totp_method, 'optional_all' ); ?>>
 						<?php esc_html_e( 'User Configurable (users can enable in their account)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="required" <?php selected( $totp_method, 'required' ); ?><?php selected( $totp_method, 'required_all' ); ?><?php selected( $totp_method, 'required_admin' ); ?>>
+					<option value="required" <?php selected( $nbuf_totp_method, 'required' ); ?><?php selected( $nbuf_totp_method, 'required_all' ); ?><?php selected( $nbuf_totp_method, 'required_admin' ); ?>>
 						<?php esc_html_e( 'Required (all users must use TOTP 2FA)', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -62,8 +62,8 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 			<th><?php esc_html_e( 'Code Length', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_totp_code_length">
-					<option value="6" <?php selected( $totp_length, 6 ); ?>>6 <?php esc_html_e( 'digits (standard)', 'nobloat-user-foundry' ); ?></option>
-					<option value="8" <?php selected( $totp_length, 8 ); ?>>8 <?php esc_html_e( 'digits (extra secure)', 'nobloat-user-foundry' ); ?></option>
+					<option value="6" <?php selected( $nbuf_totp_length, 6 ); ?>>6 <?php esc_html_e( 'digits (standard)', 'nobloat-user-foundry' ); ?></option>
+					<option value="8" <?php selected( $nbuf_totp_length, 8 ); ?>>8 <?php esc_html_e( 'digits (extra secure)', 'nobloat-user-foundry' ); ?></option>
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'Length of TOTP codes. Most apps use 6 digits. Default: 6', 'nobloat-user-foundry' ); ?>
@@ -74,8 +74,8 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 			<th><?php esc_html_e( 'Time Window', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_totp_time_window">
-					<option value="30" <?php selected( $totp_window, 30 ); ?>>30 <?php esc_html_e( 'seconds (standard)', 'nobloat-user-foundry' ); ?></option>
-					<option value="60" <?php selected( $totp_window, 60 ); ?>>60 <?php esc_html_e( 'seconds', 'nobloat-user-foundry' ); ?></option>
+					<option value="30" <?php selected( $nbuf_totp_window, 30 ); ?>>30 <?php esc_html_e( 'seconds (standard)', 'nobloat-user-foundry' ); ?></option>
+					<option value="60" <?php selected( $nbuf_totp_window, 60 ); ?>>60 <?php esc_html_e( 'seconds', 'nobloat-user-foundry' ); ?></option>
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'How often codes change. Most apps use 30 seconds. Default: 30', 'nobloat-user-foundry' ); ?>
@@ -86,9 +86,9 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 			<th><?php esc_html_e( 'Clock Tolerance', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_totp_tolerance">
-					<option value="0" <?php selected( $totp_tolerance, 0 ); ?>>±0 <?php esc_html_e( 'windows (strict)', 'nobloat-user-foundry' ); ?></option>
-					<option value="1" <?php selected( $totp_tolerance, 1 ); ?>>±1 <?php esc_html_e( 'window (recommended)', 'nobloat-user-foundry' ); ?></option>
-					<option value="2" <?php selected( $totp_tolerance, 2 ); ?>>±2 <?php esc_html_e( 'windows (lenient)', 'nobloat-user-foundry' ); ?></option>
+					<option value="0" <?php selected( $nbuf_totp_tolerance, 0 ); ?>>±0 <?php esc_html_e( 'windows (strict)', 'nobloat-user-foundry' ); ?></option>
+					<option value="1" <?php selected( $nbuf_totp_tolerance, 1 ); ?>>±1 <?php esc_html_e( 'window (recommended)', 'nobloat-user-foundry' ); ?></option>
+					<option value="2" <?php selected( $nbuf_totp_tolerance, 2 ); ?>>±2 <?php esc_html_e( 'windows (lenient)', 'nobloat-user-foundry' ); ?></option>
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'Allow codes from previous/next time windows to account for clock drift. Default: ±1', 'nobloat-user-foundry' ); ?>
@@ -98,7 +98,7 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 		<tr>
 			<th><?php esc_html_e( 'QR Code Size', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_totp_qr_size" value="<?php echo esc_attr( $totp_qr_size ); ?>" min="100" max="500" step="50" class="small-text">
+				<input type="number" name="nbuf_2fa_totp_qr_size" value="<?php echo esc_attr( $nbuf_totp_qr_size ); ?>" min="100" max="500" step="50" class="small-text">
 				<span><?php esc_html_e( 'pixels', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Size of QR codes shown during TOTP setup. Default: 200px', 'nobloat-user-foundry' ); ?>
@@ -109,13 +109,13 @@ $totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 			<th><?php esc_html_e( 'QR Code Generation', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_qr_method">
-					<option value="external" <?php selected( $totp_qr_method, 'external' ); ?>>
+					<option value="external" <?php selected( $nbuf_totp_qr_method, 'external' ); ?>>
 						<?php esc_html_e( 'External API (reliable, requires internet)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="svg" <?php selected( $totp_qr_method, 'svg' ); ?>>
+					<option value="svg" <?php selected( $nbuf_totp_qr_method, 'svg' ); ?>>
 						<?php esc_html_e( 'Built-in SVG (simplified, no dependencies)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="auto" <?php selected( $totp_qr_method, 'auto' ); ?>>
+					<option value="auto" <?php selected( $nbuf_totp_qr_method, 'auto' ); ?>>
 						<?php esc_html_e( 'Auto (try built-in, fallback to external)', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>

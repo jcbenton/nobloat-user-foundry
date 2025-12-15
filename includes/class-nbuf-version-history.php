@@ -233,8 +233,8 @@ class NBUF_Version_History {
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 		$user_data       = $wpdb->get_row(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT * FROM $user_data_table WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
+				$user_data_table,
 				$user_id
 			),
 			ARRAY_A
@@ -249,8 +249,8 @@ class NBUF_Version_History {
 		$profile_table = $wpdb->prefix . 'nbuf_user_profile';
 		$profile       = $wpdb->get_row(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT * FROM $profile_table WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
+				$profile_table,
 				$user_id
 			),
 			ARRAY_A
@@ -355,7 +355,7 @@ class NBUF_Version_History {
 		/* Build data and format arrays (handle NULL values properly) */
 		$data = array(
 			'user_id'        => $user_id,
-			'changed_at'     => current_time( 'mysql', true ),
+			'changed_at'     => gmdate( 'Y-m-d H:i:s' ),
 			'change_type'    => $change_type,
 			'fields_changed' => wp_json_encode( $changed_fields ),
 			'snapshot_data'  => wp_json_encode( $snapshot ),
@@ -633,8 +633,8 @@ class NBUF_Version_History {
 			/* Check if row exists */
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-           // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-					"SELECT COUNT(*) FROM $user_data_table WHERE user_id = %d",
+					'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+					$user_data_table,
 					$user_id
 				)
 			);
@@ -656,8 +656,8 @@ class NBUF_Version_History {
 			/* Check if row exists */
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-           // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-					"SELECT COUNT(*) FROM $profile_table WHERE user_id = %d",
+					'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+					$profile_table,
 					$user_id
 				)
 			);
@@ -761,6 +761,13 @@ class NBUF_Version_History {
 		$versions = $this->get_user_versions( $user_id, $per_page, $offset );
 		$total    = $this->get_user_version_count( $user_id );
 
+		/* Add formatted timestamps for browser display (uses WordPress date/time settings) */
+		foreach ( $versions as &$version ) {
+			$version->changed_at_date = NBUF_Options::format_local_time( $version->changed_at, 'date' );
+			$version->changed_at_time = NBUF_Options::format_local_time( $version->changed_at, 'time' );
+			$version->changed_at_full = NBUF_Options::format_local_time( $version->changed_at, 'full' );
+		}
+
 		wp_send_json_success(
 			array(
 				'versions' => $versions,
@@ -793,6 +800,10 @@ class NBUF_Version_History {
 		}
 
 		$diff = $this->compare_versions( $version_id_1, $version_id_2 );
+
+		/* Add formatted timestamps for browser display (uses WordPress date/time settings) */
+		$version1->changed_at_full = NBUF_Options::format_local_time( $version1->changed_at, 'full' );
+		$version2->changed_at_full = NBUF_Options::format_local_time( $version2->changed_at, 'full' );
 
 		wp_send_json_success(
 			array(

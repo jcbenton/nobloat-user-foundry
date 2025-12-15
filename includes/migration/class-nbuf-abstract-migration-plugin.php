@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes/migration
  */
-abstract class Abstract_NBUF_Migration_Plugin {
+abstract class NBUF_Abstract_Migration_Plugin {
 
 
 	/**
@@ -266,7 +266,7 @@ abstract class Abstract_NBUF_Migration_Plugin {
 		);
      // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query built with $wpdb->prepare() above.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query built with $wpdb->prepare() above, user_ids and meta_keys are validated arrays.
 		$results = $wpdb->get_results( $query );
 
 		/* Organize by user_id => meta_key => meta_value */

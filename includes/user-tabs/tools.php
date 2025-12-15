@@ -36,8 +36,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td><strong><?php esc_html_e( 'User Manager Status:', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
 						<?php
-						$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
-						if ( $system_enabled ) {
+						$nbuf_system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
+						if ( $nbuf_system_enabled ) {
 							echo '<span style="color: #00a32a; font-weight: 500;">✓ ' . esc_html__( 'ENABLED', 'nobloat-user-foundry' ) . '</span>';
 						} else {
 							echo '<span style="color: #d63638; font-weight: 500;">⚠️ ' . esc_html__( 'DISABLED', 'nobloat-user-foundry' ) . '</span>';
@@ -50,21 +50,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td>
 						<?php
 						global $wpdb;
-						$tables       = array(
+						$nbuf_tables       = array(
 							$wpdb->prefix . 'nbuf_tokens',
 							$wpdb->prefix . 'nbuf_user_data',
 							$wpdb->prefix . 'nbuf_options',
 							$wpdb->prefix . 'nbuf_user_profile',
 							$wpdb->prefix . 'nbuf_login_attempts',
 						);
-						$tables_exist = 0;
-						foreach ( $tables as $table ) {
+						$nbuf_tables_exist = 0;
+						foreach ( $nbuf_tables as $nbuf_table ) {
 							// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-							if ( $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
-								++$tables_exist;
+							if ( $nbuf_table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table ) ) ) {
+								++$nbuf_tables_exist;
 							}
 						}
-						echo esc_html( $tables_exist . ' / 5 tables exist' );
+						echo esc_html( $nbuf_tables_exist . ' / 5 tables exist' );
 						?>
 					</td>
 				</tr>
@@ -72,9 +72,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<td><strong><?php esc_html_e( 'Total Options:', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
 						<?php
-						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-						$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}nbuf_options" );
-						echo esc_html( $count . ' options in custom table' );
+						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table stats.
+						$nbuf_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $wpdb->prefix . 'nbuf_options' ) );
+						echo esc_html( $nbuf_count . ' options in custom table' );
 						?>
 					</td>
 				</tr>

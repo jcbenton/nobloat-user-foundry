@@ -15,70 +15,70 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Handle form submission */
 if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_profile_fields_settings', 'nbuf_profile_fields_nonce' ) ) {
-	$registration_fields = isset( $_POST['nbuf_registration_profile_fields'] ) && is_array( $_POST['nbuf_registration_profile_fields'] )
+	$nbuf_registration_fields = isset( $_POST['nbuf_registration_profile_fields'] ) && is_array( $_POST['nbuf_registration_profile_fields'] )
 		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_registration_profile_fields'] ) )
 		: array();
 
-	$required_fields = isset( $_POST['nbuf_required_profile_fields'] ) && is_array( $_POST['nbuf_required_profile_fields'] )
+	$nbuf_required_fields = isset( $_POST['nbuf_required_profile_fields'] ) && is_array( $_POST['nbuf_required_profile_fields'] )
 		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_required_profile_fields'] ) )
 		: array();
 
-	$account_fields = isset( $_POST['nbuf_account_profile_fields'] ) && is_array( $_POST['nbuf_account_profile_fields'] )
+	$nbuf_account_fields = isset( $_POST['nbuf_account_profile_fields'] ) && is_array( $_POST['nbuf_account_profile_fields'] )
 		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_account_profile_fields'] ) )
 		: array();
 
-	$field_labels = isset( $_POST['nbuf_profile_field_labels'] ) && is_array( $_POST['nbuf_profile_field_labels'] )
+	$nbuf_field_labels = isset( $_POST['nbuf_profile_field_labels'] ) && is_array( $_POST['nbuf_profile_field_labels'] )
 		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_profile_field_labels'] ) )
 		: array();
 
 	/* Filter out empty labels */
-	$field_labels = array_filter( $field_labels, function ( $label ) {
+	$nbuf_field_labels = array_filter( $nbuf_field_labels, function ( $label ) {
 		return ! empty( trim( $label ) );
 	} );
 
 	/* Save WordPress native field settings */
-	$show_description = isset( $_POST['nbuf_show_description_field'] ) ? 1 : 0;
-	NBUF_Options::update( 'nbuf_show_description_field', $show_description );
+	$nbuf_show_description = isset( $_POST['nbuf_show_description_field'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_show_description_field', $nbuf_show_description );
 
-	NBUF_Options::update( 'nbuf_registration_profile_fields', $registration_fields );
-	NBUF_Options::update( 'nbuf_required_profile_fields', $required_fields );
-	NBUF_Options::update( 'nbuf_account_profile_fields', $account_fields );
-	NBUF_Options::update( 'nbuf_profile_field_labels', $field_labels );
+	NBUF_Options::update( 'nbuf_registration_profile_fields', $nbuf_registration_fields );
+	NBUF_Options::update( 'nbuf_required_profile_fields', $nbuf_required_fields );
+	NBUF_Options::update( 'nbuf_account_profile_fields', $nbuf_account_fields );
+	NBUF_Options::update( 'nbuf_profile_field_labels', $nbuf_field_labels );
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile field settings saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
 /* Get current settings */
-$registration_fields = NBUF_Options::get( 'nbuf_registration_profile_fields', array() );
-$required_fields     = NBUF_Options::get( 'nbuf_required_profile_fields', array() );
-$account_fields      = NBUF_Options::get( 'nbuf_account_profile_fields', array() );
-$field_labels        = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
-$field_registry      = NBUF_Profile_Data::get_field_registry();
+$nbuf_registration_fields = NBUF_Options::get( 'nbuf_registration_profile_fields', array() );
+$nbuf_required_fields     = NBUF_Options::get( 'nbuf_required_profile_fields', array() );
+$nbuf_account_fields      = NBUF_Options::get( 'nbuf_account_profile_fields', array() );
+$nbuf_field_labels        = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+$nbuf_field_registry      = NBUF_Profile_Data::get_field_registry();
 
 /* For backward compatibility - migrate from old settings if new ones are empty */
-$old_enabled     = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
-$old_reg_fields  = NBUF_Options::get( 'nbuf_registration_fields', array() );
+$nbuf_old_enabled     = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
+$nbuf_old_reg_fields  = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
-if ( empty( $registration_fields ) && empty( $account_fields ) ) {
-	if ( ! empty( $old_enabled ) ) {
-		$registration_fields = $old_enabled;
-		$account_fields      = $old_enabled;
+if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
+	if ( ! empty( $nbuf_old_enabled ) ) {
+		$nbuf_registration_fields = $nbuf_old_enabled;
+		$nbuf_account_fields      = $nbuf_old_enabled;
 	}
 	/* Migrate labels and required from old registration settings */
-	if ( ! empty( $old_reg_fields ) ) {
-		foreach ( $old_reg_fields as $key => $value ) {
-			if ( strpos( $key, '_label' ) !== false && ! empty( $value ) ) {
-				$field_key = str_replace( '_label', '', $key );
-				$field_labels[ $field_key ] = $value;
+	if ( ! empty( $nbuf_old_reg_fields ) ) {
+		foreach ( $nbuf_old_reg_fields as $nbuf_key => $nbuf_value ) {
+			if ( strpos( $nbuf_key, '_label' ) !== false && ! empty( $nbuf_value ) ) {
+				$nbuf_field_key = str_replace( '_label', '', $nbuf_key );
+				$nbuf_field_labels[ $nbuf_field_key ] = $nbuf_value;
 			}
-			if ( strpos( $key, '_required' ) !== false && $value ) {
-				$field_key = str_replace( '_required', '', $key );
-				$required_fields[] = $field_key;
+			if ( strpos( $nbuf_key, '_required' ) !== false && $nbuf_value ) {
+				$nbuf_field_key = str_replace( '_required', '', $nbuf_key );
+				$nbuf_required_fields[] = $nbuf_field_key;
 			}
-			if ( strpos( $key, '_enabled' ) !== false && $value ) {
-				$field_key = str_replace( '_enabled', '', $key );
-				if ( ! in_array( $field_key, $registration_fields, true ) ) {
-					$registration_fields[] = $field_key;
+			if ( strpos( $nbuf_key, '_enabled' ) !== false && $nbuf_value ) {
+				$nbuf_field_key = str_replace( '_enabled', '', $nbuf_key );
+				if ( ! in_array( $nbuf_field_key, $nbuf_registration_fields, true ) ) {
+					$nbuf_registration_fields[] = $nbuf_field_key;
 				}
 			}
 		}
@@ -103,8 +103,8 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 	</p>
 
 	<?php
-	$show_description    = NBUF_Options::get( 'nbuf_show_description_field', false );
-	$description_label   = isset( $field_labels['description'] ) ? $field_labels['description'] : '';
+	$nbuf_show_description    = NBUF_Options::get( 'nbuf_show_description_field', false );
+	$nbuf_description_label   = isset( $nbuf_field_labels['description'] ) ? $nbuf_field_labels['description'] : '';
 	?>
 
 	<table style="margin-bottom: 30px; border-collapse: collapse; width: 100%;">
@@ -123,12 +123,12 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 					<input type="checkbox"
 						name="nbuf_show_description_field"
 						value="1"
-						<?php checked( $show_description, true ); ?>>
+						<?php checked( $nbuf_show_description, true ); ?>>
 				</td>
 				<td style="padding: 8px 10px;">
 					<input type="text"
 						name="nbuf_profile_field_labels[description]"
-						value="<?php echo esc_attr( $description_label ); ?>"
+						value="<?php echo esc_attr( $nbuf_description_label ); ?>"
 						class="regular-text"
 						placeholder="<?php esc_attr_e( 'Biography', 'nobloat-user-foundry' ); ?>"
 						style="width: 100%;">
@@ -143,8 +143,8 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 	<!-- Extended Profile Fields -->
 	<h3 style="margin-top: 30px;"><?php esc_html_e( 'Extended Profile Fields', 'nobloat-user-foundry' ); ?></h3>
 
-	<?php foreach ( $field_registry as $category_key => $category_data ) : ?>
-		<h3><?php echo esc_html( $category_data['label'] ); ?></h3>
+	<?php foreach ( $nbuf_field_registry as $nbuf_category_key => $nbuf_category_data ) : ?>
+		<h3><?php echo esc_html( $nbuf_category_data['label'] ); ?></h3>
 		<table style="margin-bottom: 30px; border-collapse: collapse; width: 100%;">
 			<thead>
 				<tr>
@@ -158,50 +158,50 @@ if ( empty( $registration_fields ) && empty( $account_fields ) ) {
 			</thead>
 			<tbody>
 		<?php
-		foreach ( $category_data['fields'] as $field_key => $field_label ) :
-			$is_registration = in_array( $field_key, $registration_fields, true );
-			$is_required     = in_array( $field_key, $required_fields, true );
-			$is_account      = in_array( $field_key, $account_fields, true );
-			$custom_label    = $field_labels[ $field_key ] ?? '';
-			$description     = nbuf_get_field_description( $field_key );
+		foreach ( $nbuf_category_data['fields'] as $nbuf_field_key => $nbuf_field_label ) :
+			$nbuf_is_registration = in_array( $nbuf_field_key, $nbuf_registration_fields, true );
+			$nbuf_is_required     = in_array( $nbuf_field_key, $nbuf_required_fields, true );
+			$nbuf_is_account      = in_array( $nbuf_field_key, $nbuf_account_fields, true );
+			$nbuf_custom_label    = $nbuf_field_labels[ $nbuf_field_key ] ?? '';
+			$nbuf_description = nbuf_get_field_description( $nbuf_field_key );
 			?>
 				<tr>
-					<td style="padding: 8px 10px;"><strong><?php echo esc_html( $field_label ); ?></strong></td>
+					<td style="padding: 8px 10px;"><strong><?php echo esc_html( $nbuf_field_label ); ?></strong></td>
 					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_registration_profile_fields[]"
-							value="<?php echo esc_attr( $field_key ); ?>"
-							<?php checked( $is_registration, true ); ?>
+							value="<?php echo esc_attr( $nbuf_field_key ); ?>"
+							<?php checked( $nbuf_is_registration, true ); ?>
 							class="nbuf-reg-toggle"
-							data-category="<?php echo esc_attr( $category_key ); ?>"
-							data-field="<?php echo esc_attr( $field_key ); ?>">
+							data-category="<?php echo esc_attr( $nbuf_category_key ); ?>"
+							data-field="<?php echo esc_attr( $nbuf_field_key ); ?>">
 					</td>
 					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_required_profile_fields[]"
-							value="<?php echo esc_attr( $field_key ); ?>"
-							<?php checked( $is_required, true ); ?>
-							<?php disabled( ! $is_registration, true ); ?>
+							value="<?php echo esc_attr( $nbuf_field_key ); ?>"
+							<?php checked( $nbuf_is_required, true ); ?>
+							<?php disabled( ! $nbuf_is_registration, true ); ?>
 							class="nbuf-required-toggle"
-							data-field="<?php echo esc_attr( $field_key ); ?>">
+							data-field="<?php echo esc_attr( $nbuf_field_key ); ?>">
 					</td>
 					<td style="text-align: center; padding: 8px 10px;">
 						<input type="checkbox"
 							name="nbuf_account_profile_fields[]"
-							value="<?php echo esc_attr( $field_key ); ?>"
-							<?php checked( $is_account, true ); ?>
+							value="<?php echo esc_attr( $nbuf_field_key ); ?>"
+							<?php checked( $nbuf_is_account, true ); ?>
 							class="nbuf-account-toggle"
-							data-category="<?php echo esc_attr( $category_key ); ?>">
+							data-category="<?php echo esc_attr( $nbuf_category_key ); ?>">
 					</td>
 					<td style="padding: 8px 10px;">
 						<input type="text"
-							name="nbuf_profile_field_labels[<?php echo esc_attr( $field_key ); ?>]"
-							value="<?php echo esc_attr( $custom_label ); ?>"
+							name="nbuf_profile_field_labels[<?php echo esc_attr( $nbuf_field_key ); ?>]"
+							value="<?php echo esc_attr( $nbuf_custom_label ); ?>"
 							class="regular-text"
-							placeholder="<?php echo esc_attr( $field_label ); ?>"
+							placeholder="<?php echo esc_attr( $nbuf_field_label ); ?>"
 							style="width: 100%;">
 					</td>
-					<td style="padding: 8px 10px;"><span class="description"><?php echo esc_html( $description ); ?></span></td>
+					<td style="padding: 8px 10px;"><span class="description"><?php echo esc_html( $nbuf_description ); ?></span></td>
 				</tr>
 		<?php endforeach; ?>
 			</tbody>
@@ -247,10 +247,10 @@ jQuery(document).ready(function($) {
 /**
  * Get field description for UI display
  *
- * @param  string $field_key Field key.
+ * @param  string $nbuf_field_key Field key.
  * @return string Field description.
  */
-function nbuf_get_field_description( $field_key ) {
+function nbuf_get_field_description( $nbuf_field_key ) {
 	$descriptions = array(
 		'phone'                    => __( 'Primary phone number', 'nobloat-user-foundry' ),
 		'mobile_phone'             => __( 'Mobile/cell phone number', 'nobloat-user-foundry' ),
@@ -318,5 +318,5 @@ function nbuf_get_field_description( $field_key ) {
 		'emergency_contact'        => __( 'Emergency contact info', 'nobloat-user-foundry' ),
 	);
 
-	return isset( $descriptions[ $field_key ] ) ? $descriptions[ $field_key ] : '';
+	return isset( $descriptions[ $nbuf_field_key ] ) ? $descriptions[ $nbuf_field_key ] : '';
 }

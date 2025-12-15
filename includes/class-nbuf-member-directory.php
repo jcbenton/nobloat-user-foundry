@@ -269,10 +269,8 @@ class NBUF_Member_Directory {
 		$offset = ( $args['paged'] - 1 ) * $args['per_page'];
 		$sql   .= $wpdb->prepare( ' LIMIT %d OFFSET %d', $args['per_page'], $offset );
 
-		/*
-		Execute query
-		*/
-     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with $wpdb->prepare() above, caching not needed for dynamic directory.
+		/* Execute query */
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query built incrementally with prepare() for values; orderby is whitelisted.
 		$members = $wpdb->get_results( $sql );
 
 		/*

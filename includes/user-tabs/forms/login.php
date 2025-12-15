@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$login_form = NBUF_Options::get( 'nbuf_login_form_template', '' );
+$nbuf_login_form = NBUF_Options::get( 'nbuf_login_form_template', '' );
 
 /* If empty, load from default template */
-if ( empty( $login_form ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'login-form.html';
-	if ( file_exists( $template_path ) ) {
-		$login_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_login_form ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'login-form.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_login_form = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $login_form ) ) {
 				name="nbuf_login_form_template"
 				rows="25"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $login_form ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_login_form ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {error_message}, {action_url}, {nonce_field}, {redirect_to}, {reset_link}, {register_link}', 'nobloat-user-foundry' ); ?>
 			</p>

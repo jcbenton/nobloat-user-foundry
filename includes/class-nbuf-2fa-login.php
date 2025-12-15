@@ -147,7 +147,7 @@ class NBUF_2FA_Login {
 	 */
 	public static function maybe_handle_2fa_verification() {
 		/* Early exit for non-POST requests - no need to check anything else */
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 			return;
 		}
 
@@ -296,6 +296,7 @@ class NBUF_2FA_Login {
 		);
 
 		/* Fire login action */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_login is a core WordPress hook.
 		do_action( 'wp_login', $user->user_login, $user );
 
 		/* Determine redirect URL from plugin settings */

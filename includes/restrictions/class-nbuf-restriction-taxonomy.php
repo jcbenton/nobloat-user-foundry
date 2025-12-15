@@ -182,7 +182,8 @@ class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
 
 		if ( ! empty( $excluded_ids ) ) {
 			/* Merge with existing exclude */
-			$existing        = isset( $args['exclude'] ) ? (array) $args['exclude'] : array();
+			$existing = isset( $args['exclude'] ) ? (array) $args['exclude'] : array();
+			// phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- Exclude is required for role-based taxonomy restrictions; list is typically small and cached.
 			$args['exclude'] = array_merge( $existing, $excluded_ids );
 		}
 

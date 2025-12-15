@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Master toggle */
-$user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
+$nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -34,10 +34,10 @@ $user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 				<td>
 					<input type="hidden" name="nbuf_user_manager_enabled" value="0">
 					<label>
-						<input type="checkbox" name="nbuf_user_manager_enabled" value="1" <?php checked( $user_manager_enabled, true ); ?> id="nbuf_user_manager_enabled">
+						<input type="checkbox" name="nbuf_user_manager_enabled" value="1" <?php checked( $nbuf_user_manager_enabled, true ); ?> id="nbuf_user_manager_enabled">
 						<strong><?php esc_html_e( 'Enable User Management System', 'nobloat-user-foundry' ); ?></strong>
 					</label>
-					<?php if ( ! $user_manager_enabled ) : ?>
+					<?php if ( ! $nbuf_user_manager_enabled ) : ?>
 						<p class="description" style="color: #d63638; font-weight: 500;">
 							<?php esc_html_e( 'User management is currently DISABLED. Configure your settings and migrate any data before enabling.', 'nobloat-user-foundry' ); ?>
 						</p>

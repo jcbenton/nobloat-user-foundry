@@ -513,6 +513,7 @@ class NBUF_Password_Expiration {
 				wp_clear_auth_cookie();
 				wp_set_current_user( $user_id );
 				wp_set_auth_cookie( $user_id, true );
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_login is a core WordPress hook.
 				do_action( 'wp_login', $user->user_login, $user );
 
 				/* Redirect to admin or home */
@@ -634,29 +635,19 @@ class NBUF_Password_Expiration {
 		$expiration_days = (int) NBUF_Options::get( 'nbuf_password_expiration_days', 365 );
 
 		if ( $expiration_days <= 0 ) {
-			/*
-			* Clear all expirations.
-			*/
-         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->query( "UPDATE {$table_name} SET password_expires_at = NULL WHERE password_expires_at IS NOT NULL" );
-         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			/* Clear all expirations */
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET password_expires_at = NULL WHERE password_expires_at IS NOT NULL', $table_name ) );
 			return 0;
 		}
 
-		/*
-		* Update all users with password_changed_at.
-		*/
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sql = $wpdb->prepare(
-			"UPDATE {$table_name}
-			SET password_expires_at = DATE_ADD(password_changed_at, INTERVAL %d DAY)
-			WHERE password_changed_at IS NOT NULL",
-			$expiration_days
+		/* Update all users with password_changed_at */
+		return $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET password_expires_at = DATE_ADD(password_changed_at, INTERVAL %d DAY) WHERE password_changed_at IS NOT NULL',
+				$table_name,
+				$expiration_days
+			)
 		);
-
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query prepared above with $wpdb->prepare().
-		return $wpdb->query( $sql );
-    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

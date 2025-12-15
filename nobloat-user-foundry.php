@@ -11,7 +11,6 @@
  * License: GPLv3 or later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: nobloat-user-foundry
- * Domain Path: /languages
  * Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
  *
  * @package NoBloat_User_Foundry
@@ -24,8 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define plugin constants
  */
-$plugin_data = get_file_data( __FILE__, array( 'Version' => 'Version' ), false );
-define( 'NBUF_VERSION', $plugin_data['Version'] );
+$nbuf_plugin_data = get_file_data( __FILE__, array( 'Version' => 'Version' ), false );
+define( 'NBUF_VERSION', $nbuf_plugin_data['Version'] );
 define( 'NBUF_PLUGIN_FILE', __FILE__ );
 define( 'NBUF_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NBUF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -58,7 +57,7 @@ function nbuf_autoload( $class_name ) {
 	// Convert class name to file name.
 	// NBUF_User_Data → class-nbuf-user-data.php.
 	// NBUF_2FA_Login → class-nbuf-2fa-login.php.
-	// Abstract_NBUF_Migration_Plugin → class-abstract-nbuf-migration-plugin.php.
+	// NBUF_Abstract_Migration_Plugin → class-nbuf-abstract-migration-plugin.php.
 	$class_lower = strtolower( $class_name );
 	$class_file  = str_replace( '_', '-', $class_lower );
 
@@ -122,8 +121,8 @@ add_action(
 		// Preload all autoload settings in ONE query (massive performance boost).
 		NBUF_Options::preload_autoload();
 
-		// Load text domain for translations.
-		load_plugin_textdomain( 'nobloat-user-foundry', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+		// Note: load_plugin_textdomain() is not needed for WordPress.org hosted plugins.
+		// WordPress automatically loads translations since version 4.6.
 
 		// Initialize admin settings (ALWAYS - needed to configure when disabled).
 		if ( is_admin() ) {
@@ -337,25 +336,26 @@ add_action(
  *
  * Lazy initialization - only loads on login pages to avoid
  * unnecessary hooks. Autoloader loads classes on-demand.
+ *
+ * Note: Login limiting works independently of the main user manager toggle
+ * since security features should always be available when enabled.
  */
 add_action(
 	'login_init',
 	function () {
-		// Check if user management system is enabled.
-		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
-		if ( ! $system_enabled ) {
-			return;
-		}
-
-		$enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
-		if ( $enabled ) {
+		/* Login limiting - works independently of main system toggle for security */
+		$login_limiting_enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
+		if ( $login_limiting_enabled ) {
 			NBUF_Login_Limiting::init();
 		}
 
-		/* Initialize password expiration system (if enabled) */
-		$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
-		if ( $password_expiration_enabled ) {
-			NBUF_Password_Expiration::init();
+		/* Password expiration requires main system to be enabled */
+		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
+		if ( $system_enabled ) {
+			$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
+			if ( $password_expiration_enabled ) {
+				NBUF_Password_Expiration::init();
+			}
 		}
 	}
 );

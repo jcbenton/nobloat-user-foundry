@@ -260,14 +260,12 @@ class NBUF_Restriction_Metabox {
 			'updated_at'         => current_time( 'mysql', true ),
 		);
 
-		/*
-		* Check if restriction exists
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/* Check if restriction exists */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom restrictions table.
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT content_id FROM {$table} WHERE content_id = %d AND content_type = %s",
+				'SELECT content_id FROM %i WHERE content_id = %d AND content_type = %s',
+				$table,
 				$post_id,
 				$post->post_type
 			)

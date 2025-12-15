@@ -495,14 +495,14 @@ class NBUF_Database {
 		global $wpdb;
 		self::init();
 
-     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
-		$sql = $wpdb->prepare(
-			'SELECT * FROM ' . self::$table_name . ' WHERE token = %s LIMIT 1',
-			$token
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query prepared above.
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE token = %s LIMIT 1',
+				self::$table_name,
+				$token
+			)
 		);
-
-		return $wpdb->get_row( $sql );
-     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -541,16 +541,14 @@ class NBUF_Database {
 
 		$now = gmdate( 'Y-m-d H:i:s' );
 
-     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (bool) $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM ' . self::$table_name . '
-                 WHERE (expires_at < %s OR verified = 1)
-                 AND is_test = 0',
+				'DELETE FROM %i WHERE (expires_at < %s OR verified = 1) AND is_test = 0',
+				self::$table_name,
 				$now
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -757,42 +755,34 @@ class NBUF_Database {
 
 		/* Add profile_privacy column */
 		if ( ! self::column_exists( $table_name, 'profile_privacy' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN profile_privacy VARCHAR(20) DEFAULT 'private' AFTER password_changed_at" );
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN profile_privacy VARCHAR(20) DEFAULT 'private' AFTER password_changed_at", $table_name ) );
 			$needs_update = true;
 		}
 
 		/* Add show_in_directory column */
 		if ( ! self::column_exists( $table_name, 'show_in_directory' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN show_in_directory TINYINT(1) DEFAULT 0 AFTER profile_privacy" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN show_in_directory TINYINT(1) DEFAULT 0 AFTER profile_privacy', $table_name ) );
 			$needs_update = true;
 		}
 
 		/* Add privacy_settings column */
 		if ( ! self::column_exists( $table_name, 'privacy_settings' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN privacy_settings LONGTEXT DEFAULT NULL AFTER show_in_directory" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN privacy_settings LONGTEXT DEFAULT NULL AFTER show_in_directory', $table_name ) );
 			$needs_update = true;
 		}
 
 		/* Add visible_fields column for user-selected public profile fields */
 		if ( ! self::column_exists( $table_name, 'visible_fields' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN visible_fields TEXT DEFAULT NULL AFTER privacy_settings" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN visible_fields TEXT DEFAULT NULL AFTER privacy_settings', $table_name ) );
 			$needs_update = true;
 		}
 
 		/* Add composite index for directory queries if we made updates */
 		if ( $needs_update ) {
-			/*
-			Check if index already exists
-			*/
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table_name}` WHERE Key_name = 'idx_directory'" );
+			/* Check if index already exists */
+			$indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = 'idx_directory'", $table_name ) );
 			if ( empty( $indexes ) ) {
-             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				$wpdb->query( "ALTER TABLE `{$table_name}` ADD INDEX idx_directory (show_in_directory, profile_privacy)" );
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_directory (show_in_directory, profile_privacy)', $table_name ) );
 			}
 		}
 
@@ -813,32 +803,27 @@ class NBUF_Database {
 
 		/* Add profile_photo_url column */
 		if ( ! self::column_exists( $table_name, 'profile_photo_url' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN profile_photo_url VARCHAR(500) DEFAULT NULL AFTER privacy_settings" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN profile_photo_url VARCHAR(500) DEFAULT NULL AFTER privacy_settings', $table_name ) );
 		}
 
 		/* Add profile_photo_path column */
 		if ( ! self::column_exists( $table_name, 'profile_photo_path' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN profile_photo_path VARCHAR(500) DEFAULT NULL AFTER profile_photo_url" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN profile_photo_path VARCHAR(500) DEFAULT NULL AFTER profile_photo_url', $table_name ) );
 		}
 
 		/* Add cover_photo_url column */
 		if ( ! self::column_exists( $table_name, 'cover_photo_url' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN cover_photo_url VARCHAR(500) DEFAULT NULL AFTER profile_photo_path" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN cover_photo_url VARCHAR(500) DEFAULT NULL AFTER profile_photo_path', $table_name ) );
 		}
 
 		/* Add cover_photo_path column */
 		if ( ! self::column_exists( $table_name, 'cover_photo_path' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN cover_photo_path VARCHAR(500) DEFAULT NULL AFTER cover_photo_url" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN cover_photo_path VARCHAR(500) DEFAULT NULL AFTER cover_photo_url', $table_name ) );
 		}
 
 		/* Add use_gravatar column */
 		if ( ! self::column_exists( $table_name, 'use_gravatar' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN use_gravatar TINYINT(1) DEFAULT 0 AFTER cover_photo_path" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN use_gravatar TINYINT(1) DEFAULT 0 AFTER cover_photo_path', $table_name ) );
 		}
 
 		return true;
@@ -903,24 +888,18 @@ class NBUF_Database {
 
 		/* Add password_expires_at column */
 		if ( ! self::column_exists( $table_name, 'password_expires_at' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN password_expires_at DATETIME DEFAULT NULL AFTER password_changed_at" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN password_expires_at DATETIME DEFAULT NULL AFTER password_changed_at', $table_name ) );
 		}
 
 		/* Add force_password_change column */
 		if ( ! self::column_exists( $table_name, 'force_password_change' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN force_password_change TINYINT(1) DEFAULT 0 AFTER password_expires_at" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN force_password_change TINYINT(1) DEFAULT 0 AFTER password_expires_at', $table_name ) );
 		}
 
-		/*
-		Add index for password expiration queries
-		*/
-     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-		$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table_name}` WHERE Key_name = 'idx_password_expiration'" );
+		/* Add index for password expiration queries */
+		$indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = 'idx_password_expiration'", $table_name ) );
 		if ( empty( $indexes ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD INDEX idx_password_expiration (password_expires_at, force_password_change)" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_password_expiration (password_expires_at, force_password_change)', $table_name ) );
 		}
 
 		return true;
@@ -947,8 +926,7 @@ class NBUF_Database {
 
 		/* Add tertiary_email column after secondary_email */
 		if ( ! self::column_exists( $table_name, 'tertiary_email' ) ) {
-         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-			$wpdb->query( "ALTER TABLE `{$table_name}` ADD COLUMN tertiary_email VARCHAR(255) DEFAULT NULL AFTER secondary_email" );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN tertiary_email VARCHAR(255) DEFAULT NULL AFTER secondary_email', $table_name ) );
 		}
 
 		return true;
@@ -994,25 +972,19 @@ class NBUF_Database {
 			return true;
 		}
 
-		/*
-		Get existing indexes to avoid duplication errors
-		*/
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/* Get existing indexes to avoid duplication errors */
 		$existing_indexes = $wpdb->get_results(
-			"SHOW INDEX FROM `{$table_name}`",
+			$wpdb->prepare( 'SHOW INDEX FROM %i', $table_name ),
 			ARRAY_A
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$index_names = wp_list_pluck( $existing_indexes, 'Key_name' );
 
 		$migration_success = true;
 		$errors            = array();
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 		/* Add username index if not exists */
 		if ( ! in_array( 'username', $index_names, true ) ) {
-			$result = $wpdb->query( "ALTER TABLE `{$table_name}` ADD KEY username (username)" );
+			$result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY username (username)', $table_name ) );
 			if ( false === $result ) {
 				$migration_success = false;
 				$errors[]          = 'Failed to add username index: ' . $wpdb->last_error;
@@ -1021,7 +993,7 @@ class NBUF_Database {
 
 		/* Add ip_address index if not exists */
 		if ( ! in_array( 'ip_address', $index_names, true ) ) {
-			$result = $wpdb->query( "ALTER TABLE `{$table_name}` ADD KEY ip_address (ip_address)" );
+			$result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY ip_address (ip_address)', $table_name ) );
 			if ( false === $result ) {
 				$migration_success = false;
 				$errors[]          = 'Failed to add ip_address index: ' . $wpdb->last_error;
@@ -1036,14 +1008,12 @@ class NBUF_Database {
 			* - Column must not be NULL
 			* - May fail on older MySQL versions
 			*/
-			$result = $wpdb->query( "ALTER TABLE `{$table_name}` ADD FULLTEXT KEY search_message (event_message)" );
+			$result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD FULLTEXT KEY search_message (event_message)', $table_name ) );
 			if ( false === $result ) {
 				$migration_success = false;
 				$errors[]          = 'Failed to add FULLTEXT index: ' . $wpdb->last_error;
 			}
 		}
-
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		/* Log results */
 		if ( $migration_success ) {

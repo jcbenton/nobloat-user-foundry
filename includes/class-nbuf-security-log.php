@@ -130,7 +130,7 @@ class NBUF_Security_Log {
 		$result = $wpdb->insert(
 			$wpdb->prefix . self::TABLE_NAME,
 			array(
-				'timestamp'  => current_time( 'mysql', true ), // Store in UTC for consistency.
+				'timestamp'  => gmdate( 'Y-m-d H:i:s' ),
 				'severity'   => $severity,
 				'event_type' => $event_type,
 				'user_id'    => $user_id,
@@ -517,11 +517,13 @@ class NBUF_Security_Log {
 	 * Prune old log entries based on retention period
 	 *
 	 * Runs daily via cron.
+	 *
+	 * @return int Number of deleted entries.
 	 */
 	public static function prune_old_logs() {
 		global $wpdb;
 
-		$retention_period = NBUF_Options::get( 'nbuf_security_log_retention', '365days' );
+		$retention_period = NBUF_Options::get( 'nbuf_security_log_retention', '90days' );
 		$table_name       = $wpdb->prefix . self::TABLE_NAME;
 
 		/* Convert retention period to days */
@@ -535,18 +537,20 @@ class NBUF_Security_Log {
 			'forever' => 0,
 		);
 
-		$retention_days = isset( $retention_map[ $retention_period ] ) ? $retention_map[ $retention_period ] : 365;
+		$retention_days = isset( $retention_map[ $retention_period ] ) ? $retention_map[ $retention_period ] : 90;
 
 		/* Don't prune if set to forever */
 		if ( 0 === $retention_days ) {
-			return;
+			return 0;
 		}
 
 		// Delete old logs.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron job deletes old logs; caching not applicable.
+		$table_name = $wpdb->prefix . 'nbuf_security_log';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron job deletes old logs.
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->prefix}nbuf_security_log WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY)",
+				'DELETE FROM %i WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY)',
+				$table_name,
 				$retention_days
 			)
 		);
@@ -569,6 +573,8 @@ class NBUF_Security_Log {
 				0 /* System action */
 			);
 		}
+
+		return $deleted ? $deleted : 0;
 	}
 
 	/**
@@ -675,22 +681,24 @@ class NBUF_Security_Log {
 
 		/* Build WHERE clause */
 		$where_clause = implode( ' AND ', $where );
+		$table_name   = $wpdb->prefix . 'nbuf_security_log';
 
 		/* Build base query with whitelisted orderby and order (safe, from whitelist) */
-		$base_query = "SELECT * FROM {$wpdb->prefix}nbuf_security_log WHERE " . $where_clause . ' ORDER BY ' . $orderby_column . ' ' . $order_direction . ' LIMIT %d OFFSET %d';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $orderby_column and $order_direction are whitelisted values.
+		$base_query = "SELECT * FROM %i WHERE " . $where_clause . ' ORDER BY ' . $orderby_column . ' ' . $order_direction . ' LIMIT %d OFFSET %d';
 
 		/* Build complete query with all parameters */
 		if ( ! empty( $where_args ) ) {
 			$where_args[] = $args['limit'];
 			$where_args[] = $args['offset'];
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with whitelisted values and placeholders for user input.
-			$query = $wpdb->prepare( $base_query, $where_args );
+			$query = $wpdb->prepare( $base_query, array_merge( array( $table_name ), $where_args ) );
 		} else {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with whitelisted values, only LIMIT/OFFSET need preparation.
-			$query = $wpdb->prepare( $base_query, $args['limit'], $args['offset'] );
+			$query = $wpdb->prepare( $base_query, $table_name, $args['limit'], $args['offset'] );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query fully prepared above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query fully prepared above, orderby/order are whitelisted.
 		return $wpdb->get_results( $query );
 	}
 
@@ -748,17 +756,18 @@ class NBUF_Security_Log {
 
 		/* Build WHERE clause */
 		$where_clause = implode( ' AND ', $where );
+		$table_name   = $wpdb->prefix . 'nbuf_security_log';
 
 		/* Build base query with WHERE clause */
-		$base_query = "SELECT COUNT(*) FROM {$wpdb->prefix}nbuf_security_log WHERE " . $where_clause;
+		$base_query = 'SELECT COUNT(*) FROM %i WHERE ' . $where_clause;
 
 		/* Build complete query with all parameters */
 		if ( ! empty( $where_args ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with placeholders for user input.
-			return (int) $wpdb->get_var( $wpdb->prepare( $base_query, $where_args ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom security log table, query built with placeholders, search is escaped with esc_like.
+			return (int) $wpdb->get_var( $wpdb->prepare( $base_query, array_merge( array( $table_name ), $where_args ) ) );
 		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- No user input, static query.
-			return (int) $wpdb->get_var( $base_query );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Custom security log table, query built with placeholders.
+			return (int) $wpdb->get_var( $wpdb->prepare( $base_query, $table_name ) );
 		}
 	}
 
@@ -769,17 +778,21 @@ class NBUF_Security_Log {
 	 */
 	public static function get_statistics() {
 		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_security_log';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Statistics query for dashboard; table prefix is safe.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statistics query for dashboard.
 		$stats = $wpdb->get_row(
-			"SELECT
-				COUNT(*) as total,
-				SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
-				SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
-				SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) as info,
-				SUM(CASE WHEN timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as last_7_days,
-				SUM(CASE WHEN timestamp >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as last_30_days
-			FROM {$wpdb->prefix}nbuf_security_log",
+			$wpdb->prepare(
+				"SELECT
+					COUNT(*) as total,
+					SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
+					SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
+					SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) as info,
+					SUM(CASE WHEN timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as last_7_days,
+					SUM(CASE WHEN timestamp >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as last_30_days
+				FROM %i",
+				$table_name
+			),
 			ARRAY_A
 		);
 
@@ -822,8 +835,8 @@ class NBUF_Security_Log {
 		$database_size = $size_query ? $size_query . ' MB' : '0 MB';
 
 		// Get oldest entry.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Statistics query for admin; table prefix is safe.
-		$oldest       = $wpdb->get_var( "SELECT MIN(timestamp) FROM {$wpdb->prefix}nbuf_security_log" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statistics query for admin.
+		$oldest       = $wpdb->get_var( $wpdb->prepare( 'SELECT MIN(timestamp) FROM %i', $table_name ) );
 		$oldest_entry = $oldest ? mysql2date( 'F j, Y g:i A', $oldest ) : __( 'No entries', 'nobloat-user-foundry' );
 
 		// Get last cleanup time.
@@ -907,13 +920,14 @@ class NBUF_Security_Log {
 	 */
 	public static function purge_all_logs() {
 		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_security_log';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Admin action to delete all logs; table prefix is safe.
-		$result = $wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}nbuf_security_log" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin action to delete all logs.
+		$result = $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table_name ) );
 
 		if ( false !== $result ) {
 			// Update last cleanup time (stored in UTC).
-			NBUF_Options::update( 'nbuf_security_log_last_cleanup', current_time( 'mysql', true ), false, 'system' );
+			NBUF_Options::update( 'nbuf_security_log_last_cleanup', gmdate( 'Y-m-d H:i:s' ), false, 'system' );
 			return true;
 		}
 
@@ -932,6 +946,7 @@ class NBUF_Security_Log {
 		}
 
 		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_security_log';
 
 		// Sanitize IDs.
 		$log_ids = array_map( 'intval', $log_ids );
@@ -939,11 +954,11 @@ class NBUF_Security_Log {
 		// Build placeholders.
 		$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
 
-		// Build query with placeholders (no interpolation).
-		$query = "DELETE FROM {$wpdb->prefix}nbuf_security_log WHERE id IN (" . $placeholders . ')';
+		// Build query with placeholders.
+		$query = "DELETE FROM %i WHERE id IN ($placeholders)";
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Admin bulk delete action; placeholders dynamically generated for sanitized IDs.
-		$deleted = $wpdb->query( $wpdb->prepare( $query, $log_ids ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Admin bulk delete action with dynamic placeholders for sanitized IDs.
+		$deleted = $wpdb->query( $wpdb->prepare( $query, array_merge( array( $table_name ), $log_ids ) ) );
 
 		return $deleted;
 	}
@@ -962,13 +977,14 @@ class NBUF_Security_Log {
 			return 0;
 		}
 
-		$table       = $wpdb->prefix . self::TABLE_NAME;
+		$table_name  = $wpdb->prefix . self::TABLE_NAME;
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron job cleanup.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->prefix}nbuf_security_log WHERE timestamp < %s",
+				'DELETE FROM %i WHERE timestamp < %s',
+				$table_name,
 				$cutoff_date
 			)
 		);

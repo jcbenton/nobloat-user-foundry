@@ -13,13 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$settings = NBUF_Options::get( 'nbuf_settings', array() );
-$hooks    = (array) ( $settings['hooks'] ?? array() );
+$nbuf_settings = NBUF_Options::get( 'nbuf_settings', array() );
+$nbuf_hooks    = (array) ( $nbuf_settings['hooks'] ?? array() );
 
 /* WooCommerce expiration settings */
-$wc_prevent_active_subs   = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
-$wc_prevent_recent_orders = NBUF_Options::get( 'nbuf_wc_prevent_recent_orders', false );
-$wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
+$nbuf_wc_prevent_active_subs   = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
+$nbuf_wc_prevent_recent_orders = NBUF_Options::get( 'nbuf_wc_prevent_recent_orders', false );
+$nbuf_wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
 
 ?>
 
@@ -34,7 +34,7 @@ $wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 )
 				<th><?php esc_html_e( 'WooCommerce Customer Registration', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_settings[hooks][]" value="woocommerce_created_customer" <?php checked( in_array( 'woocommerce_created_customer', $hooks, true ) ); ?>>
+						<input type="checkbox" name="nbuf_settings[hooks][]" value="woocommerce_created_customer" <?php checked( in_array( 'woocommerce_created_customer', $nbuf_hooks, true ) ); ?>>
 						<?php esc_html_e( 'Require email verification for WooCommerce customers', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -54,7 +54,7 @@ $wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 )
 				<th><?php esc_html_e( 'Active Subscriptions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_wc_prevent_active_subs" value="1" <?php checked( $wc_prevent_active_subs, true ); ?>>
+						<input type="checkbox" name="nbuf_wc_prevent_active_subs" value="1" <?php checked( $nbuf_wc_prevent_active_subs, true ); ?>>
 						<?php esc_html_e( 'Prevent expiration for users with active subscriptions', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -66,7 +66,7 @@ $wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 )
 				<th><?php esc_html_e( 'Recent Orders', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_wc_prevent_recent_orders" value="1" <?php checked( $wc_prevent_recent_orders, true ); ?>>
+						<input type="checkbox" name="nbuf_wc_prevent_recent_orders" value="1" <?php checked( $nbuf_wc_prevent_recent_orders, true ); ?>>
 						<?php esc_html_e( 'Prevent expiration for users with recent orders', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -77,7 +77,7 @@ $wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 )
 			<tr>
 				<th><?php esc_html_e( 'Recent Order Threshold', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<input type="number" name="nbuf_wc_recent_order_days" value="<?php echo esc_attr( $wc_recent_order_days ); ?>" min="1" max="3650" class="small-text">
+					<input type="number" name="nbuf_wc_recent_order_days" value="<?php echo esc_attr( $nbuf_wc_recent_order_days ); ?>" min="1" max="3650" class="small-text">
 					<span><?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></span>
 					<p class="description">
 						<?php esc_html_e( 'Accounts with orders within this many days will not expire. Default: 90 days', 'nobloat-user-foundry' ); ?>

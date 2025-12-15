@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
-$current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
+$nbuf_current_search = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for search/filter.
-$current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
+$nbuf_current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
 ?>
 
 <div class="nbuf-member-directory" data-view="grid">
@@ -36,10 +36,10 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 				<?php /* Preserve existing query vars */ ?>
 				<?php
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
-				foreach ( $_GET as $key => $value ) :
+				foreach ( $_GET as $nbuf_key => $nbuf_value ) :
 					?>
-					<?php if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
-						<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
+					<?php if ( ! in_array( $nbuf_key, array( 'member_search', 'member_role', 'member_page' ), true ) ) : ?>
+						<input type="hidden" name="<?php echo esc_attr( $nbuf_key ); ?>" value="<?php echo esc_attr( $nbuf_value ); ?>">
 					<?php endif; ?>
 				<?php endforeach; ?>
 
@@ -49,7 +49,7 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 							type="text"
 							name="member_search"
 							placeholder="<?php esc_attr_e( 'Search members...', 'nobloat-user-foundry' ); ?>"
-							value="<?php echo esc_attr( $current_search ); ?>"
+							value="<?php echo esc_attr( $nbuf_current_search ); ?>"
 							class="nbuf-search-input"
 						>
 						<button type="submit" class="nbuf-search-button">
@@ -63,11 +63,11 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 						<select name="member_role" class="nbuf-filter-select">
 							<option value=""><?php esc_html_e( 'All Roles', 'nobloat-user-foundry' ); ?></option>
 							<?php
-							$roles = wp_roles()->get_names();
-							foreach ( $roles as $role_slug => $role_name ) :
+							$nbuf_roles = wp_roles()->get_names();
+							foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_name ) :
 								?>
-								<option value="<?php echo esc_attr( $role_slug ); ?>" <?php selected( $current_role, $role_slug ); ?>>
-									<?php echo esc_html( $role_name ); ?>
+								<option value="<?php echo esc_attr( $nbuf_role_slug ); ?>" <?php selected( $nbuf_current_role, $nbuf_role_slug ); ?>>
+									<?php echo esc_html( $nbuf_role_name ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -76,7 +76,7 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 							<?php esc_html_e( 'Filter', 'nobloat-user-foundry' ); ?>
 						</button>
 
-						<?php if ( $current_search || $current_role ) : ?>
+						<?php if ( $nbuf_current_search || $nbuf_current_role ) : ?>
 							<a href="?" class="nbuf-clear-filters">
 								<?php esc_html_e( 'Clear', 'nobloat-user-foundry' ); ?>
 							</a>
@@ -96,10 +96,10 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 
 	<?php if ( ! empty( $members ) ) : ?>
 		<div class="nbuf-members-grid">
-			<?php foreach ( $members as $member ) : ?>
+			<?php foreach ( $members as $nbuf_member ) : ?>
 				<?php
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_member_card() returns escaped HTML.
-				echo NBUF_Member_Directory::get_member_card( $member );
+				echo NBUF_Member_Directory::get_member_card( $nbuf_member );
 				?>
 			<?php endforeach; ?>
 		</div>
@@ -108,12 +108,12 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 			<div class="nbuf-directory-pagination">
 				<?php
 				/* Build pagination links */
-				$base_url = remove_query_arg( 'member_page' );
+				$nbuf_base_url = remove_query_arg( 'member_page' );
 
 				if ( $current_page > 1 ) :
-					$prev_url = add_query_arg( 'member_page', $current_page - 1, $base_url );
+					$nbuf_prev_url = add_query_arg( 'member_page', $current_page - 1, $nbuf_base_url );
 					?>
-					<a href="<?php echo esc_url( $prev_url ); ?>" class="nbuf-page-prev">
+					<a href="<?php echo esc_url( $nbuf_prev_url ); ?>" class="nbuf-page-prev">
 						<?php esc_html_e( '&laquo; Previous', 'nobloat-user-foundry' ); ?>
 					</a>
 				<?php endif; ?>
@@ -121,13 +121,13 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 				<span class="nbuf-page-numbers">
 					<?php
 					/* Show page numbers */
-					for ( $i = 1; $i <= $total_pages; $i++ ) :
-						if ( $current_page === $i ) :
+					for ( $nbuf_i = 1; $nbuf_i <= $total_pages; $nbuf_i++ ) :
+						if ( $current_page === $nbuf_i ) :
 							?>
-							<span class="nbuf-page-number current"><?php echo (int) $i; ?></span>
+							<span class="nbuf-page-number current"><?php echo (int) $nbuf_i; ?></span>
 						<?php else : ?>
-							<a href="<?php echo esc_url( add_query_arg( 'member_page', $i, $base_url ) ); ?>" class="nbuf-page-number">
-								<?php echo (int) $i; ?>
+							<a href="<?php echo esc_url( add_query_arg( 'member_page', $nbuf_i, $nbuf_base_url ) ); ?>" class="nbuf-page-number">
+								<?php echo (int) $nbuf_i; ?>
 							</a>
 							<?php
 						endif;
@@ -136,8 +136,8 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 				</span>
 
 				<?php if ( $current_page < $total_pages ) : ?>
-					<?php $next_url = add_query_arg( 'member_page', $current_page + 1, $base_url ); ?>
-					<a href="<?php echo esc_url( $next_url ); ?>" class="nbuf-page-next">
+					<?php $nbuf_next_url = add_query_arg( 'member_page', $current_page + 1, $nbuf_base_url ); ?>
+					<a href="<?php echo esc_url( $nbuf_next_url ); ?>" class="nbuf-page-next">
 						<?php esc_html_e( 'Next &raquo;', 'nobloat-user-foundry' ); ?>
 					</a>
 				<?php endif; ?>
@@ -147,7 +147,7 @@ $current_role = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash(
 	<?php else : ?>
 		<div class="nbuf-no-members">
 			<p><?php esc_html_e( 'No members found.', 'nobloat-user-foundry' ); ?></p>
-			<?php if ( $current_search || $current_role ) : ?>
+			<?php if ( $nbuf_current_search || $nbuf_current_role ) : ?>
 				<p>
 					<a href="?"><?php esc_html_e( 'Clear filters and show all members', 'nobloat-user-foundry' ); ?></a>
 				</p>

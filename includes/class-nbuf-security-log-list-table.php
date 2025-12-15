@@ -97,11 +97,17 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 * Render timestamp column
 	 *
 	 * @param  object $item Log entry.
-	 * @return string Formatted timestamp
+	 * @return string Formatted timestamp in user's local timezone
 	 */
 	public function column_timestamp( $item ) {
-		$date = mysql2date( 'Y/m/d g:i:s A', $item->timestamp );
-		return esc_html( $date );
+		/* Convert UTC to user's browser timezone (from cookie) */
+		$local_time = NBUF_Options::format_local_time( $item->timestamp );
+		return sprintf(
+			'<span title="%s">%s</span>',
+			/* translators: %s: UTC timestamp */
+			esc_attr( sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item->timestamp ) ),
+			esc_html( $local_time )
+		);
 	}
 
 	/**

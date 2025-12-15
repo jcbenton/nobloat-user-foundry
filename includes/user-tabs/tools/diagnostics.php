@@ -21,7 +21,7 @@ global $wpdb;
  */
 
 /* Database Tables */
-$tables = array(
+$nbuf_tables = array(
 	'tokens'         => $wpdb->prefix . 'nbuf_tokens',
 	'user_data'      => $wpdb->prefix . 'nbuf_user_data',
 	'user_2fa'       => $wpdb->prefix . 'nbuf_user_2fa',
@@ -33,31 +33,31 @@ $tables = array(
 	'user_roles'     => $wpdb->prefix . 'nbuf_user_roles',
 );
 
-$table_stats = array();
-foreach ( $tables as $key => $table_name ) {
+$nbuf_table_stats = array();
+foreach ( $nbuf_tables as $nbuf_key => $nbuf_table_name ) {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-	if ( $exists ) {
+	$nbuf_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) );
+	if ( $nbuf_exists ) {
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+		$nbuf_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_table_name ) );
 
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$size                = $wpdb->get_var(
+		$nbuf_size                = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT ROUND((data_length + index_length) / 1024, 2)
 			FROM information_schema.TABLES
 			WHERE table_schema = %s AND table_name = %s',
 				DB_NAME,
-				$table_name
+				$nbuf_table_name
 			)
 		);
-		$table_stats[ $key ] = array(
+		$nbuf_table_stats[ $nbuf_key ] = array(
 			'exists' => true,
-			'count'  => (int) $count,
-			'size'   => (float) $size,
+			'count'  => (int) $nbuf_count,
+			'size'   => (float) $nbuf_size,
 		);
 	} else {
-		$table_stats[ $key ] = array(
+		$nbuf_table_stats[ $nbuf_key ] = array(
 			'exists' => false,
 			'count'  => 0,
 			'size'   => 0,
@@ -69,52 +69,52 @@ foreach ( $tables as $key => $table_name ) {
  * Bloat Check
  */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$wp_options_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s', $wpdb->options, 'nbuf_%' ) );
+$nbuf_wp_options_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s', $wpdb->options, 'nbuf_%' ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$wp_usermeta_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
+$nbuf_wp_usermeta_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
 
 /*
  * User Statistics
  */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$total_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $wpdb->users ) );
+$nbuf_total_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $wpdb->users ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$verified_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 1', $tables['user_data'] ) );
+$nbuf_verified_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 1', $nbuf_tables['user_data'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$unverified_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 0', $tables['user_data'] ) );
+$nbuf_unverified_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 0', $nbuf_tables['user_data'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$users_with_expiration = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL', $tables['user_data'] ) );
+$nbuf_users_with_expiration = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL', $nbuf_tables['user_data'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$expired_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_disabled = 0', $tables['user_data'] ) );
+$nbuf_expired_users = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_disabled = 0', $nbuf_tables['user_data'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$users_with_2fa = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE enabled = 1', $tables['user_2fa'] ) );
+$nbuf_users_with_2fa = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE enabled = 1', $nbuf_tables['user_2fa'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$total_notes = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['user_notes'] ) );
+$nbuf_total_notes = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_tables['user_notes'] ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$total_audit_logs = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['audit_log'] ) );
+$nbuf_total_audit_logs = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_tables['audit_log'] ) );
 
 /*
  * Custom Options Count
  */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$custom_options_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['options'] ) );
+$nbuf_custom_options_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_tables['options'] ) );
 
 /* System Information */
-$wordpress_version = get_bloginfo( 'version' );
-$php_version       = PHP_VERSION;
-$php_memory_limit  = ini_get( 'memory_limit' );
-$php_max_execution = ini_get( 'max_execution_time' );
+$nbuf_wordpress_version = get_bloginfo( 'version' );
+$nbuf_php_version       = PHP_VERSION;
+$nbuf_php_memory_limit  = ini_get( 'memory_limit' );
+$nbuf_php_max_execution = ini_get( 'max_execution_time' );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$db_version      = $wpdb->get_var( 'SELECT VERSION()' );
-$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : 'Unknown';
-$plugin_version  = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : 'Unknown';
+$nbuf_db_version      = $wpdb->get_var( 'SELECT VERSION()' );
+$nbuf_server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : 'Unknown';
+$nbuf_plugin_version  = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : 'Unknown';
 
 /* Total Custom Table Size */
-$total_table_size = array_sum( array_column( $table_stats, 'size' ) );
+$nbuf_total_table_size = array_sum( array_column( $nbuf_table_stats, 'size' ) );
 
 /* WordPress Memory Usage */
-$wp_memory_limit     = WP_MEMORY_LIMIT;
-$wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
+$nbuf_wp_memory_limit     = WP_MEMORY_LIMIT;
+$nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 
 ?>
 
@@ -163,23 +163,23 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $table_stats as $key => $stats ) : ?>
+				<?php foreach ( $nbuf_table_stats as $nbuf_key => $nbuf_stats ) : ?>
 					<tr>
-						<td><code><?php echo esc_html( $tables[ $key ] ); ?></code></td>
+						<td><code><?php echo esc_html( $nbuf_tables[ $nbuf_key ] ); ?></code></td>
 						<td>
-					<?php if ( $stats['exists'] ) : ?>
+					<?php if ( $nbuf_stats['exists'] ) : ?>
 								<span class="nbuf-status-badge success">✓ <?php esc_html_e( 'Exists', 'nobloat-user-foundry' ); ?></span>
 							<?php else : ?>
 								<span class="nbuf-status-badge error">✗ <?php esc_html_e( 'Missing', 'nobloat-user-foundry' ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td><?php echo esc_html( number_format_i18n( $stats['count'] ) ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( $stats['size'], 2 ) ); ?> KB</td>
+						<td><?php echo esc_html( number_format_i18n( $nbuf_stats['count'] ) ); ?></td>
+						<td><?php echo esc_html( number_format_i18n( $nbuf_stats['size'], 2 ) ); ?> KB</td>
 					</tr>
 				<?php endforeach; ?>
 				<tr style="font-weight: 600; background: #f6f7f7;">
 					<td colspan="3"><?php esc_html_e( 'Total Custom Tables Size:', 'nobloat-user-foundry' ); ?></td>
-					<td><?php echo esc_html( number_format_i18n( $total_table_size, 2 ) ); ?> KB</td>
+					<td><?php echo esc_html( number_format_i18n( $nbuf_total_table_size, 2 ) ); ?> KB</td>
 				</tr>
 			</tbody>
 		</table>
@@ -210,27 +210,27 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 				<tr>
 					<td><strong><?php esc_html_e( 'wp_options bloat', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
-						<?php if ( 0 === (int) $wp_options_bloat ) : ?>
+						<?php if ( 0 === (int) $nbuf_wp_options_bloat ) : ?>
 							<span class="nbuf-status-badge success">✓ <?php esc_html_e( 'Zero entries', 'nobloat-user-foundry' ); ?></span>
 						<?php else : ?>
-							<span class="nbuf-status-badge warning"><?php echo esc_html( (int) $wp_options_bloat ); ?> <?php esc_html_e( 'entries found', 'nobloat-user-foundry' ); ?></span>
+							<span class="nbuf-status-badge warning"><?php echo esc_html( (int) $nbuf_wp_options_bloat ); ?> <?php esc_html_e( 'entries found', 'nobloat-user-foundry' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'wp_usermeta bloat', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
-						<?php if ( 0 === (int) $wp_usermeta_bloat ) : ?>
+						<?php if ( 0 === (int) $nbuf_wp_usermeta_bloat ) : ?>
 							<span class="nbuf-status-badge success">✓ <?php esc_html_e( 'Zero entries', 'nobloat-user-foundry' ); ?></span>
 						<?php else : ?>
-							<span class="nbuf-status-badge warning"><?php echo esc_html( (int) $wp_usermeta_bloat ); ?> <?php esc_html_e( 'entries found', 'nobloat-user-foundry' ); ?></span>
+							<span class="nbuf-status-badge warning"><?php echo esc_html( (int) $nbuf_wp_usermeta_bloat ); ?> <?php esc_html_e( 'entries found', 'nobloat-user-foundry' ); ?></span>
 						<?php endif; ?>
 					</td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'Custom options table', 'nobloat-user-foundry' ); ?></strong></td>
 					<td>
-						<span class="nbuf-status-badge success"><?php echo esc_html( number_format_i18n( $custom_options_count ) ); ?> <?php esc_html_e( 'settings stored', 'nobloat-user-foundry' ); ?></span>
+						<span class="nbuf-status-badge success"><?php echo esc_html( number_format_i18n( $nbuf_custom_options_count ) ); ?> <?php esc_html_e( 'settings stored', 'nobloat-user-foundry' ); ?></span>
 					</td>
 				</tr>
 			</tbody>
@@ -243,35 +243,35 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 		<div class="nbuf-stat-grid">
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'Total Users', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $total_users ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_total_users ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'Verified Users', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $verified_users ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_verified_users ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'Unverified Users', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $unverified_users ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_unverified_users ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'With Expiration', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $users_with_expiration ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_users_with_expiration ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'Expired Users', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $expired_users ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_expired_users ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( '2FA Enabled', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $users_with_2fa ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_users_with_2fa ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'User Notes', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $total_notes ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_total_notes ) ); ?></div>
 			</div>
 			<div class="nbuf-stat-box">
 				<div class="label"><?php esc_html_e( 'Audit Log Entries', 'nobloat-user-foundry' ); ?></div>
-				<div class="number"><?php echo esc_html( number_format_i18n( $total_audit_logs ) ); ?></div>
+				<div class="number"><?php echo esc_html( number_format_i18n( $nbuf_total_audit_logs ) ); ?></div>
 			</div>
 		</div>
 	</div>
@@ -283,39 +283,39 @@ $wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 			<tbody>
 				<tr>
 					<td style="width: 40%;"><strong><?php esc_html_e( 'Plugin Version', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $plugin_version ); ?></td>
+					<td><?php echo esc_html( $nbuf_plugin_version ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'WordPress Version', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $wordpress_version ); ?></td>
+					<td><?php echo esc_html( $nbuf_wordpress_version ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'PHP Version', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $php_version ); ?></td>
+					<td><?php echo esc_html( $nbuf_php_version ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'Database Version', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $db_version ); ?></td>
+					<td><?php echo esc_html( $nbuf_db_version ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'Server Software', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $server_software ); ?></td>
+					<td><?php echo esc_html( $nbuf_server_software ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'PHP Memory Limit', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $php_memory_limit ); ?></td>
+					<td><?php echo esc_html( $nbuf_php_memory_limit ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'WP Memory Limit', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $wp_memory_limit ); ?></td>
+					<td><?php echo esc_html( $nbuf_wp_memory_limit ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'WP Max Memory Limit', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $wp_max_memory_limit ); ?></td>
+					<td><?php echo esc_html( $nbuf_wp_max_memory_limit ); ?></td>
 				</tr>
 				<tr>
 					<td><strong><?php esc_html_e( 'PHP Max Execution Time', 'nobloat-user-foundry' ); ?></strong></td>
-					<td><?php echo esc_html( $php_max_execution ); ?> <?php esc_html_e( 'seconds', 'nobloat-user-foundry' ); ?></td>
+					<td><?php echo esc_html( $nbuf_php_max_execution ); ?> <?php esc_html_e( 'seconds', 'nobloat-user-foundry' ); ?></td>
 				</tr>
 			</tbody>
 		</table>

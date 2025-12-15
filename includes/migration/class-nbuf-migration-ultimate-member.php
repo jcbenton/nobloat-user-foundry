@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes/migration
  */
-class NBUF_Migration_Ultimate_Member extends Abstract_NBUF_Migration_Plugin {
+class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 
 	/**
@@ -649,10 +649,11 @@ class NBUF_Migration_Ultimate_Member extends Abstract_NBUF_Migration_Plugin {
 			/*
 			Check if record exists
 			*/
-         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT user_id FROM {$wpdb->prefix}nbuf_user_profile WHERE user_id = %d",
+					'SELECT user_id FROM %i WHERE user_id = %d',
+					$profile_table,
 					$user_id
 				)
 			);

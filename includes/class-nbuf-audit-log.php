@@ -85,13 +85,13 @@ class NBUF_Audit_Log {
 
 		/* Get IP address (with optional anonymization) */
 		$ip_address = self::get_client_ip();
-		if ( NBUF_Options::get( 'nbuf_audit_log_anonymize_ip', false ) ) {
+		if ( NBUF_Options::get( 'nbuf_logging_anonymize_ip', false ) ) {
 			$ip_address = self::anonymize_ip( $ip_address );
 		}
 
 		/* Get user agent if enabled */
 		$user_agent = null;
-		if ( NBUF_Options::get( 'nbuf_audit_log_store_user_agent', true ) ) {
+		if ( NBUF_Options::get( 'nbuf_logging_store_user_agent', true ) ) {
 			$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 ) : null;
 		}
 
@@ -119,8 +119,9 @@ class NBUF_Audit_Log {
 				'ip_address'    => sanitize_text_field( $ip_address ),
 				'user_agent'    => $user_agent,
 				'metadata'      => $metadata_json,
+				'created_at'    => gmdate( 'Y-m-d H:i:s' ),
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		return (bool) $result;
@@ -287,7 +288,7 @@ class NBUF_Audit_Log {
      // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
      // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with $wpdb->prepare() above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic WHERE clause with placeholders, orderby is hardcoded, search uses esc_like.
 		return $wpdb->get_results( $sql );
 	}
 
@@ -357,7 +358,7 @@ class NBUF_Audit_Log {
 		);
      // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query built with $wpdb->prepare() above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic WHERE clause with placeholders, search uses esc_like.
 		return (int) $wpdb->get_var( $sql );
 	}
 

@@ -16,52 +16,52 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( isset( $_POST['nbuf_save_css_settings'] ) && check_admin_referer( 'nbuf_css_settings_save', 'nbuf_css_settings_nonce' ) ) {
 	/* Get and save CSS optimization options */
-	$css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
-	$css_use_minified  = isset( $_POST['nbuf_css_use_minified'] ) ? 1 : 0;
-	$css_combine_files = isset( $_POST['nbuf_css_combine_files'] ) ? 1 : 0;
-	NBUF_Options::update( 'nbuf_css_load_on_pages', $css_load_on_pages, true, 'settings' );
-	NBUF_Options::update( 'nbuf_css_use_minified', $css_use_minified, true, 'settings' );
-	NBUF_Options::update( 'nbuf_css_combine_files', $css_combine_files, true, 'settings' );
+	$nbuf_css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
+	$nbuf_css_use_minified  = isset( $_POST['nbuf_css_use_minified'] ) ? 1 : 0;
+	$nbuf_css_combine_files = isset( $_POST['nbuf_css_combine_files'] ) ? 1 : 0;
+	NBUF_Options::update( 'nbuf_css_load_on_pages', $nbuf_css_load_on_pages, true, 'settings' );
+	NBUF_Options::update( 'nbuf_css_use_minified', $nbuf_css_use_minified, true, 'settings' );
+	NBUF_Options::update( 'nbuf_css_combine_files', $nbuf_css_combine_files, true, 'settings' );
 
 	/* If combine files is enabled, regenerate the combined file */
-	if ( $css_combine_files ) {
-		$reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
-		$registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
-		$account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
+	if ( $nbuf_css_combine_files ) {
+		$nbuf_reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
+		$nbuf_login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
+		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
+		$nbuf_account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
 
 		/* Load defaults if empty */
-		if ( empty( $reset_css ) ) {
-			$reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
+		if ( empty( $nbuf_reset_css ) ) {
+			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
 		}
-		if ( empty( $login_css ) ) {
-			$login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
+		if ( empty( $nbuf_login_css ) ) {
+			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
 		}
-		if ( empty( $registration_css ) ) {
-			$registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
+		if ( empty( $nbuf_registration_css ) ) {
+			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
 		}
-		if ( empty( $account_css ) ) {
-			$account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
+		if ( empty( $nbuf_account_css ) ) {
+			$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
 		}
 
-		$combined_css = $reset_css . "\n\n" . $login_css . "\n\n" . $registration_css . "\n\n" . $account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
+		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
+		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
 	}
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'CSS settings saved.', 'nobloat-user-foundry' ) . '</p></div>';
 }
 
 /* CSS optimization settings */
-$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
-$css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
-$css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
+$nbuf_css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
+$nbuf_css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
+$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
 
 /*
 ==========================================================
 	CHECK FOR WRITE FAILURES
 	==========================================================
  */
-$has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_reset' ) ||
+$nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_reset' ) ||
 					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
 					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
 					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
@@ -71,7 +71,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 
 <div class="nbuf-styles-tab">
 
-	<?php if ( $has_write_failure ) : ?>
+	<?php if ( $nbuf_has_write_failure ) : ?>
 		<div class="notice notice-error inline">
 			<p>
 				<strong><?php esc_html_e( 'File Write Permission Issue:', 'nobloat-user-foundry' ); ?></strong>
@@ -92,7 +92,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 				</th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_css_load_on_pages" value="1" <?php checked( $css_load_on_pages, true ); ?>>
+						<input type="checkbox" name="nbuf_css_load_on_pages" value="1" <?php checked( $nbuf_css_load_on_pages, true ); ?>>
 						<?php esc_html_e( 'Load CSS on plugin pages only', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -106,7 +106,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 				</th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_css_use_minified" value="1" <?php checked( $css_use_minified, true ); ?>>
+						<input type="checkbox" name="nbuf_css_use_minified" value="1" <?php checked( $nbuf_css_use_minified, true ); ?>>
 						<?php esc_html_e( 'Load minified CSS files', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -120,7 +120,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 				</th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_css_combine_files" value="1" <?php checked( $css_combine_files, true ); ?>>
+						<input type="checkbox" name="nbuf_css_combine_files" value="1" <?php checked( $nbuf_css_combine_files, true ); ?>>
 						<?php esc_html_e( 'Combine CSS into single file', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">

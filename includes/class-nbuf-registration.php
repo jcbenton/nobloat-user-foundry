@@ -273,6 +273,7 @@ class NBUF_Registration {
 		}
 
 		/* Trigger WordPress registration action (will send verification email if enabled) */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Firing WordPress core hook for compatibility with other plugins.
 		do_action( 'user_register', $user_id );
 
 		return $user_id;

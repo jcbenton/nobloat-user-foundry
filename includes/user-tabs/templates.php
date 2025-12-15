@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templates_save', 'nbuf_templates_nonce' ) ) {
 	// Define all template fields.
-	$templates = array(
+	$nbuf_templates = array(
 		'email-verification-html',
 		'email-verification-text',
 		'welcome-email-html',
@@ -39,12 +39,12 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 	);
 
 	// Save all templates.
-	foreach ( $templates as $template_name ) {
-		$post_key = str_replace( '-', '_', $template_name );
-		if ( isset( $_POST[ $post_key ] ) ) {
+	foreach ( $nbuf_templates as $nbuf_template_name ) {
+		$nbuf_post_key = str_replace( '-', '_', $nbuf_template_name );
+		if ( isset( $_POST[ $nbuf_post_key ] ) ) {
          // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Unslashed then sanitized in save_template().
-			$content = wp_unslash( $_POST[ $post_key ] );
-			NBUF_Template_Manager::save_template( $template_name, $content );
+			$nbuf_content = wp_unslash( $_POST[ $nbuf_post_key ] );
+			NBUF_Template_Manager::save_template( $nbuf_template_name, $nbuf_content );
 		}
 	}
 
@@ -54,7 +54,7 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 /**
  * Load current template values from custom table
  */
-$templates_data = array(
+$nbuf_templates_data = array(
 	'email_verification_html' => NBUF_Template_Manager::load_template( 'email-verification-html' ),
 	'email_verification_text' => NBUF_Template_Manager::load_template( 'email-verification-text' ),
 	'welcome_email_html'      => NBUF_Template_Manager::load_template( 'welcome-email-html' ),
@@ -101,7 +101,7 @@ $templates_data = array(
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="email_verification_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['email_verification_html'] ); ?></textarea>
+					<textarea name="email_verification_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['email_verification_html'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -111,7 +111,7 @@ $templates_data = array(
 				</div>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="email_verification_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['email_verification_text'] ); ?></textarea>
+					<textarea name="email_verification_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['email_verification_text'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -136,7 +136,7 @@ $templates_data = array(
 				</p>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="welcome_email_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['welcome_email_html'] ); ?></textarea>
+					<textarea name="welcome_email_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['welcome_email_html'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -146,7 +146,7 @@ $templates_data = array(
 				</div>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="welcome_email_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['welcome_email_text'] ); ?></textarea>
+					<textarea name="welcome_email_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['welcome_email_text'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -171,7 +171,7 @@ $templates_data = array(
 				</p>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="expiration_warning_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['expiration_warning_html'] ); ?></textarea>
+					<textarea name="expiration_warning_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['expiration_warning_html'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -181,7 +181,7 @@ $templates_data = array(
 				</div>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="expiration_warning_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['expiration_warning_text'] ); ?></textarea>
+					<textarea name="expiration_warning_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['expiration_warning_text'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -206,7 +206,7 @@ $templates_data = array(
 				</p>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="2fa_email_code_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['2fa_email_code_html'] ); ?></textarea>
+					<textarea name="2fa_email_code_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_email_code_html'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -216,7 +216,7 @@ $templates_data = array(
 				</div>
 				<div class="nbuf-template-section">
 					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
-					<textarea name="2fa_email_code_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['2fa_email_code_text'] ); ?></textarea>
+					<textarea name="2fa_email_code_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_email_code_text'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -244,7 +244,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="login_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['login_form'] ); ?></textarea>
+					<textarea name="login_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['login_form'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -273,7 +273,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="registration_form" rows="25" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['registration_form'] ); ?></textarea>
+					<textarea name="registration_form" rows="25" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['registration_form'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -302,7 +302,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="account_page" rows="30" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['account_page'] ); ?></textarea>
+					<textarea name="account_page" rows="30" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['account_page'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -331,7 +331,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="request_reset_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['request_reset_form'] ); ?></textarea>
+					<textarea name="request_reset_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['request_reset_form'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -360,7 +360,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="reset_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['reset_form'] ); ?></textarea>
+					<textarea name="reset_form" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['reset_form'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -396,7 +396,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="2fa_verify" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['2fa_verify'] ); ?></textarea>
+					<textarea name="2fa_verify" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_verify'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -420,7 +420,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="2fa_setup_totp" rows="25" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['2fa_setup_totp'] ); ?></textarea>
+					<textarea name="2fa_setup_totp" rows="25" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_setup_totp'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
@@ -444,7 +444,7 @@ $templates_data = array(
 			</button>
 			<div class="nbuf-accordion-content">
 				<div class="nbuf-template-section">
-					<textarea name="2fa_backup_codes" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $templates_data['2fa_backup_codes'] ); ?></textarea>
+					<textarea name="2fa_backup_codes" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_backup_codes'] ); ?></textarea>
 					<p class="description">
 						<?php
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .

@@ -47,14 +47,13 @@ class NBUF_User_Data {
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM $table_name WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
+				$table_name,
 				$user_id
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $data;
 	}
@@ -481,18 +480,17 @@ class NBUF_User_Data {
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT user_id FROM $table_name
+				"SELECT user_id FROM %i
 				WHERE expires_at IS NOT NULL
 				AND expires_at != '0000-00-00 00:00:00'
 				AND expires_at <= %s
 				AND is_disabled = 0",
+				$table_name,
 				$before_date
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results ? $results : array();
 	}
@@ -508,19 +506,18 @@ class NBUF_User_Data {
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT user_id FROM $table_name
+				"SELECT user_id FROM %i
 				WHERE expires_at IS NOT NULL
 				AND expires_at != '0000-00-00 00:00:00'
 				AND expires_at <= %s
 				AND (expiration_warned_at IS NULL OR expiration_warned_at = '0000-00-00 00:00:00')
 				AND is_disabled = 0",
+				$table_name,
 				$warning_date
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results ? $results : array();
 	}
@@ -567,15 +564,15 @@ class NBUF_User_Data {
 				break;
 		}
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// Table names from WordPress/plugin constants. $where built from static switch cases above.
-		$count = $wpdb->get_var(
-			"SELECT COUNT(DISTINCT u.ID)
-			FROM $users_table u
-			LEFT JOIN $table_name d ON u.ID = d.user_id
-			WHERE 1=1 $where"
+		// Build base query with properly escaped table names.
+		$base_query = $wpdb->prepare(
+			'SELECT COUNT(DISTINCT u.ID) FROM %i u LEFT JOIN %i d ON u.ID = d.user_id WHERE 1=1',
+			$users_table,
+			$table_name
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where is static switch case or already prepared above.
+		$count = $wpdb->get_var( $base_query . ' ' . $where );
 
 		return (int) $count;
 	}

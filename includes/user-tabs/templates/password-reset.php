@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$reset_email_html = NBUF_Options::get( 'nbuf_password_reset_email_html', '' );
-$reset_email_text = NBUF_Options::get( 'nbuf_password_reset_email_text', '' );
+$nbuf_reset_email_html = NBUF_Options::get( 'nbuf_password_reset_email_html', '' );
+$nbuf_reset_email_text = NBUF_Options::get( 'nbuf_password_reset_email_text', '' );
 
 /* If empty, load from default templates */
-if ( empty( $reset_email_html ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'password-reset.html';
-	if ( file_exists( $template_path ) ) {
-		$reset_email_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_reset_email_html ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'password-reset.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_reset_email_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
-if ( empty( $reset_email_text ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'password-reset.txt';
-	if ( file_exists( $template_path ) ) {
-		$reset_email_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_reset_email_text ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'password-reset.txt';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_reset_email_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -46,7 +46,7 @@ if ( empty( $reset_email_text ) ) {
 				name="nbuf_password_reset_email_html"
 				rows="15"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $reset_email_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_reset_email_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {reset_link}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
@@ -67,7 +67,7 @@ if ( empty( $reset_email_text ) ) {
 				name="nbuf_password_reset_email_text"
 				rows="10"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $reset_email_text ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_reset_email_text ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {reset_link}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>

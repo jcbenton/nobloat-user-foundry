@@ -98,13 +98,16 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	 * Render date/time column
 	 *
 	 * @param object $item Log entry.
-	 * @return string Formatted date/time.
+	 * @return string Formatted date/time in user's local timezone.
 	 */
 	public function column_created_at( $item ) {
+		/* Convert UTC to user's browser timezone (from cookie) */
+		$local_time = NBUF_Options::format_local_time( $item['created_at'] );
 		return sprintf(
-			'<abbr title="%s">%s</abbr>',
-			esc_attr( $item['created_at'] ),
-			esc_html( mysql2date( 'Y-m-d H:i:s', $item['created_at'] ) )
+			'<span title="%s">%s</span>',
+			/* translators: %s: UTC timestamp */
+			esc_attr( sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item['created_at'] ) ),
+			esc_html( $local_time )
 		);
 	}
 
@@ -314,58 +317,12 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Process bulk actions
+	 *
+	 * Note: Bulk delete is handled early in NBUF_Admin_Audit_Log_Page::handle_early_actions()
+	 * to avoid "headers already sent" errors. This method is kept for WP_List_Table compatibility.
 	 */
 	public function process_bulk_action() {
-		/* Check nonce */
-		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-admin_audit_logs' ) ) {
-			return;
-		}
-
-		/* Delete action */
-		if ( 'delete' === $this->current_action() && ! empty( $_POST['log_id'] ) ) {
-			$log_ids = array_map( 'absint', $_POST['log_id'] );
-
-			/* Delete logs */
-			global $wpdb;
-			$table        = $wpdb->prefix . 'nbuf_admin_audit_log';
-			$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
-			$query        = "DELETE FROM {$table} WHERE id IN ({$placeholders})";
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic IN clause with array of IDs.
-			$deleted_count = $wpdb->query( $wpdb->prepare( $query, $log_ids ) );
-
-			/* Log the bulk deletion to admin audit log only if deletion succeeded */
-			if ( false !== $deleted_count && $deleted_count > 0 ) {
-				NBUF_Admin_Audit_Log::log(
-					get_current_user_id(),
-					'logs_purged',
-					'success',
-					sprintf( 'Deleted %d admin audit log entries', $deleted_count ),
-					null,
-					array(
-						'deleted_count' => $deleted_count,
-						'log_ids'       => $log_ids,
-					)
-				);
-
-				wp_safe_redirect( admin_url( 'admin.php?page=nbuf-admin-audit-log&deleted=' . $deleted_count ) );
-			} else {
-				/* Log failure */
-				NBUF_Admin_Audit_Log::log(
-					get_current_user_id(),
-					'logs_purged',
-					'failure',
-					'Failed to delete admin audit log entries',
-					null,
-					array(
-						'attempted_count' => count( $log_ids ),
-						'log_ids'         => $log_ids,
-					)
-				);
-
-				wp_safe_redirect( admin_url( 'admin.php?page=nbuf-admin-audit-log&delete_failed=1' ) );
-			}
-			exit;
-		}
+		/* Bulk actions are handled in admin_init by NBUF_Admin_Audit_Log_Page::handle_early_actions() */
 	}
 
 	/**

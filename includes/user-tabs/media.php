@@ -13,22 +13,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Image optimization settings */
-$convert_to_webp     = NBUF_Options::get( 'nbuf_convert_images_to_webp', true );
-$webp_quality        = NBUF_Options::get( 'nbuf_webp_quality', 85 );
-$profile_max_width   = NBUF_Options::get( 'nbuf_profile_photo_max_width', 1024 );
-$profile_max_size_mb = NBUF_Options::get( 'nbuf_profile_photo_max_size', 5 );
-$cover_max_width     = NBUF_Options::get( 'nbuf_cover_photo_max_width', 1920 );
-$cover_max_height    = NBUF_Options::get( 'nbuf_cover_photo_max_height', 600 );
-$cover_max_size_mb   = NBUF_Options::get( 'nbuf_cover_photo_max_size', 10 );
-$strip_exif          = NBUF_Options::get( 'nbuf_strip_exif_data', true );
+$nbuf_convert_to_webp     = NBUF_Options::get( 'nbuf_convert_images_to_webp', true );
+$nbuf_webp_quality        = NBUF_Options::get( 'nbuf_webp_quality', 85 );
+$nbuf_profile_max_width   = NBUF_Options::get( 'nbuf_profile_photo_max_width', 1024 );
+$nbuf_profile_max_size_mb = NBUF_Options::get( 'nbuf_profile_photo_max_size', 5 );
+$nbuf_cover_max_width     = NBUF_Options::get( 'nbuf_cover_photo_max_width', 1920 );
+$nbuf_cover_max_height    = NBUF_Options::get( 'nbuf_cover_photo_max_height', 600 );
+$nbuf_cover_max_size_mb   = NBUF_Options::get( 'nbuf_cover_photo_max_size', 10 );
+$nbuf_strip_exif          = NBUF_Options::get( 'nbuf_strip_exif_data', true );
 
 /* Check WebP support */
-$webp_supported = false;
+$nbuf_webp_supported = false;
 if ( function_exists( 'imagewebp' ) ) {
-	$webp_supported = true;
+	$nbuf_webp_supported = true;
 } elseif ( extension_loaded( 'imagick' ) ) {
-	$imagick        = new Imagick();
-	$webp_supported = in_array( 'WEBP', $imagick->queryFormats(), true );
+	$nbuf_imagick        = new Imagick();
+	$nbuf_webp_supported = in_array( 'WEBP', $nbuf_imagick->queryFormats(), true );
 }
 ?>
 
@@ -41,7 +41,7 @@ if ( function_exists( 'imagewebp' ) ) {
 	<!-- WebP Conversion -->
 	<h2><?php esc_html_e( 'Image Optimization', 'nobloat-user-foundry' ); ?></h2>
 
-	<?php if ( ! $webp_supported ) : ?>
+	<?php if ( ! $nbuf_webp_supported ) : ?>
 		<div class="notice notice-warning inline">
 			<p>
 				<strong><?php esc_html_e( 'WebP Not Supported', 'nobloat-user-foundry' ); ?></strong><br>
@@ -55,7 +55,7 @@ if ( function_exists( 'imagewebp' ) ) {
 			<th><?php esc_html_e( 'Convert to WebP', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_convert_images_to_webp" value="1" <?php checked( $convert_to_webp, true ); ?> <?php disabled( ! $webp_supported ); ?>>
+					<input type="checkbox" name="nbuf_convert_images_to_webp" value="1" <?php checked( $nbuf_convert_to_webp, true ); ?> <?php disabled( ! $nbuf_webp_supported ); ?>>
 					<?php esc_html_e( 'Automatically convert uploaded images to WebP format', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -67,7 +67,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'WebP Quality', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_webp_quality" value="<?php echo esc_attr( $webp_quality ); ?>" min="1" max="100" class="small-text" <?php disabled( ! $webp_supported ); ?>>
+				<input type="number" name="nbuf_webp_quality" value="<?php echo esc_attr( $nbuf_webp_quality ); ?>" min="1" max="100" class="small-text" <?php disabled( ! $nbuf_webp_supported ); ?>>
 				<span><?php esc_html_e( '(1-100)', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<strong><?php esc_html_e( 'Recommended: 85', 'nobloat-user-foundry' ); ?></strong><br>
@@ -85,7 +85,7 @@ if ( function_exists( 'imagewebp' ) ) {
 			<th><?php esc_html_e( 'Strip EXIF Data', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_strip_exif_data" value="1" <?php checked( $strip_exif, true ); ?>>
+					<input type="checkbox" name="nbuf_strip_exif_data" value="1" <?php checked( $nbuf_strip_exif, true ); ?>>
 					<?php esc_html_e( 'Remove EXIF metadata from uploaded images', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -101,7 +101,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'Maximum Width', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_profile_photo_max_width" value="<?php echo esc_attr( $profile_max_width ); ?>" min="256" max="4096" class="small-text">
+				<input type="number" name="nbuf_profile_photo_max_width" value="<?php echo esc_attr( $nbuf_profile_max_width ); ?>" min="256" max="4096" class="small-text">
 				<span><?php esc_html_e( 'pixels', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Profile photos will be automatically resized to this maximum width. Default: 1024px', 'nobloat-user-foundry' ); ?>
@@ -112,7 +112,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'Maximum File Size', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_profile_photo_max_size" value="<?php echo esc_attr( $profile_max_size_mb ); ?>" min="1" max="50" class="small-text">
+				<input type="number" name="nbuf_profile_photo_max_size" value="<?php echo esc_attr( $nbuf_profile_max_size_mb ); ?>" min="1" max="50" class="small-text">
 				<span><?php esc_html_e( 'MB', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Reject profile photo uploads larger than this size. Default: 5MB', 'nobloat-user-foundry' ); ?>
@@ -127,7 +127,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'Maximum Width', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_cover_photo_max_width" value="<?php echo esc_attr( $cover_max_width ); ?>" min="800" max="4096" class="small-text">
+				<input type="number" name="nbuf_cover_photo_max_width" value="<?php echo esc_attr( $nbuf_cover_max_width ); ?>" min="800" max="4096" class="small-text">
 				<span><?php esc_html_e( 'pixels', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Cover photos will be automatically resized to this maximum width. Default: 1920px', 'nobloat-user-foundry' ); ?>
@@ -138,7 +138,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'Maximum Height', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_cover_photo_max_height" value="<?php echo esc_attr( $cover_max_height ); ?>" min="200" max="2048" class="small-text">
+				<input type="number" name="nbuf_cover_photo_max_height" value="<?php echo esc_attr( $nbuf_cover_max_height ); ?>" min="200" max="2048" class="small-text">
 				<span><?php esc_html_e( 'pixels', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Cover photos will be automatically resized to this maximum height. Default: 600px', 'nobloat-user-foundry' ); ?>
@@ -149,7 +149,7 @@ if ( function_exists( 'imagewebp' ) ) {
 		<tr>
 			<th><?php esc_html_e( 'Maximum File Size', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_cover_photo_max_size" value="<?php echo esc_attr( $cover_max_size_mb ); ?>" min="1" max="50" class="small-text">
+				<input type="number" name="nbuf_cover_photo_max_size" value="<?php echo esc_attr( $nbuf_cover_max_size_mb ); ?>" min="1" max="50" class="small-text">
 				<span><?php esc_html_e( 'MB', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Reject cover photo uploads larger than this size. Default: 10MB', 'nobloat-user-foundry' ); ?>

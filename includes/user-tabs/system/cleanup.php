@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$settings = NBUF_Options::get( 'nbuf_settings', array() );
-$cleanup  = (array) ( $settings['cleanup'] ?? array() );
+$nbuf_settings = NBUF_Options::get( 'nbuf_settings', array() );
+$nbuf_cleanup  = (array) ( $nbuf_settings['cleanup'] ?? array() );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -32,19 +32,19 @@ $cleanup  = (array) ( $settings['cleanup'] ?? array() );
 
 	<fieldset class="nbuf-cleanup">
 		<?php
-		$cleanup_options = array(
+		$nbuf_cleanup_options = array(
 			'settings'  => __( 'Delete plugin settings.', 'nobloat-user-foundry' ),
 			'templates' => __( 'Delete email and page templates.', 'nobloat-user-foundry' ),
 			'tables'    => __( 'Delete all database tables (tokens, user data, profiles, audit logs, 2FA, etc.).', 'nobloat-user-foundry' ),
 			'uploads'   => __( 'Delete uploads directory (profile photos, cover photos, and all user-uploaded files).', 'nobloat-user-foundry' ),
 			'pages'     => __( 'Delete pages containing NoBloat shortcodes.', 'nobloat-user-foundry' ),
 		);
-		foreach ( $cleanup_options as $key => $label ) {
+		foreach ( $nbuf_cleanup_options as $nbuf_key => $nbuf_label ) {
 			printf(
 				'<label style="display:block;margin:8px 0;"><input type="checkbox" name="nbuf_settings[cleanup][]" value="%s" %s> %s</label>',
-				esc_attr( $key ),
-				checked( in_array( $key, $cleanup, true ), true, false ),
-				esc_html( $label )
+				esc_attr( $nbuf_key ),
+				checked( in_array( $nbuf_key, $nbuf_cleanup, true ), true, false ),
+				esc_html( $nbuf_label )
 			);
 		}
 		?>

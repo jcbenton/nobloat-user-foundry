@@ -86,7 +86,7 @@ class NBUF_Security_Log_Page {
 		printf(
 		/* translators: %s: Settings page URL */
 			esc_html__( 'Configure security audit log settings in %s', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=security-log' ) ) . '">' . esc_html__( 'Settings → Tools → Security Log', 'nobloat-user-foundry' ) . '</a>'
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ) . '">' . esc_html__( 'Settings → GDPR → Logging', 'nobloat-user-foundry' ) . '</a>'
 		);
 		?>
 				</p>
@@ -99,7 +99,7 @@ class NBUF_Security_Log_Page {
 			printf(
 			/* translators: %s: Settings page URL */
 				esc_html__( 'Security logging is currently disabled. Enable it in %s to start tracking security events.', 'nobloat-user-foundry' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=security-log' ) ) . '">' . esc_html__( 'Settings → Tools → Security Log', 'nobloat-user-foundry' ) . '</a>'
+				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ) . '">' . esc_html__( 'Settings → GDPR → Logging', 'nobloat-user-foundry' ) . '</a>'
 			);
 			?>
 					</p>

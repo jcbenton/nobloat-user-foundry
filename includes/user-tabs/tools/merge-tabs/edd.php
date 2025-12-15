@@ -13,11 +13,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Check if EDD is active */
-$edd_active = class_exists( 'Easy_Digital_Downloads' );
+$nbuf_edd_active = class_exists( 'Easy_Digital_Downloads' );
 ?>
 
 <div class="nbuf-edd-merge">
-	<?php if ( ! $edd_active ) : ?>
+	<?php if ( ! $nbuf_edd_active ) : ?>
 		<!-- EDD Not Installed -->
 		<div class="notice notice-warning inline">
 			<p>

@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$privacy_html = NBUF_Options::get( 'nbuf_policy_privacy_html', '' );
+$nbuf_privacy_html = NBUF_Options::get( 'nbuf_policy_privacy_html', '' );
 
 /* If empty, load from default template */
-if ( empty( $privacy_html ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'policy-privacy.html';
-	if ( file_exists( $template_path ) ) {
-		$privacy_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_privacy_html ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'policy-privacy.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_privacy_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $privacy_html ) ) {
 				name="nbuf_policy_privacy_html"
 				rows="20"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $privacy_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_privacy_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>

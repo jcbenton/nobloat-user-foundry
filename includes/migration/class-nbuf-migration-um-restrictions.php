@@ -311,17 +311,13 @@ class NBUF_Migration_UM_Restrictions {
 
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		/*
-		* Get count before deletion
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		/* Get count before deletion */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
+		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 
-		/*
-		* Delete all restrictions
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( "TRUNCATE TABLE {$table}" );
+		/* Delete all restrictions */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
+		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 
 		/* Log rollback */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {

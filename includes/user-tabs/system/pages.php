@@ -12,14 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Plugin page IDs */
-$page_verification  = NBUF_Options::get( 'nbuf_page_verification', 0 );
-$page_reset         = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-$page_request_reset = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
-$page_login         = NBUF_Options::get( 'nbuf_page_login', 0 );
-$page_registration  = NBUF_Options::get( 'nbuf_page_registration', 0 );
-$page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
-$page_profile       = NBUF_Options::get( 'nbuf_page_profile', 0 );
-$page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
+$nbuf_page_verification  = NBUF_Options::get( 'nbuf_page_verification', 0 );
+$nbuf_page_reset         = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+$nbuf_page_request_reset = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
+$nbuf_page_login         = NBUF_Options::get( 'nbuf_page_login', 0 );
+$nbuf_page_registration  = NBUF_Options::get( 'nbuf_page_registration', 0 );
+$nbuf_page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
+$nbuf_page_profile       = NBUF_Options::get( 'nbuf_page_profile', 0 );
+$nbuf_page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -45,7 +45,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_verification',
-						'selected'          => absint( $page_verification ),
+						'selected'          => absint( $nbuf_page_verification ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -63,7 +63,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_password_reset',
-						'selected'          => absint( $page_reset ),
+						'selected'          => absint( $nbuf_page_reset ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -81,7 +81,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_request_reset',
-						'selected'          => absint( $page_request_reset ),
+						'selected'          => absint( $nbuf_page_request_reset ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -99,7 +99,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_login',
-						'selected'          => absint( $page_login ),
+						'selected'          => absint( $nbuf_page_login ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -117,7 +117,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_registration',
-						'selected'          => absint( $page_registration ),
+						'selected'          => absint( $nbuf_page_registration ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -135,7 +135,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_account',
-						'selected'          => absint( $page_account ),
+						'selected'          => absint( $nbuf_page_account ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -153,7 +153,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_profile',
-						'selected'          => absint( $page_profile ),
+						'selected'          => absint( $nbuf_page_profile ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)
@@ -171,7 +171,7 @@ $page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				wp_dropdown_pages(
 					array(
 						'name'              => 'nbuf_page_2fa_verify',
-						'selected'          => absint( $page_2fa_verify ),
+						'selected'          => absint( $nbuf_page_2fa_verify ),
 						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
 						'option_none_value' => 0,
 					)

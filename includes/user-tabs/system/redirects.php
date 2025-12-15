@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Default WordPress redirect settings */
-$redirect_default_login        = NBUF_Options::get( 'nbuf_redirect_default_login', true );
-$redirect_default_register     = NBUF_Options::get( 'nbuf_redirect_default_register', true );
-$redirect_default_logout       = NBUF_Options::get( 'nbuf_redirect_default_logout', true );
-$redirect_default_lostpassword = NBUF_Options::get( 'nbuf_redirect_default_lostpassword', true );
-$redirect_default_resetpass    = NBUF_Options::get( 'nbuf_redirect_default_resetpass', true );
+$nbuf_redirect_default_login        = NBUF_Options::get( 'nbuf_redirect_default_login', true );
+$nbuf_redirect_default_register     = NBUF_Options::get( 'nbuf_redirect_default_register', true );
+$nbuf_redirect_default_logout       = NBUF_Options::get( 'nbuf_redirect_default_logout', true );
+$nbuf_redirect_default_lostpassword = NBUF_Options::get( 'nbuf_redirect_default_lostpassword', true );
+$nbuf_redirect_default_resetpass    = NBUF_Options::get( 'nbuf_redirect_default_resetpass', true );
 
 /* Login redirect settings */
-$login_redirect        = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
-$login_redirect_custom = NBUF_Options::get( 'nbuf_login_redirect_custom', '/nobloat-account' );
+$nbuf_login_redirect        = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
+$nbuf_login_redirect_custom = NBUF_Options::get( 'nbuf_login_redirect_custom', '/nobloat-account' );
 
 /* Logout settings */
-$logout_behavior        = NBUF_Options::get( 'nbuf_logout_behavior', 'immediate' );
-$logout_redirect        = NBUF_Options::get( 'nbuf_logout_redirect', 'home' );
-$logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' );
+$nbuf_logout_behavior        = NBUF_Options::get( 'nbuf_logout_behavior', 'immediate' );
+$nbuf_logout_redirect        = NBUF_Options::get( 'nbuf_logout_redirect', 'home' );
+$nbuf_logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -48,7 +48,7 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<td>
 				<input type="hidden" name="nbuf_redirect_default_login" value="0">
 				<label>
-					<input type="checkbox" name="nbuf_redirect_default_login" value="1" <?php checked( $redirect_default_login, true ); ?>>
+					<input type="checkbox" name="nbuf_redirect_default_login" value="1" <?php checked( $nbuf_redirect_default_login, true ); ?>>
 					<?php esc_html_e( 'Redirect default login page to NoBloat login page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -61,7 +61,7 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<td>
 				<input type="hidden" name="nbuf_redirect_default_register" value="0">
 				<label>
-					<input type="checkbox" name="nbuf_redirect_default_register" value="1" <?php checked( $redirect_default_register, true ); ?>>
+					<input type="checkbox" name="nbuf_redirect_default_register" value="1" <?php checked( $nbuf_redirect_default_register, true ); ?>>
 					<?php esc_html_e( 'Redirect default registration page to NoBloat registration page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -74,7 +74,7 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<td>
 				<input type="hidden" name="nbuf_redirect_default_logout" value="0">
 				<label>
-					<input type="checkbox" name="nbuf_redirect_default_logout" value="1" <?php checked( $redirect_default_logout, true ); ?>>
+					<input type="checkbox" name="nbuf_redirect_default_logout" value="1" <?php checked( $nbuf_redirect_default_logout, true ); ?>>
 					<?php esc_html_e( 'Redirect default logout to NoBloat login page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -87,7 +87,7 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<td>
 				<input type="hidden" name="nbuf_redirect_default_lostpassword" value="0">
 				<label>
-					<input type="checkbox" name="nbuf_redirect_default_lostpassword" value="1" <?php checked( $redirect_default_lostpassword, true ); ?>>
+					<input type="checkbox" name="nbuf_redirect_default_lostpassword" value="1" <?php checked( $nbuf_redirect_default_lostpassword, true ); ?>>
 					<?php esc_html_e( 'Redirect forgot password page to NoBloat request reset page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -100,7 +100,7 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<td>
 				<input type="hidden" name="nbuf_redirect_default_resetpass" value="0">
 				<label>
-					<input type="checkbox" name="nbuf_redirect_default_resetpass" value="1" <?php checked( $redirect_default_resetpass, true ); ?>>
+					<input type="checkbox" name="nbuf_redirect_default_resetpass" value="1" <?php checked( $nbuf_redirect_default_resetpass, true ); ?>>
 					<?php esc_html_e( 'Redirect password reset to NoBloat reset page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -112,13 +112,13 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<th><?php esc_html_e( 'After Login Redirect', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_login_redirect" id="nbuf_login_redirect">
-					<option value="admin" <?php selected( $login_redirect, 'admin' ); ?>>
+					<option value="admin" <?php selected( $nbuf_login_redirect, 'admin' ); ?>>
 						<?php esc_html_e( 'Admin Dashboard', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="home" <?php selected( $login_redirect, 'home' ); ?>>
+					<option value="home" <?php selected( $nbuf_login_redirect, 'home' ); ?>>
 						<?php esc_html_e( 'Home Page', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="custom" <?php selected( $login_redirect, 'custom' ); ?>>
+					<option value="custom" <?php selected( $nbuf_login_redirect, 'custom' ); ?>>
 						<?php esc_html_e( 'Custom URL', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -127,10 +127,10 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 				</p>
 			</td>
 		</tr>
-		<tr id="nbuf_login_custom_url_row" style="display: <?php echo ( 'custom' === $login_redirect ) ? 'table-row' : 'none'; ?>;">
+		<tr id="nbuf_login_custom_url_row" style="display: <?php echo ( 'custom' === $nbuf_login_redirect ) ? 'table-row' : 'none'; ?>;">
 			<th><?php esc_html_e( 'Login Redirect URL', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="text" name="nbuf_login_redirect_custom" value="<?php echo esc_attr( $login_redirect_custom ); ?>" class="regular-text">
+				<input type="text" name="nbuf_login_redirect_custom" value="<?php echo esc_attr( $nbuf_login_redirect_custom ); ?>" class="regular-text">
 				<p class="description">
 					<?php esc_html_e( 'Enter a full URL (e.g., https://example.com/page) or relative path (e.g., /my-account). Default: /nobloat-account', 'nobloat-user-foundry' ); ?>
 				</p>
@@ -144,10 +144,10 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<th><?php esc_html_e( 'Logout Behavior', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_logout_behavior">
-					<option value="immediate" <?php selected( $logout_behavior, 'immediate' ); ?>>
+					<option value="immediate" <?php selected( $nbuf_logout_behavior, 'immediate' ); ?>>
 						<?php esc_html_e( 'Immediate Logout', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="confirm" <?php selected( $logout_behavior, 'confirm' ); ?>>
+					<option value="confirm" <?php selected( $nbuf_logout_behavior, 'confirm' ); ?>>
 						<?php esc_html_e( 'Ask for Confirmation', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -160,13 +160,13 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 			<th><?php esc_html_e( 'Logout Redirect', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_logout_redirect" id="nbuf_logout_redirect">
-					<option value="home" <?php selected( $logout_redirect, 'home' ); ?>>
+					<option value="home" <?php selected( $nbuf_logout_redirect, 'home' ); ?>>
 						<?php esc_html_e( 'Home Page', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="login" <?php selected( $logout_redirect, 'login' ); ?>>
+					<option value="login" <?php selected( $nbuf_logout_redirect, 'login' ); ?>>
 						<?php esc_html_e( 'Login Page', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="custom" <?php selected( $logout_redirect, 'custom' ); ?>>
+					<option value="custom" <?php selected( $nbuf_logout_redirect, 'custom' ); ?>>
 						<?php esc_html_e( 'Custom URL', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -175,10 +175,10 @@ $logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom', '' )
 				</p>
 			</td>
 		</tr>
-		<tr id="nbuf_custom_url_row" style="display: <?php echo ( 'custom' === $logout_redirect ) ? 'table-row' : 'none'; ?>;">
+		<tr id="nbuf_custom_url_row" style="display: <?php echo ( 'custom' === $nbuf_logout_redirect ) ? 'table-row' : 'none'; ?>;">
 			<th><?php esc_html_e( 'Custom Redirect URL', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="text" name="nbuf_logout_redirect_custom" value="<?php echo esc_attr( $logout_redirect_custom ); ?>" class="regular-text">
+				<input type="text" name="nbuf_logout_redirect_custom" value="<?php echo esc_attr( $nbuf_logout_redirect_custom ); ?>" class="regular-text">
 				<p class="description">
 					<?php esc_html_e( 'Enter a full URL (e.g., https://example.com/page) or relative path (e.g., /my-page). Default: /', 'nobloat-user-foundry' ); ?>
 				</p>

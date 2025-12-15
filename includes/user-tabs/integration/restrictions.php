@@ -14,24 +14,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$restrictions_enabled    = NBUF_Options::get( 'nbuf_restrictions_enabled', false );
-$menu_enabled            = NBUF_Options::get( 'nbuf_restrictions_menu_enabled', false );
-$content_enabled         = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
-$shortcode_enabled       = NBUF_Options::get( 'nbuf_restrict_content_shortcode_enabled', false );
-$widgets_enabled         = NBUF_Options::get( 'nbuf_restrict_widgets_enabled', false );
-$taxonomies_enabled      = NBUF_Options::get( 'nbuf_restrict_taxonomies_enabled', false );
-$post_types              = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
-$taxonomies_list         = NBUF_Options::get( 'nbuf_restrict_taxonomies_list', array( 'category', 'post_tag' ) );
-$hide_from_queries       = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
-$filter_taxonomy_queries = NBUF_Options::get( 'nbuf_restrict_taxonomies_filter_queries', false );
+$nbuf_restrictions_enabled    = NBUF_Options::get( 'nbuf_restrictions_enabled', false );
+$nbuf_menu_enabled            = NBUF_Options::get( 'nbuf_restrictions_menu_enabled', false );
+$nbuf_content_enabled         = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
+$nbuf_shortcode_enabled       = NBUF_Options::get( 'nbuf_restrict_content_shortcode_enabled', false );
+$nbuf_widgets_enabled         = NBUF_Options::get( 'nbuf_restrict_widgets_enabled', false );
+$nbuf_taxonomies_enabled      = NBUF_Options::get( 'nbuf_restrict_taxonomies_enabled', false );
+$nbuf_post_types              = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
+$nbuf_taxonomies_list         = NBUF_Options::get( 'nbuf_restrict_taxonomies_list', array( 'category', 'post_tag' ) );
+$nbuf_hide_from_queries       = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
+$nbuf_filter_taxonomy_queries = NBUF_Options::get( 'nbuf_restrict_taxonomies_filter_queries', false );
 
 /* Ensure post_types is an array */
-if ( ! is_array( $post_types ) ) {
-	$post_types = array( 'post', 'page' );
+if ( ! is_array( $nbuf_post_types ) ) {
+	$nbuf_post_types = array( 'post', 'page' );
 }
 
 /* Get all public post types */
-$all_post_types = get_post_types( array( 'public' => true ), 'objects' );
+$nbuf_all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 
 ?>
 
@@ -52,7 +52,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Enable Access Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrictions_enabled" value="1" <?php checked( $restrictions_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrictions_enabled" value="1" <?php checked( $nbuf_restrictions_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable the access restrictions system', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -66,7 +66,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Menu Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrictions_menu_enabled" value="1" <?php checked( $menu_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrictions_menu_enabled" value="1" <?php checked( $nbuf_menu_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable menu item visibility restrictions', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -80,7 +80,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Content Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrictions_content_enabled" value="1" <?php checked( $content_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrictions_content_enabled" value="1" <?php checked( $nbuf_content_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable post/page access restrictions', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -96,13 +96,13 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					<fieldset>
 						<legend class="screen-reader-text"><?php esc_html_e( 'Select which post types can have content restrictions', 'nobloat-user-foundry' ); ?></legend>
 						<?php
-						foreach ( $all_post_types as $pt ) {
-							$checked = in_array( $pt->name, $post_types, true );
+						foreach ( $nbuf_all_post_types as $nbuf_pt ) {
+							$nbuf_checked = in_array( $nbuf_pt->name, $nbuf_post_types, true );
 							?>
 							<label style="display: block; margin: 5px 0;">
-								<input type="checkbox" name="nbuf_restrictions_post_types[]" value="<?php echo esc_attr( $pt->name ); ?>" <?php checked( $checked ); ?>>
-							<?php echo esc_html( $pt->label ); ?>
-								<span class="description">(<?php echo esc_html( $pt->name ); ?>)</span>
+								<input type="checkbox" name="nbuf_restrictions_post_types[]" value="<?php echo esc_attr( $nbuf_pt->name ); ?>" <?php checked( $nbuf_checked ); ?>>
+							<?php echo esc_html( $nbuf_pt->label ); ?>
+								<span class="description">(<?php echo esc_html( $nbuf_pt->name ); ?>)</span>
 							</label>
 							<?php
 						}
@@ -119,7 +119,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Shortcode Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrict_content_shortcode_enabled" value="1" <?php checked( $shortcode_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrict_content_shortcode_enabled" value="1" <?php checked( $nbuf_shortcode_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable [nbuf_restrict] shortcode', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -200,7 +200,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Widget Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrict_widgets_enabled" value="1" <?php checked( $widgets_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrict_widgets_enabled" value="1" <?php checked( $nbuf_widgets_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable widget visibility restrictions', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -214,7 +214,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Taxonomy Restrictions', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrict_taxonomies_enabled" value="1" <?php checked( $taxonomies_enabled, true ); ?>>
+						<input type="checkbox" name="nbuf_restrict_taxonomies_enabled" value="1" <?php checked( $nbuf_taxonomies_enabled, true ); ?>>
 						<?php esc_html_e( 'Enable taxonomy archive restrictions', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
@@ -230,14 +230,14 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					<fieldset>
 						<legend class="screen-reader-text"><?php esc_html_e( 'Select which taxonomies can have restrictions', 'nobloat-user-foundry' ); ?></legend>
 						<?php
-						$all_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
-						foreach ( $all_taxonomies as $taxonomy_obj ) {
-							$checked = in_array( $taxonomy_obj->name, $taxonomies_list, true );
+						$nbuf_all_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
+						foreach ( $nbuf_all_taxonomies as $nbuf_taxonomy_obj ) {
+							$nbuf_checked = in_array( $nbuf_taxonomy_obj->name, $nbuf_taxonomies_list, true );
 							?>
 							<label style="display: block; margin: 5px 0;">
-								<input type="checkbox" name="nbuf_restrict_taxonomies_list[]" value="<?php echo esc_attr( $taxonomy_obj->name ); ?>" <?php checked( $checked ); ?>>
-							<?php echo esc_html( $taxonomy_obj->label ); ?>
-								<span class="description">(<?php echo esc_html( $taxonomy_obj->name ); ?>)</span>
+								<input type="checkbox" name="nbuf_restrict_taxonomies_list[]" value="<?php echo esc_attr( $nbuf_taxonomy_obj->name ); ?>" <?php checked( $nbuf_checked ); ?>>
+							<?php echo esc_html( $nbuf_taxonomy_obj->label ); ?>
+								<span class="description">(<?php echo esc_html( $nbuf_taxonomy_obj->name ); ?>)</span>
 							</label>
 							<?php
 						}
@@ -254,7 +254,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Hide Restricted Taxonomies', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrict_taxonomies_filter_queries" value="1" <?php checked( $filter_taxonomy_queries, true ); ?>>
+						<input type="checkbox" name="nbuf_restrict_taxonomies_filter_queries" value="1" <?php checked( $nbuf_filter_taxonomy_queries, true ); ?>>
 						<?php esc_html_e( 'Hide restricted taxonomy terms from term lists', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description" style="color: #d63638;">
@@ -269,7 +269,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 				<th><?php esc_html_e( 'Hide from Archives', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_restrictions_hide_from_queries" value="1" <?php checked( $hide_from_queries, true ); ?>>
+						<input type="checkbox" name="nbuf_restrictions_hide_from_queries" value="1" <?php checked( $nbuf_hide_from_queries, true ); ?>>
 						<?php esc_html_e( 'Hide restricted content from archives and search results', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description" style="color: #d63638;">

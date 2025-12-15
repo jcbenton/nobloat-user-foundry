@@ -24,26 +24,30 @@ if ( empty( $user_id ) ) {
 }
 
 /* Get user */
-$user = get_userdata( $user_id );
-if ( ! $user ) {
+$nbuf_user = get_userdata( $user_id );
+if ( ! $nbuf_user ) {
 	return;
 }
 
 /* Default context */
 if ( empty( $context ) ) {
-	$context = 'admin';
+	$nbuf_context = 'admin';
+} else {
+	$nbuf_context = $context;
 }
 
 /* Check revert permission */
 if ( ! isset( $can_revert ) ) {
-	$current_user_id   = get_current_user_id();
-	$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-	$can_revert        = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
+	$nbuf_current_user_id   = get_current_user_id();
+	$nbuf_allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
+	$nbuf_can_revert        = current_user_can( 'manage_options' ) || ( $nbuf_allow_user_revert && $user_id === $nbuf_current_user_id );
+} else {
+	$nbuf_can_revert = $can_revert;
 }
 
 ?>
 
-<div class="nbuf-version-history-viewer" data-user-id="<?php echo esc_attr( $user_id ); ?>" data-context="<?php echo esc_attr( $context ); ?>">
+<div class="nbuf-version-history-viewer" data-user-id="<?php echo esc_attr( $user_id ); ?>" data-context="<?php echo esc_attr( $nbuf_context ); ?>">
 
 	<!-- Header -->
 	<div class="nbuf-vh-header">
@@ -52,7 +56,7 @@ if ( ! isset( $can_revert ) ) {
 			printf(
 				/* translators: %s: User display name */
 				esc_html__( 'Profile History: %s', 'nobloat-user-foundry' ),
-				esc_html( $user->display_name )
+				esc_html( $nbuf_user->display_name )
 			);
 			?>
 		</h3>

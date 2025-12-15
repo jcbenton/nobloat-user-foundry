@@ -231,8 +231,9 @@ class NBUF_Username_Changer {
 		/* Store old username for logging */
 		$old_username = $user->user_login;
 
-		/* Perform the update */
+		/* Perform the update - direct DB query required as wp_update_user() does not support changing user_login */
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required; user_login cannot be changed via wp_update_user().
 		$result = $wpdb->update(
 			$wpdb->users,
 			array( 'user_login' => $new_username ),

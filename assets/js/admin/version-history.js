@@ -134,9 +134,9 @@ jQuery(document).ready(function($) {
 				'revert': 'backup'
 			};
 
-			const date = new Date(item.changed_at);
-			const dateStr = date.toLocaleDateString();
-			const timeStr = date.toLocaleTimeString();
+			/* Use pre-formatted timestamps from PHP (converted to user's browser timezone) */
+			const dateStr = item.changed_at_date || item.changed_at;
+			const timeStr = item.changed_at_time || '';
 
 			let changedByText = NBUF_VersionHistory.i18n.self;
 			if (item.changed_by) {
@@ -256,7 +256,8 @@ jQuery(document).ready(function($) {
 		$loading.hide();
 		$result.show();
 
-		const date = new Date(version.changed_at).toLocaleString();
+		/* Use pre-formatted timestamp from PHP (converted to user's browser timezone) */
+		const date = version.changed_at_full || version.changed_at;
 		const snapshot = version.snapshot_data || {};
 
 		let html = '<div class="nbuf-vh-snapshot-header">';
@@ -369,8 +370,9 @@ jQuery(document).ready(function($) {
 	function renderDiff(diff, version1, version2) {
 		const $result = $viewer.find('.nbuf-vh-diff-result');
 
-		const date1 = new Date(version1.changed_at).toLocaleString();
-		const date2 = new Date(version2.changed_at).toLocaleString();
+		/* Use pre-formatted timestamps from PHP (converted to user's browser timezone) */
+		const date1 = version1.changed_at_full || version1.changed_at;
+		const date2 = version2.changed_at_full || version2.changed_at;
 
 		let html = '<div class="nbuf-vh-diff-header-info">';
 		html += '<div class="nbuf-vh-diff-version"><strong>' + NBUF_VersionHistory.i18n.before + '</strong> ' + date1 + '</div>';

@@ -188,6 +188,11 @@ class NBUF_Audit_Log_Page {
 	 * Handle CSV export
 	 */
 	public static function handle_export() {
+		/* Only process on our page */
+		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-user-log' !== $_GET['page'] ) {
+			return;
+		}
+
 		if ( ! isset( $_GET['action'] ) || 'nbuf_export_logs' !== $_GET['action'] ) {
 			return;
 		}
@@ -233,6 +238,11 @@ class NBUF_Audit_Log_Page {
 	 * Handle purge all logs
 	 */
 	public static function handle_purge() {
+		/* Only process on our page */
+		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-user-log' !== $_GET['page'] ) {
+			return;
+		}
+
 		if ( ! isset( $_GET['action'] ) || 'nbuf_purge_logs' !== $_GET['action'] ) {
 			return;
 		}
@@ -247,8 +257,14 @@ class NBUF_Audit_Log_Page {
 			wp_die( esc_html__( 'You do not have permission to purge logs', 'nobloat-user-foundry' ) );
 		}
 
+		/* Buffer any stray output from database operations */
+		ob_start();
+
 		/* Purge all logs */
 		$success = NBUF_Audit_Log::purge_all_logs();
+
+		/* Discard any output */
+		ob_end_clean();
 
 		/* Redirect with result */
 		$redirect = remove_query_arg( array( 'action', '_wpnonce' ) );

@@ -13,11 +13,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Check if WooCommerce is active */
-$wc_active = class_exists( 'WooCommerce' );
+$nbuf_wc_active = class_exists( 'WooCommerce' );
 ?>
 
 <div class="nbuf-woocommerce-merge">
-	<?php if ( ! $wc_active ) : ?>
+	<?php if ( ! $nbuf_wc_active ) : ?>
 		<!-- WooCommerce Not Installed -->
 		<div class="notice notice-warning inline">
 			<p>

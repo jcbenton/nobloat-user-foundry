@@ -84,11 +84,11 @@ class NBUF_Change_Notifications {
 		/* Store profile data. */
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_profile';
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom profile table.
 		$profile = $wpdb->get_row(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT * FROM $table_name WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
+				$table_name,
 				$user_id
 			),
 			ARRAY_A
@@ -170,11 +170,11 @@ class NBUF_Change_Notifications {
 		if ( isset( $original['profile'] ) ) {
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'nbuf_user_profile';
-         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom profile table.
 			$new_profile = $wpdb->get_row(
 				$wpdb->prepare(
-           // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-					"SELECT * FROM $table_name WHERE user_id = %d",
+					'SELECT * FROM %i WHERE user_id = %d',
+					$table_name,
 					$user_id
 				),
 				ARRAY_A

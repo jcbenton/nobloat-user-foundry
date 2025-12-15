@@ -12,8 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$admin_new_user_html = NBUF_Template_Manager::load_template( 'admin-new-user-html' );
-$admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-text' );
+$nbuf_admin_new_user_html = NBUF_Template_Manager::load_template( 'admin-new-user-html' );
+$nbuf_admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-text' );
 ?>
 
 <div class="nbuf-templates-tab">
@@ -32,7 +32,7 @@ $admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-tex
 				name="nbuf_admin_new_user_html"
 				rows="15"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $admin_new_user_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_admin_new_user_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {username}, {user_email}, {registration_date}, {user_profile_link}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
@@ -49,7 +49,7 @@ $admin_new_user_text = NBUF_Template_Manager::load_template( 'admin-new-user-tex
 				name="nbuf_admin_new_user_text"
 				rows="12"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $admin_new_user_text ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_admin_new_user_text ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Plain text version for email clients that don\'t support HTML. Same placeholders available.', 'nobloat-user-foundry' ); ?>
 			</p>

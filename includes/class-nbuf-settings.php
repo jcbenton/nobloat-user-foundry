@@ -330,12 +330,15 @@ class NBUF_Settings {
 			'nbuf_version_history_auto_cleanup'      => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Logging */
-			'nbuf_logging_user_audit_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_logging_user_audit_retention'   => 'sanitize_text_field',
-			'nbuf_logging_admin_audit_enabled'    => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_logging_admin_audit_retention'  => 'sanitize_text_field',
-			'nbuf_logging_security_enabled'       => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_logging_security_retention'     => 'sanitize_text_field',
+			'nbuf_logging_user_audit_enabled'      => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_logging_user_audit_retention'    => 'sanitize_text_field',
+			'nbuf_logging_user_audit_categories'   => array( __CLASS__, 'sanitize_checkbox_group' ),
+			'nbuf_logging_admin_audit_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_logging_admin_audit_retention'   => 'sanitize_text_field',
+			'nbuf_logging_admin_audit_categories'  => array( __CLASS__, 'sanitize_checkbox_group' ),
+			'nbuf_logging_security_enabled'        => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_logging_security_retention'      => 'sanitize_text_field',
+			'nbuf_logging_security_categories'     => array( __CLASS__, 'sanitize_checkbox_group' ),
 
 			/* Profile settings */
 			'nbuf_enable_profiles'                => array( __CLASS__, 'sanitize_checkbox' ),
@@ -482,8 +485,8 @@ class NBUF_Settings {
 
 		/* Handle unchecked checkboxes - only for checkboxes declared on the current form */
 		if ( isset( $_POST['nbuf_form_checkboxes'] ) && is_array( $_POST['nbuf_form_checkboxes'] ) ) {
-			foreach ( $_POST['nbuf_form_checkboxes'] as $checkbox_key ) {
-				$checkbox_key = sanitize_key( $checkbox_key );
+			$form_checkboxes = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_checkboxes'] ) );
+			foreach ( $form_checkboxes as $checkbox_key ) {
 				/* If checkbox was declared but not submitted, it was unchecked */
 				if ( ! isset( $_POST[ $checkbox_key ] ) && isset( $registry[ $checkbox_key ] ) ) {
 					$result = NBUF_Options::update( $checkbox_key, false, true, 'settings' );
@@ -972,6 +975,30 @@ class NBUF_Settings {
 
 	/**
 	 * ==========================================================
+	 * SANITIZE CHECKBOX GROUP
+	 * ----------------------------------------------------------
+	 * Sanitizes checkbox group values to array of booleans.
+	 * Used for multi-checkbox settings like logging categories.
+	 * ==========================================================
+	 *
+	 * @param  mixed $input Raw input value (array or other).
+	 * @return array Sanitized array with boolean values.
+	 */
+	public static function sanitize_checkbox_group( $input ) {
+		if ( ! is_array( $input ) ) {
+			return array();
+		}
+
+		$sanitized = array();
+		foreach ( $input as $key => $value ) {
+			$sanitized[ sanitize_key( $key ) ] = ! empty( $value ) && '0' !== $value;
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * ==========================================================
 	 * SANITIZE PAGE ID
 	 * ----------------------------------------------------------
 	 * Sanitizes page ID values to positive integer.
@@ -1040,6 +1067,140 @@ class NBUF_Settings {
 
 	/**
 	 * ==========================================================
+	 * RENDER SETTINGS
+	 * ----------------------------------------------------------
+	 * Renders a settings form from an array of field definitions.
+	 * Used by settings tabs that define fields programmatically.
+	 * ==========================================================
+	 *
+	 * @param array  $fields  Array of field definitions.
+	 * @param string $title   Form title.
+	 * @param string $tab     Active tab for form redirect.
+	 * @param string $subtab  Active subtab for form redirect.
+	 */
+	public static function render_settings( array $fields, string $title = '', string $tab = 'system', string $subtab = '' ) {
+		/* Collect checkbox field IDs for unchecked state handling */
+		$checkbox_ids = array();
+		foreach ( $fields as $field ) {
+			$type = $field['type'] ?? 'text';
+			if ( in_array( $type, array( 'checkbox', 'checkbox_group' ), true ) && ! empty( $field['id'] ) ) {
+				$checkbox_ids[] = $field['id'];
+			}
+		}
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php
+			self::settings_nonce_field();
+			settings_errors( 'nbuf_settings' );
+			?>
+			<input type="hidden" name="nbuf_active_tab" value="<?php echo esc_attr( $tab ); ?>">
+			<input type="hidden" name="nbuf_active_subtab" value="<?php echo esc_attr( $subtab ); ?>">
+			<?php foreach ( $checkbox_ids as $checkbox_id ) : ?>
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="<?php echo esc_attr( $checkbox_id ); ?>">
+			<?php endforeach; ?>
+
+			<?php
+			$in_table = false;
+
+			foreach ( $fields as $field ) {
+				$type = $field['type'] ?? 'text';
+
+				/* Handle section headers */
+				if ( 'section' === $type ) {
+					if ( $in_table ) {
+						echo '</table>';
+						$in_table = false;
+					}
+					echo '<h2>' . esc_html( $field['title'] ) . '</h2>';
+					if ( ! empty( $field['desc'] ) ) {
+						echo '<p class="description">' . wp_kses_post( $field['desc'] ) . '</p>';
+					}
+					continue;
+				}
+
+				/* Start table if not in one */
+				if ( ! $in_table ) {
+					echo '<table class="form-table">';
+					$in_table = true;
+				}
+
+				$id      = $field['id'] ?? '';
+				$label   = $field['title'] ?? '';
+				$desc    = $field['desc'] ?? '';
+				$default = $field['default'] ?? '';
+				$value   = NBUF_Options::get( $id, $default );
+
+				echo '<tr>';
+				echo '<th scope="row">' . esc_html( $label ) . '</th>';
+				echo '<td>';
+
+				switch ( $type ) {
+					case 'checkbox':
+						echo '<input type="hidden" name="' . esc_attr( $id ) . '" value="0">';
+						echo '<label>';
+						echo '<input type="checkbox" name="' . esc_attr( $id ) . '" value="1" ' . checked( $value, true, false ) . '>';
+						if ( $desc ) {
+							echo ' ' . wp_kses_post( $desc );
+						}
+						echo '</label>';
+						break;
+
+					case 'checkbox_group':
+						$options = $field['options'] ?? array();
+						if ( ! is_array( $value ) ) {
+							$value = $default;
+						}
+						echo '<fieldset>';
+						foreach ( $options as $opt_key => $opt_label ) {
+							$checked = isset( $value[ $opt_key ] ) && $value[ $opt_key ];
+							echo '<label style="display:block;margin-bottom:6px;">';
+							echo '<input type="checkbox" name="' . esc_attr( $id ) . '[' . esc_attr( $opt_key ) . ']" value="1" ' . checked( $checked, true, false ) . '>';
+							echo ' ' . esc_html( $opt_label );
+							echo '</label>';
+						}
+						echo '</fieldset>';
+						if ( $desc ) {
+							echo '<p class="description">' . wp_kses_post( $desc ) . '</p>';
+						}
+						break;
+
+					case 'select':
+						$options = $field['options'] ?? array();
+						echo '<select name="' . esc_attr( $id ) . '">';
+						foreach ( $options as $opt_key => $opt_label ) {
+							echo '<option value="' . esc_attr( $opt_key ) . '" ' . selected( $value, $opt_key, false ) . '>' . esc_html( $opt_label ) . '</option>';
+						}
+						echo '</select>';
+						if ( $desc ) {
+							echo '<p class="description">' . wp_kses_post( $desc ) . '</p>';
+						}
+						break;
+
+					case 'text':
+					default:
+						echo '<input type="text" name="' . esc_attr( $id ) . '" value="' . esc_attr( $value ) . '" class="regular-text">';
+						if ( $desc ) {
+							echo '<p class="description">' . wp_kses_post( $desc ) . '</p>';
+						}
+						break;
+				}
+
+				echo '</td>';
+				echo '</tr>';
+			}
+
+			if ( $in_table ) {
+				echo '</table>';
+			}
+
+			submit_button();
+			?>
+		</form>
+		<?php
+	}
+
+	/**
+	 * ==========================================================
 	 * GET TAB STRUCTURE
 	 * ----------------------------------------------------------
 	 * Returns the two-level tab structure definition.
@@ -1057,7 +1218,6 @@ class NBUF_Settings {
 					'pages'     => __( 'Pages', 'nobloat-user-foundry' ),
 					'hooks'     => __( 'Hooks', 'nobloat-user-foundry' ),
 					'redirects' => __( 'Redirects', 'nobloat-user-foundry' ),
-					'gdpr'      => __( 'GDPR', 'nobloat-user-foundry' ),
 					'cleanup'   => __( 'Cleanup', 'nobloat-user-foundry' ),
 				),
 			),
@@ -1073,16 +1233,25 @@ class NBUF_Settings {
 					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
 				),
 			),
+			'gdpr'        => array(
+				'label'   => __( 'GDPR', 'nobloat-user-foundry' ),
+				'subtabs' => array(
+					'privacy'       => __( 'Privacy', 'nobloat-user-foundry' ),
+					'logging'       => __( 'Logging', 'nobloat-user-foundry' ),
+					'notices'       => __( 'Notices', 'nobloat-user-foundry' ),
+					'history'       => __( 'History', 'nobloat-user-foundry' ),
+					'notifications' => __( 'Notifications', 'nobloat-user-foundry' ),
+					'tools'         => __( 'Tools', 'nobloat-user-foundry' ),
+				),
+			),
 			'users'       => array(
 				'label'   => __( 'Users', 'nobloat-user-foundry' ),
 				'subtabs' => array(
-					'registration'         => __( 'Registration', 'nobloat-user-foundry' ),
-					'account'              => __( 'Account', 'nobloat-user-foundry' ),
-					'profile-fields'       => __( 'Profile Fields', 'nobloat-user-foundry' ),
-					'profiles'             => __( 'Profiles & Photos', 'nobloat-user-foundry' ),
-					'directory'            => __( 'Member Directory', 'nobloat-user-foundry' ),
-					'version-history'      => __( 'Version History', 'nobloat-user-foundry' ),
-					'change-notifications' => __( 'Change Notifications', 'nobloat-user-foundry' ),
+					'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
+					'account'        => __( 'Account', 'nobloat-user-foundry' ),
+					'profile-fields' => __( 'Profile Fields', 'nobloat-user-foundry' ),
+					'profiles'       => __( 'Profiles & Photos', 'nobloat-user-foundry' ),
+					'directory'      => __( 'Member Directory', 'nobloat-user-foundry' ),
 				),
 			),
 			'integration' => array(
@@ -1099,8 +1268,6 @@ class NBUF_Settings {
 				'subtabs' => array(
 					'merge-accounts' => __( 'Merge Accounts', 'nobloat-user-foundry' ),
 					'migration'      => __( 'Migration', 'nobloat-user-foundry' ),
-					'audit-log'      => __( 'Audit Log', 'nobloat-user-foundry' ),
-					'security-log'   => __( 'Security Log', 'nobloat-user-foundry' ),
 					'diagnostics'    => __( 'Diagnostics', 'nobloat-user-foundry' ),
 					'tests'          => __( 'Tests', 'nobloat-user-foundry' ),
 				),
@@ -1413,15 +1580,11 @@ class NBUF_Settings {
 	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_admin_assets( $hook ) {
-		/* Load CSS on main menu page, settings, and roles submenu pages */
-		$allowed_hooks = array(
-			'toplevel_page_nobloat-foundry',
-			'nobloat-foundry_page_nobloat-foundry-users',
-			'user-foundry_page_nobloat-foundry-users',
-			'nobloat-foundry_page_nobloat-foundry-roles',
-			'user-foundry_page_nobloat-foundry-roles',
-		);
-		if ( ! in_array( $hook, $allowed_hooks, true ) ) {
+		/* Load on all NoBloat User Foundry admin pages */
+		/* Debug: uncomment to see hook name */
+		/* error_log( 'NBUF Hook: ' . $hook ); */
+
+		if ( strpos( $hook, 'nobloat-foundry' ) === false && strpos( $hook, 'user-foundry' ) === false ) {
 			return;
 		}
 

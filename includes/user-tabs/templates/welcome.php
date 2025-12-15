@@ -12,20 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current templates */
-$welcome_html = NBUF_Options::get( 'nbuf_welcome_email_html', '' );
-$welcome_text = NBUF_Options::get( 'nbuf_welcome_email_text', '' );
+$nbuf_welcome_html = NBUF_Options::get( 'nbuf_welcome_email_html', '' );
+$nbuf_welcome_text = NBUF_Options::get( 'nbuf_welcome_email_text', '' );
 
 /* If empty, load from default templates */
-if ( empty( $welcome_html ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'welcome-email.html';
-	if ( file_exists( $template_path ) ) {
-		$welcome_html = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_welcome_html ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'welcome-email.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_welcome_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
-if ( empty( $welcome_text ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'welcome-email.txt';
-	if ( file_exists( $template_path ) ) {
-		$welcome_text = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_welcome_text ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'welcome-email.txt';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_welcome_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -46,7 +46,7 @@ if ( empty( $welcome_text ) ) {
 				name="nbuf_welcome_email_html"
 				rows="15"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $welcome_html ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_welcome_html ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
@@ -67,7 +67,7 @@ if ( empty( $welcome_text ) ) {
 				name="nbuf_welcome_email_text"
 				rows="10"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $welcome_text ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_welcome_text ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>

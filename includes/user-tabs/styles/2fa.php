@@ -16,16 +16,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 if ( isset( $_POST['nbuf_save_2fa_css'] ) && check_admin_referer( 'nbuf_2fa_css_save', 'nbuf_2fa_css_nonce' ) ) {
 	// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via NBUF_CSS_Manager::sanitize_css().
-	$twofa_css = isset( $_POST['twofa_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['twofa_page_css'] ) ) : '';
+	$nbuf_twofa_css = isset( $_POST['twofa_page_css'] ) ? NBUF_CSS_Manager::sanitize_css( wp_unslash( $_POST['twofa_page_css'] ) ) : '';
 	// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 	/* Save to database */
-	NBUF_Options::update( 'nbuf_2fa_page_css', $twofa_css, false, 'css' );
+	NBUF_Options::update( 'nbuf_2fa_page_css', $nbuf_twofa_css, false, 'css' );
 
 	/* Write to disk */
-	$success = NBUF_CSS_Manager::save_css_to_disk( $twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa' );
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa' );
 
-	if ( $success ) {
+	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '2FA page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 	} else {
 		echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Styles saved to database, but could not write to disk. Check file permissions.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -33,18 +33,18 @@ if ( isset( $_POST['nbuf_save_2fa_css'] ) && check_admin_referer( 'nbuf_2fa_css_
 }
 
 /* Load current CSS value */
-$twofa_css = NBUF_Options::get( 'nbuf_2fa_page_css' );
-if ( empty( $twofa_css ) ) {
-	$twofa_css = NBUF_CSS_Manager::load_default_css( '2fa-setup' );
+$nbuf_twofa_css = NBUF_Options::get( 'nbuf_2fa_page_css' );
+if ( empty( $nbuf_twofa_css ) ) {
+	$nbuf_twofa_css = NBUF_CSS_Manager::load_default_css( '2fa-setup' );
 }
 
-$has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_2fa' );
+$nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_2fa' );
 
 ?>
 
 <div class="nbuf-styles-tab">
 
-	<?php if ( $has_write_failure ) : ?>
+	<?php if ( $nbuf_has_write_failure ) : ?>
 		<div class="notice notice-error inline">
 			<p>
 				<strong><?php esc_html_e( 'File Write Permission Issue:', 'nobloat-user-foundry' ); ?></strong>
@@ -68,7 +68,7 @@ $has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed
 				rows="30"
 				class="large-text code nbuf-css-editor"
 				spellcheck="false"
-			><?php echo esc_textarea( $twofa_css ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_twofa_css ); ?></textarea>
 
 			<p>
 				<button

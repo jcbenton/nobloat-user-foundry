@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Load current template */
-$registration_form = NBUF_Options::get( 'nbuf_registration_form_template', '' );
+$nbuf_registration_form = NBUF_Options::get( 'nbuf_registration_form_template', '' );
 
 /* If empty, load from default template */
-if ( empty( $registration_form ) ) {
-	$template_path = NBUF_TEMPLATES_DIR . 'registration-form.html';
-	if ( file_exists( $template_path ) ) {
-		$registration_form = file_get_contents( $template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+if ( empty( $nbuf_registration_form ) ) {
+	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'registration-form.html';
+	if ( file_exists( $nbuf_template_path ) ) {
+		$nbuf_registration_form = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	}
 }
 ?>
@@ -39,7 +39,7 @@ if ( empty( $registration_form ) ) {
 				name="nbuf_registration_form_template"
 				rows="30"
 				class="large-text code nbuf-template-editor"
-			><?php echo esc_textarea( $registration_form ); ?></textarea>
+			><?php echo esc_textarea( $nbuf_registration_form ); ?></textarea>
 			<p class="description">
 				<?php esc_html_e( 'Available placeholders: {logged_in_message}, {success_message}, {error_message}, {action_url}, {nonce_field}, {email_value}, {username_field}, {password_min_length}, {password_requirements}, {profile_fields}, {login_url}', 'nobloat-user-foundry' ); ?>
 			</p>

@@ -366,14 +366,15 @@ class NBUF_Options {
 		/* Build placeholders for IN clause */
 		$placeholders = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
 
-     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN clause with spread operator.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT option_name, option_value FROM ' . self::$table_name . " WHERE option_name IN ($placeholders)",
+				"SELECT option_name, option_value FROM %i WHERE option_name IN ($placeholders)",
+				self::$table_name,
 				...$keys
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		$options = array();
 		foreach ( $results as $row ) {
@@ -396,14 +397,14 @@ class NBUF_Options {
 		global $wpdb;
 		self::init();
 
-     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT option_name, option_value FROM ' . self::$table_name . ' WHERE option_group = %s',
+				'SELECT option_name, option_value FROM %i WHERE option_group = %s',
+				self::$table_name,
 				$group
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
 		$options = array();
 		foreach ( $results as $row ) {
@@ -426,12 +427,13 @@ class NBUF_Options {
 		global $wpdb;
 		self::init();
 
-     // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
-		// Table name from class property, no user input in query.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
-			'SELECT option_name, option_value FROM ' . self::$table_name . ' WHERE autoload = 1'
+			$wpdb->prepare(
+				'SELECT option_name, option_value FROM %i WHERE autoload = 1',
+				self::$table_name
+			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
 		foreach ( $results as $row ) {
 			self::$cache[ $row->option_name ] = maybe_unserialize( $row->option_value );
@@ -462,6 +464,75 @@ class NBUF_Options {
 			'cache_count'      => count( self::$cache ),
 			'cache_size_bytes' => strlen( serialize( self::$cache ) ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Debugging function only, safe usage.
 		);
+	}
+
+	/**
+	 * Convert UTC timestamp to user's browser timezone
+	 *
+	 * Reads timezone from nbuf_browser_tz cookie (set by JavaScript).
+	 * Falls back to WordPress site timezone if cookie not available.
+	 * Uses WordPress date/time format settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $utc_timestamp MySQL datetime string in UTC (e.g., "2024-12-14 10:30:00").
+	 * @param string $format        Format type: 'full' (date+time+tz), 'date', 'time', or custom PHP format.
+	 * @return string Formatted date/time in user's local timezone.
+	 */
+	public static function format_local_time( string $utc_timestamp, string $format = 'full' ): string {
+		if ( empty( $utc_timestamp ) ) {
+			return '';
+		}
+
+		try {
+			/* Create DateTime object in UTC */
+			$date = new DateTime( $utc_timestamp, new DateTimeZone( 'UTC' ) );
+
+			/* Get user's timezone from cookie (set by JavaScript) */
+			$user_tz = null;
+			if ( isset( $_COOKIE['nbuf_browser_tz'] ) ) {
+				$cookie_tz = sanitize_text_field( wp_unslash( $_COOKIE['nbuf_browser_tz'] ) );
+				/* Validate timezone identifier against known list */
+				if ( in_array( $cookie_tz, DateTimeZone::listIdentifiers(), true ) ) {
+					$user_tz = $cookie_tz;
+				}
+			}
+
+			/* Fall back to WordPress site timezone */
+			if ( ! $user_tz ) {
+				$user_tz = wp_timezone_string();
+			}
+
+			/* Convert to user's timezone */
+			$date->setTimezone( new DateTimeZone( $user_tz ) );
+
+			/* Get WordPress date/time format settings */
+			$wp_date_format = get_option( 'date_format', 'Y-m-d' );
+			$wp_time_format = get_option( 'time_format', 'g:i a' );
+
+			/* Determine format to use */
+			switch ( $format ) {
+				case 'date':
+					$php_format = $wp_date_format;
+					break;
+				case 'time':
+					$php_format = $wp_time_format . ' T';
+					break;
+				case 'full':
+					$php_format = $wp_date_format . ' ' . $wp_time_format . ' T';
+					break;
+				default:
+					/* Custom format passed directly */
+					$php_format = $format;
+					break;
+			}
+
+			return $date->format( $php_format );
+
+		} catch ( Exception $e ) {
+			/* Return original timestamp if conversion fails */
+			return $utc_timestamp;
+		}
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

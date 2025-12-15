@@ -266,14 +266,12 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		/*
-		* Get all restrictions for this post type
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/* Get all restrictions for this post type */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom restrictions table.
 		$restrictions = $wpdb->get_results(
 			$wpdb->prepare(
-       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-				"SELECT content_id, visibility, allowed_roles FROM {$table} WHERE content_type = %s",
+				'SELECT content_id, visibility, allowed_roles FROM %i WHERE content_type = %s',
+				$table,
 				$post_type
 			)
 		);

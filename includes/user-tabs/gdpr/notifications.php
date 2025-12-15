@@ -1,36 +1,45 @@
 <?php
 /**
- * Users Tab - Profile Change Notifications
+ * GDPR > Notifications Tab
  *
- * @package NoBloat_User_Foundry
- * @since   1.3.0
+ * Configure notifications for profile changes and new registrations.
+ * Supports GDPR transparency requirements by notifying users of data changes.
+ *
+ * @package    NoBloat_User_Foundry
+ * @subpackage User_Tabs/GDPR
+ * @since      1.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Get current settings */
-$notify_enabled   = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
-$notify_new_users = NBUF_Options::get( 'nbuf_notify_new_registrations', false );
-$notify_to        = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
-$notify_fields    = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
-$notify_digest    = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
-
-/* Convert to array if string */
-if ( is_string( $notify_to ) ) {
-	$notify_to = $notify_to;
-} elseif ( is_array( $notify_to ) ) {
-	$notify_to = implode( ', ', $notify_to );
+/* Security: Verify user has permission to access this page */
+if ( ! current_user_can( 'manage_options' ) ) {
+	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
 }
 
-/* Ensure $notify_fields is array */
-if ( ! is_array( $notify_fields ) ) {
-	$notify_fields = array( 'user_email', 'display_name' );
+/* Get current settings */
+$nbuf_notify_enabled   = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
+$nbuf_notify_new_users = NBUF_Options::get( 'nbuf_notify_new_registrations', false );
+$nbuf_notify_to        = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
+$nbuf_notify_fields    = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
+$nbuf_notify_digest    = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
+
+/* Ensure $nbuf_notify_to is a comma-separated string */
+if ( is_array( $nbuf_notify_to ) ) {
+	$nbuf_notify_to = implode( ', ', $nbuf_notify_to );
+} elseif ( ! is_string( $nbuf_notify_to ) ) {
+	$nbuf_notify_to = get_option( 'admin_email' );
+}
+
+/* Ensure $nbuf_notify_fields is array */
+if ( ! is_array( $nbuf_notify_fields ) ) {
+	$nbuf_notify_fields = array( 'user_email', 'display_name' );
 }
 
 /* Available fields to monitor */
-$available_fields = array(
+$nbuf_available_fields = array(
 	'Core WordPress Fields' => array(
 		'user_email'   => 'Email Address',
 		'display_name' => 'Display Name',
@@ -56,8 +65,11 @@ $available_fields = array(
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 	<?php NBUF_Settings::settings_nonce_field(); ?>
-	<input type="hidden" name="nbuf_active_tab" value="users">
-	<input type="hidden" name="nbuf_active_subtab" value="change-notifications">
+	<input type="hidden" name="nbuf_active_tab" value="gdpr">
+	<input type="hidden" name="nbuf_active_subtab" value="notifications">
+	<!-- Declare checkboxes on this form for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_profile_changes">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_new_registrations">
 
 	<h2><?php esc_html_e( 'Enable Notifications', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Get notified when users make changes to their profiles.', 'nobloat-user-foundry' ); ?></p>
@@ -68,12 +80,13 @@ $available_fields = array(
 				<label for="nbuf_notify_profile_changes"><?php esc_html_e( 'Profile Change Notifications', 'nobloat-user-foundry' ); ?></label>
 			</th>
 			<td>
+				<input type="hidden" name="nbuf_notify_profile_changes" value="0">
 				<label>
 					<input type="checkbox"
 							name="nbuf_notify_profile_changes"
 							id="nbuf_notify_profile_changes"
 							value="1"
-							<?php checked( $notify_enabled ); ?> />
+							<?php checked( $nbuf_notify_enabled ); ?> />
 					<?php esc_html_e( 'Enable profile change notifications', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description"><?php esc_html_e( 'When enabled, admins will be notified of profile changes.', 'nobloat-user-foundry' ); ?></p>
@@ -84,12 +97,13 @@ $available_fields = array(
 				<label for="nbuf_notify_new_registrations"><?php esc_html_e( 'New User Notifications', 'nobloat-user-foundry' ); ?></label>
 			</th>
 			<td>
+				<input type="hidden" name="nbuf_notify_new_registrations" value="0">
 				<label>
 					<input type="checkbox"
 							name="nbuf_notify_new_registrations"
 							id="nbuf_notify_new_registrations"
 							value="1"
-							<?php checked( $notify_new_users ); ?> />
+							<?php checked( $nbuf_notify_new_users ); ?> />
 					<?php esc_html_e( 'Notify when new users register', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description"><?php esc_html_e( 'Get notified immediately when a new user registers.', 'nobloat-user-foundry' ); ?></p>
@@ -107,7 +121,7 @@ $available_fields = array(
 				<input type="text"
 						name="nbuf_notify_profile_changes_to"
 						id="nbuf_notify_profile_changes_to"
-						value="<?php echo esc_attr( $notify_to ); ?>"
+						value="<?php echo esc_attr( $nbuf_notify_to ); ?>"
 						class="regular-text" />
 				<p class="description">
 					<?php esc_html_e( 'Email addresses to receive notifications. Separate multiple addresses with commas.', 'nobloat-user-foundry' ); ?><br/>
@@ -130,16 +144,16 @@ $available_fields = array(
 		<tr>
 			<th scope="row"><?php esc_html_e( 'Fields to Monitor', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<?php foreach ( $available_fields as $group_name => $fields ) : ?>
+				<?php foreach ( $nbuf_available_fields as $nbuf_group_name => $nbuf_fields ) : ?>
 					<fieldset style="margin-bottom: 20px;">
-						<legend style="font-weight: 600; margin-bottom: 8px;"><?php echo esc_html( $group_name ); ?></legend>
-					<?php foreach ( $fields as $field_key => $field_label ) : ?>
+						<legend style="font-weight: 600; margin-bottom: 8px;"><?php echo esc_html( $nbuf_group_name ); ?></legend>
+					<?php foreach ( $nbuf_fields as $nbuf_field_key => $nbuf_field_label ) : ?>
 							<label style="display: block; margin-bottom: 5px;">
 								<input type="checkbox"
 										name="nbuf_notify_profile_changes_fields[]"
-										value="<?php echo esc_attr( $field_key ); ?>"
-						<?php checked( in_array( $field_key, $notify_fields, true ) ); ?> />
-						<?php echo esc_html( $field_label ); ?>
+										value="<?php echo esc_attr( $nbuf_field_key ); ?>"
+						<?php checked( in_array( $nbuf_field_key, $nbuf_notify_fields, true ) ); ?> />
+						<?php echo esc_html( $nbuf_field_label ); ?>
 							</label>
 					<?php endforeach; ?>
 					</fieldset>
@@ -161,13 +175,13 @@ $available_fields = array(
 			</th>
 			<td>
 				<select name="nbuf_notify_profile_changes_digest" id="nbuf_notify_profile_changes_digest">
-					<option value="immediate" <?php selected( $notify_digest, 'immediate' ); ?>>
+					<option value="immediate" <?php selected( $nbuf_notify_digest, 'immediate' ); ?>>
 						<?php esc_html_e( 'Immediate - Send email for each change', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="hourly" <?php selected( $notify_digest, 'hourly' ); ?>>
+					<option value="hourly" <?php selected( $nbuf_notify_digest, 'hourly' ); ?>>
 						<?php esc_html_e( 'Hourly Digest - Batch changes from past hour', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="daily" <?php selected( $notify_digest, 'daily' ); ?>>
+					<option value="daily" <?php selected( $nbuf_notify_digest, 'daily' ); ?>>
 						<?php esc_html_e( 'Daily Digest - Batch changes from past 24 hours', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -207,15 +221,15 @@ jQuery(document).ready(function($) {
 				nonce: '<?php echo esc_attr( wp_create_nonce( 'nbuf_test_notification' ) ); ?>'
 			},
 			success: function(response) {
+				var $result = $('#nbuf-test-result');
+				var $notice = $('<div class="notice"><p></p></div>');
+				$notice.find('p').text(response.data.message);
 				if (response.success) {
-					$('#nbuf-test-result').html(
-						'<div class="notice notice-success"><p>' + response.data.message + '</p></div>'
-					).show();
+					$notice.addClass('notice-success');
 				} else {
-					$('#nbuf-test-result').html(
-						'<div class="notice notice-error"><p>' + response.data.message + '</p></div>'
-					).show();
+					$notice.addClass('notice-error');
 				}
+				$result.empty().append($notice).show();
 			},
 			error: function() {
 				$('#nbuf-test-result').html(

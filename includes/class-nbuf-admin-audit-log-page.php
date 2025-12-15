@@ -32,12 +32,19 @@ class NBUF_Admin_Audit_Log_Page {
 	}
 
 	/**
-	 * Handle export/purge actions early before any output
+	 * Handle export/purge/bulk actions early before any output
 	 */
 	public static function handle_early_actions() {
 		/* Only process on our page */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below for specific actions
-		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-admin-audit-log' !== $_GET['page'] ) {
+		if ( ! isset( $_GET['page'] ) && ! isset( $_POST['page'] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Nonce verified below for specific actions
+		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : sanitize_text_field( wp_unslash( $_POST['page'] ) );
+
+		if ( 'nobloat-foundry-admin-audit-log' !== $page ) {
 			return;
 		}
 
@@ -62,6 +69,65 @@ class NBUF_Admin_Audit_Log_Page {
 			}
 			self::handle_purge();
 		}
+
+		/* Handle bulk delete action */
+		if ( isset( $_POST['action'] ) && 'delete' === $_POST['action'] && ! empty( $_POST['log_id'] ) ) {
+			self::handle_bulk_delete();
+		}
+		/* Also check action2 for bottom bulk action dropdown */
+		if ( isset( $_POST['action2'] ) && 'delete' === $_POST['action2'] && ! empty( $_POST['log_id'] ) ) {
+			self::handle_bulk_delete();
+		}
+	}
+
+	/**
+	 * Handle bulk delete action
+	 */
+	private static function handle_bulk_delete() {
+		/* Verify nonce */
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-admin_audit_logs' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Validate log_id exists and is array */
+		if ( ! isset( $_POST['log_id'] ) || ! is_array( $_POST['log_id'] ) ) {
+			return;
+		}
+
+		$log_ids = array_map( 'absint', $_POST['log_id'] );
+
+		if ( empty( $log_ids ) ) {
+			return;
+		}
+
+		/* Delete logs */
+		global $wpdb;
+		$table        = $wpdb->prefix . 'nbuf_admin_audit_log';
+		$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN clause with spread operator.
+		$deleted_count = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ({$placeholders})", $table, ...$log_ids ) );
+
+		/* Log the bulk deletion */
+		if ( false !== $deleted_count && $deleted_count > 0 ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'logs_purged',
+				'success',
+				sprintf( 'Deleted %d admin audit log entries', $deleted_count ),
+				null,
+				array(
+					'deleted_count' => $deleted_count,
+					'log_ids'       => $log_ids,
+				)
+			);
+
+			wp_safe_redirect( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&deleted=' . $deleted_count ) );
+			exit;
+		} else {
+			wp_safe_redirect( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&delete_failed=1' ) );
+			exit;
+		}
 	}
 
 	/**
@@ -79,13 +145,7 @@ class NBUF_Admin_Audit_Log_Page {
 			return;
 		}
 
-		/* Enqueue admin CSS (contains modal and dashboard styles) */
-		wp_enqueue_style(
-			'nbuf-admin-css',
-			NBUF_PLUGIN_URL . 'assets/css/admin/admin.css',
-			array(),
-			NBUF_VERSION
-		);
+		/* Admin CSS and JS are loaded globally via NBUF_Settings::enqueue_admin_assets() */
 	}
 
 	/**
@@ -130,7 +190,7 @@ class NBUF_Admin_Audit_Log_Page {
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Admin Actions Log', 'nobloat-user-foundry' ); ?></h1>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nbuf-settings&tab=system&subtab=logging' ) ); ?>" class="page-title-action">
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nbuf-settings&tab=gdpr&subtab=logging' ) ); ?>" class="page-title-action">
 				<?php esc_html_e( 'Settings', 'nobloat-user-foundry' ); ?>
 			</a>
 			<hr class="wp-header-end">
@@ -170,8 +230,8 @@ class NBUF_Admin_Audit_Log_Page {
 			</div>
 
 			<!-- Log Table -->
-			<form method="get">
-				<input type="hidden" name="page" value="nbuf-admin-audit-log" />
+			<form method="post">
+				<input type="hidden" name="page" value="nobloat-foundry-admin-audit-log" />
 				<?php
 				$list_table->display();
 				?>

@@ -100,13 +100,13 @@ class NBUF_Login_Limiting {
 
 		$ip_address = self::get_ip_address();
 
-		/* Insert failed attempt record */
+		/* Insert failed attempt record - use GMT for consistent timezone handling */
 		$wpdb->insert(
 			$table_name,
 			array(
 				'ip_address'   => $ip_address,
 				'username'     => sanitize_text_field( $username ),
-				'attempt_time' => current_time( 'mysql' ),
+				'attempt_time' => gmdate( 'Y-m-d H:i:s' ),
 			),
 			array( '%s', '%s', '%s' )
 		);
@@ -141,8 +141,8 @@ class NBUF_Login_Limiting {
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
 		$wpdb->query(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
-				"DELETE FROM {$table_name} WHERE attempt_time < %s",
+				'DELETE FROM %i WHERE attempt_time < %s',
+				$table_name,
 				$cutoff_time
 			)
 		);
@@ -245,10 +245,8 @@ class NBUF_Login_Limiting {
 		 */
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
-				"SELECT COUNT(*) FROM {$table_name}
-				WHERE ip_address = %s
-				AND attempt_time > %s",
+				'SELECT COUNT(*) FROM %i WHERE ip_address = %s AND attempt_time > %s',
+				$table_name,
 				$ip_address,
 				$cutoff_time
 			)
@@ -276,10 +274,8 @@ class NBUF_Login_Limiting {
 
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
-				"SELECT COUNT(*) FROM {$table_name}
-				WHERE username = %s
-				AND attempt_time > %s",
+				'SELECT COUNT(*) FROM %i WHERE username = %s AND attempt_time > %s',
+				$table_name,
 				sanitize_text_field( $username ),
 				$cutoff_time
 			)
@@ -367,10 +363,8 @@ class NBUF_Login_Limiting {
 		/* Get most recent attempt from this IP within lockout window */
 		$last_attempt = $wpdb->get_var(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix, safe
-				"SELECT MAX(attempt_time) FROM {$table_name}
-				WHERE ip_address = %s
-				AND attempt_time > %s",
+				'SELECT MAX(attempt_time) FROM %i WHERE ip_address = %s AND attempt_time > %s',
+				$table_name,
 				$ip_address,
 				$cutoff_time
 			)

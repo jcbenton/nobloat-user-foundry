@@ -11,12 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$import_require_email   = NBUF_Options::get( 'nbuf_import_require_email', true );
-$import_send_welcome    = NBUF_Options::get( 'nbuf_import_send_welcome', false );
-$import_verify_emails   = NBUF_Options::get( 'nbuf_import_verify_emails', true );
-$import_default_role    = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
-$import_batch_size      = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
-$import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
+$nbuf_import_require_email   = NBUF_Options::get( 'nbuf_import_require_email', true );
+$nbuf_import_send_welcome    = NBUF_Options::get( 'nbuf_import_send_welcome', false );
+$nbuf_import_verify_emails   = NBUF_Options::get( 'nbuf_import_verify_emails', true );
+$nbuf_import_default_role    = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
+$nbuf_import_batch_size      = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
+$nbuf_import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
 ?>
 
 <div class="nbuf-settings-section">
@@ -38,7 +38,7 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 								name="nbuf_import_require_email"
 								id="nbuf_import_require_email"
 								value="1"
-								<?php checked( $import_require_email ); ?> />
+								<?php checked( $nbuf_import_require_email ); ?> />
 						All users must have valid email addresses
 					</label>
 					<p class="description">Rows without valid emails will be skipped.</p>
@@ -55,7 +55,7 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 								name="nbuf_import_verify_emails"
 								id="nbuf_import_verify_emails"
 								value="1"
-								<?php checked( $import_verify_emails ); ?> />
+								<?php checked( $nbuf_import_verify_emails ); ?> />
 						Imported users must verify their email
 					</label>
 					<p class="description">Recommended: ON. Ensures all imported users verify their accounts.</p>
@@ -72,7 +72,7 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 								name="nbuf_import_send_welcome"
 								id="nbuf_import_send_welcome"
 								value="1"
-								<?php checked( $import_send_welcome ); ?> />
+								<?php checked( $nbuf_import_send_welcome ); ?> />
 						Send welcome email with login credentials
 					</label>
 					<p class="description">⚠️ Emails will include plain-text passwords. Use with caution.</p>
@@ -89,7 +89,7 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 								name="nbuf_import_update_existing"
 								id="nbuf_import_update_existing"
 								value="1"
-								<?php checked( $import_update_existing ); ?> />
+								<?php checked( $nbuf_import_update_existing ); ?> />
 						Update existing users if email/username matches
 					</label>
 					<p class="description">If disabled, duplicate users will be skipped.</p>
@@ -103,13 +103,13 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 				<td>
 					<select name="nbuf_import_default_role" id="nbuf_import_default_role">
 						<?php
-						$roles = wp_roles()->roles;
-						foreach ( $roles as $role_slug => $role_data ) {
+						$nbuf_roles = wp_roles()->roles;
+						foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_data ) {
 							printf(
 								'<option value="%s" %s>%s</option>',
-								esc_attr( $role_slug ),
-								selected( $import_default_role, $role_slug, false ),
-								esc_html( $role_data['name'] )
+								esc_attr( $nbuf_role_slug ),
+								selected( $nbuf_import_default_role, $nbuf_role_slug, false ),
+								esc_html( $nbuf_role_data['name'] )
 							);
 						}
 						?>
@@ -126,7 +126,7 @@ $import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing', fals
 					<input type="number"
 							name="nbuf_import_batch_size"
 							id="nbuf_import_batch_size"
-							value="<?php echo esc_attr( $import_batch_size ); ?>"
+							value="<?php echo esc_attr( $nbuf_import_batch_size ); ?>"
 							min="10"
 							max="500"
 							step="10" />

@@ -259,11 +259,11 @@ class NBUF_Config_Importer {
 			foreach ( $category_settings as $option_name => $option_value ) {
 				/* Skip if merge mode and option already exists */
 				if ( 'merge' === $mode ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
 					$existing = $wpdb->get_var(
 						$wpdb->prepare(
-                   // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-							"SELECT option_value FROM $table_name WHERE option_name = %s",
+							'SELECT option_value FROM %i WHERE option_name = %s',
+							$table_name,
 							$option_name
 						)
 					);
@@ -279,17 +279,12 @@ class NBUF_Config_Importer {
 					$option_value = maybe_serialize( $option_value );
 				}
 
-				/*
-				 * Check if option exists
-				 *
-				 * phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				 * Custom table operations.
-				 */
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query for nbuf_options table.
+				/* Check if option exists */
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
 				$exists = $wpdb->get_var(
 					$wpdb->prepare(
-                  // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix.
-						"SELECT option_name FROM $table_name WHERE option_name = %s",
+						'SELECT option_name FROM %i WHERE option_name = %s',
+						$table_name,
 						$option_name
 					)
 				);

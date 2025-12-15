@@ -11,11 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$email_method      = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
-$email_length      = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
-$email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 10 );
-$email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
-$email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
+$nbuf_email_method      = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
+$nbuf_email_length      = NBUF_Options::get( 'nbuf_2fa_email_code_length', 6 );
+$nbuf_email_expiration  = NBUF_Options::get( 'nbuf_2fa_email_expiration', 10 );
+$nbuf_email_rate_limit  = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
+$nbuf_email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -38,13 +38,13 @@ $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 			<th><?php esc_html_e( 'Email Code Method', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_2fa_email_method">
-					<option value="disabled" <?php selected( $email_method, 'disabled' ); ?>>
+					<option value="disabled" <?php selected( $nbuf_email_method, 'disabled' ); ?>>
 						<?php esc_html_e( 'Off', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="user_configurable" <?php selected( $email_method, 'user_configurable' ); ?><?php selected( $email_method, 'optional_all' ); ?><?php selected( $email_method, 'optional' ); ?>>
+					<option value="user_configurable" <?php selected( $nbuf_email_method, 'user_configurable' ); ?><?php selected( $nbuf_email_method, 'optional_all' ); ?><?php selected( $nbuf_email_method, 'optional' ); ?>>
 						<?php esc_html_e( 'User Configurable (users can enable in their account)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="required" <?php selected( $email_method, 'required' ); ?><?php selected( $email_method, 'required_all' ); ?><?php selected( $email_method, 'required_admin' ); ?>>
+					<option value="required" <?php selected( $nbuf_email_method, 'required' ); ?><?php selected( $nbuf_email_method, 'required_all' ); ?><?php selected( $nbuf_email_method, 'required_admin' ); ?>>
 						<?php esc_html_e( 'Required (all users must use email 2FA)', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -56,7 +56,7 @@ $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 		<tr>
 			<th><?php esc_html_e( 'Code Length', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_email_code_length" value="<?php echo esc_attr( $email_length ); ?>" min="4" max="8" class="small-text">
+				<input type="number" name="nbuf_2fa_email_code_length" value="<?php echo esc_attr( $nbuf_email_length ); ?>" min="4" max="8" class="small-text">
 				<span><?php esc_html_e( 'digits', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Number of digits in email verification codes. Default: 6', 'nobloat-user-foundry' ); ?>
@@ -66,7 +66,7 @@ $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 		<tr>
 			<th><?php esc_html_e( 'Code Expiration', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_email_expiration" value="<?php echo esc_attr( $email_expiration ); ?>" min="1" max="60" class="small-text">
+				<input type="number" name="nbuf_2fa_email_expiration" value="<?php echo esc_attr( $nbuf_email_expiration ); ?>" min="1" max="60" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'How long verification codes remain valid. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
@@ -76,9 +76,9 @@ $email_rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 );
 		<tr>
 			<th><?php esc_html_e( 'Rate Limiting', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_2fa_email_rate_limit" value="<?php echo esc_attr( $email_rate_limit ); ?>" min="1" max="50" class="small-text">
+				<input type="number" name="nbuf_2fa_email_rate_limit" value="<?php echo esc_attr( $nbuf_email_rate_limit ); ?>" min="1" max="50" class="small-text">
 				<span><?php esc_html_e( 'attempts per', 'nobloat-user-foundry' ); ?></span>
-				<input type="number" name="nbuf_2fa_email_rate_window" value="<?php echo esc_attr( $email_rate_window ); ?>" min="1" max="120" class="small-text">
+				<input type="number" name="nbuf_2fa_email_rate_window" value="<?php echo esc_attr( $nbuf_email_rate_window ); ?>" min="1" max="120" class="small-text">
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Maximum failed verification attempts before lockout. Default: 5 per 15 minutes', 'nobloat-user-foundry' ); ?>

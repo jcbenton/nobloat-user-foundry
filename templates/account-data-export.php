@@ -24,11 +24,11 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-$user_id    = get_current_user_id();
-$rate_check = NBUF_GDPR_Export::check_rate_limit( $user_id );
-$counts     = NBUF_GDPR_Export::get_data_counts( $user_id );
+$nbuf_user_id    = get_current_user_id();
+$nbuf_rate_check = NBUF_GDPR_Export::check_rate_limit( $nbuf_user_id );
+$nbuf_counts     = NBUF_GDPR_Export::get_data_counts( $nbuf_user_id );
 
-$last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
+$nbuf_last_export = get_user_meta( $nbuf_user_id, 'nbuf_last_data_export', true );
 ?>
 
 <div class="nbuf-gdpr-export-container" style="margin: 30px 0; padding: 25px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">
@@ -52,7 +52,7 @@ $last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
 						sprintf(
 							/* translators: %d: number of orders */
 							__( 'WooCommerce orders and addresses (%d orders)', 'nobloat-user-foundry' ),
-							$counts['woo_orders']
+							$nbuf_counts['woo_orders']
 						)
 					);
 					?>
@@ -65,7 +65,7 @@ $last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
 						sprintf(
 							/* translators: %d: number of purchases */
 							__( 'Easy Digital Downloads purchases (%d purchases)', 'nobloat-user-foundry' ),
-							$counts['edd_purchases']
+							$nbuf_counts['edd_purchases']
 						)
 					);
 					?>
@@ -75,14 +75,14 @@ $last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
 
 		<p>
 			<strong><?php esc_html_e( 'Estimated file size:', 'nobloat-user-foundry' ); ?></strong>
-			<?php echo esc_html( size_format( $counts['estimated_size'] ) ); ?>
+			<?php echo esc_html( size_format( $nbuf_counts['estimated_size'] ) ); ?>
 			<br>
 			<strong><?php esc_html_e( 'Format:', 'nobloat-user-foundry' ); ?></strong>
 			<?php esc_html_e( 'ZIP archive (JSON + HTML)', 'nobloat-user-foundry' ); ?>
 		</p>
 
 		<div style="text-align: center; margin: 25px 0;">
-			<?php if ( $rate_check['can_export'] ) : ?>
+			<?php if ( $nbuf_rate_check['can_export'] ) : ?>
 				<button type="button" id="nbuf-request-export" class="button button-primary button-large">
 					<?php esc_html_e( 'Download My Data', 'nobloat-user-foundry' ); ?>
 				</button>
@@ -93,7 +93,7 @@ $last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
 						sprintf(
 							/* translators: %d: minutes to wait */
 							__( 'Available in %d minutes', 'nobloat-user-foundry' ),
-							$rate_check['wait_minutes']
+							$nbuf_rate_check['wait_minutes']
 						)
 					);
 					?>
@@ -106,19 +106,19 @@ $last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
 
 	<div style="background: #f0f0f0; padding: 15px; border-left: 4px solid #0073aa; font-size: 0.9em;">
 		<h4 style="margin-top: 0;"><?php esc_html_e( '📊 Export History:', 'nobloat-user-foundry' ); ?></h4>
-		<?php if ( $last_export ) : ?>
+		<?php if ( $nbuf_last_export ) : ?>
 			<p>
 				<strong><?php esc_html_e( 'Last exported:', 'nobloat-user-foundry' ); ?></strong>
-				<?php echo esc_html( human_time_diff( $last_export, time() ) . ' ' . __( 'ago', 'nobloat-user-foundry' ) ); ?>
+				<?php echo esc_html( human_time_diff( $nbuf_last_export, time() ) . ' ' . __( 'ago', 'nobloat-user-foundry' ) ); ?>
 				<br>
-				<?php if ( ! $rate_check['can_export'] ) : ?>
+				<?php if ( ! $nbuf_rate_check['can_export'] ) : ?>
 					<strong><?php esc_html_e( 'Next available:', 'nobloat-user-foundry' ); ?></strong>
 					<?php
 					echo esc_html(
 						sprintf(
 							/* translators: %d: minutes to wait */
 							__( 'in %d minutes', 'nobloat-user-foundry' ),
-							$rate_check['wait_minutes']
+							$nbuf_rate_check['wait_minutes']
 						)
 					);
 					?>

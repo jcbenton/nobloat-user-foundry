@@ -5,6 +5,23 @@
    template resets.
    ========================================================== */
 
+/* ==========================================================
+   Set browser timezone cookie for PHP date conversions
+   ----------------------------------------------------------
+   Runs immediately (before DOMContentLoaded) to ensure
+   the cookie is available on subsequent page loads.
+   ========================================================== */
+(function() {
+    try {
+        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz) {
+            document.cookie = "nbuf_browser_tz=" + encodeURIComponent(tz) + ";path=/;max-age=31536000;SameSite=Lax";
+        }
+    } catch (e) {
+        /* Fallback: browser doesn't support Intl API */
+    }
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
 
     /* ==========================================================

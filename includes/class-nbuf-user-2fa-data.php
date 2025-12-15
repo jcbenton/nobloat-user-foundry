@@ -46,14 +46,13 @@ class NBUF_User_2FA_Data {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_2fa';
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM $table_name WHERE user_id = %d",
+				'SELECT * FROM %i WHERE user_id = %d',
+				$table_name,
 				$user_id
 			)
 		);
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $data;
 	}
@@ -446,20 +445,22 @@ class NBUF_User_2FA_Data {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_2fa';
 
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( $method ) {
 			$count = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT COUNT(*) FROM $table_name WHERE enabled = 1 AND method = %s",
+					'SELECT COUNT(*) FROM %i WHERE enabled = 1 AND method = %s',
+					$table_name,
 					$method
 				)
 			);
 		} else {
 			$count = $wpdb->get_var(
-				"SELECT COUNT(*) FROM $table_name WHERE enabled = 1"
+				$wpdb->prepare(
+					'SELECT COUNT(*) FROM %i WHERE enabled = 1',
+					$table_name
+				)
 			);
 		}
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return (int) $count;
 	}

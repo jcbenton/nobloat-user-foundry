@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Application passwords settings */
-$app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false );
+$nbuf_app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -36,7 +36,7 @@ $app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false 
 			<th><?php esc_html_e( 'Enable for Users', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_app_passwords_enabled" value="1" <?php checked( $app_passwords_enabled, true ); ?>>
+					<input type="checkbox" name="nbuf_app_passwords_enabled" value="1" <?php checked( $nbuf_app_passwords_enabled, true ); ?>>
 					<?php esc_html_e( 'Allow users to manage application passwords from their account page', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">

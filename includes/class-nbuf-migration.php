@@ -72,7 +72,7 @@ class NBUF_Migration {
 	 * Get mapper instance for plugin
 	 *
 	 * @param  string $plugin_slug Plugin slug.
-	 * @return Abstract_NBUF_Migration_Plugin|null Mapper instance or null if not found.
+	 * @return NBUF_Abstract_Migration_Plugin|null Mapper instance or null if not found.
 	 */
 	public static function get_mapper( $plugin_slug ) {
 		/* Return cached instance if exists */
@@ -821,7 +821,7 @@ class NBUF_Migration {
 
 		/* Increase execution time for this batch (only if safe) */
 		if ( ! ini_get( 'safe_mode' ) && function_exists( 'set_time_limit' ) ) {
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Error suppression required if disabled in php.ini.
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- Required for long-running migration batches; error suppression needed if disabled in php.ini.
 			@set_time_limit( 120 );
 		}
 

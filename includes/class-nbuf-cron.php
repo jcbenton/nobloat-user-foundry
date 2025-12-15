@@ -303,12 +303,9 @@ class NBUF_Cron {
 			}
 		}
 
-		/* Prune security log */
-		if ( class_exists( 'NBUF_Security_Log' ) && NBUF_Options::get( 'nbuf_logging_security_enabled', true ) ) {
-			$retention = NBUF_Options::get( 'nbuf_logging_security_retention', '90' );
-			if ( 'forever' !== $retention ) {
-				$results['security_log'] = NBUF_Security_Log::prune_logs_older_than( absint( $retention ) );
-			}
+		/* Prune security log - uses NBUF_Security_Log's built-in cleanup which reads nbuf_security_log_retention */
+		if ( class_exists( 'NBUF_Security_Log' ) && NBUF_Options::get( 'nbuf_security_log_enabled', true ) ) {
+			$results['security_log'] = NBUF_Security_Log::prune_old_logs();
 		}
 
 		/* Log cleanup statistics */

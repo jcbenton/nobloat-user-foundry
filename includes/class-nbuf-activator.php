@@ -498,7 +498,7 @@ class NBUF_Activator {
 
 		// Two-Factor Authentication pages.
 		self::create_page( 'nbuf_page_2fa_verify', 'NoBloat 2FA Verify', array( 'nobloat-2fa-verify', '2fa-verify' ), '[nbuf_2fa_verify]' );
-		self::create_page( 'nbuf_page_2fa_setup', 'NoBloat 2FA Setup', array( 'nobloat-2fa-setup', '2fa-setup' ), '[nbuf_2fa_setup]' );
+		self::create_page( 'nbuf_page_totp_setup', 'NoBloat 2FA Authenticator Setup', array( 'nobloat-totp-setup', 'totp-setup', '2fa-setup' ), '[nbuf_totp_setup]' );
 
 		// Member Directory page.
 		self::create_page( 'nbuf_page_member_directory', 'NoBloat Members', array( 'nobloat-members' ), '[nbuf_members]' );
@@ -922,7 +922,7 @@ class NBUF_Activator {
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_2fa_setup'                   => array(
+			'nbuf_page_totp_setup'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),

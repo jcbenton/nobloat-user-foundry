@@ -20,6 +20,7 @@ $nbuf_page_registration  = NBUF_Options::get( 'nbuf_page_registration', 0 );
 $nbuf_page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
 $nbuf_page_profile       = NBUF_Options::get( 'nbuf_page_profile', 0 );
 $nbuf_page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
+$nbuf_page_totp_setup    = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -179,6 +180,24 @@ $nbuf_page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
 				?>
 				<p class="description">
 					<?php esc_html_e( 'Page must contain [nbuf_2fa_verify] shortcode. Auto-created as "NoBloat 2FA Verify" during activation.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Authenticator Setup Page', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<?php
+				wp_dropdown_pages(
+					array(
+						'name'              => 'nbuf_page_totp_setup',
+						'selected'          => absint( $nbuf_page_totp_setup ),
+						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
+						'option_none_value' => 0,
+					)
+				);
+				?>
+				<p class="description">
+					<?php esc_html_e( 'Page must contain [nbuf_totp_setup] shortcode. Auto-created as "NoBloat 2FA Authenticator Setup" during activation. Used when authenticator 2FA is required.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

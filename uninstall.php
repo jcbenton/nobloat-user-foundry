@@ -118,7 +118,7 @@ function nbuf_run_uninstall() {
 			'nbuf_account_page',
 			'nbuf_logout',
 			'nbuf_2fa_verify',
-			'nbuf_2fa_setup',
+			'nbuf_totp_setup',
 			'nbuf_members',
 			'nbuf_profile',
 			'nbuf_restrict',

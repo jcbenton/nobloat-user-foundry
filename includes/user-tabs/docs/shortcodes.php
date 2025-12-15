@@ -88,10 +88,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</td>
 		</tr>
 		<tr>
-			<td><code>[nbuf_2fa_setup]</code></td>
+			<td><code>[nbuf_totp_setup]</code></td>
 			<td>
-				<strong><?php esc_html_e( '2FA Setup Page', 'nobloat-user-foundry' ); ?></strong><br>
-				<?php esc_html_e( 'Setup wizard where users enable 2FA. Shows QR code for authenticator apps and generates backup codes.', 'nobloat-user-foundry' ); ?>
+				<strong><?php esc_html_e( 'Authenticator App Setup Page', 'nobloat-user-foundry' ); ?></strong><br>
+				<?php esc_html_e( 'Dedicated setup page for authenticator app (TOTP) configuration. Shows QR code for scanning with apps like Google Authenticator or Authy.', 'nobloat-user-foundry' ); ?>
 			</td>
 		</tr>
 	</tbody>
@@ -161,7 +161,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tr><td><strong><?php esc_html_e( 'Reset Password', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_reset_form]</code></td></tr>
 		<tr><td><strong><?php esc_html_e( 'Verify Email', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_verify_page]</code></td></tr>
 		<tr><td><strong><?php esc_html_e( '2FA Verify', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_2fa_verify]</code></td></tr>
-		<tr><td><strong><?php esc_html_e( '2FA Setup', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_2fa_setup]</code></td></tr>
+		<tr><td><strong><?php esc_html_e( 'Authenticator Setup', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_totp_setup]</code></td></tr>
 	</tbody>
 </table>
 <p class="description" style="margin-top: 10px;">

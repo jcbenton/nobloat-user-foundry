@@ -133,17 +133,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	</div>
 
-	<!-- 2FA Setup -->
+	<!-- TOTP Setup -->
 	<div class="nbuf-shortcode-item">
 		<span class="nbuf-shortcode-category security"><?php esc_html_e( 'Two-Factor Auth', 'nobloat-user-foundry' ); ?></span>
-		<h3><?php esc_html_e( '2FA Setup Page', 'nobloat-user-foundry' ); ?></h3>
-		<code class="nbuf-shortcode-code">[nbuf_2fa_setup]</code>
+		<h3><?php esc_html_e( 'Authenticator App Setup Page', 'nobloat-user-foundry' ); ?></h3>
+		<code class="nbuf-shortcode-code">[nbuf_totp_setup]</code>
 		<div class="nbuf-shortcode-description">
-			<p><?php esc_html_e( 'Displays the 2FA setup wizard where users can enable and configure two-factor authentication. Shows QR code for TOTP setup and backup code generation.', 'nobloat-user-foundry' ); ?></p>
+			<p><?php esc_html_e( 'Displays the authenticator app (TOTP) setup page where users can configure their authenticator app. Shows QR code for scanning and secret key for manual entry.', 'nobloat-user-foundry' ); ?></p>
 		</div>
 		<div class="nbuf-shortcode-usage">
 			<h4><?php esc_html_e( 'Usage:', 'nobloat-user-foundry' ); ?></h4>
-			<p><?php esc_html_e( 'Add to a page where users can set up 2FA. Displays QR code for scanning with authenticator apps (Google Authenticator, Authy, etc.), secret key for manual entry, and backup codes for account recovery.', 'nobloat-user-foundry' ); ?></p>
+			<p><?php esc_html_e( 'Used for the standalone authenticator setup page, especially when TOTP is required. Users are redirected here if they need to set up their authenticator app. Displays QR code for scanning with apps like Google Authenticator, Authy, or Microsoft Authenticator.', 'nobloat-user-foundry' ); ?></p>
 		</div>
 	</div>
 
@@ -162,7 +162,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'Reset Password', 'nobloat-user-foundry' ); ?>:</strong> <code>[nbuf_reset_form]</code></li>
 		<li><strong><?php esc_html_e( 'Verify Email', 'nobloat-user-foundry' ); ?>:</strong> <code>[nbuf_verify_page]</code></li>
 		<li><strong><?php esc_html_e( '2FA Verify', 'nobloat-user-foundry' ); ?>:</strong> <code>[nbuf_2fa_verify]</code></li>
-		<li><strong><?php esc_html_e( '2FA Setup', 'nobloat-user-foundry' ); ?>:</strong> <code>[nbuf_2fa_setup]</code></li>
+		<li><strong><?php esc_html_e( 'Authenticator Setup', 'nobloat-user-foundry' ); ?>:</strong> <code>[nbuf_totp_setup]</code></li>
 	</ol>
 	<p class="description">
 		<?php esc_html_e( 'After creating these pages, configure them in Settings → System → Pages to enable automatic redirects.', 'nobloat-user-foundry' ); ?>

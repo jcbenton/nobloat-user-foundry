@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<option value="2fa-email-code"><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></option>
 					<option value="password-reset"><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></option>
 					<option value="admin-new-user"><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></option>
+					<option value="security-alert"><?php esc_html_e( 'Security Alert', 'nobloat-user-foundry' ); ?></option>
 				</select>
 				<p class="description"><?php esc_html_e( 'Select which type of email you want to test.', 'nobloat-user-foundry' ); ?></p>
 			</td>
@@ -103,6 +104,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td><strong><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent to the site admin when a new user registers.', 'nobloat-user-foundry' ); ?></td>
 			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=admin-notification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+		</tr>
+		<tr>
+			<td><strong><?php esc_html_e( 'Security Alert', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when critical security events occur (privilege escalation, brute force attacks, etc.).', 'nobloat-user-foundry' ); ?></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ); ?>"><?php esc_html_e( 'Configure Alerts', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 	</tbody>
 </table>

@@ -42,6 +42,48 @@ class NBUF_2FA_Login {
 
 		/* Clear transient data on logout */
 		add_action( 'wp_logout', array( __CLASS__, 'clear_2fa_transient' ) );
+
+		/* Check TOTP setup requirement on every page load for logged-in users */
+		add_action( 'template_redirect', array( __CLASS__, 'check_totp_setup_required' ) );
+	}
+
+	/**
+	 * Check if logged-in user needs to set up TOTP on every page load.
+	 *
+	 * This catches users who logged in without going through 2FA flow
+	 * (e.g., trusted devices, no 2FA configured yet).
+	 */
+	public static function check_totp_setup_required() {
+		/* Only for logged-in users */
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+
+		$user_id = get_current_user_id();
+
+		/* Check if we're already on the TOTP setup page */
+		$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
+		if ( $setup_page_id && is_page( $setup_page_id ) ) {
+			return;
+		}
+
+		/* Check if we're on the account page (allow access to security settings) */
+		$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
+		if ( $account_page_id && is_page( $account_page_id ) ) {
+			return;
+		}
+
+		/* Skip for admin pages - let admin users access their dashboard */
+		if ( is_admin() ) {
+			return;
+		}
+
+		/* Check if TOTP setup redirect is needed */
+		$redirect_url = self::maybe_redirect_to_totp_setup( $user_id );
+		if ( $redirect_url ) {
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
 	}
 
 	/**
@@ -299,6 +341,13 @@ class NBUF_2FA_Login {
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_login is a core WordPress hook.
 		do_action( 'wp_login', $user->user_login, $user );
 
+		/* Check if TOTP is required but user hasn't set it up */
+		$redirect_to = self::maybe_redirect_to_totp_setup( $user_id );
+		if ( $redirect_to ) {
+			wp_safe_redirect( $redirect_to );
+			exit;
+		}
+
 		/* Determine redirect URL from plugin settings */
 		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
 		switch ( $login_redirect_setting ) {
@@ -327,6 +376,54 @@ class NBUF_2FA_Login {
 
 		wp_safe_redirect( $redirect_to );
 		exit;
+	}
+
+	/**
+	 * Check if user needs to set up TOTP and redirect if so.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return string|false Redirect URL if TOTP setup required, false otherwise.
+	 */
+	private static function maybe_redirect_to_totp_setup( $user_id ) {
+		/* Check if TOTP is required */
+		$totp_method = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+		$is_admin    = user_can( $user_id, 'manage_options' );
+
+		/* Determine if TOTP is required for this user */
+		$totp_required = false;
+		if ( 'required_all' === $totp_method || 'required' === $totp_method ) {
+			$totp_required = true;
+		} elseif ( 'required_admin' === $totp_method && $is_admin ) {
+			$totp_required = true;
+		}
+
+		if ( ! $totp_required ) {
+			return false;
+		}
+
+		/* Check if user already has TOTP configured */
+		$current_method = NBUF_2FA::get_user_method( $user_id );
+		$has_totp       = ( 'totp' === $current_method || 'both' === $current_method );
+
+		if ( $has_totp ) {
+			return false; /* User already has TOTP set up */
+		}
+
+		/* Get TOTP setup page */
+		$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
+		if ( ! $setup_page_id ) {
+			return false; /* No setup page configured */
+		}
+
+		/* Log that user is being redirected to TOTP setup */
+		NBUF_Audit_Log::log(
+			$user_id,
+			'totp_setup_required',
+			'info',
+			'User redirected to TOTP setup - authenticator app is required'
+		);
+
+		return get_permalink( $setup_page_id );
 	}
 
 	/**

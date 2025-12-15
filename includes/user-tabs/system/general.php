@@ -11,9 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Feature toggles */
-$nbuf_enable_login = NBUF_Options::get( 'nbuf_enable_login', true );
-
 /* Admin Users List columns */
 $nbuf_users_column_posts    = NBUF_Options::get( 'nbuf_users_column_posts', false );
 $nbuf_users_column_company  = NBUF_Options::get( 'nbuf_users_column_company', false );
@@ -32,23 +29,6 @@ $nbuf_admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'sh
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="system">
 	<input type="hidden" name="nbuf_active_subtab" value="general">
-
-	<h2><?php esc_html_e( 'Feature Toggles', 'nobloat-user-foundry' ); ?></h2>
-	<table class="form-table">
-		<tr>
-			<th><?php esc_html_e( 'Custom Login Form', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_enable_login" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_enable_login" value="1" <?php checked( $nbuf_enable_login, true ); ?>>
-					<?php esc_html_e( 'Enable custom login form', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Use NoBloat login form via [nbuf_login_form] shortcode. When disabled, the shortcode will display a message.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-	</table>
 
 	<h2><?php esc_html_e( 'Admin Users List Columns', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -76,7 +56,7 @@ $nbuf_admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'sh
 					</label>
 				</fieldset>
 				<p class="description">
-					<?php esc_html_e( 'Select which additional columns to show on the Users page in the admin dashboard.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Select which additional columns to show on the Users page in the admin dashboard. Company displays company and job title from the Professional profile fields. Location displays city, state, and country from the Address profile fields. Enable these fields in Users > Profile Fields for users to populate them.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

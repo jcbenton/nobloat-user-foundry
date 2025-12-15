@@ -90,7 +90,6 @@ class NBUF_Settings {
 
 			/* Feature toggles */
 			'nbuf_require_verification'           => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_enable_login'                   => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_registration'            => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_notify_admin_registration'      => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_password_reset'          => array( __CLASS__, 'sanitize_checkbox' ),
@@ -143,7 +142,7 @@ class NBUF_Settings {
 			'nbuf_page_profile'                   => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_logout'                    => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_2fa_verify'                => array( __CLASS__, 'sanitize_page_id' ),
-			'nbuf_page_2fa_setup'                 => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_page_totp_setup'                => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_member_directory'          => array( __CLASS__, 'sanitize_page_id' ),
 
 			/* CSS options */
@@ -633,9 +632,10 @@ class NBUF_Settings {
 			'nbuf_page_login'             => 'nobloat-login',
 			'nbuf_page_registration'      => 'nobloat-register',
 			'nbuf_page_account'           => 'nobloat-account',
+			'nbuf_page_profile'           => 'nobloat-profile',
 			'nbuf_page_logout'            => 'nobloat-logout',
 			'nbuf_page_2fa_verify'        => 'nobloat-2fa-verify',
-			'nbuf_page_2fa_setup'         => 'nobloat-2fa-setup',
+			'nbuf_page_totp_setup'        => 'nobloat-totp-setup',
 			'nbuf_page_member_directory'  => 'nobloat-members',
 		);
 

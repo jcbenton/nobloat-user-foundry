@@ -96,7 +96,7 @@ class NBUF_Shortcodes {
 		add_shortcode( 'nbuf_account_page', array( __CLASS__, 'sc_account_page' ) );
 		add_shortcode( 'nbuf_logout', array( __CLASS__, 'sc_logout' ) );
 		add_shortcode( 'nbuf_2fa_verify', array( __CLASS__, 'sc_2fa_verify' ) );
-		add_shortcode( 'nbuf_2fa_setup', array( __CLASS__, 'sc_2fa_setup' ) );
+		add_shortcode( 'nbuf_totp_setup', array( __CLASS__, 'sc_totp_setup' ) );
 
 		/* Restriction shortcode (only if enabled) */
 		$shortcode_enabled = NBUF_Options::get( 'nbuf_restrict_content_shortcode_enabled', false );
@@ -584,12 +584,6 @@ class NBUF_Shortcodes {
 
 		/* Enqueue CSS for login page */
 		self::enqueue_frontend_css( 'login' );
-
-		// Check if custom login is enabled.
-		$enable_login = NBUF_Options::get( 'nbuf_enable_login', true );
-		if ( ! $enable_login ) {
-			return '<div class="nbuf-info-message">' . esc_html__( 'Custom login is currently disabled.', 'nobloat-user-foundry' ) . '</div>';
-		}
 
 		// Don't show login form if user is already logged in.
 		if ( is_user_logged_in() ) {
@@ -1494,14 +1488,10 @@ class NBUF_Shortcodes {
 			$password_requirements_text = $password_requirements[0];
 		}
 
-		/* Build security tab content if 2FA is available */
-		$security_tab_button  = '';
-		$security_tab_content = '';
-		$security_tab_html    = NBUF_2FA_Account::build_security_tab_html( $user_id );
-		if ( ! empty( $security_tab_html ) ) {
-			$security_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="security">' . esc_html__( 'Security', 'nobloat-user-foundry' ) . '</button>';
-			$security_tab_content = '<div class="nbuf-tab-content" data-tab="security">' . $security_tab_html . '</div>';
-		}
+		/* Build security tab content (always shown - contains Password and optional 2FA) */
+		$security_tab_html    = NBUF_2FA_Account::build_security_tab_html( $user_id, $password_requirements_text );
+		$security_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="security">' . esc_html__( 'Security', 'nobloat-user-foundry' ) . '</button>';
+		$security_tab_content = '<div class="nbuf-tab-content" data-tab="security">' . $security_tab_html . '</div>';
 
 		/* Build policies tab content if enabled */
 		$policies_tab_button  = '';
@@ -2510,16 +2500,17 @@ Best regards,
 
 	/**
 	 * ==========================================================
-	 * [nbuf_2fa_setup]
+	 * [nbuf_totp_setup]
 	 * ----------------------------------------------------------
-	 * Two-Factor Authentication setup page.
-	 * Allows users to configure TOTP, email 2FA, and backup codes.
+	 * Authenticator App (TOTP) setup page.
+	 * Dedicated page for setting up TOTP authentication.
+	 * Used when Authenticator 2FA is required.
 	 * ==========================================================
 	 *
 	 * @param  array $atts Shortcode attributes.
-	 * @return string 2FA setup page HTML.
+	 * @return string TOTP setup page HTML.
 	 */
-	public static function sc_2fa_setup( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_totp_setup( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -2530,117 +2521,96 @@ Best regards,
 
 		/* Check if user is logged in */
 		if ( ! is_user_logged_in() ) {
-			return '<p>' . esc_html__( 'You must be logged in to set up two-factor authentication.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p>' . esc_html__( 'You must be logged in to set up authenticator app.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		/* Check if 2FA classes exist */
 		if ( ! class_exists( 'NBUF_2FA' ) || ! class_exists( 'NBUF_TOTP' ) || ! class_exists( 'NBUF_QR_Code' ) ) {
-			return '<p>' . esc_html__( '2FA system is not available.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p>' . esc_html__( 'Authenticator system is not available.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		$user_id        = get_current_user_id();
 		$current_method = NBUF_2FA::get_user_method( $user_id );
 
-		/* Get 2FA method availability */
-		$email_method = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
-		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+		/* Check if TOTP is available */
+		$totp_method    = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
+		$totp_available = in_array( $totp_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
 
-		/* Accept both old and new option values for backwards compatibility */
-		$email_available = in_array( $email_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
-		$totp_available  = in_array( $totp_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
-
-		/* Check if current user can access 2FA */
-		$is_admin = current_user_can( 'manage_options' );
-		if ( ! $email_available && ! $totp_available ) {
-			return '<p>' . esc_html__( 'Two-factor authentication is not enabled on this site.', 'nobloat-user-foundry' ) . '</p>';
+		if ( ! $totp_available ) {
+			return '<p>' . esc_html__( 'Authenticator app 2FA is not enabled on this site.', 'nobloat-user-foundry' ) . '</p>';
 		}
+
+		/* Check if user already has TOTP configured */
+		$totp_active = in_array( $current_method, array( 'totp', 'both' ), true );
 
 		ob_start();
 		?>
-		<div class="nbuf-2fa-setup-page">
-			<h2><?php esc_html_e( 'Two-Factor Authentication Setup', 'nobloat-user-foundry' ); ?></h2>
+		<div class="nbuf-totp-setup-page">
+			<h2><?php esc_html_e( 'Authenticator App Setup', 'nobloat-user-foundry' ); ?></h2>
 
-		<?php if ( $current_method ) : ?>
+			<?php if ( $totp_active ) : ?>
 				<div class="nbuf-success">
-			<?php
-			/* translators: %s: current 2FA method */
-			printf( esc_html__( '2FA is currently enabled using: %s', 'nobloat-user-foundry' ), esc_html( $current_method ) );
-			?>
+					<p><?php esc_html_e( 'Your authenticator app is already configured and active.', 'nobloat-user-foundry' ); ?></p>
 				</div>
-		<?php endif; ?>
+				<p><?php esc_html_e( 'You can manage your 2FA settings from your account page.', 'nobloat-user-foundry' ); ?></p>
+				<?php
+				$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
+				if ( $account_page_id ) :
+					?>
+					<p><a href="<?php echo esc_url( get_permalink( $account_page_id ) ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a></p>
+				<?php endif; ?>
+			<?php else : ?>
+				<?php
+				/* Check if this is a required setup (redirect scenario) */
+				$totp_required = in_array( $totp_method, array( 'required_all', 'required_admin', 'required' ), true );
+				$is_admin      = current_user_can( 'manage_options' );
+				$must_setup    = 'required_all' === $totp_method || ( 'required_admin' === $totp_method && $is_admin );
 
-			<div class="nbuf-2fa-options">
-		<?php if ( $totp_available ) : ?>
-					<div class="nbuf-2fa-option-card">
-						<h3><?php esc_html_e( 'Authenticator App (TOTP)', 'nobloat-user-foundry' ); ?></h3>
-						<p><?php esc_html_e( 'Use an authenticator app like Google Authenticator or Authy to generate verification codes.', 'nobloat-user-foundry' ); ?></p>
+				if ( $must_setup ) :
+					/* Check grace period */
+					$grace_days  = absint( NBUF_Options::get( 'nbuf_2fa_totp_grace_period', 7 ) );
+					$grace_start = get_user_meta( $user_id, 'nbuf_totp_grace_start', true );
 
-			<?php if ( 'totp' === $current_method || 'both' === $current_method ) : ?>
-							<p class="nbuf-status-active"><?php esc_html_e( '✓ Active', 'nobloat-user-foundry' ); ?></p>
-							<form method="post">
-				<?php wp_nonce_field( 'nbuf_2fa_disable_totp', 'nbuf_2fa_nonce' ); ?>
-								<input type="hidden" name="nbuf_2fa_action" value="disable_totp">
-								<button type="submit" class="nbuf-button nbuf-button-secondary">
-				<?php esc_html_e( 'Disable TOTP', 'nobloat-user-foundry' ); ?>
-								</button>
-							</form>
+					if ( ! $grace_start ) {
+						/* First time on setup page - start grace period */
+						update_user_meta( $user_id, 'nbuf_totp_grace_start', time() );
+						$grace_start = time();
+					}
+
+					$grace_end   = $grace_start + ( $grace_days * DAY_IN_SECONDS );
+					$days_left   = max( 0, ceil( ( $grace_end - time() ) / DAY_IN_SECONDS ) );
+					$grace_ended = time() > $grace_end;
+					?>
+					<div class="nbuf-warning">
+						<?php if ( $grace_ended ) : ?>
+							<p><strong><?php esc_html_e( 'Authenticator app setup is required.', 'nobloat-user-foundry' ); ?></strong></p>
+							<p><?php esc_html_e( 'Your grace period has expired. Please complete setup to continue using your account.', 'nobloat-user-foundry' ); ?></p>
 						<?php else : ?>
+							<p><strong><?php esc_html_e( 'Authenticator app setup is required.', 'nobloat-user-foundry' ); ?></strong></p>
+							<p>
 							<?php
-							/* Generate new secret for setup */
-							$secret   = NBUF_TOTP::generate_secret();
-							$username = wp_get_current_user()->user_email;
-							$issuer   = get_bloginfo( 'name' );
-							$uri      = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer );
-							$qr_code  = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
+							/* translators: %d: number of days remaining */
+							printf( esc_html__( 'You have %d day(s) remaining to complete setup.', 'nobloat-user-foundry' ), $days_left );
 							?>
-
-							<!-- Show TOTP setup template -->
-							<?php echo do_shortcode( '[nbuf_template name="2fa_setup_totp" secret="' . esc_attr( $secret ) . '" qr_code="' . esc_attr( $qr_code ) . '"]' ); ?>
+							</p>
 						<?php endif; ?>
 					</div>
-		<?php endif; ?>
+				<?php endif; ?>
 
-		<?php if ( $email_available ) : ?>
-					<div class="nbuf-2fa-option-card">
-						<h3><?php esc_html_e( 'Email-Based 2FA', 'nobloat-user-foundry' ); ?></h3>
-						<p><?php esc_html_e( 'Receive verification codes via email each time you log in.', 'nobloat-user-foundry' ); ?></p>
+				<p><?php esc_html_e( 'Use an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to generate verification codes.', 'nobloat-user-foundry' ); ?></p>
 
-			<?php if ( 'email' === $current_method || 'both' === $current_method ) : ?>
-							<p class="nbuf-status-active"><?php esc_html_e( '✓ Active', 'nobloat-user-foundry' ); ?></p>
-							<form method="post">
-				<?php wp_nonce_field( 'nbuf_2fa_disable_email', 'nbuf_2fa_nonce' ); ?>
-								<input type="hidden" name="nbuf_2fa_action" value="disable_email">
-								<button type="submit" class="nbuf-button nbuf-button-secondary">
-				<?php esc_html_e( 'Disable Email 2FA', 'nobloat-user-foundry' ); ?>
-								</button>
-							</form>
-						<?php else : ?>
-							<form method="post">
-							<?php wp_nonce_field( 'nbuf_2fa_enable_email', 'nbuf_2fa_nonce' ); ?>
-								<input type="hidden" name="nbuf_2fa_action" value="enable_email">
-								<button type="submit" class="nbuf-button nbuf-button-primary">
-							<?php esc_html_e( 'Enable Email 2FA', 'nobloat-user-foundry' ); ?>
-								</button>
-							</form>
-						<?php endif; ?>
-					</div>
-		<?php endif; ?>
+				<?php
+				/* Generate new secret for setup */
+				$secret   = NBUF_TOTP::generate_secret();
+				$username = wp_get_current_user()->user_email;
+				$issuer   = get_bloginfo( 'name' );
+				$uri      = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer );
+				$qr_code  = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
+				?>
 
-		<?php if ( NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) && $current_method ) : ?>
-					<div class="nbuf-2fa-option-card">
-						<h3><?php esc_html_e( 'Backup Codes', 'nobloat-user-foundry' ); ?></h3>
-						<p><?php esc_html_e( 'Generate one-time use backup codes for emergency access.', 'nobloat-user-foundry' ); ?></p>
-
-						<form method="post">
-			<?php wp_nonce_field( 'nbuf_2fa_generate_backup', 'nbuf_2fa_nonce' ); ?>
-							<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">
-							<button type="submit" class="nbuf-button nbuf-button-primary">
-			<?php esc_html_e( 'Generate Backup Codes', 'nobloat-user-foundry' ); ?>
-							</button>
-						</form>
-					</div>
-		<?php endif; ?>
-			</div>
+				<!-- Show TOTP setup template -->
+				<?php echo do_shortcode( '[nbuf_template name="2fa_setup_totp" secret="' . esc_attr( $secret ) . '" qr_code="' . esc_attr( $qr_code ) . '"]' ); ?>
+			<?php endif; ?>
 		</div>
 
 		<?php

@@ -80,6 +80,9 @@ class NBUF_Test {
 			case 'admin-new-user':
 				$sent = self::send_test_admin_notification( $recipient );
 				break;
+			case 'security-alert':
+				$sent = self::send_test_security_alert( $recipient );
+				break;
 		}
 
 		remove_filter( 'wp_mail_from', $from_callback );
@@ -283,6 +286,56 @@ class NBUF_Test {
 		remove_filter( 'wp_mail_content_type', $content_type_callback );
 
 		return $sent;
+	}
+
+	/**
+	 * Send test security alert email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_security_alert( $recipient ) {
+		/* Use NBUF_Security_Log's test email if available */
+		if ( class_exists( 'NBUF_Security_Log' ) && method_exists( 'NBUF_Security_Log', 'send_test_email' ) ) {
+			/* Temporarily override the recipient */
+			add_filter(
+				'nbuf_security_alert_recipient',
+				function () use ( $recipient ) {
+					return $recipient;
+				}
+			);
+
+			$result = NBUF_Security_Log::send_test_email();
+
+			return ! is_wp_error( $result );
+		}
+
+		/* Fallback: send a basic test security alert */
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$subject   = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] Test Security Alert', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$message  = sprintf(
+			/* translators: %s: site name */
+			__( 'This is a test security alert from %s.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( 'If you received this email, your security alert notifications are configured correctly.', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= __( '--- Sample Alert ---', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= __( 'Event Type: Test Alert', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( 'Severity: Critical', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( 'IP Address: 127.0.0.1', 'nobloat-user-foundry' ) . "\n";
+		$message .= sprintf(
+			/* translators: %s: date/time */
+			__( 'Time: %s', 'nobloat-user-foundry' ),
+			current_time( 'F j, Y g:i a' )
+		) . "\n\n";
+		$message .= __( 'This is a test notification. No actual security event occurred.', 'nobloat-user-foundry' );
+
+		return wp_mail( $recipient, $subject, $message );
 	}
 
 	/**

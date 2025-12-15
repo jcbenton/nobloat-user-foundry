@@ -428,7 +428,7 @@ $nbuf_templates_data = array(
 						?>
 					</p>
 					<p class="description">
-						<?php esc_html_e( 'Shortcode: [nbuf_2fa_setup]', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'Shortcode: [nbuf_totp_setup]', 'nobloat-user-foundry' ); ?>
 					</p>
 				</div>
 			</div>

@@ -23,12 +23,14 @@ class NBUF_2FA_Account {
 	/**
 	 * Build Security Tab HTML for account page.
 	 *
-	 * Generates HTML for security/2FA section on account page.
+	 * Generates HTML for security section with sub-tabs on account page.
+	 * Sub-tabs: Password, 2FA Email, Authenticator, Backup Codes, App Passwords, Privacy.
 	 *
-	 * @param  int $user_id User ID.
-	 * @return string HTML output (empty if no security features available).
+	 * @param  int    $user_id               User ID.
+	 * @param  string $password_requirements Password requirements text.
+	 * @return string HTML output.
 	 */
-	public static function build_security_tab_html( $user_id ) {
+	public static function build_security_tab_html( $user_id, $password_requirements = '' ) {
 		/* Check if any 2FA method is available */
 		$email_method = NBUF_Options::get( 'nbuf_2fa_email_method', 'disabled' );
 		$totp_method  = NBUF_Options::get( 'nbuf_2fa_totp_method', 'disabled' );
@@ -39,123 +41,288 @@ class NBUF_2FA_Account {
 
 		/* Check if methods are user-configurable (optional) vs required/forced */
 		$email_user_can_toggle = in_array( $email_method, array( 'optional_all', 'user_configurable' ), true );
-		$totp_user_can_toggle  = in_array( $totp_method, array( 'optional_all', 'user_configurable' ), true );
 
-		/* Check if application passwords are enabled */
+		/* Check if backup codes and application passwords are enabled */
+		$backup_enabled        = NBUF_Options::get( 'nbuf_2fa_backup_enabled', true );
 		$app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false );
-
-		/* If no security features are available, return empty */
-		if ( ! $email_available && ! $totp_available && ! $app_passwords_enabled ) {
-			return '';
-		}
 
 		/* Get user's current 2FA status */
 		$current_method = NBUF_2FA::get_user_method( $user_id );
 		$has_totp       = ( 'totp' === $current_method || 'both' === $current_method );
 		$has_email      = ( 'email' === $current_method || 'both' === $current_method );
 
+		/* Build sub-tabs list */
+		$subtabs = array();
+
+		/* Password sub-tab - always shown */
+		$subtabs['password'] = __( 'Password', 'nobloat-user-foundry' );
+
+		/* 2FA Email sub-tab - only show if user can toggle it (optional mode) */
+		if ( $email_available && $email_user_can_toggle ) {
+			$subtabs['2fa-email'] = __( '2FA Email', 'nobloat-user-foundry' );
+		}
+
+		/* Authenticator sub-tab - show if TOTP is available */
+		if ( $totp_available ) {
+			$subtabs['authenticator'] = __( 'Authenticator', 'nobloat-user-foundry' );
+		}
+
+		/* Backup Codes sub-tab - show if backup codes enabled AND any 2FA is available */
+		if ( $backup_enabled && ( $email_available || $totp_available ) ) {
+			$subtabs['backup-codes'] = __( 'Backup Codes', 'nobloat-user-foundry' );
+		}
+
+		/* App Passwords sub-tab - show if enabled */
+		if ( $app_passwords_enabled ) {
+			$subtabs['app-passwords'] = __( 'App Passwords', 'nobloat-user-foundry' );
+		}
+
+		/* Privacy sub-tab - always shown */
+		$subtabs['privacy'] = __( 'Privacy', 'nobloat-user-foundry' );
+
+		/* Build sub-tab navigation */
 		$html = '<div class="nbuf-account-section">';
 
-		/* 2FA Status overview - only show if enabled */
-		if ( $current_method ) {
-			$html .= '<div class="nbuf-2fa-status">';
-			$html .= '<p class="nbuf-2fa-enabled"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Two-factor authentication is enabled on your account.', 'nobloat-user-foundry' ) . '</p>';
+		/* Sub-tab links */
+		$html         .= '<div class="nbuf-subtabs">';
+		$subtab_count  = 0;
+		foreach ( $subtabs as $key => $label ) {
+			$is_first  = ( 0 === $subtab_count );
+			$html     .= '<button type="button" class="nbuf-subtab-link' . ( $is_first ? ' active' : '' ) . '" data-subtab="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
+			++$subtab_count;
+		}
+		$html .= '</div>';
+
+		/* Password sub-tab content */
+		$html .= '<div class="nbuf-subtab-content active" data-subtab="password">';
+		$html .= self::build_password_subtab_html( $user_id, $password_requirements );
+		$html .= '</div>';
+
+		/* 2FA Email sub-tab content */
+		if ( isset( $subtabs['2fa-email'] ) ) {
+			$html .= '<div class="nbuf-subtab-content" data-subtab="2fa-email">';
+			$html .= self::build_email_2fa_subtab_html( $user_id, $has_email );
 			$html .= '</div>';
 		}
 
-		/* TOTP (Authenticator App) section */
-		if ( $totp_available ) {
-			$html .= '<div class="nbuf-2fa-method-card">';
-			$html .= '<h3>' . esc_html__( 'Authenticator App', 'nobloat-user-foundry' ) . '</h3>';
-			$html .= '<p class="nbuf-method-description">' . esc_html__( 'Use an authenticator app like Google Authenticator, Authy, or 1Password to generate verification codes.', 'nobloat-user-foundry' ) . '</p>';
-
-			if ( $has_totp ) {
-				$html .= '<p class="nbuf-method-status nbuf-status-active"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Active', 'nobloat-user-foundry' ) . '</p>';
-				$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
-				$html .= wp_nonce_field( 'nbuf_2fa_disable_totp', 'nbuf_2fa_nonce', true, false );
-				$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_totp">';
-				$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</button>';
-				$html .= '</form>';
-			} else {
-				$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Not Active', 'nobloat-user-foundry' ) . '</p>';
-				/* Link to 2FA setup page */
-				$setup_page_id = NBUF_Options::get( 'nbuf_page_2fa_setup', 0 );
-				$setup_url     = $setup_page_id ? get_permalink( $setup_page_id ) : '';
-
-				if ( $setup_url ) {
-					$html .= '<a href="' . esc_url( $setup_url ) . '" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Set Up Authenticator', 'nobloat-user-foundry' ) . '</a>';
-				} else {
-					$html .= '<p class="nbuf-setup-note">' . esc_html__( 'Contact administrator to set up authenticator app.', 'nobloat-user-foundry' ) . '</p>';
-				}
-			}
+		/* Authenticator sub-tab content */
+		if ( isset( $subtabs['authenticator'] ) ) {
+			$html .= '<div class="nbuf-subtab-content" data-subtab="authenticator">';
+			$html .= self::build_authenticator_subtab_html( $user_id, $has_totp );
 			$html .= '</div>';
 		}
 
-		/* Email 2FA section - only show if user can toggle it (optional mode) */
-		if ( $email_available && $email_user_can_toggle ) {
-			$html .= '<div class="nbuf-2fa-method-card">';
-			$html .= '<h3>' . esc_html__( 'Email Verification', 'nobloat-user-foundry' ) . '</h3>';
-			$html .= '<p class="nbuf-method-description">' . esc_html__( 'Receive a verification code via email each time you log in.', 'nobloat-user-foundry' ) . '</p>';
-
-			if ( $has_email ) {
-				$html .= '<p class="nbuf-method-status nbuf-status-active"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Active', 'nobloat-user-foundry' ) . '</p>';
-				$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
-				$html .= wp_nonce_field( 'nbuf_2fa_disable_email', 'nbuf_2fa_nonce', true, false );
-				$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_email">';
-				$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
-				$html .= '</form>';
-			} else {
-				$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Not Active', 'nobloat-user-foundry' ) . '</p>';
-				$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
-				$html .= wp_nonce_field( 'nbuf_2fa_enable_email', 'nbuf_2fa_nonce', true, false );
-				$html .= '<input type="hidden" name="nbuf_2fa_action" value="enable_email">';
-				$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Enable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
-				$html .= '</form>';
-			}
+		/* Backup Codes sub-tab content */
+		if ( isset( $subtabs['backup-codes'] ) ) {
+			$html .= '<div class="nbuf-subtab-content" data-subtab="backup-codes">';
+			$html .= self::build_backup_codes_subtab_html( $user_id );
 			$html .= '</div>';
 		}
 
-		/* Backup codes section - show if any 2FA method is available AND backup codes are enabled */
-		if ( ( $email_available || $totp_available ) && NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
-			$backup_codes    = NBUF_User_2FA_Data::get_backup_codes( $user_id );
-			$used_indexes    = NBUF_User_2FA_Data::get_backup_codes_used( $user_id );
-			$codes_remaining = is_array( $backup_codes ) ? count( $backup_codes ) - count( (array) $used_indexes ) : 0;
-
-			$html .= '<div class="nbuf-2fa-method-card nbuf-backup-codes-card">';
-			$html .= '<h3>' . esc_html__( 'Backup Codes', 'nobloat-user-foundry' ) . '</h3>';
-			$html .= '<p class="nbuf-method-description">' . esc_html__( 'One-time use codes for emergency access if you lose your authenticator device.', 'nobloat-user-foundry' ) . '</p>';
-
-			if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-				$html .= '<p class="nbuf-codes-remaining">';
-				$html .= sprintf(
-					/* translators: %d: number of backup codes remaining */
-					esc_html__( '%d backup codes remaining', 'nobloat-user-foundry' ),
-					$codes_remaining
-				);
-				$html .= '</p>';
-			}
-
-			$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
-			$html .= wp_nonce_field( 'nbuf_2fa_generate_backup', 'nbuf_2fa_nonce', true, false );
-			$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
-
-			if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-				$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary" onclick="return confirm(\'' . esc_js( __( 'This will replace your existing backup codes. Continue?', 'nobloat-user-foundry' ) ) . '\')">';
-				$html .= esc_html__( 'Regenerate Backup Codes', 'nobloat-user-foundry' );
-			} else {
-				$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">';
-				$html .= esc_html__( 'Generate Backup Codes', 'nobloat-user-foundry' );
-			}
-			$html .= '</button></form>';
-			$html .= '</div>';
-		}
-
-		/* Application Passwords section */
-		if ( $app_passwords_enabled ) {
+		/* App Passwords sub-tab content */
+		if ( isset( $subtabs['app-passwords'] ) ) {
+			$html .= '<div class="nbuf-subtab-content" data-subtab="app-passwords">';
 			$html .= self::build_app_passwords_html( $user_id );
+			$html .= '</div>';
 		}
+
+		/* Privacy sub-tab content */
+		$html .= '<div class="nbuf-subtab-content" data-subtab="privacy">';
+		$html .= self::build_privacy_subtab_html( $user_id );
+		$html .= '</div>';
 
 		$html .= '</div>'; /* Close nbuf-account-section */
+
+		return $html;
+	}
+
+	/**
+	 * Build Password sub-tab HTML.
+	 *
+	 * @param  int    $user_id               User ID.
+	 * @param  string $password_requirements Password requirements text.
+	 * @return string HTML output.
+	 */
+	private static function build_password_subtab_html( $user_id, $password_requirements ) {
+		ob_start();
+		wp_nonce_field( 'nbuf_account_password', 'nbuf_password_nonce', false );
+		$nonce_field = ob_get_clean();
+
+		$html  = '<div class="nbuf-security-subtab-content">';
+		$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '" class="nbuf-account-form">';
+		$html .= $nonce_field;
+		$html .= '<input type="hidden" name="nbuf_account_action" value="change_password">';
+		$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
+
+		$html .= '<div class="nbuf-form-group">';
+		$html .= '<label for="current_password" class="nbuf-form-label">' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+		$html .= '<input type="password" id="current_password" name="current_password" class="nbuf-form-input" required>';
+		$html .= '</div>';
+
+		$html .= '<div class="nbuf-form-group">';
+		$html .= '<label for="new_password" class="nbuf-form-label">' . esc_html__( 'New Password', 'nobloat-user-foundry' ) . '</label>';
+		$html .= '<input type="password" id="new_password" name="new_password" class="nbuf-form-input" required>';
+		if ( ! empty( $password_requirements ) ) {
+			$html .= '<small class="nbuf-form-help">' . esc_html( $password_requirements ) . '</small>';
+		}
+		$html .= '</div>';
+
+		$html .= '<div class="nbuf-form-group">';
+		$html .= '<label for="confirm_password" class="nbuf-form-label">' . esc_html__( 'Confirm New Password', 'nobloat-user-foundry' ) . '</label>';
+		$html .= '<input type="password" id="confirm_password" name="confirm_password" class="nbuf-form-input" required>';
+		$html .= '</div>';
+
+		$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Change Password', 'nobloat-user-foundry' ) . '</button>';
+		$html .= '</form>';
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Build Email 2FA sub-tab HTML.
+	 *
+	 * @param  int  $user_id   User ID.
+	 * @param  bool $has_email Whether user has email 2FA active.
+	 * @return string HTML output.
+	 */
+	private static function build_email_2fa_subtab_html( $user_id, $has_email ) {
+		$html  = '<div class="nbuf-security-subtab-content">';
+		$html .= '<h3>' . esc_html__( 'Email-Based Two-Factor Authentication', 'nobloat-user-foundry' ) . '</h3>';
+		$html .= '<p class="nbuf-method-description">' . esc_html__( 'Receive a verification code via email each time you log in.', 'nobloat-user-foundry' ) . '</p>';
+
+		if ( $has_email ) {
+			$html .= '<p class="nbuf-method-status nbuf-status-active"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Email 2FA is currently active on your account.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
+			$html .= wp_nonce_field( 'nbuf_2fa_disable_email', 'nbuf_2fa_nonce', true, false );
+			$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_email">';
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '</form>';
+		} else {
+			$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Email 2FA is not active.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
+			$html .= wp_nonce_field( 'nbuf_2fa_enable_email', 'nbuf_2fa_nonce', true, false );
+			$html .= '<input type="hidden" name="nbuf_2fa_action" value="enable_email">';
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Enable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '</form>';
+		}
+
+		$html .= '</div>';
+		return $html;
+	}
+
+	/**
+	 * Build Authenticator sub-tab HTML.
+	 *
+	 * @param  int  $user_id  User ID.
+	 * @param  bool $has_totp Whether user has TOTP active.
+	 * @return string HTML output.
+	 */
+	private static function build_authenticator_subtab_html( $user_id, $has_totp ) {
+		$html  = '<div class="nbuf-security-subtab-content">';
+		$html .= '<h3>' . esc_html__( 'Authenticator App', 'nobloat-user-foundry' ) . '</h3>';
+		$html .= '<p class="nbuf-method-description">' . esc_html__( 'Use an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to generate verification codes.', 'nobloat-user-foundry' ) . '</p>';
+
+		if ( $has_totp ) {
+			$html .= '<p class="nbuf-method-status nbuf-status-active"><span class="nbuf-icon">&#10003;</span> ' . esc_html__( 'Authenticator app is currently active on your account.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
+			$html .= wp_nonce_field( 'nbuf_2fa_disable_totp', 'nbuf_2fa_nonce', true, false );
+			$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_totp">';
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary">' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '</form>';
+		} else {
+			$html .= '<p class="nbuf-method-status nbuf-status-inactive"><span class="nbuf-icon">&#10007;</span> ' . esc_html__( 'Authenticator app is not configured.', 'nobloat-user-foundry' ) . '</p>';
+
+			/* Link to TOTP setup page */
+			$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
+			$setup_url     = $setup_page_id ? get_permalink( $setup_page_id ) : '';
+
+			if ( $setup_url ) {
+				$html .= '<a href="' . esc_url( $setup_url ) . '" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Set Up Authenticator', 'nobloat-user-foundry' ) . '</a>';
+			} else {
+				$html .= '<p class="nbuf-setup-note">' . esc_html__( 'Contact administrator to set up authenticator app.', 'nobloat-user-foundry' ) . '</p>';
+			}
+		}
+
+		$html .= '</div>';
+		return $html;
+	}
+
+	/**
+	 * Build Backup Codes sub-tab HTML.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return string HTML output.
+	 */
+	private static function build_backup_codes_subtab_html( $user_id ) {
+		$backup_codes    = NBUF_User_2FA_Data::get_backup_codes( $user_id );
+		$used_indexes    = NBUF_User_2FA_Data::get_backup_codes_used( $user_id );
+		$codes_remaining = is_array( $backup_codes ) ? count( $backup_codes ) - count( (array) $used_indexes ) : 0;
+
+		$html  = '<div class="nbuf-security-subtab-content">';
+		$html .= '<h3>' . esc_html__( 'Backup Codes', 'nobloat-user-foundry' ) . '</h3>';
+		$html .= '<p class="nbuf-method-description">' . esc_html__( 'One-time use codes for emergency access if you lose your authenticator device or cannot receive email codes.', 'nobloat-user-foundry' ) . '</p>';
+
+		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
+			$html .= '<p class="nbuf-codes-remaining" style="font-size: 18px; font-weight: bold; margin: 15px 0;">';
+			$html .= sprintf(
+				/* translators: %d: number of backup codes remaining */
+				esc_html__( '%d backup codes remaining', 'nobloat-user-foundry' ),
+				$codes_remaining
+			);
+			$html .= '</p>';
+		} else {
+			$html .= '<p class="nbuf-codes-remaining" style="color: #b32d2e; margin: 15px 0;">';
+			$html .= esc_html__( 'No backup codes generated yet.', 'nobloat-user-foundry' );
+			$html .= '</p>';
+		}
+
+		$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
+		$html .= wp_nonce_field( 'nbuf_2fa_generate_backup', 'nbuf_2fa_nonce', true, false );
+		$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
+
+		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary" onclick="return confirm(\'' . esc_js( __( 'This will replace your existing backup codes. Continue?', 'nobloat-user-foundry' ) ) . '\')">';
+			$html .= esc_html__( 'Regenerate Backup Codes', 'nobloat-user-foundry' );
+		} else {
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">';
+			$html .= esc_html__( 'Generate Backup Codes', 'nobloat-user-foundry' );
+		}
+		$html .= '</button></form>';
+
+		$html .= '</div>';
+		return $html;
+	}
+
+	/**
+	 * Build Privacy sub-tab HTML.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return string HTML output.
+	 */
+	private static function build_privacy_subtab_html( $user_id ) {
+		$html  = '<div class="nbuf-security-subtab-content">';
+		$html .= '<h3>' . esc_html__( 'Your Data & Privacy', 'nobloat-user-foundry' ) . '</h3>';
+		$html .= '<p class="nbuf-method-description">' . esc_html__( 'Download a copy of your personal data stored on this site.', 'nobloat-user-foundry' ) . '</p>';
+
+		/* Data Export section */
+		$html .= '<div class="nbuf-data-export-section" style="margin-top: 20px;">';
+		$html .= '<h4>' . esc_html__( 'Export Personal Data', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<p>' . esc_html__( 'Download all your personal data in JSON format, including profile information, settings, and activity history stored by this plugin.', 'nobloat-user-foundry' ) . '</p>';
+
+		/* Check if GDPR export class exists */
+		if ( class_exists( 'NBUF_GDPR_Export' ) ) {
+			$html .= '<form method="post" action="' . esc_url( get_permalink() ) . '">';
+			$html .= wp_nonce_field( 'nbuf_export_data', 'nbuf_export_nonce', true, false );
+			$html .= '<input type="hidden" name="nbuf_account_action" value="export_data">';
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Download My Data', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '</form>';
+		} else {
+			$html .= '<p class="nbuf-notice">' . esc_html__( 'Data export is not available.', 'nobloat-user-foundry' ) . '</p>';
+		}
+
+		$html .= '</div>';
+		$html .= '</div>';
 
 		return $html;
 	}

@@ -243,11 +243,32 @@ textarea.nbuf-updated {
     }
 
     .nbuf-inner-tabs {
-        font-size: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 0; /* Hide pipe separators */
     }
 
     .nbuf-inner-tab-link {
-        padding: 3px 6px;
+        font-size: 13px;
+        padding: 8px 14px;
+        background: #f0f0f1;
+        border: 1px solid #c3c4c7;
+        border-radius: 20px;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .nbuf-inner-tab-link:hover {
+        background: #e0e0e1;
+        border-color: #8c8f94;
+    }
+
+    .nbuf-inner-tab-link.active {
+        background: #2271b1;
+        border-color: #2271b1;
+        color: #fff;
     }
 }
 

@@ -181,9 +181,15 @@ class NBUF_Hooks {
 	 * @return string Modified message.
 	 */
 	public static function rewrite_password_reset_link( $message, $key, $user_login, $user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
-		/* Get password reset page URL from page ID */
-		$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-		$reset_url     = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
+		/* Get password reset page URL - use Universal Router if available */
+		$reset_url = '';
+		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_reset_password_url' ) ) {
+			$reset_url = NBUF_Shortcodes::get_reset_password_url();
+		} else {
+			$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+			$reset_url     = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
+		}
+
 		$reset_url = add_query_arg(
 			array(
 				'key'    => rawurlencode( $key ),
@@ -319,9 +325,15 @@ class NBUF_Hooks {
 			return $wp_new_user_notification_email;
 		}
 
-		/* Get custom password reset page URL from page ID */
-		$reset_page_id       = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-		$reset_base          = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
+		/* Get custom password reset page URL - use Universal Router if available */
+		$reset_base = '';
+		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_reset_password_url' ) ) {
+			$reset_base = NBUF_Shortcodes::get_reset_password_url();
+		} else {
+			$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+			$reset_base    = $reset_page_id ? get_permalink( $reset_page_id ) : home_url( '/nobloat-reset' );
+		}
+
 		$password_reset_link = add_query_arg(
 			array(
 				'key'   => $key,
@@ -459,42 +471,66 @@ class NBUF_Hooks {
 
 		/* Handle lost password redirect (request reset form) */
 		if ( 'lostpassword' === $action && $redirect_lostpassword ) {
-			$page_id = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
-			if ( $page_id ) {
-				wp_safe_redirect( get_permalink( $page_id ) );
+			/* Use Universal Router URL if available */
+			$forgot_url = '';
+			if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_forgot_password_url' ) ) {
+				$forgot_url = NBUF_Shortcodes::get_forgot_password_url();
+			} else {
+				$page_id    = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
+				$forgot_url = $page_id ? get_permalink( $page_id ) : '';
+			}
+
+			if ( $forgot_url ) {
+				wp_safe_redirect( $forgot_url );
 				exit;
 			}
 		}
 
 		/* Handle password reset redirect (actual reset form with key) */
 		if ( 'rp' === $action && $redirect_resetpass ) {
-			$page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-			if ( $page_id ) {
-             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress core password reset parameters
-				$login = isset( $_REQUEST['login'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['login'] ) ) : '';
-             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress core password reset parameters
-				$key = isset( $_REQUEST['key'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['key'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress core password reset parameters
+			$login = isset( $_REQUEST['login'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['login'] ) ) : '';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress core password reset parameters
+			$key = isset( $_REQUEST['key'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['key'] ) ) : '';
 
-				if ( $login && $key ) {
+			if ( $login && $key ) {
+				/* Use Universal Router URL if available */
+				$reset_url = '';
+				if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_reset_password_url' ) ) {
+					$reset_url = NBUF_Shortcodes::get_reset_password_url();
+				} else {
+					$page_id   = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+					$reset_url = $page_id ? get_permalink( $page_id ) : '';
+				}
+
+				if ( $reset_url ) {
 					wp_safe_redirect(
 						add_query_arg(
 							array(
 								'login' => $login,
 								'key'   => $key,
 							),
-							get_permalink( $page_id )
+							$reset_url
 						)
 					);
-						exit;
+					exit;
 				}
 			}
 		}
 
 		/* Handle registration redirect */
 		if ( 'register' === $action && $redirect_register ) {
-			$page_id = NBUF_Options::get( 'nbuf_page_registration', 0 );
-			if ( $page_id ) {
-				wp_safe_redirect( get_permalink( $page_id ) );
+			/* Use Universal Router URL if available */
+			$register_url = '';
+			if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_register_url' ) ) {
+				$register_url = NBUF_Shortcodes::get_register_url();
+			} else {
+				$page_id      = NBUF_Options::get( 'nbuf_page_registration', 0 );
+				$register_url = $page_id ? get_permalink( $page_id ) : '';
+			}
+
+			if ( $register_url ) {
+				wp_safe_redirect( $register_url );
 				exit;
 			}
 		}
@@ -504,17 +540,25 @@ class NBUF_Hooks {
 			/*
 			 * Let WordPress process the logout normally, then redirect
 			 */
-         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Checking if nonce exists, WordPress core handles verification
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Checking if nonce exists, WordPress core handles verification
 			if ( ! isset( $_REQUEST['_wpnonce'] ) ) {
 				return; // Nonce required for logout.
 			}
 
-			$page_id = NBUF_Options::get( 'nbuf_page_login', 0 );
-			if ( $page_id ) {
+			/* Use Universal Router URL if available */
+			$login_url = '';
+			if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_login_url' ) ) {
+				$login_url = NBUF_Shortcodes::get_login_url();
+			} else {
+				$page_id   = NBUF_Options::get( 'nbuf_page_login', 0 );
+				$login_url = $page_id ? get_permalink( $page_id ) : '';
+			}
+
+			if ( $login_url ) {
 				add_filter(
 					'logout_redirect',
-					function () use ( $page_id ) {
-						return get_permalink( $page_id );
+					function () use ( $login_url ) {
+						return $login_url;
 					},
 					10,
 					3
@@ -526,16 +570,24 @@ class NBUF_Hooks {
 		/* Handle login redirect (default action) */
 		if ( 'login' === $action && $redirect_login ) {
 			/*
-			* Don't redirect if already processing a login attempt
-			*/
-         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core login form.
+			 * Don't redirect if already processing a login attempt
+			 */
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core login form.
 			if ( isset( $_POST['log'] ) && isset( $_POST['pwd'] ) ) {
 				return;
 			}
 
-			$page_id = NBUF_Options::get( 'nbuf_page_login', 0 );
-			if ( $page_id ) {
-				wp_safe_redirect( get_permalink( $page_id ) );
+			/* Use Universal Router URL if available */
+			$login_url = '';
+			if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_login_url' ) ) {
+				$login_url = NBUF_Shortcodes::get_login_url();
+			} else {
+				$page_id   = NBUF_Options::get( 'nbuf_page_login', 0 );
+				$login_url = $page_id ? get_permalink( $page_id ) : '';
+			}
+
+			if ( $login_url ) {
+				wp_safe_redirect( $login_url );
 				exit;
 			}
 		}

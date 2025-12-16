@@ -47,9 +47,7 @@ class NBUF_Admin_Users {
 		add_filter( 'bulk_actions-users', array( __CLASS__, 'register_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-users', array( __CLASS__, 'handle_bulk_actions' ), 10, 3 );
 
-		// Add custom filters to users list.
-		add_action( 'restrict_manage_users', array( __CLASS__, 'add_user_filters' ) );
-		add_filter( 'pre_get_users', array( __CLASS__, 'filter_users_by_status' ) );
+		// Note: User filters are handled by NBUF_Admin_User_Search class.
 		add_action( 'admin_footer', array( __CLASS__, 'add_user_count_filters' ) );
 
 		// Add "Resend Verification" link + handler.
@@ -63,6 +61,9 @@ class NBUF_Admin_Users {
 
 		// Handle 2FA admin actions.
 		add_action( 'admin_init', array( __CLASS__, 'handle_2fa_admin_actions' ) );
+
+		// AJAX force password change.
+		add_action( 'wp_ajax_nbuf_force_password_change', array( __CLASS__, 'ajax_force_password_change' ) );
 
 		// User profile section.
 		add_action( 'show_user_profile', array( __CLASS__, 'render_profile_section' ) );
@@ -390,10 +391,10 @@ class NBUF_Admin_Users {
 		if ( $vh_enabled ) {
 			$url = add_query_arg(
 				array(
-					'page'    => 'nobloat-user-foundry-version-history',
+					'page'    => 'nobloat-foundry-version-history',
 					'user_id' => $user->ID,
 				),
-				admin_url( 'users.php' )
+				admin_url( 'admin.php' )
 			);
 
 			$actions['nbuf_history'] = sprintf(
@@ -818,228 +819,6 @@ class NBUF_Admin_Users {
 			wp_safe_redirect( add_query_arg( 'nbuf_2fa_action', 'devices_cleared', admin_url( 'user-edit.php?user_id=' . $user_id ) ) );
 			exit;
 		}
-	}
-
-	/**
-	 * Add user filters.
-	 *
-	 * Adds filter dropdowns to the users list page.
-	 */
-	public static function add_user_filters() {
-		global $pagenow;
-		if ( 'users.php' !== $pagenow ) {
-			return;
-		}
-
-		// Verification Status Filter.
-     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Filter dropdowns don't require nonce
-		$verification_status = isset( $_GET['nbuf_verification'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_verification'] ) ) : '';
-		?>
-		<select name="nbuf_verification">
-			<option value=""><?php esc_html_e( 'All Verification Status', 'nobloat-user-foundry' ); ?></option>
-			<option value="verified" <?php selected( $verification_status, 'verified' ); ?>><?php esc_html_e( 'Verified', 'nobloat-user-foundry' ); ?></option>
-			<option value="unverified" <?php selected( $verification_status, 'unverified' ); ?>><?php esc_html_e( 'Unverified', 'nobloat-user-foundry' ); ?></option>
-		</select>
-		<?php
-
-		// Account Status Filter.
-		$account_status = isset( $_GET['nbuf_account_status'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_account_status'] ) ) : '';
-		?>
-		<select name="nbuf_account_status">
-			<option value=""><?php esc_html_e( 'All Account Status', 'nobloat-user-foundry' ); ?></option>
-			<option value="enabled" <?php selected( $account_status, 'enabled' ); ?>><?php esc_html_e( 'Enabled', 'nobloat-user-foundry' ); ?></option>
-			<option value="disabled" <?php selected( $account_status, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'nobloat-user-foundry' ); ?></option>
-		</select>
-		<?php
-
-		// Expiration Filter.
-		$expiration_status = isset( $_GET['nbuf_expiration'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) ) : '';
-		?>
-		<select name="nbuf_expiration">
-			<option value=""><?php esc_html_e( 'All Expiration Status', 'nobloat-user-foundry' ); ?></option>
-			<option value="has_expiration" <?php selected( $expiration_status, 'has_expiration' ); ?>><?php esc_html_e( 'Has Expiration', 'nobloat-user-foundry' ); ?></option>
-			<option value="no_expiration" <?php selected( $expiration_status, 'no_expiration' ); ?>><?php esc_html_e( 'No Expiration', 'nobloat-user-foundry' ); ?></option>
-			<option value="expired" <?php selected( $expiration_status, 'expired' ); ?>><?php esc_html_e( 'Expired', 'nobloat-user-foundry' ); ?></option>
-		</select>
-		<?php
-
-		// 2FA Status Filter.
-		$twofa_status = isset( $_GET['nbuf_2fa_status'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) ) : '';
-		?>
-		<select name="nbuf_2fa_status">
-			<option value=""><?php esc_html_e( 'All 2FA Status', 'nobloat-user-foundry' ); ?></option>
-			<option value="enabled" <?php selected( $twofa_status, 'enabled' ); ?>><?php esc_html_e( '2FA Enabled', 'nobloat-user-foundry' ); ?></option>
-			<option value="disabled" <?php selected( $twofa_status, 'disabled' ); ?>><?php esc_html_e( '2FA Disabled', 'nobloat-user-foundry' ); ?></option>
-			<option value="email" <?php selected( $twofa_status, 'email' ); ?>><?php esc_html_e( 'Email Only', 'nobloat-user-foundry' ); ?></option>
-			<option value="totp" <?php selected( $twofa_status, 'totp' ); ?>><?php esc_html_e( 'TOTP Only', 'nobloat-user-foundry' ); ?></option>
-			<option value="both" <?php selected( $twofa_status, 'both' ); ?>><?php esc_html_e( 'Both Methods', 'nobloat-user-foundry' ); ?></option>
-		</select>
-		<?php
-     // phpcs:enable WordPress.Security.NonceVerification.Recommended
-	}
-
-	/**
-	 * Filter users by status.
-	 *
-	 * Modifies the users query based on selected filters.
-	 *
-	 * @param  WP_User_Query $query User query object.
-	 * @return WP_User_Query Modified query object.
-	 */
-	public static function filter_users_by_status( $query ) {
-		global $pagenow, $wpdb;
-
-		if ( 'users.php' !== $pagenow || ! is_admin() ) {
-			return $query;
-		}
-
-		$table_name   = $wpdb->prefix . 'nbuf_user_data';
-		$current_time = current_time( 'mysql', true );
-
-     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Admin list table filtering.
-
-		/* Verification filter */
-		if ( ! empty( $_GET['nbuf_verification'] ) ) {
-			$verification = sanitize_text_field( wp_unslash( $_GET['nbuf_verification'] ) );
-
-			if ( 'verified' === $verification ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = %d', $wpdb->prefix . 'nbuf_user_data', 1 ) );
-			} elseif ( 'unverified' === $verification ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$all_users = $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i', $wpdb->users ) );
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$verified_users = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = %d', $wpdb->prefix . 'nbuf_user_data', 1 ) );
-				$user_ids       = array_diff( $all_users, $verified_users );
-			}
-
-			if ( ! empty( $user_ids ) ) {
-				$query->set( 'include', $user_ids );
-			} else {
-				$query->set( 'include', array( 0 ) ); // No results.
-			}
-		}
-
-		/* Account status filter */
-		if ( ! empty( $_GET['nbuf_account_status'] ) ) {
-			$account_status = sanitize_text_field( wp_unslash( $_GET['nbuf_account_status'] ) );
-
-			if ( 'disabled' === $account_status ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = %d', $wpdb->prefix . 'nbuf_user_data', 1 ) );
-			} elseif ( 'enabled' === $account_status ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$all_users = $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i', $wpdb->users ) );
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$disabled_users = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = %d', $wpdb->prefix . 'nbuf_user_data', 1 ) );
-				$user_ids       = array_diff( $all_users, $disabled_users );
-			}
-
-			if ( ! empty( $user_ids ) ) {
-				$current_includes = $query->get( 'include' );
-				if ( ! empty( $current_includes ) ) {
-					$user_ids = array_intersect( $current_includes, $user_ids );
-				}
-				$query->set( 'include', $user_ids );
-			} else {
-				$query->set( 'include', array( 0 ) );
-			}
-		}
-
-		/* Expiration filter */
-		if ( ! empty( $_GET['nbuf_expiration'] ) ) {
-			$expiration = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
-
-			if ( 'has_expiration' === $expiration ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != %s', $wpdb->prefix . 'nbuf_user_data', '0000-00-00 00:00:00' ) );
-			} elseif ( 'no_expiration' === $expiration ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$all_users = $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i', $wpdb->users ) );
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$has_expiration = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != %s', $wpdb->prefix . 'nbuf_user_data', '0000-00-00 00:00:00' ) );
-				$user_ids       = array_diff( $all_users, $has_expiration );
-			} elseif ( 'expired' === $expiration ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != %s AND expires_at <= %s', $wpdb->prefix . 'nbuf_user_data', '0000-00-00 00:00:00', $current_time ) );
-			}
-
-			if ( ! empty( $user_ids ) ) {
-				$current_includes = $query->get( 'include' );
-				if ( ! empty( $current_includes ) ) {
-					$user_ids = array_intersect( $current_includes, $user_ids );
-				}
-				$query->set( 'include', $user_ids );
-			} else {
-				$query->set( 'include', array( 0 ) );
-			}
-		}
-
-		/* 2FA filter */
-		if ( ! empty( $_GET['nbuf_2fa_status'] ) ) {
-			$twofa_status = sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) );
-
-			if ( 'enabled' === $twofa_status ) {
-				/*
-				Get all users with 2FA enabled (any method except disabled)
-				*/
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col(
-					$wpdb->prepare(
-						"SELECT user_id FROM %i
-						WHERE meta_key = 'nbuf_2fa_method'
-						AND meta_value IN ('email', 'totp', 'both')",
-						$wpdb->usermeta
-					)
-				);
-			} elseif ( 'disabled' === $twofa_status ) {
-				/*
-				Get all users without 2FA or with disabled method
-				*/
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$all_users = $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i', $wpdb->users ) );
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$enabled_users = $wpdb->get_col(
-					$wpdb->prepare(
-						"SELECT user_id FROM %i
-						WHERE meta_key = 'nbuf_2fa_method'
-						AND meta_value IN ('email', 'totp', 'both')",
-						$wpdb->usermeta
-					)
-				);
-				$user_ids      = array_diff( $all_users, $enabled_users );
-			} elseif ( in_array( $twofa_status, array( 'email', 'totp', 'both' ), true ) ) {
-				/*
-				Get users with specific method
-				*/
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$user_ids = $wpdb->get_col(
-					$wpdb->prepare(
-						'SELECT user_id FROM %i
-						WHERE meta_key = %s
-						AND meta_value = %s',
-						$wpdb->usermeta,
-						'nbuf_2fa_method',
-						$twofa_status
-					)
-				);
-			}
-
-			if ( isset( $user_ids ) ) {
-				if ( ! empty( $user_ids ) ) {
-					$current_includes = $query->get( 'include' );
-					if ( ! empty( $current_includes ) ) {
-						$user_ids = array_intersect( $current_includes, $user_ids );
-					}
-					$query->set( 'include', $user_ids );
-				} else {
-					$query->set( 'include', array( 0 ) );
-				}
-			}
-		}
-
-     // phpcs:enable WordPress.Security.NonceVerification.Recommended
-		return $query;
 	}
 
 	/**
@@ -1538,6 +1317,61 @@ class NBUF_Admin_Users {
 			</tr>
 
 			<tr>
+				<th><?php esc_html_e( 'Force Password Change', 'nobloat-user-foundry' ); ?></th>
+				<td>
+					<button type="button" class="button" id="nbuf_force_password_change" data-user-id="<?php echo esc_attr( $user_id ); ?>">
+			<?php esc_html_e( 'Force Password Change Now', 'nobloat-user-foundry' ); ?>
+					</button>
+					<p class="description">
+			<?php esc_html_e( 'Immediately require this user to change their password on next login.', 'nobloat-user-foundry' ); ?>
+					</p>
+					<div id="nbuf_force_password_message" style="margin-top: 10px; display: none;"></div>
+
+					<script type="text/javascript">
+					jQuery(document).ready(function($) {
+						$('#nbuf_force_password_change').on('click', function(e) {
+							e.preventDefault();
+
+							if (!confirm('<?php echo esc_js( __( 'Force this user to change their password on next login?', 'nobloat-user-foundry' ) ); ?>')) {
+								return;
+							}
+
+							var $button = $(this);
+							var userId = $button.data('user-id');
+							var $message = $('#nbuf_force_password_message');
+
+							$button.prop('disabled', true).text('<?php echo esc_js( __( 'Processing...', 'nobloat-user-foundry' ) ); ?>');
+
+							$.ajax({
+								url: ajaxurl,
+								type: 'POST',
+								data: {
+									action: 'nbuf_force_password_change',
+									user_id: userId,
+									nonce: '<?php echo esc_js( wp_create_nonce( 'nbuf_force_password_change' ) ); ?>'
+								},
+								success: function(response) {
+									if (response.success) {
+										$message.html('<p style="color: #00a32a;"><strong>' + response.data.message + '</strong></p>').slideDown();
+										// Also check the checkbox to reflect the change
+										$('input[name="nbuf_force_password_change"]').prop('checked', true);
+									} else {
+										$message.html('<p style="color: #d63638;"><strong>' + response.data.message + '</strong></p>').slideDown();
+									}
+									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Password Change Now', 'nobloat-user-foundry' ) ); ?>');
+								},
+								error: function() {
+									$message.html('<p style="color: #d63638;"><strong><?php echo esc_js( __( 'Error: Could not force password change.', 'nobloat-user-foundry' ) ); ?></strong></p>').slideDown();
+									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Password Change Now', 'nobloat-user-foundry' ) ); ?>');
+								}
+							});
+						});
+					});
+					</script>
+				</td>
+			</tr>
+
+			<tr>
 				<th><?php esc_html_e( 'Session Management', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<button type="button" class="button" id="nbuf_force_logout_user" data-user-id="<?php echo esc_attr( $user_id ); ?>">
@@ -1776,6 +1610,45 @@ class NBUF_Admin_Users {
 		
 		<?php
 	}
+
+	/**
+	 * AJAX Handler: Force Password Change
+	 *
+	 * Immediately sets the force password change flag for a user.
+	 * Requires admin capabilities and valid nonce.
+	 */
+	public static function ajax_force_password_change() {
+		/* Verify nonce */
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'nbuf_force_password_change' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify permissions */
+		if ( ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to perform this action.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get user ID */
+		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
+		if ( ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get user data */
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Set the force password change flag */
+		NBUF_Password_Expiration::force_password_change( $user_id );
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Password change required. User must change their password on next login.', 'nobloat-user-foundry' ),
+			)
+		);
+	}
 }
 
 // Initialize class.
@@ -1925,6 +1798,16 @@ add_action(
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
 				/* translators: %d: number of users */
 				esc_html( sprintf( _n( '%d user 2FA disabled.', '%d users 2FA disabled.', $count, 'nobloat-user-foundry' ), $count ) )
+			);
+		}
+
+		/* Bulk password change forced */
+		if ( isset( $_GET['nbuf_bulk_password_forced'] ) ) {
+			$count = (int) $_GET['nbuf_bulk_password_forced'];
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				/* translators: %d: number of users */
+				esc_html( sprintf( _n( '%d user must change password on next login.', '%d users must change password on next login.', $count, 'nobloat-user-foundry' ), $count ) )
 			);
 		}
 

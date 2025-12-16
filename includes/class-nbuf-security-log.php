@@ -72,6 +72,8 @@ class NBUF_Security_Log {
 		$sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
 			id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 			timestamp DATETIME NOT NULL,
+			first_seen DATETIME DEFAULT NULL,
+			occurrence_count INT UNSIGNED DEFAULT 1,
 			severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
 			event_type VARCHAR(50) NOT NULL,
 			user_id BIGINT UNSIGNED DEFAULT NULL,
@@ -86,11 +88,46 @@ class NBUF_Security_Log {
 			INDEX idx_ip_address (ip_address),
 			INDEX idx_severity_timestamp (severity, timestamp),
 			INDEX idx_event_type_timestamp (event_type, timestamp),
-			INDEX idx_user_id_timestamp (user_id, timestamp)
+			INDEX idx_user_id_timestamp (user_id, timestamp),
+			INDEX idx_event_ip (event_type, ip_address)
 		) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		/* Migrate existing records - set first_seen = timestamp where NULL */
+		self::migrate_existing_records();
+	}
+
+	/**
+	 * Migrate existing records to set first_seen
+	 *
+	 * For existing records without first_seen, set it to timestamp.
+	 */
+	private static function migrate_existing_records() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . self::TABLE_NAME;
+
+		/* Check if first_seen column exists (for upgrades) */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration check.
+		$column_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'first_seen'",
+				DB_NAME,
+				$table_name
+			)
+		);
+
+		if ( $column_exists ) {
+			/* Set first_seen = timestamp for existing records where first_seen is NULL */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			$wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET first_seen = timestamp WHERE first_seen IS NULL',
+					$table_name
+				)
+			);
+		}
 	}
 
 	/**
@@ -125,21 +162,25 @@ class NBUF_Security_Log {
 		/* Sanitize and limit context data to prevent DoS */
 		$sanitized_context = self::sanitize_context( $context );
 
+		$now = gmdate( 'Y-m-d H:i:s' );
+
 		// Insert log entry.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security logging requires direct database call to prevent infinite recursion.
 		$result = $wpdb->insert(
 			$wpdb->prefix . self::TABLE_NAME,
 			array(
-				'timestamp'  => gmdate( 'Y-m-d H:i:s' ),
-				'severity'   => $severity,
-				'event_type' => $event_type,
-				'user_id'    => $user_id,
-				'ip_address' => self::get_client_ip(),
-				'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-				'message'    => $message,
-				'context'    => wp_json_encode( $sanitized_context ),
+				'timestamp'        => $now,
+				'first_seen'       => $now,
+				'occurrence_count' => 1,
+				'severity'         => $severity,
+				'event_type'       => $event_type,
+				'user_id'          => $user_id,
+				'ip_address'       => self::get_client_ip(),
+				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				'message'          => $message,
+				'context'          => wp_json_encode( $sanitized_context ),
 			),
-			array( '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		/* Send email alert for critical events with rate limiting */
@@ -148,6 +189,135 @@ class NBUF_Security_Log {
 			$last_sent      = get_transient( $rate_limit_key );
 
 			/* Only send if no alert was sent in last 5 minutes for this event type */
+			if ( false === $last_sent ) {
+				self::send_critical_alert( $event_type, $message, $context, $user_id );
+				set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
+			}
+		}
+
+		return false !== $result;
+	}
+
+	/**
+	 * Log or update security event (upsert for aggregation)
+	 *
+	 * For repeated events from the same IP (like failed logins), this method
+	 * updates an existing record instead of creating duplicates. This reduces
+	 * log pollution while maintaining accurate occurrence counts.
+	 *
+	 * @param string $event_type Event type slug (e.g., 'login_failed').
+	 * @param string $severity   Severity level: 'info', 'warning', or 'critical'.
+	 * @param string $message    Human-readable message.
+	 * @param array  $context    Additional context data (stored as JSON).
+	 * @param int    $user_id    User ID (optional, defaults to current user).
+	 * @return bool True on success, false on failure.
+	 */
+	public static function log_or_update( $event_type, $severity, $message, $context = array(), $user_id = null ) {
+		global $wpdb;
+
+		/* Check if logging is enabled */
+		if ( ! self::is_enabled() ) {
+			return false;
+		}
+
+		/* Validate severity enum */
+		$valid_severities = array( 'info', 'warning', 'critical' );
+		if ( ! in_array( $severity, $valid_severities, true ) ) {
+			$severity = 'info';
+		}
+
+		/* Default to current user if not specified */
+		if ( null === $user_id ) {
+			$user_id = get_current_user_id();
+		}
+
+		$ip_address = self::get_client_ip();
+		$table_name = $wpdb->prefix . self::TABLE_NAME;
+		$now        = gmdate( 'Y-m-d H:i:s' );
+
+		/* Look for existing record with same event_type and ip_address */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security logging upsert check.
+		$existing = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT id, occurrence_count, severity FROM %i WHERE event_type = %s AND ip_address = %s ORDER BY timestamp DESC LIMIT 1',
+				$table_name,
+				$event_type,
+				$ip_address
+			)
+		);
+
+		if ( $existing ) {
+			/* Update existing record: increment count, update timestamp and context */
+			$new_count = (int) $existing->occurrence_count + 1;
+
+			/* Escalate severity if needed (warning -> critical) */
+			$new_severity = $severity;
+			if ( 'critical' === $severity || 'critical' === $existing->severity ) {
+				$new_severity = 'critical';
+			} elseif ( 'warning' === $severity || 'warning' === $existing->severity ) {
+				$new_severity = 'warning';
+			}
+
+			/* Sanitize and update context */
+			$sanitized_context              = self::sanitize_context( $context );
+			$sanitized_context['last_seen'] = $now;
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security logging upsert update.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'timestamp'        => $now,
+					'occurrence_count' => $new_count,
+					'severity'         => $new_severity,
+					'message'          => $message,
+					'context'          => wp_json_encode( $sanitized_context ),
+					'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				),
+				array( 'id' => $existing->id ),
+				array( '%s', '%d', '%s', '%s', '%s', '%s' ),
+				array( '%d' )
+			);
+
+			/* Send email alert for critical events (rate limited) */
+			if ( 'critical' === $new_severity ) {
+				$rate_limit_key = 'nbuf_security_alert_last_sent_' . md5( $event_type . '_' . $ip_address );
+				$last_sent      = get_transient( $rate_limit_key );
+
+				if ( false === $last_sent ) {
+					self::send_critical_alert( $event_type, $message . ' (Occurrence #' . $new_count . ')', $context, $user_id );
+					set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
+				}
+			}
+
+			return false !== $result;
+		}
+
+		/* No existing record - insert new one */
+		$sanitized_context = self::sanitize_context( $context );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security logging insert.
+		$result = $wpdb->insert(
+			$table_name,
+			array(
+				'timestamp'        => $now,
+				'first_seen'       => $now,
+				'occurrence_count' => 1,
+				'severity'         => $severity,
+				'event_type'       => $event_type,
+				'user_id'          => $user_id,
+				'ip_address'       => $ip_address,
+				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				'message'          => $message,
+				'context'          => wp_json_encode( $sanitized_context ),
+			),
+			array( '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+		);
+
+		/* Send email alert for critical events */
+		if ( 'critical' === $severity ) {
+			$rate_limit_key = 'nbuf_security_alert_last_sent_' . md5( $event_type . '_' . $ip_address );
+			$last_sent      = get_transient( $rate_limit_key );
+
 			if ( false === $last_sent ) {
 				self::send_critical_alert( $event_type, $message, $context, $user_id );
 				set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
@@ -673,7 +843,7 @@ class NBUF_Security_Log {
 		}
 
 		/* Whitelist allowed orderby columns to prevent SQL injection */
-		$allowed_orderby = array( 'timestamp', 'severity', 'event_type', 'user_id', 'id' );
+		$allowed_orderby = array( 'timestamp', 'severity', 'event_type', 'user_id', 'id', 'occurrence_count', 'first_seen' );
 		$orderby_column  = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'timestamp';
 
 		/* Whitelist allowed order direction */
@@ -890,7 +1060,7 @@ class NBUF_Security_Log {
 		$csv = '';
 
 		// Headers.
-		$csv .= '"Timestamp","Severity","Event Type","User ID","Username","IP Address","Message","Context"' . "\n";
+		$csv .= '"Last Seen","First Seen","Count","Severity","Event Type","User ID","Username","IP Address","Message","Context"' . "\n";
 
 		// Data rows.
 		foreach ( $logs as $log ) {
@@ -898,8 +1068,10 @@ class NBUF_Security_Log {
 			$username = $user ? $user->user_login : 'N/A';
 
 			$csv .= sprintf(
-				'"%s","%s","%s","%s","%s","%s","%s","%s"' . "\n",
+				'"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"' . "\n",
 				self::csv_escape( $log->timestamp ),
+				self::csv_escape( isset( $log->first_seen ) ? $log->first_seen : $log->timestamp ),
+				self::csv_escape( isset( $log->occurrence_count ) ? $log->occurrence_count : 1 ),
 				self::csv_escape( $log->severity ),
 				self::csv_escape( $log->event_type ),
 				self::csv_escape( $log->user_id ? $log->user_id : 'N/A' ),
@@ -961,6 +1133,35 @@ class NBUF_Security_Log {
 		$deleted = $wpdb->query( $wpdb->prepare( $query, array_merge( array( $table_name ), $log_ids ) ) );
 
 		return $deleted;
+	}
+
+	/**
+	 * Get IP addresses from log IDs
+	 *
+	 * @param  array $log_ids Array of log entry IDs.
+	 * @return array Array of unique IP addresses.
+	 */
+	public static function get_ips_from_log_ids( $log_ids ) {
+		if ( empty( $log_ids ) || ! is_array( $log_ids ) ) {
+			return array();
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_security_log';
+
+		// Sanitize IDs.
+		$log_ids = array_map( 'intval', $log_ids );
+
+		// Build placeholders.
+		$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
+
+		// Build query with placeholders.
+		$query = "SELECT DISTINCT ip_address FROM %i WHERE id IN ($placeholders) AND ip_address IS NOT NULL AND ip_address != ''";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Admin action with dynamic placeholders for sanitized IDs.
+		$ips = $wpdb->get_col( $wpdb->prepare( $query, array_merge( array( $table_name ), $log_ids ) ) );
+
+		return $ips ? $ips : array();
 	}
 
 	/**

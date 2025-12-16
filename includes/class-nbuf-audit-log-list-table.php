@@ -369,36 +369,12 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Process bulk actions
+	 *
+	 * Note: Bulk delete is handled by NBUF_Audit_Log_Page::handle_bulk_delete()
+	 * on admin_init to avoid "headers already sent" errors.
 	 */
 	public function process_bulk_action() {
-		/* Check for bulk delete action */
-		if ( 'delete' === $this->current_action() ) {
-			/* Verify nonce */
-			if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-audit_logs' ) ) {
-				wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
-			}
-
-			/* Check capability */
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_die( esc_html__( 'You do not have permission to delete logs', 'nobloat-user-foundry' ) );
-			}
-
-			/*
-			 * Get selected log IDs
-			 */
-         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 358
-			if ( ! empty( $_REQUEST['log_id'] ) && is_array( $_REQUEST['log_id'] ) ) {
-             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 358
-				$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
-				NBUF_Audit_Log::delete_logs( $log_ids );
-
-				/* Redirect with success message */
-				$redirect = remove_query_arg( array( 'action', 'action2', 'log_id', '_wpnonce', '_wp_http_referer' ) );
-				$redirect = add_query_arg( 'deleted', count( $log_ids ), $redirect );
-				wp_safe_redirect( $redirect );
-				exit;
-			}
-		}
+		/* Bulk actions now handled by NBUF_Audit_Log_Page on admin_init */
 	}
 
 	/**

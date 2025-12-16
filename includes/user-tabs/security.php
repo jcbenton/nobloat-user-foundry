@@ -315,7 +315,6 @@ $nbuf_password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_perio
 		$nbuf_totp_window    = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
 		$nbuf_totp_tolerance = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
 		$nbuf_totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
-		$nbuf_totp_qr_method = NBUF_Options::get( 'nbuf_2fa_qr_method', 'external' );
 		?>
 		<tr>
 			<th><?php esc_html_e( 'TOTP Method', 'nobloat-user-foundry' ); ?></th>
@@ -389,19 +388,8 @@ $nbuf_password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_perio
 		<tr>
 			<th><?php esc_html_e( 'QR Code Generation', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<select name="nbuf_2fa_qr_method">
-					<option value="external" <?php selected( $nbuf_totp_qr_method, 'external' ); ?>>
-						<?php esc_html_e( 'External API (reliable, requires internet)', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="svg" <?php selected( $nbuf_totp_qr_method, 'svg' ); ?>>
-						<?php esc_html_e( 'Built-in SVG (simplified, no dependencies)', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="auto" <?php selected( $nbuf_totp_qr_method, 'auto' ); ?>>
-						<?php esc_html_e( 'Auto (try built-in, fallback to external)', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
 				<p class="description">
-					<?php esc_html_e( 'How to generate QR codes. External uses api.qrserver.com, built-in is simplified but works offline.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'QR codes are generated using api.qrserver.com, a free and reliable external service.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

@@ -29,6 +29,8 @@ class NBUF_Security_Log_Page {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 13 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_purge' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_bulk_delete' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_bulk_unblock' ) );
 	}
 
 	/**
@@ -107,29 +109,29 @@ class NBUF_Security_Log_Page {
 		<?php endif; ?>
 
 			<!-- Statistics -->
-			<div class="nbuf-stats-box" style="background: #fff; border: 1px solid #ccd0d4; padding: 15px; margin: 20px 0; border-radius: 4px;">
+			<div class="nbuf-stats-box" style="padding: 15px 0; margin: 20px 0;">
 				<h3 style="margin-top: 0;"><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<table class="widefat" style="max-width: 600px;">
+				<table style="max-width: 600px; border-collapse: collapse;">
 					<tbody>
 						<tr>
-							<td><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td>
+							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td style="padding: 4px 0;"><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td>
 						</tr>
 						<tr>
-							<td><strong><?php esc_html_e( 'Database Size:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['database_size'] ); ?></td>
+							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Database Size:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td style="padding: 4px 0;"><?php echo esc_html( $stats['database_size'] ); ?></td>
 						</tr>
 						<tr>
-							<td><strong><?php esc_html_e( 'Oldest Entry:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['oldest_entry'] ); ?></td>
+							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Oldest Entry:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td style="padding: 4px 0;"><?php echo esc_html( $stats['oldest_entry'] ); ?></td>
 						</tr>
 						<tr>
-							<td><strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['last_cleanup'] ); ?></td>
+							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td style="padding: 4px 0;"><?php echo esc_html( $stats['last_cleanup'] ); ?></td>
 						</tr>
 						<tr>
-							<td><strong><?php esc_html_e( 'Retention Period:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( self::get_retention_label() ); ?></td>
+							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Retention Period:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td style="padding: 4px 0;"><?php echo esc_html( self::get_retention_label() ); ?></td>
 						</tr>
 					</tbody>
 				</table>
@@ -144,6 +146,40 @@ class NBUF_Security_Log_Page {
 		?>
 			</form>
 		</div>
+
+		<!-- Modal JavaScript -->
+		<script type="text/javascript">
+		jQuery(document).ready(function($) {
+			/* View context modal */
+			$('.nbuf-view-context').on('click', function(e) {
+				e.preventDefault();
+				var context = $(this).data('context');
+				var formatted = JSON.stringify(context, null, 2);
+
+				var modal = $('<div class="nbuf-metadata-modal">' +
+					'<div class="nbuf-metadata-overlay"></div>' +
+					'<div class="nbuf-metadata-content">' +
+					'<h3><?php echo esc_js( __( 'Event Details', 'nobloat-user-foundry' ) ); ?></h3>' +
+					'<pre>' + $('<div>').text(formatted).html() + '</pre>' +
+					'<button class="button nbuf-close-modal"><?php echo esc_js( __( 'Close', 'nobloat-user-foundry' ) ); ?></button>' +
+					'</div>' +
+					'</div>');
+
+				$('body').append(modal);
+
+				/* Close on overlay click, button click, or Escape key */
+				$('.nbuf-metadata-overlay, .nbuf-close-modal').on('click', function() {
+					modal.remove();
+				});
+				$(document).on('keydown.nbufModal', function(e) {
+					if (e.key === 'Escape') {
+						modal.remove();
+						$(document).off('keydown.nbufModal');
+					}
+				});
+			});
+		});
+		</script>
 		<?php
 	}
 
@@ -173,6 +209,21 @@ class NBUF_Security_Log_Page {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['purged'] ) ) {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'All security logs have been purged.', 'nobloat-user-foundry' ) . '</p></div>';
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
+		if ( ! empty( $_GET['unblocked'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
+			$count = intval( $_GET['unblocked'] );
+			if ( $count > 0 ) {
+				printf(
+					'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+					/* translators: %d: number of unblocked IPs */
+					esc_html( sprintf( _n( '%d IP address unblocked.', '%d IP addresses unblocked.', $count, 'nobloat-user-foundry' ), $count ) )
+				);
+			} else {
+				echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'No IPs were unblocked. The selected entries may not have had any blocked login attempts.', 'nobloat-user-foundry' ) . '</p></div>';
+			}
 		}
 
 		/*
@@ -264,6 +315,157 @@ class NBUF_Security_Log_Page {
 
 		wp_safe_redirect( $redirect );
 		exit;
+	}
+
+	/**
+	 * Handle bulk delete action
+	 *
+	 * Must run on admin_init before headers are sent.
+	 */
+	public static function handle_bulk_delete() {
+		/* Early bail if not in admin or no page specified */
+		if ( ! is_admin() || empty( $_REQUEST['page'] ) ) {
+			return;
+		}
+
+		/* Check we're on the security log page */
+		if ( 'nobloat-foundry-security-log' !== $_REQUEST['page'] ) {
+			return;
+		}
+
+		/* Must have selected items - check this early */
+		if ( empty( $_REQUEST['log_id'] ) || ! is_array( $_REQUEST['log_id'] ) ) {
+			return;
+		}
+
+		/*
+		 * Check for bulk delete action (top or bottom dropdown).
+		 * WP_List_Table sends: action=delete (top) OR action2=delete (bottom).
+		 * The other dropdown is typically '-1' (default "Bulk actions" option).
+		 */
+		$action  = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+		$action2 = isset( $_REQUEST['action2'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action2'] ) ) : '';
+
+		if ( 'delete' !== $action && 'delete' !== $action2 ) {
+			return;
+		}
+
+		/* Verify nonce */
+		if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-security_logs' ) ) {
+			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check capability */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to delete logs', 'nobloat-user-foundry' ) );
+		}
+
+		/* Start output buffering to catch any stray output */
+		ob_start();
+
+		/* Delete selected logs (already validated above) */
+		$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
+		NBUF_Security_Log::delete_logs( $log_ids );
+
+		/* Discard any output from database operations */
+		ob_end_clean();
+
+		/* Redirect with success message */
+		$redirect = admin_url( 'admin.php?page=nobloat-foundry-security-log' );
+		$redirect = add_query_arg( 'deleted', count( $log_ids ), $redirect );
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Handle bulk unblock IP action
+	 *
+	 * Clears login attempts for selected IPs to unblock them.
+	 * Must run on admin_init before headers are sent.
+	 */
+	public static function handle_bulk_unblock() {
+		/* Early bail if not in admin or no page specified */
+		if ( ! is_admin() || empty( $_REQUEST['page'] ) ) {
+			return;
+		}
+
+		/* Check we're on the security log page */
+		if ( 'nobloat-foundry-security-log' !== $_REQUEST['page'] ) {
+			return;
+		}
+
+		/* Must have selected items - check this early */
+		if ( empty( $_REQUEST['log_id'] ) || ! is_array( $_REQUEST['log_id'] ) ) {
+			return;
+		}
+
+		/* Check for unblock_ip action (top or bottom dropdown) */
+		$action  = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+		$action2 = isset( $_REQUEST['action2'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action2'] ) ) : '';
+
+		if ( 'unblock_ip' !== $action && 'unblock_ip' !== $action2 ) {
+			return;
+		}
+
+		/* Verify nonce */
+		if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-security_logs' ) ) {
+			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check capability */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to unblock IPs', 'nobloat-user-foundry' ) );
+		}
+
+		/* Start output buffering to catch any stray output */
+		ob_start();
+
+		/* Get IP addresses from selected log entries */
+		$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
+		$ips     = NBUF_Security_Log::get_ips_from_log_ids( $log_ids );
+
+		/* Clear login attempts for these IPs */
+		$unblocked = 0;
+		if ( ! empty( $ips ) ) {
+			$unblocked = self::clear_login_attempts_for_ips( $ips );
+		}
+
+		/* Discard any output from database operations */
+		ob_end_clean();
+
+		/* Redirect with success message */
+		$redirect = admin_url( 'admin.php?page=nobloat-foundry-security-log' );
+		$redirect = add_query_arg( 'unblocked', $unblocked, $redirect );
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Clear login attempts for specified IP addresses
+	 *
+	 * @param  array $ips Array of IP addresses to unblock.
+	 * @return int Number of IPs unblocked.
+	 */
+	private static function clear_login_attempts_for_ips( $ips ) {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+		$count      = 0;
+
+		foreach ( $ips as $ip ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security unblock operation.
+			$deleted = $wpdb->delete(
+				$table_name,
+				array( 'ip_address' => $ip ),
+				array( '%s' )
+			);
+
+			if ( false !== $deleted && $deleted > 0 ) {
+				++$count;
+			}
+		}
+
+		return $count;
 	}
 
 	/**

@@ -37,7 +37,6 @@ $nbuf_cleanup  = (array) ( $nbuf_settings['cleanup'] ?? array() );
 			'templates' => __( 'Delete email and page templates.', 'nobloat-user-foundry' ),
 			'tables'    => __( 'Delete all database tables (tokens, user data, profiles, audit logs, 2FA, etc.).', 'nobloat-user-foundry' ),
 			'uploads'   => __( 'Delete uploads directory (profile photos, cover photos, and all user-uploaded files).', 'nobloat-user-foundry' ),
-			'pages'     => __( 'Delete pages containing NoBloat shortcodes.', 'nobloat-user-foundry' ),
 		);
 		foreach ( $nbuf_cleanup_options as $nbuf_key => $nbuf_label ) {
 			printf(
@@ -52,7 +51,7 @@ $nbuf_cleanup  = (array) ( $nbuf_settings['cleanup'] ?? array() );
 
 	<p class="description" style="margin-top: 12px; color: #d63638;">
 		<strong><?php esc_html_e( 'Warning:', 'nobloat-user-foundry' ); ?></strong>
-		<?php esc_html_e( 'All cleanup actions are permanent and cannot be undone. Database tables, uploaded files, and settings will be permanently deleted when the plugin is uninstalled.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'All cleanup actions are permanent and cannot be undone. If selected, database tables, uploaded files, and settings will be permanently deleted when the plugin is uninstalled.', 'nobloat-user-foundry' ); ?>
 	</p>
 
 	<p class="description" style="margin-top: 16px;">

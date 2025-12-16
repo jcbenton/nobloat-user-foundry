@@ -463,7 +463,7 @@ class NBUF_2FA_Login {
 	public static function get_verification_form() {
 		/* Get token from cookie */
 		if ( ! isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
-			return '<div class="nbuf-2fa-verify-wrapper"><p>' . esc_html__( 'No pending verification. Please log in first.', 'nobloat-user-foundry' ) . '</p></div>';
+			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'No pending verification. Please log in first.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		$token = sanitize_text_field( wp_unslash( $_COOKIE[ self::COOKIE_NAME ] ) );
@@ -472,7 +472,7 @@ class NBUF_2FA_Login {
 		$pending_data = get_transient( 'nbuf_2fa_pending_' . $token );
 
 		if ( false === $pending_data ) {
-			return '<div class="nbuf-2fa-verify-wrapper"><p>' . esc_html__( 'Session expired. Please log in again.', 'nobloat-user-foundry' ) . '</p></div>';
+			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'Session expired. Please log in again.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		$user_id = absint( $pending_data['user_id'] );

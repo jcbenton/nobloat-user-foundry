@@ -43,12 +43,25 @@ class NBUF_Member_Directory {
 	 * Enqueue directory scripts and styles
 	 */
 	public static function enqueue_scripts() {
-		/* Only enqueue if shortcode is present */
-		global $post;
-		if ( ! is_a( $post, 'WP_Post' ) || ! has_shortcode( $post->post_content, 'nbuf_members' ) ) {
-			return;
+		/* Check if on Universal Router members page */
+		if ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() ) {
+			if ( 'members' === NBUF_Universal_Router::get_current_view() ) {
+				self::do_enqueue_assets();
+				return;
+			}
 		}
 
+		/* Check if shortcode is present in post */
+		global $post;
+		if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'nbuf_members' ) ) {
+			self::do_enqueue_assets();
+		}
+	}
+
+	/**
+	 * Enqueue the directory assets (CSS and JS)
+	 */
+	private static function do_enqueue_assets() {
 		wp_enqueue_style(
 			'nbuf-directory',
 			plugin_dir_url( __DIR__ ) . 'assets/css/frontend/member-directory.css',
@@ -64,7 +77,6 @@ class NBUF_Member_Directory {
 			true
 		);
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		wp_localize_script(
 			'nbuf-directory',
 			'nbufDirectory',
@@ -85,15 +97,21 @@ class NBUF_Member_Directory {
 		/* Check if enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_member_directory', false );
 		if ( ! $enabled ) {
-			return '<p>' . esc_html__( 'Member directory is currently disabled.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'Member directory is currently disabled.', 'nobloat-user-foundry' ) . '</p>';
 		}
+
+		/* Get defaults from admin settings */
+		$default_view         = NBUF_Options::get( 'nbuf_directory_default_view', 'grid' );
+		$default_per_page     = NBUF_Options::get( 'nbuf_directory_per_page', 20 );
+		$default_show_search  = NBUF_Options::get( 'nbuf_directory_show_search', true ) ? 'yes' : 'no';
+		$default_show_filters = NBUF_Options::get( 'nbuf_directory_show_filters', true ) ? 'yes' : 'no';
 
 		$atts = shortcode_atts(
 			array(
-				'view'         => 'grid',          /* grid or list */
-				'per_page'     => 20,
-				'show_search'  => 'yes',
-				'show_filters' => 'yes',
+				'view'         => $default_view,
+				'per_page'     => $default_per_page,
+				'show_search'  => $default_show_search,
+				'show_filters' => $default_show_filters,
 				'roles'        => '',              /* Comma-separated role slugs */
 				'orderby'      => 'display_name',  /* display_name, registered, last_login */
 				'order'        => 'ASC',
@@ -219,6 +237,24 @@ class NBUF_Member_Directory {
 			$sql .= " AND ud.profile_privacy = 'public'";
 		}
 
+		/* Base role restriction - only show users with allowed roles (security) */
+		$allowed_roles = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
+		if ( ! is_array( $allowed_roles ) ) {
+			$allowed_roles = array( 'author', 'contributor', 'subscriber' );
+		}
+		if ( ! empty( $allowed_roles ) ) {
+			$base_role_parts = array();
+			foreach ( $allowed_roles as $allowed_role ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$base_role_parts[] = $wpdb->prepare(
+					"EXISTS (SELECT 1 FROM {$wpdb->usermeta} um WHERE um.user_id = u.ID AND um.meta_key = %s AND um.meta_value LIKE %s)",
+					$wpdb->prefix . 'capabilities',
+					'%"' . $wpdb->esc_like( $allowed_role ) . '"%'
+				);
+			}
+			$sql .= ' AND (' . implode( ' OR ', $base_role_parts ) . ')';
+		}
+
 		/* Search filter */
 		if ( ! empty( $args['search'] ) ) {
          // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -233,13 +269,20 @@ class NBUF_Member_Directory {
 			$sql     .= $wpdb->prepare( ' AND (up.city LIKE %s OR up.state LIKE %s OR up.country LIKE %s)', $location, $location, $location );
 		}
 
-		/* Role filter */
+		/* Role filter - only allow roles configured in directory settings (security) */
 		if ( ! empty( $args['roles'] ) ) {
-			$roles          = array_map( 'trim', explode( ',', $args['roles'] ) );
+			$roles         = array_map( 'trim', explode( ',', $args['roles'] ) );
+			$allowed_roles = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
+			if ( ! is_array( $allowed_roles ) ) {
+				$allowed_roles = array( 'author', 'contributor', 'subscriber' );
+			}
+
+			/* Filter out any roles that aren't allowed (prevent enumeration of admin users) */
+			$roles          = array_intersect( $roles, $allowed_roles );
 			$role_sql_parts = array();
 
 			foreach ( $roles as $role ) {
-             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$role_sql_parts[] = $wpdb->prepare(
 					"EXISTS (SELECT 1 FROM {$wpdb->usermeta} um WHERE um.user_id = u.ID AND um.meta_key = %s AND um.meta_value LIKE %s)",
 					$wpdb->prefix . 'capabilities',
@@ -335,7 +378,9 @@ class NBUF_Member_Directory {
 
 			<div class="nbuf-member-info">
 				<h3 class="nbuf-member-name">
-		<?php echo esc_html( $member->display_name ); ?>
+					<a href="<?php echo esc_url( get_author_posts_url( $member->ID ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ); ?>">
+						<?php echo esc_html( $member->display_name ); ?>
+					</a>
 				</h3>
 
 		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && ! empty( $member->bio ) ) : ?>

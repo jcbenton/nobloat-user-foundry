@@ -149,7 +149,7 @@ class NBUF_GDPR_Export {
 		);
 
 		/* Count NoBloat profile fields */
-		$user_data = NBUF_User_Data::get_user_data( $user_id );
+		$user_data = NBUF_User_Data::get( $user_id );
 		if ( $user_data ) {
 			$profile_fields = self::get_profile_field_names();
 			foreach ( $profile_fields as $field ) {
@@ -359,7 +359,7 @@ class NBUF_GDPR_Export {
 	 */
 	private static function create_nbuf_export( $dir, $user_id ) {
 		$user      = get_userdata( $user_id );
-		$user_data = NBUF_User_Data::get_user_data( $user_id );
+		$user_data = NBUF_User_Data::get( $user_id );
 
 		$export = array(
 			'user_id'          => $user_id,

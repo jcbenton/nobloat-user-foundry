@@ -111,6 +111,63 @@ add_filter(
 );
 
 /**
+ * Ensure minified live CSS files exist.
+ *
+ * Creates -live.min.css files from default templates if they don't exist.
+ * Runs on every page load but checks are cheap (file_exists only).
+ * This ensures users upgrading from older versions get minified CSS.
+ */
+function nbuf_ensure_live_css_files() {
+	/* CSS files to create: filename => error token */
+	$css_files = array(
+		'reset-page'        => 'nbuf_css_write_failed_reset',
+		'login-page'        => 'nbuf_css_write_failed_login',
+		'registration-page' => 'nbuf_css_write_failed_registration',
+		'account-page'      => 'nbuf_css_write_failed_account',
+		'2fa-setup'         => 'nbuf_css_write_failed_2fa',
+		'profile'           => 'nbuf_css_write_failed_profile',
+	);
+
+	$frontend_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+
+	/* Quick check - if all minified files exist, return early */
+	$all_exist = true;
+	foreach ( $css_files as $filename => $token ) {
+		if ( ! file_exists( $frontend_dir . $filename . '-live.min.css' ) ) {
+			$all_exist = false;
+			break;
+		}
+	}
+	if ( $all_exist ) {
+		return;
+	}
+
+	/* Use CSS Manager for proper error handling and logging */
+	if ( ! class_exists( 'NBUF_CSS_Manager' ) ) {
+		return;
+	}
+
+	/* Create missing files using CSS Manager */
+	foreach ( $css_files as $filename => $token ) {
+		$min_path = $frontend_dir . $filename . '-live.min.css';
+
+		/* Skip if already exists */
+		if ( file_exists( $min_path ) ) {
+			continue;
+		}
+
+		/* Load default CSS from template */
+		$css = NBUF_CSS_Manager::load_default_css( $filename );
+		if ( empty( $css ) ) {
+			continue;
+		}
+
+		/* Save using CSS Manager (handles errors, logging, minification) */
+		NBUF_CSS_Manager::save_css_to_disk( $css, $filename, $token );
+	}
+}
+
+/**
  * Initialize plugin components
  *
  * Loads all necessary classes and hooks on plugins_loaded.
@@ -120,6 +177,9 @@ add_action(
 	function () {
 		// Preload all autoload settings in ONE query (massive performance boost).
 		NBUF_Options::preload_autoload();
+
+		// Ensure minified CSS files exist (for upgrades from older versions).
+		nbuf_ensure_live_css_files();
 
 		// Note: load_plugin_textdomain() is not needed for WordPress.org hosted plugins.
 		// WordPress automatically loads translations since version 4.6.
@@ -143,6 +203,10 @@ add_action(
 
 			// User Notes - triggers autoloader which calls init_profile_link() at file end.
 			class_exists( 'NBUF_User_Notes' );
+
+			// Admin Users - triggers autoloader which calls init() at file end.
+			// Adds bulk actions, columns, and profile sections to Users screen.
+			class_exists( 'NBUF_Admin_Users' );
 		}
 
 		// Initialize WordPress privacy integration (ALWAYS - for GDPR compliance).
@@ -160,6 +224,10 @@ add_action(
 		// Initialize hooks class (ALWAYS - for wp-login redirects to work even when system disabled).
 		// This loads class-nbuf-hooks.php which calls NBUF_Hooks::init() at the bottom.
 		class_exists( 'NBUF_Hooks' );
+
+		// Initialize virtual page router (handles all /user-foundry/* URLs).
+		// No WordPress pages needed - router intercepts URLs directly.
+		NBUF_Universal_Router::init();
 
 		// Initialize shortcodes (ALWAYS - show notice when system disabled instead of nothing).
 		if ( ! is_admin() ) {
@@ -332,16 +400,17 @@ add_action(
 );
 
 /**
- * Initialize login limiting and password expiration
+ * Initialize login security features
  *
- * Lazy initialization - only loads on login pages to avoid
- * unnecessary hooks. Autoloader loads classes on-demand.
+ * Must be on 'init' hook (not 'login_init') to work with both wp-login.php
+ * AND custom login pages like /user-foundry/login/. The authenticate filter
+ * must be registered before any wp_signon() call happens.
  *
  * Note: Login limiting works independently of the main user manager toggle
  * since security features should always be available when enabled.
  */
 add_action(
-	'login_init',
+	'init',
 	function () {
 		/* Login limiting - works independently of main system toggle for security */
 		$login_limiting_enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
@@ -349,7 +418,7 @@ add_action(
 			NBUF_Login_Limiting::init();
 		}
 
-		/* Password expiration requires main system to be enabled */
+		/* Password expiration - requires main system to be enabled */
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 		if ( $system_enabled ) {
 			$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
@@ -357,7 +426,8 @@ add_action(
 				NBUF_Password_Expiration::init();
 			}
 		}
-	}
+	},
+	5 /* Early priority to ensure hooks are registered before login processing */
 );
 
 /**

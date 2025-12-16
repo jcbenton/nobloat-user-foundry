@@ -194,54 +194,5 @@ $nbuf_available_fields = array(
 		</tr>
 	</table>
 
-	<h2><?php esc_html_e( 'Testing', 'nobloat-user-foundry' ); ?></h2>
-	<p class="description"><?php esc_html_e( 'Test your notification settings by sending a sample notification email.', 'nobloat-user-foundry' ); ?></p>
-	<p>
-		<button type="button" class="button" id="nbuf-test-notification">
-			<span class="dashicons dashicons-email" style="vertical-align: middle;"></span>
-			<?php esc_html_e( 'Send Test Notification', 'nobloat-user-foundry' ); ?>
-		</button>
-	</p>
-	<div id="nbuf-test-result" style="display: none; margin-top: 15px;"></div>
-
 	<?php submit_button( __( 'Save Notification Settings', 'nobloat-user-foundry' ) ); ?>
 </form>
-
-<script>
-jQuery(document).ready(function($) {
-	/* Test notification */
-	$('#nbuf-test-notification').on('click', function() {
-		$(this).prop('disabled', true).text('<?php echo esc_js( __( 'Sending...', 'nobloat-user-foundry' ) ); ?>');
-
-		$.ajax({
-			url: ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'nbuf_test_change_notification',
-				nonce: '<?php echo esc_attr( wp_create_nonce( 'nbuf_test_notification' ) ); ?>'
-			},
-			success: function(response) {
-				var $result = $('#nbuf-test-result');
-				var $notice = $('<div class="notice"><p></p></div>');
-				$notice.find('p').text(response.data.message);
-				if (response.success) {
-					$notice.addClass('notice-success');
-				} else {
-					$notice.addClass('notice-error');
-				}
-				$result.empty().append($notice).show();
-			},
-			error: function() {
-				$('#nbuf-test-result').html(
-					'<div class="notice notice-error"><p><?php echo esc_js( __( 'An error occurred while sending test notification.', 'nobloat-user-foundry' ) ); ?></p></div>'
-				).show();
-			},
-			complete: function() {
-				$('#nbuf-test-notification').prop('disabled', false).html(
-					'<span class="dashicons dashicons-email" style="vertical-align: middle;"></span> <?php echo esc_js( __( 'Send Test Notification', 'nobloat-user-foundry' ) ); ?>'
-				);
-			}
-		});
-	});
-});
-</script>

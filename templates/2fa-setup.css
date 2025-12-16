@@ -80,6 +80,60 @@
 }
 
 /* ==========================================================
+   PAGE BUILDER OVERRIDE
+   ----------------------------------------------------------
+   High-specificity selectors to prevent page builders from
+   overriding plugin styles. Uses body.nbuf-page class.
+   ========================================================== */
+
+body.nbuf-page .nbuf-2fa-setup-page,
+body.nbuf-page .nbuf-2fa-verify-wrapper,
+body.nbuf-page .nbuf-2fa-setup-wrapper,
+body.nbuf-page .nbuf-backup-codes-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page h1,
+body.nbuf-page .nbuf-2fa-setup-page h2,
+body.nbuf-page .nbuf-2fa-setup-page h3,
+body.nbuf-page .nbuf-2fa-verify-wrapper h1,
+body.nbuf-page .nbuf-2fa-verify-wrapper h2,
+body.nbuf-page .nbuf-2fa-verify-wrapper h3 {
+    line-height: 1.3;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page p,
+body.nbuf-page .nbuf-2fa-verify-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page label,
+body.nbuf-page .nbuf-2fa-setup-page .nbuf-form-label,
+body.nbuf-page .nbuf-2fa-verify-wrapper label,
+body.nbuf-page .nbuf-2fa-verify-wrapper .nbuf-form-label {
+    font-size: 0.9em;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page input,
+body.nbuf-page .nbuf-2fa-setup-page button,
+body.nbuf-page .nbuf-2fa-verify-wrapper input,
+body.nbuf-page .nbuf-2fa-verify-wrapper button {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page .nbuf-message,
+body.nbuf-page .nbuf-2fa-verify-wrapper .nbuf-message {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-2fa-setup-page a,
+body.nbuf-page .nbuf-2fa-verify-wrapper a {
+    font-size: inherit;
+}
+
+/* ==========================================================
    PAGE LAYOUT
    ========================================================== */
 
@@ -88,6 +142,310 @@
     margin: var(--nbuf-space-4xl) auto;
     padding: var(--nbuf-space-xl);
     font-family: var(--nbuf-font-family);
+}
+
+/* ==========================================================
+   TOTP SETUP PAGE - TWO-COLUMN LAYOUT
+   ========================================================== */
+
+.nbuf-2fa-setup-wrapper {
+    max-width: 800px;
+    margin: var(--nbuf-space-3xl) auto;
+    padding: var(--nbuf-space-2xl);
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    box-shadow: var(--nbuf-shadow-md);
+}
+
+.nbuf-2fa-setup-header {
+    text-align: center;
+    margin-bottom: var(--nbuf-space-2xl);
+}
+
+.nbuf-2fa-setup-header h2 {
+    margin: 0 0 var(--nbuf-space-xs) 0;
+    font-size: 1.5rem;
+    color: var(--nbuf-text-primary);
+    font-weight: 600;
+}
+
+.nbuf-setup-subtitle {
+    margin: 0;
+    color: var(--nbuf-text-secondary);
+    font-size: 14px;
+}
+
+/* Collapsible App Info */
+.nbuf-app-info {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-app-info summary {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-xs);
+    font-size: 14px;
+    color: #0066cc;
+    cursor: pointer;
+    list-style: none;
+}
+
+.nbuf-app-info summary::-webkit-details-marker {
+    display: none;
+}
+
+.nbuf-app-info summary::before {
+    content: '\25B6';
+    font-size: 12px;
+    transition: transform var(--nbuf-transition-fast);
+}
+
+.nbuf-app-info[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.nbuf-info-icon {
+    font-size: 16px;
+}
+
+.nbuf-toggle-hint {
+    font-weight: normal;
+    margin-left: auto;
+    opacity: 0.7;
+}
+
+.nbuf-app-info[open] .nbuf-toggle-hint {
+    display: none;
+}
+
+.nbuf-app-info[open] summary {
+    margin-bottom: var(--nbuf-space-md);
+    padding-bottom: var(--nbuf-space-md);
+    border-bottom: 1px solid #b3d9ff;
+}
+
+.nbuf-app-info .nbuf-app-list {
+    margin: 0;
+    padding-left: var(--nbuf-space-xl);
+    font-size: 14px;
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-app-info .nbuf-app-list li {
+    margin: var(--nbuf-space-xs) 0;
+}
+
+/* Two-Column Grid Layout */
+.nbuf-setup-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--nbuf-space-xl);
+}
+
+@media (min-width: 700px) {
+    .nbuf-setup-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--nbuf-space-2xl);
+    }
+}
+
+/* Setup Columns */
+.nbuf-setup-column {
+    background: var(--nbuf-background);
+    padding: var(--nbuf-space-xl);
+    border-radius: var(--nbuf-radius-md);
+    border: 1px solid var(--nbuf-border);
+}
+
+.nbuf-setup-column h3 {
+    margin: 0 0 var(--nbuf-space-xs) 0;
+    font-size: 1.125rem;
+    color: var(--nbuf-text-primary);
+    font-weight: 600;
+}
+
+.nbuf-setup-column > p {
+    margin: 0 0 var(--nbuf-space-lg) 0;
+    font-size: 14px;
+    color: var(--nbuf-text-secondary);
+    line-height: 1.5;
+}
+
+/* QR Code Container */
+.nbuf-qr-column .nbuf-qr-code-container {
+    display: flex;
+    justify-content: center;
+    padding: var(--nbuf-space-lg);
+    background: var(--nbuf-surface);
+    border-radius: var(--nbuf-radius-md);
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-qr-column .nbuf-qr-code-container img {
+    max-width: 180px;
+    height: auto;
+    display: block;
+}
+
+/* Manual Entry (Always Visible) */
+.nbuf-manual-entry {
+    background: var(--nbuf-surface);
+    padding: var(--nbuf-space-md);
+    border-radius: var(--nbuf-radius-sm);
+    border: 1px dashed var(--nbuf-border);
+}
+
+.nbuf-manual-label {
+    margin: 0 0 var(--nbuf-space-xs) 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-secret-display {
+    display: flex;
+    gap: var(--nbuf-space-xs);
+    align-items: center;
+    padding: var(--nbuf-space-xs);
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+}
+
+.nbuf-secret-display code {
+    flex: 1;
+    font-size: 14px;
+    word-break: break-all;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    color: var(--nbuf-text-primary);
+}
+
+.nbuf-copy-btn {
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--nbuf-primary);
+    color: var(--nbuf-primary);
+    border-radius: var(--nbuf-radius-sm);
+    cursor: pointer;
+    transition: background var(--nbuf-transition-fast), color var(--nbuf-transition-fast);
+    line-height: 1;
+}
+
+.nbuf-copy-btn:hover {
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+}
+
+.nbuf-copy-icon {
+    font-size: 14px;
+}
+
+.nbuf-manual-hint {
+    margin: var(--nbuf-space-xs) 0 0 0;
+    font-size: 13px;
+    color: var(--nbuf-text-secondary);
+}
+
+/* Verification Column */
+.nbuf-verify-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.nbuf-verify-setup-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.nbuf-code-input-wrapper {
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-verify-column .nbuf-code-input {
+    width: 100%;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    font-size: 1.5rem;
+    text-align: center;
+    letter-spacing: 0.4em;
+    border: 2px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    font-family: 'SF Mono', 'Consolas', monospace;
+    transition: border-color var(--nbuf-transition-fast);
+    box-sizing: border-box;
+}
+
+.nbuf-verify-column .nbuf-code-input:focus {
+    outline: none;
+    border-color: var(--nbuf-primary);
+    box-shadow: var(--nbuf-shadow-focus);
+}
+
+.nbuf-verify-btn {
+    width: 100%;
+    padding: var(--nbuf-space-md) var(--nbuf-space-xl);
+    font-size: 16px !important;
+    min-height: 44px;
+}
+
+.nbuf-next-note {
+    margin: var(--nbuf-space-lg) 0 0 0;
+    padding-top: var(--nbuf-space-md);
+    border-top: 1px solid var(--nbuf-border);
+    font-size: 14px;
+    color: var(--nbuf-text-secondary);
+    text-align: center;
+}
+
+/* Success/Error Messages */
+.nbuf-2fa-setup-wrapper .nbuf-error,
+.nbuf-2fa-setup-wrapper .nbuf-success {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-sm);
+    margin-bottom: var(--nbuf-space-xl);
+    font-size: 14px;
+}
+
+.nbuf-2fa-setup-wrapper .nbuf-error {
+    background: var(--nbuf-error-bg);
+    color: var(--nbuf-error);
+    border: 1px solid var(--nbuf-error-border);
+}
+
+.nbuf-2fa-setup-wrapper .nbuf-success {
+    background: var(--nbuf-success-bg);
+    color: var(--nbuf-success);
+    border: 1px solid var(--nbuf-success-border);
+}
+
+/* Mobile Responsive */
+@media (max-width: 699px) {
+    .nbuf-2fa-setup-wrapper {
+        margin: var(--nbuf-space-lg);
+        padding: var(--nbuf-space-lg);
+    }
+
+    .nbuf-2fa-setup-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .nbuf-setup-column {
+        padding: var(--nbuf-space-lg);
+    }
+
+    .nbuf-qr-column .nbuf-qr-code-container img {
+        max-width: 160px;
+    }
+
+    .nbuf-verify-column .nbuf-code-input {
+        font-size: 1.25rem;
+        letter-spacing: 0.3em;
+    }
 }
 
 /* ==========================================================

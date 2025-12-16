@@ -132,7 +132,7 @@ class NBUF_Profile_Data {
 			'personal'      => array(
 				'label'  => 'Personal',
 				'fields' => array(
-					'website'           => 'Website',
+					'website'           => 'Secondary Website',
 					'nationality'       => 'Nationality',
 					'languages'         => 'Languages Spoken',
 					'emergency_contact' => 'Emergency Contact',

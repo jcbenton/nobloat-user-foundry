@@ -133,13 +133,14 @@ class NBUF_Appearance {
 			'styles'     => array(
 				'label'   => __( 'CSS Styles', 'nobloat-user-foundry' ),
 				'subtabs' => array(
-					'login'    => __( 'Login', 'nobloat-user-foundry' ),
-					'register' => __( 'Register', 'nobloat-user-foundry' ),
-					'account'  => __( 'Account', 'nobloat-user-foundry' ),
-					'reset'    => __( 'Reset', 'nobloat-user-foundry' ),
-					'2fa'      => __( '2FA', 'nobloat-user-foundry' ),
-					'profiles' => __( 'Profiles', 'nobloat-user-foundry' ),
-					'settings' => __( 'Settings', 'nobloat-user-foundry' ),
+					'login'            => __( 'Login', 'nobloat-user-foundry' ),
+					'register'         => __( 'Register', 'nobloat-user-foundry' ),
+					'account'          => __( 'Account', 'nobloat-user-foundry' ),
+					'reset'            => __( 'Reset', 'nobloat-user-foundry' ),
+					'2fa'              => __( '2FA', 'nobloat-user-foundry' ),
+					'profiles'         => __( 'Profiles', 'nobloat-user-foundry' ),
+					'member-directory' => __( 'Member Directory', 'nobloat-user-foundry' ),
+					'settings'         => __( 'Settings', 'nobloat-user-foundry' ),
 				),
 			),
 		);
@@ -296,13 +297,14 @@ class NBUF_Appearance {
 			),
 			/* CSS Styles */
 			'styles' => array(
-				'login'    => 'styles/login.php',
-				'register' => 'styles/register.php',
-				'account'  => 'styles/account.php',
-				'reset'    => 'styles/reset.php',
-				'2fa'      => 'styles/2fa.php',
-				'profiles' => 'styles/profiles.php',
-				'settings' => 'styles/settings.php',
+				'login'            => 'styles/login.php',
+				'register'         => 'styles/register.php',
+				'account'          => 'styles/account.php',
+				'reset'            => 'styles/reset.php',
+				'2fa'              => 'styles/2fa.php',
+				'profiles'         => 'styles/profiles.php',
+				'member-directory' => 'styles/member-directory.php',
+				'settings'         => 'styles/settings.php',
 			),
 		);
 

@@ -27,9 +27,6 @@ $nbuf_backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 32 );
 	<input type="hidden" name="nbuf_active_subtab" value="backup-codes">
 
 	<h2><?php esc_html_e( 'Backup Codes', 'nobloat-user-foundry' ); ?></h2>
-	<p class="description">
-		<?php esc_html_e( 'One-time use backup codes provide emergency access when users cannot access their primary 2FA method (email or authenticator app).', 'nobloat-user-foundry' ); ?>
-	</p>
 
 	<table class="form-table">
 		<tr>
@@ -65,20 +62,6 @@ $nbuf_backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 32 );
 			</td>
 		</tr>
 	</table>
-
-	<h3><?php esc_html_e( 'Security Information', 'nobloat-user-foundry' ); ?></h3>
-	<div class="notice notice-info inline" style="margin: 10px 0;">
-		<p>
-			<strong><?php esc_html_e( 'How backup codes work:', 'nobloat-user-foundry' ); ?></strong>
-		</p>
-		<ul style="list-style: disc; margin-left: 20px;">
-			<li><?php esc_html_e( 'Each code can only be used once', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Codes are hashed before storage (cannot be recovered if lost)', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Works with both Email 2FA and Authenticator App 2FA', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Users should store codes in a secure location (password manager, safe)', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Regenerating codes invalidates all previous codes', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-	</div>
 
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>

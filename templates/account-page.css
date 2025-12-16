@@ -69,6 +69,63 @@
 }
 
 /* ==========================================================
+   PAGE BUILDER OVERRIDE
+   ----------------------------------------------------------
+   High-specificity selectors to prevent page builders (Bricks,
+   Elementor, etc.) from overriding plugin styles.
+   Uses body.nbuf-page class added by Universal Router.
+   ========================================================== */
+
+body.nbuf-page .nbuf-account-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-account-wrapper h1,
+body.nbuf-page .nbuf-account-wrapper h2,
+body.nbuf-page .nbuf-account-wrapper h3,
+body.nbuf-page .nbuf-account-wrapper h4 {
+    line-height: 1.3;
+}
+
+body.nbuf-page .nbuf-account-wrapper h3 {
+    font-size: 1.25em;
+}
+
+body.nbuf-page .nbuf-account-wrapper h4 {
+    font-size: 1.1em;
+}
+
+body.nbuf-page .nbuf-account-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-account-wrapper label,
+body.nbuf-page .nbuf-account-wrapper .nbuf-form-label {
+    font-size: 0.9em;
+}
+
+body.nbuf-page .nbuf-account-wrapper input,
+body.nbuf-page .nbuf-account-wrapper select,
+body.nbuf-page .nbuf-account-wrapper textarea,
+body.nbuf-page .nbuf-account-wrapper button {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-account-wrapper .description {
+    font-size: 0.875em;
+}
+
+body.nbuf-page .nbuf-account-wrapper .nbuf-tab-button {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-account-wrapper .nbuf-message {
+    font-size: 1em;
+}
+
+/* ==========================================================
    PAGE LAYOUT
    ========================================================== */
 
@@ -153,24 +210,6 @@
     border-radius: var(--nbuf-radius-sm);
 }
 
-.nbuf-tab-logout {
-    margin-left: auto;
-    color: var(--nbuf-text-secondary);
-    text-decoration: none;
-    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
-    font: inherit;
-}
-
-.nbuf-tab-logout:hover {
-    color: var(--nbuf-primary);
-    text-decoration: underline;
-}
-
-.nbuf-tab-logout:focus-visible {
-    outline: 2px solid var(--nbuf-primary);
-    outline-offset: 2px;
-    border-radius: var(--nbuf-radius-sm);
-}
 
 /* ==========================================================
    TAB CONTENT
@@ -274,6 +313,156 @@
     font-size: 0.9em;
 }
 
+/* Profile Settings Subtab */
+.nbuf-profile-settings-section {
+    /* Container for all profile settings groups */
+}
+
+.nbuf-profile-settings-group {
+    margin-bottom: var(--nbuf-space-2xl);
+    padding-bottom: var(--nbuf-space-xl);
+    border-bottom: 1px solid var(--nbuf-border-light);
+}
+
+.nbuf-profile-settings-group:last-of-type {
+    border-bottom: none;
+}
+
+.nbuf-profile-settings-group .description {
+    margin-bottom: var(--nbuf-space-lg);
+    color: var(--nbuf-text-secondary);
+    line-height: 1.5;
+}
+
+.nbuf-profile-settings-group select,
+.nbuf-profile-settings-group .regular-text {
+    display: block;
+    width: 100%;
+    max-width: 500px;
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    font-size: 1em;
+    line-height: 1.5;
+    transition: border-color var(--nbuf-transition-fast);
+}
+
+.nbuf-profile-settings-group select:focus,
+.nbuf-profile-settings-group .regular-text:focus {
+    outline: none;
+    border-color: var(--nbuf-primary);
+    box-shadow: var(--nbuf-shadow-focus);
+}
+
+.nbuf-profile-url-link,
+.nbuf-directory-link {
+    display: inline-block;
+    margin-top: var(--nbuf-space-md);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+    background: var(--nbuf-background);
+    border-radius: var(--nbuf-radius-sm);
+    font-family: monospace;
+    font-size: 0.9em;
+    color: var(--nbuf-primary);
+    text-decoration: none;
+    transition: background-color var(--nbuf-transition-fast);
+}
+
+.nbuf-profile-url-link:hover,
+.nbuf-profile-url-link:focus,
+.nbuf-directory-link:hover,
+.nbuf-directory-link:focus {
+    background: var(--nbuf-primary-focus);
+    text-decoration: underline;
+}
+
+.nbuf-profile-url-meta,
+.nbuf-directory-url-meta {
+    margin-top: var(--nbuf-space-lg);
+    padding: var(--nbuf-space-md);
+    background: var(--nbuf-background);
+    border-left: 3px solid var(--nbuf-primary);
+    border-radius: var(--nbuf-radius-sm);
+}
+
+.nbuf-profile-url-meta strong,
+.nbuf-directory-url-meta strong {
+    display: block;
+    margin-bottom: var(--nbuf-space-xs);
+    font-weight: 600;
+}
+
+/* Profile Fields Visibility Section */
+.nbuf-profile-fields-section {
+    margin-top: var(--nbuf-space-2xl);
+}
+
+.nbuf-profile-fields-section h4 {
+    margin: 0 0 var(--nbuf-space-sm) 0;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.nbuf-profile-fields-section .description {
+    margin-bottom: var(--nbuf-space-lg);
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-profile-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--nbuf-space-md) var(--nbuf-space-lg);
+}
+
+.nbuf-profile-field-grid label {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-sm);
+    cursor: pointer;
+    padding: var(--nbuf-space-sm);
+    border-radius: var(--nbuf-radius-sm);
+    transition: background-color var(--nbuf-transition-fast);
+}
+
+.nbuf-profile-field-grid label:hover {
+    background: var(--nbuf-background);
+}
+
+.nbuf-profile-field-grid input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.nbuf-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-sm);
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1.5;
+}
+
+.nbuf-checkbox-label input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nbuf-profile-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nbuf-profile-settings-group select,
+    .nbuf-profile-settings-group .regular-text {
+        max-width: 100%;
+    }
+}
+
 /* ==========================================================
    PHOTOS SECTION (Combined Profile & Cover)
    ========================================================== */
@@ -295,6 +484,26 @@
     font-size: 1.1em;
     font-weight: 600;
     color: var(--nbuf-text);
+}
+
+/* Photo action buttons */
+.nbuf-photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+}
+
+@media (max-width: 600px) {
+    .nbuf-photo-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .nbuf-photo-actions .nbuf-button {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* ==========================================================
@@ -445,6 +654,11 @@ textarea.nbuf-account-input {
 
 /* Shared button base styles */
 .nbuf-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: 44px;
     padding: var(--nbuf-space-md) var(--nbuf-space-xl);
     border: none;
     border-radius: var(--nbuf-radius-sm);
@@ -452,8 +666,10 @@ textarea.nbuf-account-input {
     font-weight: 600;
     cursor: pointer;
     text-align: center;
-    max-width: 200px;
-    align-self: flex-start;
+    text-decoration: none;
+    box-sizing: border-box;
+    width: auto !important;
+    max-width: fit-content;
     /* Specific transition properties for better performance */
     transition: background-color var(--nbuf-transition-base),
                 transform var(--nbuf-transition-fast);
@@ -589,7 +805,12 @@ textarea.nbuf-account-input {
 }
 
 .nbuf-button-secondary {
-    /* Override styles here for secondary buttons */
+    background: #dc3545;
+    color: var(--nbuf-surface);
+}
+
+.nbuf-button-secondary:hover {
+    background: #b02a37;
 }
 
 /* Backup codes display */
@@ -679,10 +900,6 @@ textarea.nbuf-account-input {
     .nbuf-tab-button {
         padding: var(--nbuf-space-sm) var(--nbuf-space-md);
     }
-
-    .nbuf-tab-logout {
-        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
-    }
 }
 
 @media (max-width: 600px) {
@@ -711,24 +928,52 @@ textarea.nbuf-account-input {
     .nbuf-tab-button {
         flex: 1;
         text-align: center;
+        font-size: 14px;
     }
 
-    .nbuf-tab-logout {
-        flex-basis: 100%;
-        text-align: center;
-        border-top: 1px solid var(--nbuf-border-light);
-        margin-top: var(--nbuf-space-sm);
-        padding-top: var(--nbuf-space-sm);
-    }
-
-    /* Sub-tabs responsive */
+    /* Sub-tabs responsive - pill style buttons */
     .nbuf-subtabs {
         flex-wrap: wrap;
-        gap: var(--nbuf-space-xs);
+        gap: var(--nbuf-space-sm);
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: var(--nbuf-space-lg);
     }
 
+    .nbuf-subtab-link,
     .nbuf-subtab-button {
-        padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
+        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+        background: var(--nbuf-background);
+        border: 1px solid var(--nbuf-border);
+        border-radius: 20px;
+        font-size: 14px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Remove pipe separators on mobile */
+    .nbuf-subtab-link::after,
+    .nbuf-subtab-button::after {
+        content: none;
+    }
+
+    .nbuf-subtab-link.active,
+    .nbuf-subtab-button.nbuf-subtab-active {
+        background: var(--nbuf-primary);
+        color: var(--nbuf-surface);
+        border-color: var(--nbuf-primary);
+    }
+
+    .nbuf-subtab-link:hover,
+    .nbuf-subtab-button:hover {
+        background: var(--nbuf-border-light);
+    }
+
+    .nbuf-subtab-link.active:hover,
+    .nbuf-subtab-button.nbuf-subtab-active:hover {
+        background: var(--nbuf-primary-hover);
     }
 }
 
@@ -802,6 +1047,14 @@ textarea.nbuf-account-input {
     color: var(--nbuf-text-primary);
     font-size: 1em;
     font-weight: 600;
+}
+
+.nbuf-profile-url-link {
+    color: var(--nbuf-primary);
+}
+
+.nbuf-profile-url-link:hover {
+    color: var(--nbuf-primary-hover);
 }
 
 /* ==========================================================

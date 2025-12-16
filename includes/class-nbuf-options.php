@@ -207,6 +207,20 @@ class NBUF_Options {
 
 			/* Log critical setting changes to admin audit log */
 			self::maybe_log_setting_change( $key, $old_value, $value );
+
+			/**
+			 * Fire action hook when option is updated.
+			 *
+			 * Mimics WordPress's update_option_{$option} hook but for custom options table.
+			 * Only fires if value actually changed.
+			 *
+			 * @param mixed  $old_value Previous option value.
+			 * @param mixed  $value     New option value.
+			 * @param string $key       Option name.
+			 */
+			if ( $old_value !== $value ) {
+				do_action( 'nbuf_update_option_' . $key, $old_value, $value, $key );
+			}
 		}
 
 		return false !== $result;

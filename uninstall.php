@@ -101,65 +101,6 @@ function nbuf_run_uninstall() {
 	}
 
 	/**
-	 * Delete pages containing NoBloat shortcodes (if requested)
-	 *
-	 * Searches for all pages that contain NoBloat shortcodes and deletes them.
-	 * This includes all auto-created pages like login, registration, account, etc.
-	 * Disabled by default for safety.
-	 */
-	if ( in_array( 'pages', $nbuf_cleanup, true ) ) {
-		/* List of all NoBloat shortcodes to search for */
-		$nbuf_shortcodes = array(
-			'nbuf_verify_page',
-			'nbuf_reset_form',
-			'nbuf_request_reset_form',
-			'nbuf_login_form',
-			'nbuf_registration_form',
-			'nbuf_account_page',
-			'nbuf_logout',
-			'nbuf_2fa_verify',
-			'nbuf_totp_setup',
-			'nbuf_members',
-			'nbuf_profile',
-			'nbuf_restrict',
-		);
-
-		/* Get all published pages */
-		$nbuf_page_ids = get_posts(
-			array(
-				'post_type'      => 'page',
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-			)
-		);
-
-		if ( ! empty( $nbuf_page_ids ) && is_array( $nbuf_page_ids ) ) {
-			foreach ( $nbuf_page_ids as $nbuf_page_id ) {
-				$nbuf_content = get_post_field( 'post_content', $nbuf_page_id );
-
-				if ( empty( $nbuf_content ) ) {
-					continue;
-				}
-
-				/* Check if page contains any NoBloat shortcode */
-				$nbuf_contains_shortcode = false;
-				foreach ( $nbuf_shortcodes as $nbuf_shortcode ) {
-					if ( false !== strpos( $nbuf_content, '[' . $nbuf_shortcode ) ) {
-						$nbuf_contains_shortcode = true;
-						break;
-					}
-				}
-
-				/* Delete page if it contains a NoBloat shortcode */
-				if ( $nbuf_contains_shortcode ) {
-					wp_delete_post( $nbuf_page_id, true ); // true = force delete (bypass trash).
-				}
-			}
-		}
-	}
-
-	/**
 	 * Delete uploads directory (if requested)
 	 *
 	 * Permanently deletes the entire /uploads/nobloat/ directory including

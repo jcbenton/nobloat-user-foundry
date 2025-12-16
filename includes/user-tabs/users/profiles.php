@@ -15,7 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 $nbuf_profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
 $nbuf_public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 $nbuf_gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-$nbuf_profile_page_slug  = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
 $nbuf_default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 $nbuf_allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 $nbuf_max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
@@ -66,29 +65,6 @@ $nbuf_max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 
 					</label>
 					<p class="description">
 						<?php esc_html_e( 'Allow users to have public profile pages (e.g., site.com/profile/username). Users can control their own privacy settings.', 'nobloat-user-foundry' ); ?>
-					</p>
-				</td>
-			</tr>
-
-			<!-- Profile Page Slug -->
-			<tr>
-				<th><?php esc_html_e( 'Profile Page Slug', 'nobloat-user-foundry' ); ?></th>
-				<td>
-					<input type="text" name="nbuf_profile_page_slug" value="<?php echo esc_attr( $nbuf_profile_page_slug ); ?>" class="regular-text">
-					<p class="description">
-						<?php
-						printf(
-						/* translators: %s: Example profile URL */
-							esc_html__( 'Base URL for profile pages. Example: %s', 'nobloat-user-foundry' ),
-							'<code>' . esc_html( home_url( '/' . $nbuf_profile_page_slug . '/username' ) ) . '</code>'
-						);
-						?>
-					</p>
-					<p class="description" style="color: #d63638; font-weight: 500;">
-						<?php esc_html_e( '⚠️ Important: This slug cannot conflict with existing page slugs. If a page with this slug already exists, the profile URL will override it. Choose a unique slug to avoid conflicts.', 'nobloat-user-foundry' ); ?>
-					</p>
-					<p class="description">
-						<?php esc_html_e( 'Rewrite rules are automatically flushed when you change this setting.', 'nobloat-user-foundry' ); ?>
 					</p>
 				</td>
 			</tr>

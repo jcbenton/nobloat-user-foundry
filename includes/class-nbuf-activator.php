@@ -106,6 +106,7 @@ class NBUF_Activator {
 			'nbuf_login_page_css'        => 'login-page.css',
 			'nbuf_registration_page_css' => 'registration-page.css',
 			'nbuf_account_page_css'      => 'account-page.css',
+			'nbuf_2fa_page_css'          => '2fa-setup.css',
 		);
 		foreach ( $css_templates as $option => $file ) {
 			$path = NBUF_TEMPLATES_DIR . $file;
@@ -113,6 +114,9 @@ class NBUF_Activator {
 				NBUF_Options::update( $option, file_get_contents( $path ), false, 'css' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 			}
 		}
+
+		// 4b. Create minified live CSS files from default templates.
+		self::create_live_css_files();
 
 		// 5. Default settings (to custom options table).
 		$is_first_install = ! NBUF_Options::get( 'nbuf_settings' );
@@ -238,7 +242,7 @@ class NBUF_Activator {
 
 					'website_enabled'      => false,
 					'website_required'     => false,
-					'website_label'        => 'Website',
+					'website_label'        => 'Secondary Website',
 				),
 				true,
 				'settings'
@@ -284,7 +288,6 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_2fa_totp_time_window', 30, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_totp_tolerance', 1, true, 'settings' );
 			NBUF_Options::update( 'nbuf_2fa_totp_qr_size', 200, true, 'settings' );
-			NBUF_Options::update( 'nbuf_2fa_qr_method', 'external', true, 'settings' );
 
 			/* Two-Factor Authentication - Backup codes defaults */
 			NBUF_Options::update( 'nbuf_2fa_backup_enabled', true, true, 'settings' );
@@ -417,7 +420,6 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_enable_profiles', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_enable_public_profiles', false, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_enable_gravatar', false, true, 'profiles' );
-			NBUF_Options::update( 'nbuf_profile_page_slug', 'nobloat-profile', true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_default_privacy', 'private', true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_allow_cover_photos', true, true, 'profiles' );
 			NBUF_Options::update( 'nbuf_profile_max_photo_size', 5, true, 'profiles' );
@@ -451,6 +453,12 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_version_history_max_versions', 50, true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_ip_tracking', 'anonymized', true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_auto_cleanup', true, true, 'version_history' );
+
+			/* Universal Page Mode defaults (enabled for new installs) */
+			NBUF_Options::update( 'nbuf_universal_mode_enabled', true, true, 'settings' );
+			NBUF_Options::update( 'nbuf_universal_base_slug', 'user-foundry', true, 'settings' );
+			NBUF_Options::update( 'nbuf_universal_default_view', 'account', true, 'settings' );
+			NBUF_Options::update( 'nbuf_legacy_redirects_enabled', true, true, 'settings' );
 		}
 
 		// 6. Auto-verify existing users if enabled.
@@ -470,38 +478,19 @@ class NBUF_Activator {
 		// 8. Create uploads directory structure.
 		self::create_upload_directories();
 
-		// 9. Create functional pages with standardized slugs.
+		// 9. Create Universal Page.
+		// Only the Universal Page is auto-created. Users can create individual
+		// pages with legacy shortcodes manually if they prefer that approach.
+		self::create_page( 'nbuf_universal_page_id', 'NoBloat User Hub', array( 'user-foundry', 'nobloat-hub' ), '[nbuf_universal]' );
 
-		// Verification page.
-		self::create_page( 'nbuf_page_verification', 'NoBloat Verification', array( 'nobloat-verify' ), '[nbuf_verify_page]' );
-
-		// Password reset page.
-		self::create_page( 'nbuf_page_password_reset', 'NoBloat Password Reset', array( 'nobloat-reset' ), '[nbuf_reset_form]' );
-
-		// Request password reset page.
-		self::create_page( 'nbuf_page_request_reset', 'NoBloat Request Password Reset', array( 'nobloat-forgot-password' ), '[nbuf_request_reset_form]' );
-
-		// Login page.
-		self::create_page( 'nbuf_page_login', 'NoBloat Login', array( 'nobloat-login' ), '[nbuf_login_form]' );
-
-		// Registration page.
-		self::create_page( 'nbuf_page_registration', 'NoBloat Register', array( 'nobloat-register' ), '[nbuf_registration_form]' );
-
-		// Account page.
-		self::create_page( 'nbuf_page_account', 'NoBloat User Account', array( 'nobloat-account' ), '[nbuf_account_page]' );
-
-		// Public Profile page.
-		self::create_page( 'nbuf_page_profile', 'NoBloat Profile', array( 'nobloat-profile' ), '[nbuf_profile]' );
-
-		// Logout page.
-		self::create_page( 'nbuf_page_logout', 'NoBloat Logout', array( 'nobloat-logout' ), '[nbuf_logout]' );
-
-		// Two-Factor Authentication pages.
-		self::create_page( 'nbuf_page_2fa_verify', 'NoBloat 2FA Verify', array( 'nobloat-2fa-verify', '2fa-verify' ), '[nbuf_2fa_verify]' );
-		self::create_page( 'nbuf_page_totp_setup', 'NoBloat 2FA Authenticator Setup', array( 'nobloat-totp-setup', 'totp-setup', '2fa-setup' ), '[nbuf_totp_setup]' );
-
-		// Member Directory page.
-		self::create_page( 'nbuf_page_member_directory', 'NoBloat Members', array( 'nobloat-members' ), '[nbuf_members]' );
+		// Flush rewrite rules if Universal Mode is enabled.
+		if ( NBUF_Options::get( 'nbuf_universal_mode_enabled', false ) ) {
+			if ( class_exists( 'NBUF_Universal_Router' ) ) {
+				NBUF_Universal_Router::flush_rules();
+			} else {
+				flush_rewrite_rules();
+			}
+		}
 	}
 
 	/**
@@ -522,6 +511,47 @@ class NBUF_Activator {
 			if ( ! NBUF_User_Data::is_verified( $user_id ) ) {
 				NBUF_User_Data::set_verified( $user_id );
 			}
+		}
+	}
+
+	/**
+	 * Create minified live CSS files from default templates.
+	 *
+	 * Ensures all users get minified CSS even if they never customize styles.
+	 * Creates -live.css and -live.min.css files in assets/css/frontend/.
+	 */
+	private static function create_live_css_files() {
+		if ( ! class_exists( 'NBUF_CSS_Manager' ) ) {
+			return;
+		}
+
+		$css_files = array(
+			'reset-page'        => 'nbuf_css_write_failed_reset',
+			'login-page'        => 'nbuf_css_write_failed_login',
+			'registration-page' => 'nbuf_css_write_failed_registration',
+			'account-page'      => 'nbuf_css_write_failed_account',
+			'2fa-setup'         => 'nbuf_css_write_failed_2fa',
+			'profile'           => 'nbuf_css_write_failed_profile',
+		);
+
+		$frontend_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+
+		foreach ( $css_files as $filename => $token_key ) {
+			$min_path = $frontend_dir . $filename . '-live.min.css';
+
+			/* Skip if minified file already exists */
+			if ( file_exists( $min_path ) ) {
+				continue;
+			}
+
+			/* Load CSS from default template */
+			$css = NBUF_CSS_Manager::load_default_css( $filename );
+			if ( empty( $css ) ) {
+				continue;
+			}
+
+			/* Write live files (creates both .css and .min.css) */
+			NBUF_CSS_Manager::save_css_to_disk( $css, $filename, $token_key );
 		}
 	}
 
@@ -576,17 +606,26 @@ class NBUF_Activator {
 	private static function create_page( $option_key, $title, $slugs, $content ) {
 		$user_id = get_current_user_id() ? get_current_user_id() : 1;
 
-		// Check if a page with correct slug already exists.
+		/* Extract shortcode name from content for verification */
+		$shortcode_name = '';
+		if ( preg_match( '/\[(\w+)/', $content, $matches ) ) {
+			$shortcode_name = $matches[1];
+		}
+
+		/* Check if a page with correct slug AND correct shortcode already exists */
 		foreach ( $slugs as $slug ) {
 			$page = get_page_by_path( $slug );
 			if ( $page && 'publish' === $page->post_status ) {
-				// Page exists at this slug - use it.
-				NBUF_Options::update( $option_key, $page->ID, true, 'settings' );
-				return;
+				/* Only reuse if page contains the correct shortcode */
+				if ( $shortcode_name && false !== strpos( $page->post_content, '[' . $shortcode_name ) ) {
+					NBUF_Options::update( $option_key, $page->ID, true, 'settings' );
+					return;
+				}
+				/* Page exists but has wrong content - skip this slug */
 			}
 		}
 
-		// No existing page found, create new one.
+		/* Create new page */
 		foreach ( $slugs as $slug ) {
 			$page_id = wp_insert_post(
 				array(
@@ -600,7 +639,6 @@ class NBUF_Activator {
 			);
 			if ( ! is_wp_error( $page_id ) ) {
 				NBUF_Options::update( $option_key, $page_id, true, 'settings' );
-				// Hide page title on NoBloat pages for cleaner appearance.
 				update_post_meta( $page_id, '_nbuf_hide_title', '1' );
 				break;
 			}
@@ -875,10 +913,6 @@ class NBUF_Activator {
 				'autoload' => true,
 			),
 			'nbuf_2fa_totp_qr_size'                 => array(
-				'group'    => 'settings',
-				'autoload' => true,
-			),
-			'nbuf_2fa_qr_method'                    => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),

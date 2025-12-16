@@ -64,8 +64,17 @@ $nbuf_viewer_id    = get_current_user_id();
 						<select name="member_role" class="nbuf-filter-select">
 							<option value=""><?php esc_html_e( 'All Roles', 'nobloat-user-foundry' ); ?></option>
 							<?php
-							$nbuf_roles = wp_roles()->get_names();
-							foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_name ) :
+							/* Only show roles that are allowed in directory (security: don't expose admin roles) */
+							$nbuf_allowed_roles = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
+							if ( ! is_array( $nbuf_allowed_roles ) ) {
+								$nbuf_allowed_roles = array( 'author', 'contributor', 'subscriber' );
+							}
+							$nbuf_all_roles = wp_roles()->get_names();
+							foreach ( $nbuf_allowed_roles as $nbuf_role_slug ) :
+								if ( ! isset( $nbuf_all_roles[ $nbuf_role_slug ] ) ) {
+									continue;
+								}
+								$nbuf_role_name = $nbuf_all_roles[ $nbuf_role_slug ];
 								?>
 								<option value="<?php echo esc_attr( $nbuf_role_slug ); ?>" <?php selected( $nbuf_current_role, $nbuf_role_slug ); ?>>
 									<?php echo esc_html( $nbuf_role_name ); ?>
@@ -105,7 +114,9 @@ $nbuf_viewer_id    = get_current_user_id();
 
 					<div class="nbuf-member-details">
 						<h4 class="nbuf-member-name">
-							<?php echo esc_html( $nbuf_member->display_name ); ?>
+							<a href="<?php echo esc_url( get_author_posts_url( $nbuf_member->ID ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $nbuf_member->display_name ) ); ?>">
+								<?php echo esc_html( $nbuf_member->display_name ); ?>
+							</a>
 						</h4>
 
 						<div class="nbuf-member-meta-inline">

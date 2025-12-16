@@ -30,96 +30,10 @@ class NBUF_Public_Profiles {
 	 * Initialize public profiles
 	 */
 	public static function init() {
-		// Register rewrite rules.
-		add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ) );
+		/* Profile URLs are now handled by NBUF_Universal_Router at /user-foundry/profile/{username}/ */
 
-		// Add query vars.
-		add_filter( 'query_vars', array( __CLASS__, 'add_query_vars' ) );
-
-		// Handle profile page requests.
-		add_action( 'template_redirect', array( __CLASS__, 'handle_profile_request' ) );
-
-		// Enqueue profile page CSS.
+		/* Enqueue profile page CSS */
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_profile_css' ) );
-
-		// Auto-flush rewrites when profile slug changes.
-		add_action( 'update_option_nbuf_profile_page_slug', array( __CLASS__, 'on_slug_change' ), 10, 2 );
-	}
-
-	/**
-	 * Register custom rewrite rules for profile URLs
-	 */
-	public static function register_rewrite_rules() {
-		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
-
-		add_rewrite_rule(
-			'^' . $slug . '/([^/]+)/?$',
-			'index.php?nbuf_profile_user=$matches[1]',
-			'top'
-		);
-	}
-
-	/**
-	 * Add custom query vars
-	 *
-	 * @param  array $vars Existing query vars.
-	 * @return array Modified query vars.
-	 */
-	public static function add_query_vars( $vars ) {
-		$vars[] = 'nbuf_profile_user';
-		return $vars;
-	}
-
-	/**
-	 * Handle profile page requests
-	 */
-	public static function handle_profile_request() {
-		$username = get_query_var( 'nbuf_profile_user' );
-
-		if ( empty( $username ) ) {
-			return;
-		}
-
-		// Get user by username.
-		$user = get_user_by( 'login', $username );
-
-		if ( ! $user ) {
-			// Try by nicename (slug).
-			$user = get_user_by( 'slug', $username );
-		}
-
-		if ( ! $user ) {
-			global $wp_query;
-			$wp_query->set_404();
-			status_header( 404 );
-			get_template_part( '404' );
-			exit;
-		}
-
-		// Check privacy settings.
-		if ( ! self::can_view_profile( $user->ID ) ) {
-			// Redirect to login or show access denied.
-			$login_page_id = NBUF_Options::get( 'nbuf_page_login' );
-
-			if ( $login_page_id ) {
-				/*
-				* Sanitize and validate redirect_to to prevent header injection
-				*/
-             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by remove_query_arg() and rawurlencode() below.
-				$redirect_to = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-				$redirect_to = remove_query_arg( array( '_wpnonce', 'action' ), $redirect_to );
-				wp_safe_redirect( add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), get_permalink( $login_page_id ) ) );
-				exit;
-			} else {
-				// Show 403 or redirect to home.
-				wp_safe_redirect( home_url() );
-				exit;
-			}
-		}
-
-		// Render the profile page.
-		self::render_profile_page( $user );
-		exit;
 	}
 
 	/**
@@ -166,15 +80,96 @@ class NBUF_Public_Profiles {
 		$cover_photo = ( $user_data && ! empty( $user_data->cover_photo_url ) ) ? $user_data->cover_photo_url : '';
 		$allow_cover = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 
-		// Get bio and other info.
-		$bio          = get_user_meta( $user->ID, 'description', true );
+		// Get display name.
 		$display_name = ! empty( $user->display_name ) ? $user->display_name : $user->user_login;
-		$first_name   = get_user_meta( $user->ID, 'first_name', true );
-		$last_name    = get_user_meta( $user->ID, 'last_name', true );
 
 		// Get user registration date.
 		$registered      = $user->user_registered;
 		$registered_date = mysql2date( get_option( 'date_format' ), $registered );
+
+		/* Get user's visible fields preference */
+		$visible_fields = array();
+		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
+			$visible_fields = maybe_unserialize( $user_data->visible_fields );
+			if ( ! is_array( $visible_fields ) ) {
+				$visible_fields = array();
+			}
+		}
+
+		/* Prepare profile fields to display */
+		$profile_fields = array();
+
+		/* Native WordPress fields */
+		$native_fields = array(
+			'display_name' => array(
+				'label' => __( 'Display Name', 'nobloat-user-foundry' ),
+				'value' => $user->display_name,
+			),
+			'first_name'   => array(
+				'label' => __( 'First Name', 'nobloat-user-foundry' ),
+				'value' => get_user_meta( $user->ID, 'first_name', true ),
+			),
+			'last_name'    => array(
+				'label' => __( 'Last Name', 'nobloat-user-foundry' ),
+				'value' => get_user_meta( $user->ID, 'last_name', true ),
+			),
+			'user_url'     => array(
+				'label' => __( 'Website', 'nobloat-user-foundry' ),
+				'value' => $user->user_url,
+				'type'  => 'url',
+			),
+			'description'  => array(
+				'label' => __( 'Biography', 'nobloat-user-foundry' ),
+				'value' => get_user_meta( $user->ID, 'description', true ),
+				'type'  => 'textarea',
+			),
+		);
+
+		/* Get custom profile data */
+		$profile_data = null;
+		if ( class_exists( 'NBUF_Profile_Data' ) ) {
+			$profile_data     = NBUF_Profile_Data::get( $user->ID );
+			$field_registry   = NBUF_Profile_Data::get_field_registry();
+			$custom_labels    = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+			$enabled_fields   = NBUF_Profile_Data::get_account_fields();
+
+			/* Build custom fields array */
+			foreach ( $field_registry as $category ) {
+				if ( isset( $category['fields'] ) && is_array( $category['fields'] ) ) {
+					foreach ( $category['fields'] as $key => $default_label ) {
+						if ( in_array( $key, $enabled_fields, true ) ) {
+							$label = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : $default_label;
+							$value = $profile_data && isset( $profile_data->$key ) ? $profile_data->$key : '';
+
+							/* Determine field type */
+							$field_type = 'text';
+							if ( in_array( $key, array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok' ), true ) ) {
+								$field_type = 'url';
+							} elseif ( in_array( $key, array( 'work_email', 'supervisor_email', 'secondary_email' ), true ) ) {
+								$field_type = 'email';
+							}
+
+							$profile_fields[ $key ] = array(
+								'label' => $label,
+								'value' => $value,
+								'type'  => $field_type,
+							);
+						}
+					}
+				}
+			}
+		}
+
+		/* Merge native and custom fields */
+		$all_fields = array_merge( $native_fields, $profile_fields );
+
+		/* Filter to only visible fields */
+		$display_fields = array();
+		foreach ( $all_fields as $key => $field_data ) {
+			if ( in_array( $key, $visible_fields, true ) && ! empty( $field_data['value'] ) ) {
+				$display_fields[ $key ] = $field_data;
+			}
+		}
 
 		// Start output buffering.
 		ob_start();
@@ -205,7 +200,11 @@ class NBUF_Public_Profiles {
 				<?php endif; ?>
 
 				<div class="nbuf-profile-avatar-wrap">
-					<img src="<?php echo esc_url( $profile_photo ); ?>" alt="<?php echo esc_attr( $display_name ); ?>" class="nbuf-profile-avatar" width="150" height="150">
+					<?php
+					/* Data URIs (SVG avatars) need esc_attr, regular URLs use esc_url */
+					$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
+					?>
+					<img src="<?php echo $photo_src; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above based on type. ?>" alt="<?php echo esc_attr( $display_name ); ?>" class="nbuf-profile-avatar" width="150" height="150" loading="lazy">
 				</div>
 			</div>
 
@@ -215,15 +214,9 @@ class NBUF_Public_Profiles {
 					<h1 class="nbuf-profile-name"><?php echo esc_html( $display_name ); ?></h1>
 					<p class="nbuf-profile-username">@<?php echo esc_html( $user->user_login ); ?></p>
 
-		<?php if ( ! empty( $bio ) ) : ?>
-						<div class="nbuf-profile-bio">
-			<?php echo wpautop( wp_kses_post( $bio ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Content sanitized by wp_kses_post(). ?>
-						</div>
-		<?php endif; ?>
-
 					<div class="nbuf-profile-meta">
 						<span class="nbuf-profile-meta-item">
-							<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 								<path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
 							</svg>
 		<?php
@@ -233,6 +226,40 @@ class NBUF_Public_Profiles {
 						</span>
 					</div>
 				</div>
+
+		<?php if ( ! empty( $display_fields ) ) : ?>
+				<div class="nbuf-profile-fields">
+					<h2 class="nbuf-profile-fields-title"><?php esc_html_e( 'Profile Information', 'nobloat-user-foundry' ); ?></h2>
+					<div class="nbuf-profile-fields-grid">
+			<?php foreach ( $display_fields as $key => $field_data ) : ?>
+						<div class="nbuf-profile-field">
+							<div class="nbuf-profile-field-label"><?php echo esc_html( $field_data['label'] ); ?></div>
+							<div class="nbuf-profile-field-value">
+				<?php
+				$field_type  = isset( $field_data['type'] ) ? $field_data['type'] : 'text';
+				$field_value = $field_data['value'];
+
+				if ( 'url' === $field_type && ! empty( $field_value ) ) {
+					/* Display as clickable link */
+					echo '<a href="' . esc_url( $field_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $field_value ) . '</a>';
+				} elseif ( 'email' === $field_type && ! empty( $field_value ) ) {
+					/* Display as mailto link */
+					echo '<a href="mailto:' . esc_attr( $field_value ) . '">' . esc_html( $field_value ) . '</a>';
+				} elseif ( 'textarea' === $field_type && ! empty( $field_value ) ) {
+					/* Display as formatted text with paragraphs */
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_kses_post() handles escaping.
+					echo wpautop( wp_kses_post( $field_value ) );
+				} else {
+					/* Display as plain text */
+					echo esc_html( $field_value );
+				}
+				?>
+							</div>
+						</div>
+			<?php endforeach; ?>
+					</div>
+				</div>
+		<?php endif; ?>
 
 		<?php
 		/**
@@ -278,212 +305,50 @@ class NBUF_Public_Profiles {
 			return;
 		}
 
-		// Enqueue default profile CSS.
-		wp_add_inline_style( 'wp-block-library', self::get_default_css() );
+		/* Add body class for CSS specificity (beats page builder styles) */
+		add_filter(
+			'body_class',
+			function ( $classes ) {
+				$classes[] = 'nbuf-page';
+				$classes[] = 'nbuf-page-profile';
+				return $classes;
+			}
+		);
 
-		// Enqueue custom CSS if set.
-		$custom_css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
-		if ( ! empty( $custom_css ) ) {
-			wp_add_inline_style( 'wp-block-library', wp_strip_all_tags( $custom_css ) );
+		/* Use CSS Manager for file-based loading with minification */
+		if ( class_exists( 'NBUF_CSS_Manager' ) ) {
+			NBUF_CSS_Manager::enqueue_css(
+				'nbuf-profile',
+				'profile',
+				'nbuf_profile_custom_css',
+				'nbuf_css_write_failed_profile'
+			);
 		}
 	}
 
 	/**
-	 * Get default profile CSS
+	 * Get default profile CSS from template file
 	 *
 	 * @return string CSS code.
 	 */
 	public static function get_default_css() {
-		return '
-		/* NoBloat User Foundry - Profile Page CSS */
-
-		/* Reset and Layout */
-		.nbuf-profile-page {
-			max-width: 1200px;
-			margin: 0 auto;
-			background: #fff;
-			min-height: 100vh;
+		if ( class_exists( 'NBUF_CSS_Manager' ) ) {
+			return NBUF_CSS_Manager::load_default_css( 'profile' );
 		}
+		return '';
+	}
 
-		/* Header and Cover Photo */
-		.nbuf-profile-header {
-			position: relative;
-			margin-bottom: 80px;
+	/**
+	 * Get profile CSS (database first, then disk default)
+	 *
+	 * @return string CSS code.
+	 */
+	public static function get_profile_css() {
+		$css = NBUF_Options::get( 'nbuf_profile_custom_css', '' );
+		if ( empty( $css ) ) {
+			$css = self::get_default_css();
 		}
-
-		.nbuf-profile-cover {
-			height: 300px;
-			background-size: cover;
-			background-position: center;
-			background-repeat: no-repeat;
-			position: relative;
-		}
-
-		.nbuf-profile-cover-default {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		}
-
-		.nbuf-profile-cover-overlay {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: rgba(0, 0, 0, 0.1);
-		}
-
-		/* Avatar */
-		.nbuf-profile-avatar-wrap {
-			position: absolute;
-			bottom: -75px;
-			left: 50%;
-			transform: translateX(-50%);
-			width: 150px;
-			height: 150px;
-			border-radius: 50%;
-			border: 5px solid #fff;
-			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-			overflow: hidden;
-			background: #fff;
-		}
-
-		.nbuf-profile-avatar {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-			border-radius: 50%;
-		}
-
-		/* Content Area */
-		.nbuf-profile-content {
-			padding: 20px;
-		}
-
-		.nbuf-profile-info {
-			text-align: center;
-			margin-bottom: 30px;
-		}
-
-		.nbuf-profile-name {
-			font-size: 2rem;
-			font-weight: 700;
-			margin: 0 0 5px 0;
-			color: #1a202c;
-		}
-
-		.nbuf-profile-username {
-			font-size: 1rem;
-			color: #718096;
-			margin: 0 0 20px 0;
-		}
-
-		.nbuf-profile-bio {
-			max-width: 600px;
-			margin: 20px auto;
-			color: #4a5568;
-			line-height: 1.6;
-			font-size: 1rem;
-		}
-
-		.nbuf-profile-meta {
-			display: flex;
-			justify-content: center;
-			gap: 20px;
-			flex-wrap: wrap;
-			margin-top: 15px;
-			padding-top: 15px;
-			border-top: 1px solid #e2e8f0;
-		}
-
-		.nbuf-profile-meta-item {
-			display: flex;
-			align-items: center;
-			gap: 5px;
-			color: #718096;
-			font-size: 0.9rem;
-		}
-
-		.nbuf-icon {
-			opacity: 0.7;
-		}
-
-		/* Actions */
-		.nbuf-profile-actions {
-			text-align: center;
-			margin-top: 30px;
-		}
-
-		.nbuf-button {
-			display: inline-block;
-			padding: 12px 24px;
-			border-radius: 4px;
-			text-decoration: none;
-			font-weight: 600;
-			transition: all 0.2s;
-			border: none;
-			cursor: pointer;
-		}
-
-		.nbuf-button-primary {
-			background: #0073aa;
-			color: #fff;
-		}
-
-		.nbuf-button-primary:hover {
-			background: #005a87;
-			color: #fff;
-		}
-
-		/* Responsive Design */
-		@media (max-width: 768px) {
-			.nbuf-profile-cover {
-				height: 200px;
-			}
-
-			.nbuf-profile-avatar-wrap {
-				width: 120px;
-				height: 120px;
-				bottom: -60px;
-			}
-
-			.nbuf-profile-header {
-				margin-bottom: 70px;
-			}
-
-			.nbuf-profile-name {
-				font-size: 1.5rem;
-			}
-
-			.nbuf-profile-content {
-				padding: 15px;
-			}
-		}
-
-		@media (max-width: 480px) {
-			.nbuf-profile-cover {
-				height: 150px;
-			}
-
-			.nbuf-profile-avatar-wrap {
-				width: 100px;
-				height: 100px;
-				bottom: -50px;
-			}
-
-			.nbuf-profile-header {
-				margin-bottom: 60px;
-			}
-
-			.nbuf-profile-name {
-				font-size: 1.25rem;
-			}
-
-			.nbuf-profile-meta {
-				flex-direction: column;
-				gap: 10px;
-			}
-		}
-		';
+		return $css;
 	}
 
 	/**
@@ -503,32 +368,7 @@ class NBUF_Public_Profiles {
 			$username = $user;
 		}
 
-		$slug = NBUF_Options::get( 'nbuf_profile_page_slug', 'nobloat-profile' );
-		return home_url( '/' . $slug . '/' . $username );
-	}
-
-	/**
-	 * Flush rewrite rules (call after changing slug)
-	 */
-	public static function flush_rewrite_rules() {
-		self::register_rewrite_rules();
-		flush_rewrite_rules();
-	}
-
-	/**
-	 * Handle profile slug change
-	 *
-	 * Automatically flushes rewrite rules when the profile page slug is changed.
-	 * This ensures the new slug works immediately without requiring manual
-	 * permalink flushing.
-	 *
-	 * @param string $old_value Old slug value.
-	 * @param string $new_value New slug value.
-	 */
-	public static function on_slug_change( $old_value, $new_value ) {
-		/* Only flush if slug actually changed */
-		if ( $old_value !== $new_value ) {
-			self::flush_rewrite_rules();
-		}
+		/* Profile URLs are handled by Universal Router */
+		return NBUF_Universal_Router::get_url( 'profile', $username );
 	}
 }

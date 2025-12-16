@@ -2,7 +2,8 @@
 /**
  * System > Pages Tab
  *
- * Page assignments for plugin functionality.
+ * URL configuration for virtual pages.
+ * No WordPress pages needed - the plugin intercepts URLs directly.
  *
  * @package NoBloat_User_Foundry
  */
@@ -11,16 +12,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Plugin page IDs */
-$nbuf_page_verification  = NBUF_Options::get( 'nbuf_page_verification', 0 );
-$nbuf_page_reset         = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-$nbuf_page_request_reset = NBUF_Options::get( 'nbuf_page_request_reset', 0 );
-$nbuf_page_login         = NBUF_Options::get( 'nbuf_page_login', 0 );
-$nbuf_page_registration  = NBUF_Options::get( 'nbuf_page_registration', 0 );
-$nbuf_page_account       = NBUF_Options::get( 'nbuf_page_account', 0 );
-$nbuf_page_profile       = NBUF_Options::get( 'nbuf_page_profile', 0 );
-$nbuf_page_2fa_verify    = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
-$nbuf_page_totp_setup    = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
+/* Get current settings */
+$nbuf_base_slug   = NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry' );
+$nbuf_default_view = NBUF_Options::get( 'nbuf_universal_default_view', 'account' );
+
+/* Default view options */
+$default_view_options = array(
+	'account'  => __( 'Account Dashboard', 'nobloat-user-foundry' ),
+	'login'    => __( 'Login Form', 'nobloat-user-foundry' ),
+	'register' => __( 'Registration Form', 'nobloat-user-foundry' ),
+	'members'  => __( 'Member Directory', 'nobloat-user-foundry' ),
+);
+
+/* All available URLs */
+$available_urls = array(
+	'login'           => __( 'Login', 'nobloat-user-foundry' ),
+	'register'        => __( 'Registration', 'nobloat-user-foundry' ),
+	'account'         => __( 'Account Dashboard', 'nobloat-user-foundry' ),
+	'forgot-password' => __( 'Forgot Password', 'nobloat-user-foundry' ),
+	'reset-password'  => __( 'Reset Password', 'nobloat-user-foundry' ),
+	'verify'          => __( 'Email Verification', 'nobloat-user-foundry' ),
+	'2fa'             => __( '2FA Verification', 'nobloat-user-foundry' ),
+	'2fa-setup'       => __( '2FA Setup', 'nobloat-user-foundry' ),
+	'logout'          => __( 'Logout', 'nobloat-user-foundry' ),
+	'members'         => __( 'Member Directory', 'nobloat-user-foundry' ),
+	'profile/{user}'  => __( 'Public Profile', 'nobloat-user-foundry' ),
+);
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -33,171 +50,45 @@ $nbuf_page_totp_setup    = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
 	<input type="hidden" name="nbuf_active_tab" value="system">
 	<input type="hidden" name="nbuf_active_subtab" value="pages">
 
-	<h2><?php esc_html_e( 'Plugin Pages', 'nobloat-user-foundry' ); ?></h2>
+	<h2><?php esc_html_e( 'URL Settings', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'These pages are automatically created during plugin activation. You can reassign them if needed.', 'nobloat-user-foundry' ); ?>
+		<?php esc_html_e( 'All user pages are virtual - no WordPress pages needed. Just configure the base URL and you\'re done.', 'nobloat-user-foundry' ); ?>
 	</p>
 
 	<table class="form-table">
 		<tr>
-			<th><?php esc_html_e( 'Verification Page', 'nobloat-user-foundry' ); ?></th>
+			<th><?php esc_html_e( 'Base URL Slug', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_verification',
-						'selected'          => absint( $nbuf_page_verification ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
+				<input type="text" name="nbuf_universal_base_slug" value="<?php echo esc_attr( $nbuf_base_slug ); ?>" class="regular-text" placeholder="user-foundry">
 				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_verify_page] shortcode. Auto-created as "NoBloat Verification" during activation.', 'nobloat-user-foundry' ); ?>
+					<?php
+					printf(
+						/* translators: %s: example URL */
+						esc_html__( 'All URLs will start with: %s', 'nobloat-user-foundry' ),
+						'<code>' . esc_html( home_url( '/' . $nbuf_base_slug . '/' ) ) . '</code>'
+					);
+					?>
 				</p>
 			</td>
 		</tr>
 		<tr>
-			<th><?php esc_html_e( 'Password Reset Page', 'nobloat-user-foundry' ); ?></th>
+			<th><?php esc_html_e( 'Default View', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_password_reset',
-						'selected'          => absint( $nbuf_page_reset ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
+				<select name="nbuf_universal_default_view">
+					<?php foreach ( $default_view_options as $value => $label ) : ?>
+						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $nbuf_default_view, $value ); ?>>
+							<?php echo esc_html( $label ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
 				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_reset_form] shortcode. Auto-created as "NoBloat Password Reset" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Request Password Reset Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_request_reset',
-						'selected'          => absint( $nbuf_page_request_reset ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_request_reset_form] shortcode. Auto-created as "NoBloat Request Password Reset" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Login Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_login',
-						'selected'          => absint( $nbuf_page_login ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_login_form] shortcode. Auto-created as "NoBloat Login" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Registration Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_registration',
-						'selected'          => absint( $nbuf_page_registration ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_registration_form] shortcode. Auto-created as "NoBloat Register" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Account Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_account',
-						'selected'          => absint( $nbuf_page_account ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_account_page] shortcode. Auto-created as "NoBloat User Account" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Public Profile Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_profile',
-						'selected'          => absint( $nbuf_page_profile ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_profile] shortcode. Auto-created as "NoBloat Profile" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( '2FA Verification Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_2fa_verify',
-						'selected'          => absint( $nbuf_page_2fa_verify ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_2fa_verify] shortcode. Auto-created as "NoBloat 2FA Verify" during activation.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Authenticator Setup Page', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<?php
-				wp_dropdown_pages(
-					array(
-						'name'              => 'nbuf_page_totp_setup',
-						'selected'          => absint( $nbuf_page_totp_setup ),
-						'show_option_none'  => esc_html__( '— Select Page —', 'nobloat-user-foundry' ),
-						'option_none_value' => 0,
-					)
-				);
-				?>
-				<p class="description">
-					<?php esc_html_e( 'Page must contain [nbuf_totp_setup] shortcode. Auto-created as "NoBloat 2FA Authenticator Setup" during activation. Used when authenticator 2FA is required.', 'nobloat-user-foundry' ); ?>
+					<?php
+					printf(
+						/* translators: %s: example URL */
+						esc_html__( 'What to show when visiting the base URL (%s).', 'nobloat-user-foundry' ),
+						'<code>' . esc_html( home_url( '/' . $nbuf_base_slug . '/' ) ) . '</code>'
+					);
+					?>
 				</p>
 			</td>
 		</tr>
@@ -205,3 +96,67 @@ $nbuf_page_totp_setup    = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
 
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
+
+<hr>
+
+<h3><?php esc_html_e( 'Available URLs', 'nobloat-user-foundry' ); ?></h3>
+<p class="description">
+	<?php esc_html_e( 'These URLs are automatically available. No setup required.', 'nobloat-user-foundry' ); ?>
+</p>
+
+<table style="max-width: 900px; margin-top: 15px; border-collapse: collapse;">
+	<thead>
+		<tr>
+			<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Page', 'nobloat-user-foundry' ); ?></th>
+			<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'URL', 'nobloat-user-foundry' ); ?></th>
+			<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Actions', 'nobloat-user-foundry' ); ?></th>
+		</tr>
+	</thead>
+	<tbody>
+		<?php foreach ( $available_urls as $path => $label ) : ?>
+			<?php $full_url = home_url( '/' . $nbuf_base_slug . '/' . $path . '/' ); ?>
+			<tr>
+				<td style="padding: 8px 10px;"><strong><?php echo esc_html( $label ); ?></strong></td>
+				<td style="padding: 8px 10px;">
+					<code style="font-size: 12px;"><?php echo esc_html( $full_url ); ?></code>
+				</td>
+				<td style="padding: 8px 10px;">
+					<?php if ( strpos( $path, '{user}' ) === false ) : ?>
+						<button type="button" class="button button-small nbuf-copy-url" data-url="<?php echo esc_attr( $full_url ); ?>">
+							<?php esc_html_e( 'Copy URL', 'nobloat-user-foundry' ); ?>
+						</button>
+					<?php endif; ?>
+				</td>
+			</tr>
+		<?php endforeach; ?>
+		<tr>
+			<td style="padding: 8px 10px;"><strong><?php esc_html_e( 'Account Tabs', 'nobloat-user-foundry' ); ?></strong></td>
+			<td style="padding: 8px 10px;">
+				<code style="font-size: 12px;"><?php echo esc_html( home_url( '/' . $nbuf_base_slug . '/account/{tab}/' ) ); ?></code>
+				<br>
+				<span class="description">
+					<?php esc_html_e( 'e.g., /account/profile/, /account/security/', 'nobloat-user-foundry' ); ?>
+				</span>
+			</td>
+			<td style="padding: 8px 10px;"></td>
+		</tr>
+	</tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelectorAll('.nbuf-copy-url').forEach(function(button) {
+		button.addEventListener('click', function() {
+			var url = this.getAttribute('data-url');
+			var btn = this;
+			navigator.clipboard.writeText(url).then(function() {
+				var originalText = btn.textContent;
+				btn.textContent = '<?php echo esc_js( __( 'Copied!', 'nobloat-user-foundry' ) ); ?>';
+				setTimeout(function() {
+					btn.textContent = originalText;
+				}, 1500);
+			});
+		});
+	});
+});
+</script>

@@ -34,7 +34,13 @@ class NBUF_Login_Limiting {
 	 * Initialize login limiting hooks.
 	 */
 	public static function init() {
-		add_filter( 'authenticate', array( __CLASS__, 'check_login_attempts' ), 5, 3 );
+		/*
+		 * Priority 30: Must run AFTER WordPress's wp_authenticate_username_password (priority 20).
+		 * If we run earlier, WordPress's auth filter overwrites our lockout WP_Error
+		 * with its own error (incorrect_password, etc.). By running at 30, our lockout
+		 * error becomes the final result that gets returned to the user.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'check_login_attempts' ), 30, 3 );
 		add_action( 'wp_login_failed', array( __CLASS__, 'record_failed_attempt' ) );
 		add_action( 'wp_login', array( __CLASS__, 'clear_attempts_on_success' ), 10, 2 );
 	}
@@ -54,27 +60,40 @@ class NBUF_Login_Limiting {
 			return $user;
 		}
 
-		/* Skip if already an error or no username provided */
-		if ( is_wp_error( $user ) || empty( $username ) ) {
+		/* Skip if no username provided */
+		if ( empty( $username ) ) {
 			return $user;
 		}
 
 		/* Get settings */
-		$max_attempts     = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
 		$lockout_duration = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
 
 		/* Get IP address */
 		$ip_address = self::get_ip_address();
 
-		/* Check if IP or username is locked out */
+		/*
+		 * ALWAYS check if IP or username is locked out, even if $user is already an error.
+		 * This prevents bypassing rate limiting if another plugin returns an error first.
+		 */
 		if ( self::is_locked_out( $ip_address, $username, $lockout_duration ) ) {
-			$attempts = self::get_recent_attempt_count( $ip_address, $username, $lockout_duration );
+			/* Log to security log (upsert to aggregate repeated blocked attempts) */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log_or_update(
+					'login_blocked',
+					'critical',
+					'Login attempt blocked due to rate limiting',
+					array(
+						'username' => $username,
+						'reason'   => 'too_many_attempts',
+					)
+				);
+			}
 
 			return new WP_Error(
 				'too_many_attempts',
 				sprintf(
 				/* translators: %d: number of minutes */
-					__( 'Too many failed login attempts. Please try again in %d minutes.', 'nobloat-user-foundry' ),
+					__( 'Too many failed login attempts from this IP address. For security reasons, please wait %d minutes before trying again.', 'nobloat-user-foundry' ),
 					$lockout_duration
 				)
 			);
@@ -111,28 +130,32 @@ class NBUF_Login_Limiting {
 			array( '%s', '%s', '%s' )
 		);
 
-		/* Log failed login attempt to audit log */
+		/* Log to security log only (using upsert to reduce log pollution) */
 		$user = get_user_by( 'login', $username );
 		if ( ! $user ) {
 			$user = get_user_by( 'email', $username );
 		}
 
-		$attempt_count = self::get_recent_attempt_count( $ip_address, $username, NBUF_Options::get( 'nbuf_login_lockout_duration', 10 ) );
-		$user_id       = $user ? $user->ID : 0;
-		$message       = $user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
+		$user_id = $user ? $user->ID : 0;
+		$message = $user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
 
-		NBUF_Audit_Log::log(
-			$user_id,
-			'login_failed',
-			'failure',
-			$message,
-			array(
-				'username'      => $username,
-				'attempt_count' => $attempt_count,
-				'ip_address'    => $ip_address,
-				'user_exists'   => $user ? true : false,
-			)
-		);
+		/*
+		 * Use log_or_update() to aggregate repeated failures from same IP
+		 * into a single record with occurrence count, reducing log pollution.
+		 * Always log as 'warning' - 'critical' is reserved for blocked attempts.
+		 */
+		if ( class_exists( 'NBUF_Security_Log' ) ) {
+			NBUF_Security_Log::log_or_update(
+				'login_failed',
+				'warning',
+				$message,
+				array(
+					'username'   => $username,
+					'user_exists' => $user ? true : false,
+				),
+				$user_id
+			);
+		}
 
 		/*
 		Clean up old attempts (older than 24 hours)

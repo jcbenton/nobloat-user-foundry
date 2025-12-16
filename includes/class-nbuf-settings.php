@@ -121,7 +121,7 @@ class NBUF_Settings {
 
 			/* Login redirect settings */
 			'nbuf_login_redirect'                 => function ( $value ) {
-				return in_array( $value, array( 'admin', 'home', 'custom' ), true ) ? $value : 'custom';
+				return in_array( $value, array( 'account', 'admin', 'home', 'custom' ), true ) ? $value : 'account';
 			},
 			'nbuf_login_redirect_custom'          => 'esc_url_raw',
 
@@ -144,6 +144,28 @@ class NBUF_Settings {
 			'nbuf_page_2fa_verify'                => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_totp_setup'                => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_page_member_directory'          => array( __CLASS__, 'sanitize_page_id' ),
+
+			/* Universal Page Mode */
+			'nbuf_universal_mode_enabled'         => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_universal_page_id'              => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_universal_base_slug'            => 'sanitize_title',
+			'nbuf_universal_default_view'         => function ( $value ) {
+				$valid = array( 'account', 'login', 'register', 'members' );
+				return in_array( $value, $valid, true ) ? $value : 'account';
+			},
+			'nbuf_legacy_redirects_enabled'       => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/* Universal Page View Overrides */
+			'nbuf_view_override_login'            => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_register'         => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_account'          => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_profile'          => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_verify'           => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_forgot-password'  => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_reset-password'   => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_2fa'              => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_2fa-setup'        => array( __CLASS__, 'sanitize_page_id' ),
+			'nbuf_view_override_members'          => array( __CLASS__, 'sanitize_page_id' ),
 
 			/* CSS options */
 			'nbuf_reset_page_css'                 => 'wp_strip_all_tags',
@@ -237,10 +259,6 @@ class NBUF_Settings {
 			},
 			'nbuf_2fa_totp_qr_size'               => function ( $value ) {
 				return max( 100, min( 500, absint( $value ) ) );
-			},
-			'nbuf_2fa_qr_method'                  => function ( $value ) {
-				$valid = array( 'external', 'svg', 'auto' );
-				return in_array( $value, $valid, true ) ? $value : 'external';
 			},
 
 			/* Security - 2FA Backup codes */
@@ -343,7 +361,6 @@ class NBUF_Settings {
 			'nbuf_enable_profiles'                => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_public_profiles'         => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_profile_enable_gravatar'        => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_profile_page_slug'              => 'sanitize_title',
 			'nbuf_profile_default_privacy'        => function ( $value ) {
 				$valid = array( 'public', 'members_only', 'private' );
 				return in_array( $value, $valid, true ) ? $value : 'private';
@@ -612,10 +629,10 @@ class NBUF_Settings {
 	}
 
 	/**
-	 * Auto-detect and save page IDs for existing NoBloat pages.
+	 * Auto-detect existing NoBloat pages.
 	 *
-	 * Runs on admin_init to ensure page IDs are saved even if
-	 * activation didn't properly save them.
+	 * Runs on admin_init to find existing pages by slug and save their IDs.
+	 * Does NOT create pages - only detects user-created pages with legacy shortcodes.
 	 */
 	public static function auto_detect_pages() {
 		/* Only run page detection once per day to avoid overhead */
@@ -626,32 +643,31 @@ class NBUF_Settings {
 
 		/* Page mappings: option_key => slug */
 		$page_mappings = array(
-			'nbuf_page_verification'      => 'nobloat-verify',
-			'nbuf_page_password_reset'    => 'nobloat-reset',
-			'nbuf_page_request_reset'     => 'nobloat-forgot-password',
-			'nbuf_page_login'             => 'nobloat-login',
-			'nbuf_page_registration'      => 'nobloat-register',
-			'nbuf_page_account'           => 'nobloat-account',
-			'nbuf_page_profile'           => 'nobloat-profile',
-			'nbuf_page_logout'            => 'nobloat-logout',
-			'nbuf_page_2fa_verify'        => 'nobloat-2fa-verify',
-			'nbuf_page_totp_setup'        => 'nobloat-totp-setup',
-			'nbuf_page_member_directory'  => 'nobloat-members',
+			'nbuf_page_verification'     => 'nobloat-verify',
+			'nbuf_page_password_reset'   => 'nobloat-reset',
+			'nbuf_page_request_reset'    => 'nobloat-forgot-password',
+			'nbuf_page_login'            => 'nobloat-login',
+			'nbuf_page_registration'     => 'nobloat-register',
+			'nbuf_page_account'          => 'nobloat-account',
+			'nbuf_page_profile'          => 'nobloat-profile',
+			'nbuf_page_logout'           => 'nobloat-logout',
+			'nbuf_page_2fa_verify'       => 'nobloat-2fa-verify',
+			'nbuf_page_totp_setup'       => 'nobloat-totp-setup',
+			'nbuf_page_member_directory' => 'nobloat-members',
+			'nbuf_universal_page_id'     => 'user-foundry',
 		);
 
-		$updated = false;
 		foreach ( $page_mappings as $option_key => $slug ) {
-			/* Skip if already set */
+			/* Skip if already set and page exists */
 			$current_id = NBUF_Options::get( $option_key, 0 );
 			if ( $current_id && get_post( $current_id ) ) {
 				continue;
 			}
 
-			/* Try to find the page by slug */
+			/* Try to find existing page by slug - do NOT create if missing */
 			$page = get_page_by_path( $slug );
 			if ( $page && 'publish' === $page->post_status ) {
 				NBUF_Options::update( $option_key, $page->ID, true, 'settings' );
-				$updated = true;
 			}
 		}
 
@@ -792,50 +808,88 @@ class NBUF_Settings {
 	}
 
 	/**
-	 * Add All Users submenu page.
+	 * Add All Users submenu and custom Users top-level menu.
 	 *
-	 * Added at priority 13 to appear last (after Roles).
-	 * This links to the native WordPress users.php page.
+	 * - Adds "All Users" submenu under User Foundry
+	 * - Creates a "Users" top-level menu at position 31 (no submenus)
+	 * - Hides the native WordPress Users menu
 	 */
 	public static function add_users_submenu() {
+		global $menu, $submenu;
+
+		/* Add "All Users" submenu under User Foundry */
 		add_submenu_page(
-			'nobloat-foundry',                                 // Parent slug.
-			__( 'All Users', 'nobloat-user-foundry' ),        // Page title.
-			__( 'All Users', 'nobloat-user-foundry' ),        // Menu title.
-			'list_users',                                      // Capability.
-			'users.php'                                        // Menu slug - links to WP Users.
+			'nobloat-foundry',
+			__( 'All Users', 'nobloat-user-foundry' ),
+			__( 'All Users', 'nobloat-user-foundry' ),
+			'list_users',
+			'users.php'
 		);
 
-		/* Hide the native WordPress Users menu (replaced by User Foundry) */
+		/* Hide the native WordPress Users menu */
 		remove_menu_page( 'users.php' );
+
+		/* Add custom Users top-level menu at position 31 (right after User Foundry at 30) */
+		/* Use a custom slug to avoid WordPress attaching submenus */
+		$menu['31'] = array(
+			__( 'Users', 'nobloat-user-foundry' ),
+			'list_users',
+			'nbuf-users-redirect',
+			'',
+			'menu-top menu-icon-users',
+			'menu-users-nbuf',
+			'dashicons-admin-users',
+		);
+
+		/* Remove any submenus that might attach to our custom menu */
+		unset( $submenu['nbuf-users-redirect'] );
 	}
 
 	/**
-	 * Keep User Foundry menu expanded when on users.php
+	 * Fix custom Users menu link and handle highlighting.
 	 *
-	 * Since users.php is a core WordPress page, the menu would normally collapse.
-	 * This adds inline JS to keep our menu highlighted when viewing the users list.
+	 * - Changes custom Users menu href to users.php (avoids 404)
+	 * - User Foundry menu expands on users.php (shows "All Users" submenu as current)
+	 * - Custom Users top-level menu highlights on all user pages
 	 */
 	public static function highlight_users_menu() {
 		global $pagenow;
 
-		/* Only run on users.php and user-edit.php */
-		if ( ! in_array( $pagenow, array( 'users.php', 'user-edit.php', 'user-new.php', 'profile.php' ), true ) ) {
-			return;
-		}
+		/* Always output script to fix the menu link href */
 		?>
 		<script>
 		document.addEventListener('DOMContentLoaded', function() {
-			var menu = document.getElementById('toplevel_page_nobloat-foundry');
-			if (menu) {
-				menu.classList.remove('wp-not-current-submenu');
-				menu.classList.add('wp-has-current-submenu', 'wp-menu-open');
-				var submenuLink = menu.querySelector('a[href="users.php"]');
+			/* Fix custom Users menu link to point directly to users.php */
+			var usersMenu = document.getElementById('menu-users-nbuf');
+			if (usersMenu) {
+				var menuLink = usersMenu.querySelector('a.menu-top');
+				if (menuLink) {
+					menuLink.href = '<?php echo esc_url( admin_url( 'users.php' ) ); ?>';
+				}
+			}
+			<?php if ( in_array( $pagenow, array( 'users.php', 'user-edit.php', 'user-new.php', 'profile.php' ), true ) ) : ?>
+			/* Highlight User Foundry menu and "All Users" submenu */
+			var foundryMenu = document.getElementById('toplevel_page_nobloat-foundry');
+			if (foundryMenu) {
+				foundryMenu.classList.remove('wp-not-current-submenu');
+				foundryMenu.classList.add('wp-has-current-submenu', 'wp-menu-open');
+				var submenuLink = foundryMenu.querySelector('a[href="users.php"]');
 				if (submenuLink) {
 					submenuLink.classList.add('current');
 					submenuLink.closest('li').classList.add('current');
 				}
 			}
+
+			/* Highlight custom Users top-level menu */
+			if (usersMenu) {
+				usersMenu.classList.remove('wp-not-current-submenu');
+				usersMenu.classList.add('wp-has-current-submenu', 'wp-menu-open', 'current');
+				var menuLink = usersMenu.querySelector('a.menu-top');
+				if (menuLink) {
+					menuLink.classList.add('wp-has-current-submenu', 'wp-menu-open');
+				}
+			}
+			<?php endif; ?>
 		});
 		</script>
 		<?php
@@ -1452,6 +1506,8 @@ class NBUF_Settings {
 			'request-reset-form'  => 'request-reset-form.html',
 			'reset-form'          => 'reset-form.html',
 			'2fa-verify'          => '2fa-verify.html',
+			'2fa-setup-totp'      => '2fa-setup-totp.html',
+			'2fa-backup-codes'    => '2fa-backup-codes.html',
 			'policy-privacy-html' => 'policy-privacy.html',
 			'policy-terms-html'   => 'policy-terms.html',
 		);
@@ -1468,6 +1524,8 @@ class NBUF_Settings {
 			'request-reset-form'  => 'nbuf_request_reset_form_template',
 			'reset-form'          => 'nbuf_reset_form_template',
 			'2fa-verify'          => 'nbuf_2fa_verify_template',
+			'2fa-setup-totp'      => 'nbuf_2fa_setup_totp_template',
+			'2fa-backup-codes'    => 'nbuf_2fa_backup_codes_template',
 			'policy-privacy-html' => 'nbuf_policy_privacy_html',
 			'policy-terms-html'   => 'nbuf_policy_terms_html',
 		);

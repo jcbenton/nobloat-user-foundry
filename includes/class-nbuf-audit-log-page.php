@@ -29,6 +29,7 @@ class NBUF_Audit_Log_Page {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 15 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_purge' ) );
+		add_action( 'admin_init', array( __CLASS__, 'handle_bulk_delete' ) );
 	}
 
 	/**
@@ -274,6 +275,66 @@ class NBUF_Audit_Log_Page {
 			$redirect = add_query_arg( 'error', '1', $redirect );
 		}
 
+		wp_safe_redirect( $redirect );
+		exit;
+	}
+
+	/**
+	 * Handle bulk delete action
+	 *
+	 * Must run on admin_init before headers are sent.
+	 */
+	public static function handle_bulk_delete() {
+		/* Early bail if not in admin or no page specified */
+		if ( ! is_admin() || empty( $_REQUEST['page'] ) ) {
+			return;
+		}
+
+		/* Check we're on the user audit log page */
+		if ( 'nobloat-foundry-user-log' !== $_REQUEST['page'] ) {
+			return;
+		}
+
+		/* Must have selected items - check this early */
+		if ( empty( $_REQUEST['log_id'] ) || ! is_array( $_REQUEST['log_id'] ) ) {
+			return;
+		}
+
+		/*
+		 * Check for bulk delete action (top or bottom dropdown).
+		 * WP_List_Table sends: action=delete (top) OR action2=delete (bottom).
+		 * The other dropdown is typically '-1' (default "Bulk actions" option).
+		 */
+		$action  = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+		$action2 = isset( $_REQUEST['action2'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action2'] ) ) : '';
+
+		if ( 'delete' !== $action && 'delete' !== $action2 ) {
+			return;
+		}
+
+		/* Verify nonce */
+		if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-audit_logs' ) ) {
+			wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
+		}
+
+		/* Check capability */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to delete logs', 'nobloat-user-foundry' ) );
+		}
+
+		/* Start output buffering to catch any stray output */
+		ob_start();
+
+		/* Delete selected logs (already validated above) */
+		$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
+		NBUF_Audit_Log::delete_logs( $log_ids );
+
+		/* Discard any output from database operations */
+		ob_end_clean();
+
+		/* Redirect with success message */
+		$redirect = admin_url( 'admin.php?page=nobloat-foundry-user-log' );
+		$redirect = add_query_arg( 'deleted', count( $log_ids ), $redirect );
 		wp_safe_redirect( $redirect );
 		exit;
 	}

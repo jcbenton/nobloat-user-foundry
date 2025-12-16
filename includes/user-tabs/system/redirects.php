@@ -19,8 +19,11 @@ $nbuf_redirect_default_lostpassword = NBUF_Options::get( 'nbuf_redirect_default_
 $nbuf_redirect_default_resetpass    = NBUF_Options::get( 'nbuf_redirect_default_resetpass', true );
 
 /* Login redirect settings */
-$nbuf_login_redirect        = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
-$nbuf_login_redirect_custom = NBUF_Options::get( 'nbuf_login_redirect_custom', '/nobloat-account' );
+$nbuf_login_redirect        = NBUF_Options::get( 'nbuf_login_redirect', 'account' );
+$nbuf_login_redirect_custom = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
+
+/* Get base slug for dynamic URL display */
+$nbuf_base_slug = NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry' );
 
 /* Logout settings */
 $nbuf_logout_behavior        = NBUF_Options::get( 'nbuf_logout_behavior', 'immediate' );
@@ -112,6 +115,12 @@ $nbuf_logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom',
 			<th><?php esc_html_e( 'After Login Redirect', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_login_redirect" id="nbuf_login_redirect">
+					<option value="account" <?php selected( $nbuf_login_redirect, 'account' ); ?>>
+						<?php
+						/* translators: %s: URL path like /user-foundry/account/ */
+						printf( esc_html__( 'NoBloat Account (/%s/account/)', 'nobloat-user-foundry' ), esc_html( $nbuf_base_slug ) );
+						?>
+					</option>
 					<option value="admin" <?php selected( $nbuf_login_redirect, 'admin' ); ?>>
 						<?php esc_html_e( 'Admin Dashboard', 'nobloat-user-foundry' ); ?>
 					</option>
@@ -123,16 +132,16 @@ $nbuf_logout_redirect_custom = NBUF_Options::get( 'nbuf_logout_redirect_custom',
 					</option>
 				</select>
 				<p class="description">
-					<?php esc_html_e( 'Where to redirect users after successful login. Default: Custom URL (/nobloat-account)', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Where to redirect users after successful login. Default: NoBloat Account', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
 		<tr id="nbuf_login_custom_url_row" style="display: <?php echo ( 'custom' === $nbuf_login_redirect ) ? 'table-row' : 'none'; ?>;">
-			<th><?php esc_html_e( 'Login Redirect URL', 'nobloat-user-foundry' ); ?></th>
+			<th><?php esc_html_e( 'Custom Redirect URL', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<input type="text" name="nbuf_login_redirect_custom" value="<?php echo esc_attr( $nbuf_login_redirect_custom ); ?>" class="regular-text">
 				<p class="description">
-					<?php esc_html_e( 'Enter a full URL (e.g., https://example.com/page) or relative path (e.g., /my-account). Default: /nobloat-account', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Enter a full URL (e.g., https://example.com/page) or relative path (e.g., /my-account).', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

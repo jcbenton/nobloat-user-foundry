@@ -89,9 +89,6 @@ class NBUF_Admin_User_Search {
 		/* Verified (custom) */
 		$new_columns['nbuf_verification'] = __( 'Verified', 'nobloat-user-foundry' );
 
-		/* Expiration (custom) */
-		$new_columns['nbuf_expiration'] = __( 'Expiration', 'nobloat-user-foundry' );
-
 		/* Role */
 		if ( isset( $columns['role'] ) ) {
 			$new_columns['role'] = $columns['role'];
@@ -140,36 +137,6 @@ class NBUF_Admin_User_Search {
 				}
 				break;
 
-			case 'nbuf_expiration':
-				$expires_at = NBUF_User_Data::get_expiration( $user_id );
-				$is_expired = NBUF_User_Data::is_expired( $user_id );
-
-				if ( $is_expired ) {
-					$output = '<span class="nbuf-status-badge nbuf-expired" title="' . esc_attr__( 'Account expired', 'nobloat-user-foundry' ) . '">' .
-					'<span class="dashicons dashicons-dismiss"></span> ' .
-					esc_html__( 'Expired', 'nobloat-user-foundry' ) .
-					'</span>';
-				} elseif ( $expires_at ) {
-					$days_until = floor( ( strtotime( $expires_at ) - time() ) / DAY_IN_SECONDS );
-
-					if ( $days_until <= 7 ) {
-						/* translators: %d: Number of days until expiration */
-						$output = '<span class="nbuf-status-badge nbuf-expiring-soon" title="' . esc_attr( sprintf( __( 'Expires in %d days', 'nobloat-user-foundry' ), $days_until ) ) . '">' .
-						'<span class="dashicons dashicons-clock"></span> ' .
-						/* translators: %d: Number of days */
-						esc_html( sprintf( _n( '%d day', '%d days', $days_until, 'nobloat-user-foundry' ), $days_until ) ) .
-						'</span>';
-					} else {
-						/* translators: %s: Expiration date */
-						$output = '<span class="nbuf-status-badge nbuf-expiring-soon" title="' . esc_attr( sprintf( __( 'Expires: %s', 'nobloat-user-foundry' ), date_i18n( get_option( 'date_format' ), strtotime( $expires_at ) ) ) ) . '">' .
-						esc_html( date_i18n( 'M j, Y', strtotime( $expires_at ) ) ) .
-						'</span>';
-					}
-				} else {
-					$output = '<span class="nbuf-status-badge nbuf-no-expiration">' . esc_html__( 'Never', 'nobloat-user-foundry' ) . '</span>';
-				}
-				break;
-
 			case 'nbuf_company':
 				$profile = NBUF_Profile_Data::get( $user_id );
 				if ( $profile && ! empty( $profile->company ) ) {
@@ -215,7 +182,6 @@ class NBUF_Admin_User_Search {
 	public static function make_columns_sortable( $columns ) {
 		/* Always sortable */
 		$columns['nbuf_verification'] = 'nbuf_verification';
-		$columns['nbuf_expiration']   = 'nbuf_expiration';
 
 		/* Optional columns - only add if enabled */
 		if ( NBUF_Options::get( 'nbuf_users_column_company', false ) ) {
@@ -238,7 +204,10 @@ class NBUF_Admin_User_Search {
 			return;
 		}
 
-     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Filter display only, no data modification */
+		/* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Filter display only, no data modification */
+
+		/* Wrap our filters in a container for CSS styling */
+		echo '</div><div class="alignleft actions nbuf-user-filters">';
 
 		/* Verification status filter */
 		$verification_filter = isset( $_GET['nbuf_verification'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_verification'] ) ) : '';
@@ -275,11 +244,40 @@ class NBUF_Admin_User_Search {
 		</select>
 		<?php
 
-     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
+		/* Account status filter */
+		$account_filter = isset( $_GET['nbuf_account_status'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_account_status'] ) ) : '';
+		?>
+		<label for="nbuf_account_status" class="screen-reader-text"><?php esc_html_e( 'Filter by account status', 'nobloat-user-foundry' ); ?></label>
+		<select name="nbuf_account_status" id="nbuf_account_status">
+			<option value=""><?php esc_html_e( 'All Account Status', 'nobloat-user-foundry' ); ?></option>
+			<option value="enabled" <?php selected( $account_filter, 'enabled' ); ?>><?php esc_html_e( 'Enabled', 'nobloat-user-foundry' ); ?></option>
+			<option value="disabled" <?php selected( $account_filter, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'nobloat-user-foundry' ); ?></option>
+		</select>
+		<?php
+
+		/* 2FA status filter */
+		$twofa_filter = isset( $_GET['nbuf_2fa_status'] ) ? sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) ) : '';
+		?>
+		<label for="nbuf_2fa_status" class="screen-reader-text"><?php esc_html_e( 'Filter by 2FA status', 'nobloat-user-foundry' ); ?></label>
+		<select name="nbuf_2fa_status" id="nbuf_2fa_status">
+			<option value=""><?php esc_html_e( 'All 2FA Status', 'nobloat-user-foundry' ); ?></option>
+			<option value="enabled" <?php selected( $twofa_filter, 'enabled' ); ?>><?php esc_html_e( '2FA Enabled', 'nobloat-user-foundry' ); ?></option>
+			<option value="disabled" <?php selected( $twofa_filter, 'disabled' ); ?>><?php esc_html_e( '2FA Disabled', 'nobloat-user-foundry' ); ?></option>
+			<option value="email" <?php selected( $twofa_filter, 'email' ); ?>><?php esc_html_e( 'Email Only', 'nobloat-user-foundry' ); ?></option>
+			<option value="totp" <?php selected( $twofa_filter, 'totp' ); ?>><?php esc_html_e( 'TOTP Only', 'nobloat-user-foundry' ); ?></option>
+			<option value="both" <?php selected( $twofa_filter, 'both' ); ?>><?php esc_html_e( 'Both Methods', 'nobloat-user-foundry' ); ?></option>
+		</select>
+
+		<input type="submit" class="button" value="<?php esc_attr_e( 'Filter', 'nobloat-user-foundry' ); ?>">
+		<?php
+
+		/* phpcs:enable WordPress.Security.NonceVerification.Recommended */
 	}
 
 	/**
 	 * Filter users query based on selected filters
+	 *
+	 * Uses proper WP_User_Query API by querying user IDs first then using 'include'.
 	 *
 	 * @param WP_User_Query $query User query object.
 	 */
@@ -290,100 +288,169 @@ class NBUF_Admin_User_Search {
 			return;
 		}
 
-     /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Query filtering only, no data modification */
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Query filtering only, no data modification
 
-		/* Get user_data and profile table names */
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
-		$profile_table   = $wpdb->prefix . 'nbuf_user_profile';
+		$user_ids        = null;
+		$now             = current_time( 'mysql', true );
 
 		/* Verification filter */
-		if ( isset( $_GET['nbuf_verification'] ) && ! empty( $_GET['nbuf_verification'] ) ) {
+		if ( ! empty( $_GET['nbuf_verification'] ) ) {
 			$verification = sanitize_text_field( wp_unslash( $_GET['nbuf_verification'] ) );
 
-			$meta_query = $query->get( 'meta_query' );
-			if ( ! is_array( $meta_query ) ) {
-				$meta_query = array();
-			}
-
-			/* Use direct SQL for better performance */
-			$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
-
 			if ( 'verified' === $verification ) {
-				$query->query_where .= ' AND nbuf_ud.is_verified = 1 ';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$user_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = 1', $user_data_table ) );
 			} elseif ( 'unverified' === $verification ) {
-				$query->query_where .= ' AND (nbuf_ud.is_verified = 0 OR nbuf_ud.is_verified IS NULL) ';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$all_users = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$verified  = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = 1', $user_data_table ) );
+				$user_ids  = array_diff( $all_users, $verified );
 			}
 		}
 
 		/* Expiration filter */
-		if ( isset( $_GET['nbuf_expiration'] ) && ! empty( $_GET['nbuf_expiration'] ) ) {
-			$expiration = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
-
-			/* Add join if not already added */
-			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
-				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
-			}
-
-			$now        = current_time( 'mysql' );
-			$seven_days = gmdate( 'Y-m-d H:i:s', strtotime( '+7 days' ) );
+		if ( ! empty( $_GET['nbuf_expiration'] ) ) {
+			$expiration  = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
+			$seven_days  = gmdate( 'Y-m-d H:i:s', strtotime( '+7 days' ) );
+			$filter_ids  = null;
 
 			switch ( $expiration ) {
 				case 'expired':
-					$query->query_where .= $wpdb->prepare( ' AND nbuf_ud.expires_at IS NOT NULL AND nbuf_ud.expires_at < %s ', $now );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$filter_ids = $wpdb->get_col( $wpdb->prepare(
+						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
+						$user_data_table,
+						$now
+					) );
 					break;
 
 				case 'active':
-					$query->query_where .= $wpdb->prepare( ' AND (nbuf_ud.expires_at IS NULL OR nbuf_ud.expires_at >= %s) ', $now );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$expired    = $wpdb->get_col( $wpdb->prepare(
+						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
+						$user_data_table,
+						$now
+					) );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+					$filter_ids = array_diff( $all_users, $expired );
 					break;
 
 				case 'expiring_soon':
-					$query->query_where .= $wpdb->prepare( ' AND nbuf_ud.expires_at BETWEEN %s AND %s ', $now, $seven_days );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$filter_ids = $wpdb->get_col( $wpdb->prepare(
+						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at BETWEEN %s AND %s",
+						$user_data_table,
+						$now,
+						$seven_days
+					) );
 					break;
 
 				case 'no_expiration':
-					$query->query_where .= " AND (nbuf_ud.expires_at IS NULL OR nbuf_ud.expires_at = '0000-00-00 00:00:00') ";
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$has_exp    = $wpdb->get_col( $wpdb->prepare(
+						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00'",
+						$user_data_table
+					) );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+					$filter_ids = array_diff( $all_users, $has_exp );
 					break;
+			}
+
+			if ( null !== $filter_ids ) {
+				$user_ids = ( null === $user_ids ) ? $filter_ids : array_intersect( $user_ids, $filter_ids );
 			}
 		}
 
 		/* Directory visibility filter */
-		if ( isset( $_GET['nbuf_directory'] ) && ! empty( $_GET['nbuf_directory'] ) ) {
-			$directory = sanitize_text_field( wp_unslash( $_GET['nbuf_directory'] ) );
-
-			/* Add join if not already added */
-			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
-				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
-			}
+		if ( ! empty( $_GET['nbuf_directory'] ) ) {
+			$directory  = sanitize_text_field( wp_unslash( $_GET['nbuf_directory'] ) );
+			$filter_ids = null;
 
 			if ( 'in_directory' === $directory ) {
-				$query->query_where .= ' AND nbuf_ud.show_in_directory = 1 ';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$filter_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE show_in_directory = 1', $user_data_table ) );
 			} elseif ( 'not_in_directory' === $directory ) {
-				$query->query_where .= ' AND (nbuf_ud.show_in_directory = 0 OR nbuf_ud.show_in_directory IS NULL) ';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$in_dir     = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE show_in_directory = 1', $user_data_table ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+				$filter_ids = array_diff( $all_users, $in_dir );
+			}
+
+			if ( null !== $filter_ids ) {
+				$user_ids = ( null === $user_ids ) ? $filter_ids : array_intersect( $user_ids, $filter_ids );
 			}
 		}
 
-		/* Handle sorting by custom columns */
-		$orderby = $query->get( 'orderby' );
+		/* Account status filter */
+		if ( ! empty( $_GET['nbuf_account_status'] ) ) {
+			$account    = sanitize_text_field( wp_unslash( $_GET['nbuf_account_status'] ) );
+			$filter_ids = null;
 
-		if ( 'nbuf_verification' === $orderby ) {
-			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
-				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
+			if ( 'disabled' === $account ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$filter_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = 1', $user_data_table ) );
+			} elseif ( 'enabled' === $account ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$disabled   = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = 1', $user_data_table ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+				$filter_ids = array_diff( $all_users, $disabled );
 			}
-			$query->query_orderby = 'ORDER BY nbuf_ud.is_verified ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
-		} elseif ( 'nbuf_expiration' === $orderby ) {
-			if ( false === strpos( $query->query_from, 'nbuf_ud' ) ) {
-				$query->query_from .= " LEFT JOIN {$user_data_table} nbuf_ud ON {$wpdb->users}.ID = nbuf_ud.user_id ";
+
+			if ( null !== $filter_ids ) {
+				$user_ids = ( null === $user_ids ) ? $filter_ids : array_intersect( $user_ids, $filter_ids );
 			}
-			$query->query_orderby = 'ORDER BY nbuf_ud.expires_at ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
-		} elseif ( 'nbuf_company' === $orderby ) {
-			$query->query_from   .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
-			$query->query_orderby = 'ORDER BY nbuf_up.company ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
-		} elseif ( 'nbuf_location' === $orderby ) {
-			$query->query_from   .= " LEFT JOIN {$profile_table} nbuf_up ON {$wpdb->users}.ID = nbuf_up.user_id ";
-			$query->query_orderby = 'ORDER BY nbuf_up.city ' . ( 'DESC' === strtoupper( $query->get( 'order' ) ) ? 'DESC' : 'ASC' );
 		}
 
-     /* phpcs:enable WordPress.Security.NonceVerification.Recommended */
+		/* 2FA status filter */
+		if ( ! empty( $_GET['nbuf_2fa_status'] ) ) {
+			$twofa      = sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) );
+			$filter_ids = null;
+
+			if ( 'enabled' === $twofa ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$filter_ids = $wpdb->get_col( $wpdb->prepare(
+					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
+					$wpdb->usermeta
+				) );
+			} elseif ( 'disabled' === $twofa ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$enabled    = $wpdb->get_col( $wpdb->prepare(
+					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
+					$wpdb->usermeta
+				) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
+				$filter_ids = array_diff( $all_users, $enabled );
+			} elseif ( in_array( $twofa, array( 'email', 'totp', 'both' ), true ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$filter_ids = $wpdb->get_col( $wpdb->prepare(
+					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value = %s",
+					$wpdb->usermeta,
+					$twofa
+				) );
+			}
+
+			if ( null !== $filter_ids ) {
+				$user_ids = ( null === $user_ids ) ? $filter_ids : array_intersect( $user_ids, $filter_ids );
+			}
+		}
+
+		/* Apply filter results */
+		if ( null !== $user_ids ) {
+			if ( empty( $user_ids ) ) {
+				$query->set( 'include', array( 0 ) ); // No results.
+			} else {
+				$query->set( 'include', array_values( $user_ids ) );
+			}
+		}
+
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
@@ -688,6 +755,18 @@ class NBUF_Admin_User_Search {
 		wp_add_inline_style(
 			'wp-admin',
 			'
+			/* Put our filters on their own row */
+			.tablenav .nbuf-user-filters {
+				flex-basis: 100%;
+				margin-top: 8px;
+				padding-top: 8px;
+				padding-bottom: 8px;
+				border-top: 1px solid #c3c4c7;
+			}
+			.tablenav .nbuf-user-filters select {
+				margin-right: 6px;
+			}
+
 			.nbuf-status-badge {
 				display: inline-flex;
 				align-items: center;

@@ -47,14 +47,14 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'cb'         => '<input type="checkbox" />',
-			'timestamp'  => __( 'Date/Time', 'nobloat-user-foundry' ),
-			'severity'   => __( 'Severity', 'nobloat-user-foundry' ),
-			'event_type' => __( 'Event Type', 'nobloat-user-foundry' ),
-			'user'       => __( 'User', 'nobloat-user-foundry' ),
-			'ip_address' => __( 'IP Address', 'nobloat-user-foundry' ),
-			'message'    => __( 'Message', 'nobloat-user-foundry' ),
-			'context'    => __( 'Context', 'nobloat-user-foundry' ),
+			'cb'               => '<input type="checkbox" />',
+			'timestamp'        => __( 'Last Seen', 'nobloat-user-foundry' ),
+			'occurrence_count' => __( 'Count', 'nobloat-user-foundry' ),
+			'severity'         => __( 'Severity', 'nobloat-user-foundry' ),
+			'event_type'       => __( 'Event Type', 'nobloat-user-foundry' ),
+			'ip_address'       => __( 'IP Address', 'nobloat-user-foundry' ),
+			'message'          => __( 'Message', 'nobloat-user-foundry' ),
+			'context'          => __( 'Context', 'nobloat-user-foundry' ),
 		);
 	}
 
@@ -65,10 +65,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function get_sortable_columns() {
 		return array(
-			'timestamp'  => array( 'timestamp', true ), // true = already sorted.
-			'severity'   => array( 'severity', false ),
-			'event_type' => array( 'event_type', false ),
-			'user'       => array( 'user', false ),
+			'timestamp'        => array( 'timestamp', true ), // true = already sorted.
+			'occurrence_count' => array( 'occurrence_count', false ),
+			'severity'         => array( 'severity', false ),
+			'event_type'       => array( 'event_type', false ),
 		);
 	}
 
@@ -79,7 +79,8 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function get_bulk_actions() {
 		return array(
-			'delete' => __( 'Delete', 'nobloat-user-foundry' ),
+			'delete'     => __( 'Delete', 'nobloat-user-foundry' ),
+			'unblock_ip' => __( 'Unblock IP', 'nobloat-user-foundry' ),
 		);
 	}
 
@@ -94,7 +95,7 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Render timestamp column
+	 * Render timestamp column (shows last seen with first seen on hover)
 	 *
 	 * @param  object $item Log entry.
 	 * @return string Formatted timestamp in user's local timezone
@@ -102,19 +103,47 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	public function column_timestamp( $item ) {
 		/* Convert UTC to user's browser timezone (from cookie) */
 		$local_time = NBUF_Options::format_local_time( $item->timestamp );
+
+		/* Build tooltip with first seen if different from last seen */
+		$tooltip_parts = array();
+		$tooltip_parts[] = sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item->timestamp );
+
+		if ( ! empty( $item->first_seen ) && $item->first_seen !== $item->timestamp ) {
+			$first_seen_local = NBUF_Options::format_local_time( $item->first_seen );
+			$tooltip_parts[] = sprintf( __( 'First seen: %s', 'nobloat-user-foundry' ), $first_seen_local );
+		}
+
 		return sprintf(
 			'<span title="%s">%s</span>',
-			/* translators: %s: UTC timestamp */
-			esc_attr( sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item->timestamp ) ),
+			esc_attr( implode( "\n", $tooltip_parts ) ),
 			esc_html( $local_time )
 		);
 	}
 
 	/**
-	 * Render severity column with color coding
+	 * Render occurrence count column
 	 *
 	 * @param  object $item Log entry.
-	 * @return string Formatted severity badge
+	 * @return string Formatted occurrence count
+	 */
+	public function column_occurrence_count( $item ) {
+		$count = isset( $item->occurrence_count ) ? (int) $item->occurrence_count : 1;
+
+		if ( $count > 1 ) {
+			return sprintf(
+				'<span style="display: inline-block; padding: 2px 8px; background: #f0f0f1; border-radius: 10px; font-weight: 600;">%s</span>',
+				esc_html( number_format( $count ) )
+			);
+		}
+
+		return '<span style="color: #999;">1</span>';
+	}
+
+	/**
+	 * Render severity column
+	 *
+	 * @param  object $item Log entry.
+	 * @return string Formatted severity label
 	 */
 	public function column_severity( $item ) {
 		$severity_labels = array(
@@ -123,20 +152,9 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 			'info'     => __( 'Info', 'nobloat-user-foundry' ),
 		);
 
-		$severity_colors = array(
-			'critical' => '#d63638',
-			'warning'  => '#dba617',
-			'info'     => '#2271b1',
-		);
-
 		$label = isset( $severity_labels[ $item->severity ] ) ? $severity_labels[ $item->severity ] : $item->severity;
-		$color = isset( $severity_colors[ $item->severity ] ) ? $severity_colors[ $item->severity ] : '#999';
 
-		return sprintf(
-			'<span style="display: inline-block; padding: 3px 8px; background: %s; color: #fff; border-radius: 3px; font-size: 11px; font-weight: 600; text-transform: uppercase;">%s</span>',
-			esc_attr( $color ),
-			esc_html( $label )
-		);
+		return esc_html( $label );
 	}
 
 	/**
@@ -147,45 +165,19 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_event_type( $item ) {
 		$event_labels = array(
-			'privilege_escalation_blocked' => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
-			'invalid_photo_selection'      => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
-			'file_validation_failed'       => __( 'File Validation Failed', 'nobloat-user-foundry' ),
-			'file_not_found'               => __( 'File Not Found', 'nobloat-user-foundry' ),
-			'file_integrity_failed'        => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
-			'file_copy_failed'             => __( 'File Copy Failed', 'nobloat-user-foundry' ),
+			'login_failed'                     => __( 'Login Failed', 'nobloat-user-foundry' ),
+			'login_blocked'                    => __( 'Login Blocked', 'nobloat-user-foundry' ),
+			'distributed_brute_force_detected' => __( 'Distributed Brute Force', 'nobloat-user-foundry' ),
+			'privilege_escalation_blocked'     => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
+			'invalid_photo_selection'          => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
+			'file_validation_failed'           => __( 'File Validation Failed', 'nobloat-user-foundry' ),
+			'file_not_found'                   => __( 'File Not Found', 'nobloat-user-foundry' ),
+			'file_integrity_failed'            => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
+			'file_copy_failed'                 => __( 'File Copy Failed', 'nobloat-user-foundry' ),
 		);
 
 		$label = isset( $event_labels[ $item->event_type ] ) ? $event_labels[ $item->event_type ] : $item->event_type;
 		return '<code>' . esc_html( $label ) . '</code>';
-	}
-
-	/**
-	 * Render user column
-	 *
-	 * @param  object $item Log entry.
-	 * @return string User information with link
-	 */
-	public function column_user( $item ) {
-		if ( empty( $item->user_id ) ) {
-			return '<span style="color: #999;">' . esc_html__( 'N/A', 'nobloat-user-foundry' ) . '</span>';
-		}
-
-		$user = get_user_by( 'id', $item->user_id );
-
-		if ( $user ) {
-			$edit_link = get_edit_user_link( $item->user_id );
-			return sprintf(
-				'<a href="%s">%s</a><br><small>ID: %d</small>',
-				esc_url( $edit_link ),
-				esc_html( $user->user_login ),
-				$item->user_id
-			);
-		}
-
-		return sprintf(
-			'<span style="color: #999;">User ID: %d (deleted)</span>',
-			$item->user_id
-		);
 	}
 
 	/**
@@ -212,10 +204,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Render context column with expandable JSON
+	 * Render context column with modal popup button
 	 *
 	 * @param  object $item Log entry.
-	 * @return string Context data in expandable details tag
+	 * @return string Context data button that opens modal
 	 */
 	public function column_context( $item ) {
 		if ( empty( $item->context ) ) {
@@ -224,22 +216,16 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 		$context = $item->context;
 
-		/* If context is JSON string, decode it for better display */
+		/* If context is JSON string, decode it for the data attribute */
 		$decoded = json_decode( $context, true );
-		if ( json_last_error() === JSON_ERROR_NONE && is_array( $decoded ) ) {
-			/* Use JSON_HEX_* flags to prevent XSS in JSON output */
-			$formatted = wp_json_encode(
-				$decoded,
-				JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS
-			);
-		} else {
-			$formatted = $context;
+		if ( json_last_error() !== JSON_ERROR_NONE || ! is_array( $decoded ) ) {
+			$decoded = array( 'raw' => $context );
 		}
 
 		return sprintf(
-			'<details style="cursor: pointer;"><summary style="color: #2271b1;">%s</summary><pre style="margin: 10px 0 0 0; padding: 10px; background: #f6f7f7; border: 1px solid #ddd; border-radius: 3px; font-size: 11px; overflow-x: auto;">%s</pre></details>',
-			esc_html__( 'View Details', 'nobloat-user-foundry' ),
-			esc_html( $formatted )
+			'<button type="button" class="button button-small nbuf-view-context" data-context="%s">%s</button>',
+			esc_attr( wp_json_encode( $decoded ) ),
+			esc_html__( 'View Details', 'nobloat-user-foundry' )
 		);
 	}
 
@@ -331,36 +317,12 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Process bulk actions
+	 *
+	 * Note: Bulk delete is handled by NBUF_Security_Log_Page::handle_bulk_delete()
+	 * on admin_init to avoid "headers already sent" errors.
 	 */
 	public function process_bulk_action() {
-		/* Check for bulk delete action */
-		if ( 'delete' === $this->current_action() ) {
-			/* Verify nonce */
-			if ( ! isset( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-security_logs' ) ) {
-				wp_die( esc_html__( 'Security check failed', 'nobloat-user-foundry' ) );
-			}
-
-			/* Check capability */
-			if ( ! current_user_can( 'manage_options' ) ) {
-				wp_die( esc_html__( 'You do not have permission to delete logs', 'nobloat-user-foundry' ) );
-			}
-
-			/*
-			 * Get selected log IDs
-			 */
-         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 285
-			if ( ! empty( $_REQUEST['log_id'] ) && is_array( $_REQUEST['log_id'] ) ) {
-             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification on line 285
-				$log_ids = array_map( 'intval', $_REQUEST['log_id'] );
-				NBUF_Security_Log::delete_logs( $log_ids );
-
-				/* Redirect with success message */
-				$redirect = remove_query_arg( array( 'action', 'action2', 'log_id', '_wpnonce', '_wp_http_referer' ) );
-				$redirect = add_query_arg( 'deleted', count( $log_ids ), $redirect );
-				wp_safe_redirect( $redirect );
-				exit;
-			}
-		}
+		/* Bulk actions now handled by NBUF_Security_Log_Page on admin_init */
 	}
 
 	/**
@@ -421,13 +383,16 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	private function event_type_dropdown() {
 		$event_types = array(
-			''                             => __( 'All Event Types', 'nobloat-user-foundry' ),
-			'privilege_escalation_blocked' => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
-			'invalid_photo_selection'      => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
-			'file_validation_failed'       => __( 'File Validation Failed', 'nobloat-user-foundry' ),
-			'file_not_found'               => __( 'File Not Found', 'nobloat-user-foundry' ),
-			'file_integrity_failed'        => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
-			'file_copy_failed'             => __( 'File Copy Failed', 'nobloat-user-foundry' ),
+			''                              => __( 'All Event Types', 'nobloat-user-foundry' ),
+			'login_failed'                  => __( 'Login Failed', 'nobloat-user-foundry' ),
+			'login_blocked'                 => __( 'Login Blocked', 'nobloat-user-foundry' ),
+			'distributed_brute_force_detected' => __( 'Distributed Brute Force', 'nobloat-user-foundry' ),
+			'privilege_escalation_blocked'  => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
+			'invalid_photo_selection'       => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
+			'file_validation_failed'        => __( 'File Validation Failed', 'nobloat-user-foundry' ),
+			'file_not_found'                => __( 'File Not Found', 'nobloat-user-foundry' ),
+			'file_integrity_failed'         => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
+			'file_copy_failed'              => __( 'File Copy Failed', 'nobloat-user-foundry' ),
 		);
 
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only dropdown filter display

@@ -44,6 +44,47 @@
 }
 
 /* ==========================================================
+   PAGE BUILDER OVERRIDE
+   ----------------------------------------------------------
+   High-specificity selectors to prevent page builders from
+   overriding plugin styles. Uses body.nbuf-page class.
+   ========================================================== */
+
+body.nbuf-page .nbuf-login-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-login-wrapper h1,
+body.nbuf-page .nbuf-login-wrapper h2,
+body.nbuf-page .nbuf-login-wrapper h3 {
+    line-height: 1.3;
+}
+
+body.nbuf-page .nbuf-login-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-login-wrapper label,
+body.nbuf-page .nbuf-login-wrapper .nbuf-form-label {
+    font-size: 0.9em;
+}
+
+body.nbuf-page .nbuf-login-wrapper input,
+body.nbuf-page .nbuf-login-wrapper button {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-login-wrapper .nbuf-message {
+    font-size: 1em;
+}
+
+body.nbuf-page .nbuf-login-wrapper a {
+    font-size: inherit;
+}
+
+/* ==========================================================
    PAGE LAYOUT - Center the form
    ========================================================== */
 

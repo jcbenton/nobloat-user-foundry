@@ -74,9 +74,21 @@
             }
         }
 
-        /* Restore tabs from URL on page load */
-        var activeTab = getUrlParam('tab');
-        var activeSubtab = getUrlParam('subtab');
+        /* Restore tabs from localized data (Universal Mode) or URL params (legacy) */
+        var activeTab = null;
+        var activeSubtab = null;
+
+        /* Check for Universal Mode localized data first */
+        if (typeof nbufAccountData !== 'undefined' && nbufAccountData.activeTab) {
+            activeTab = nbufAccountData.activeTab;
+            activeSubtab = nbufAccountData.activeSubtab || null;
+        }
+
+        /* Fall back to URL params */
+        if (!activeTab) {
+            activeTab = getUrlParam('tab');
+            activeSubtab = getUrlParam('subtab');
+        }
 
         if (activeTab) {
             activateTab(activeTab);
@@ -88,16 +100,84 @@
             }
         }
 
+        /* Check if Universal Mode (localized data provided) */
+        var isUniversalMode = (typeof nbufAccountData !== 'undefined');
+
+        /* Helper: Update URL for tab change */
+        function updateUrl(tabName, subtabName) {
+            if (isUniversalMode) {
+                /* Universal Mode: use pretty path URLs like /user-foundry/account/security/ */
+                /* Tab goes in path, subtab goes as query param (router only handles 2 segments) */
+                var basePath = window.location.pathname.replace(/\/+$/, ''); /* Remove trailing slashes */
+                /* Remove any existing tab from the path (keep up to /account/) */
+                var pathParts = basePath.split('/');
+                /* Find 'account' in the path and truncate after it */
+                var accountIndex = pathParts.indexOf('account');
+                if (accountIndex !== -1) {
+                    pathParts = pathParts.slice(0, accountIndex + 1);
+                }
+                /* Add new tab to path */
+                if (tabName) {
+                    pathParts.push(tabName);
+                }
+                var newPath = pathParts.join('/') + '/';
+                /* Add subtab as query param */
+                if (subtabName) {
+                    newPath += '?subtab=' + encodeURIComponent(subtabName);
+                }
+                history.replaceState(null, '', newPath);
+            } else {
+                /* Legacy Mode: use query parameters */
+                var url = new URL(window.location.href);
+                if (tabName) {
+                    url.searchParams.set('tab', tabName);
+                }
+                if (subtabName) {
+                    url.searchParams.set('subtab', subtabName);
+                } else {
+                    url.searchParams.delete('subtab');
+                }
+                history.replaceState(null, '', url.toString());
+            }
+        }
+
+        /* Helper: Update hidden fields in all forms for tab/subtab state */
+        function updateHiddenFields(tabName, subtabName) {
+            var forms = document.querySelectorAll('.nbuf-account-form');
+            for (var i = 0; i < forms.length; i++) {
+                var form = forms[i];
+
+                /* Update or create tab hidden field */
+                var tabField = form.querySelector('input[name="nbuf_active_tab"]');
+                if (!tabField) {
+                    tabField = document.createElement('input');
+                    tabField.type = 'hidden';
+                    tabField.name = 'nbuf_active_tab';
+                    form.appendChild(tabField);
+                }
+                if (tabName) {
+                    tabField.value = tabName;
+                }
+
+                /* Update or create subtab hidden field */
+                var subtabField = form.querySelector('input[name="nbuf_active_subtab"]');
+                if (!subtabField) {
+                    subtabField = document.createElement('input');
+                    subtabField.type = 'hidden';
+                    subtabField.name = 'nbuf_active_subtab';
+                    form.appendChild(subtabField);
+                }
+                subtabField.value = subtabName || '';
+            }
+        }
+
         /* Main tab click handlers */
         for (var i = 0; i < tabs.length; i++) {
             tabs[i].addEventListener('click', function() {
                 var tabName = this.getAttribute('data-tab');
                 activateTab(tabName);
-                /* Update URL to reflect current tab (without page reload) */
-                var url = new URL(window.location.href);
-                url.searchParams.set('tab', tabName);
-                url.searchParams.delete('subtab');
-                history.replaceState(null, '', url.toString());
+                updateUrl(tabName, null);
+                updateHiddenFields(tabName, null);
             });
         }
 
@@ -109,13 +189,15 @@
                     var subtabName = this.getAttribute('data-subtab');
                     var tabName = parent.getAttribute('data-tab');
                     activateSubtab(parent, subtabName);
-                    /* Update URL to reflect current tab and subtab (without page reload) */
-                    var url = new URL(window.location.href);
-                    url.searchParams.set('tab', tabName);
-                    url.searchParams.set('subtab', subtabName);
-                    history.replaceState(null, '', url.toString());
+                    updateUrl(tabName, subtabName);
+                    updateHiddenFields(tabName, subtabName);
                 }
             });
+        }
+
+        /* Initialize hidden fields with current state */
+        if (activeTab || activeSubtab) {
+            updateHiddenFields(activeTab, activeSubtab);
         }
     }
 

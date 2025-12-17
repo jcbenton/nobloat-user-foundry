@@ -1418,13 +1418,80 @@ class NBUF_GDPR_Export {
 	 * @return string Shortcode output.
 	 */
 	public static function shortcode() {
-		if ( ! self::is_enabled() ) {
+		if ( ! self::is_enabled() || ! is_user_logged_in() ) {
 			return '';
 		}
 
-		ob_start();
-		include NBUF_TEMPLATES_DIR . 'account-data-export.php';
-		return ob_get_clean();
+		$user_id    = get_current_user_id();
+		$rate_check = self::check_rate_limit( $user_id );
+		$counts     = self::get_data_counts( $user_id );
+
+		$last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
+
+		/* Build export includes list */
+		$includes_list  = '<li>' . esc_html__( 'Profile information (name, email, custom fields)', 'nobloat-user-foundry' ) . '</li>';
+		$includes_list .= '<li>' . esc_html__( 'Account verification status and history', 'nobloat-user-foundry' ) . '</li>';
+
+		if ( NBUF_Options::get( 'nbuf_gdpr_include_woo', false ) && function_exists( 'wc_get_orders' ) ) {
+			/* translators: %d: number of orders */
+			$includes_list .= '<li>' . esc_html( sprintf( __( 'WooCommerce orders and addresses (%d orders)', 'nobloat-user-foundry' ), $counts['woo_orders'] ) ) . '</li>';
+		}
+
+		if ( NBUF_Options::get( 'nbuf_gdpr_include_edd', false ) && function_exists( 'edd_get_users_purchases' ) ) {
+			/* translators: %d: number of purchases */
+			$includes_list .= '<li>' . esc_html( sprintf( __( 'Easy Digital Downloads purchases (%d purchases)', 'nobloat-user-foundry' ), $counts['edd_purchases'] ) ) . '</li>';
+		}
+
+		/* Build export button */
+		if ( $rate_check['can_export'] ) {
+			$export_button = '<button type="button" id="nbuf-request-export" class="button button-primary button-large">' . esc_html__( 'Download My Data', 'nobloat-user-foundry' ) . '</button>';
+		} else {
+			/* translators: %d: minutes to wait */
+			$export_button = '<button type="button" class="button button-large" disabled>' . esc_html( sprintf( __( 'Available in %d minutes', 'nobloat-user-foundry' ), $rate_check['wait_minutes'] ) ) . '</button>';
+		}
+
+		/* Build export history */
+		if ( $last_export ) {
+			$export_history  = '<p>';
+			$export_history .= '<strong>' . esc_html__( 'Last exported:', 'nobloat-user-foundry' ) . '</strong> ';
+			$export_history .= esc_html( human_time_diff( $last_export, time() ) . ' ' . __( 'ago', 'nobloat-user-foundry' ) );
+			$export_history .= '<br>';
+			$export_history .= '<strong>' . esc_html__( 'Next available:', 'nobloat-user-foundry' ) . '</strong> ';
+			if ( ! $rate_check['can_export'] ) {
+				/* translators: %d: minutes to wait */
+				$export_history .= esc_html( sprintf( __( 'in %d minutes', 'nobloat-user-foundry' ), $rate_check['wait_minutes'] ) );
+			} else {
+				$export_history .= esc_html__( 'Now', 'nobloat-user-foundry' );
+			}
+			$export_history .= '</p>';
+		} else {
+			$export_history = '<p>' . esc_html__( 'You have not exported your data yet.', 'nobloat-user-foundry' ) . '</p>';
+		}
+
+		/* Load HTML template */
+		$template = NBUF_Template_Manager::load_default_file( 'account-data-export-html' );
+
+		/* Build replacements */
+		$replacements = array(
+			'{section_title}'        => esc_html_x( 'Download Your Personal Data', 'GDPR export section title', 'nobloat-user-foundry' ),
+			'{gdpr_description}'     => esc_html__( 'Under GDPR Article 15 (Right of Access), you have the right to receive a copy of your personal data we store.', 'nobloat-user-foundry' ),
+			'{export_includes_title}' => esc_html__( 'This export includes:', 'nobloat-user-foundry' ),
+			'{export_includes_list}' => $includes_list,
+			'{estimated_size_label}' => esc_html__( 'Estimated file size:', 'nobloat-user-foundry' ),
+			'{estimated_size}'       => esc_html( size_format( $counts['estimated_size'] ) ),
+			'{format_label}'         => esc_html__( 'Format:', 'nobloat-user-foundry' ),
+			'{format_value}'         => esc_html__( 'ZIP archive (JSON + HTML)', 'nobloat-user-foundry' ),
+			'{export_button}'        => $export_button,
+			'{history_title}'        => esc_html__( 'Export History:', 'nobloat-user-foundry' ),
+			'{export_history}'       => $export_history,
+			'{modal_title}'          => esc_html_x( 'Confirm Your Password', 'Password modal title', 'nobloat-user-foundry' ),
+			'{modal_description}'    => esc_html__( 'For security, please confirm your password to download your personal data.', 'nobloat-user-foundry' ),
+			'{password_label}'       => esc_html__( 'Password:', 'nobloat-user-foundry' ),
+			'{cancel_button}'        => esc_html__( 'Cancel', 'nobloat-user-foundry' ),
+			'{confirm_button}'       => esc_html__( 'Confirm & Download', 'nobloat-user-foundry' ),
+		);
+
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}
 
 	/**

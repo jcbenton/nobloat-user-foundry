@@ -117,11 +117,13 @@ class NBUF_Public_Profiles {
 				'label' => __( 'Website', 'nobloat-user-foundry' ),
 				'value' => $user->user_url,
 				'type'  => 'url',
+				'wide'  => true,
 			),
 			'description'  => array(
 				'label' => __( 'Biography', 'nobloat-user-foundry' ),
 				'value' => get_user_meta( $user->ID, 'description', true ),
 				'type'  => 'textarea',
+				'wide'  => true,
 			),
 		);
 
@@ -149,10 +151,14 @@ class NBUF_Public_Profiles {
 								$field_type = 'email';
 							}
 
+							/* Fields that should span full width */
+							$wide = in_array( $key, array( 'website', 'bio' ), true );
+
 							$profile_fields[ $key ] = array(
 								'label' => $label,
 								'value' => $value,
 								'type'  => $field_type,
+								'wide'  => $wide,
 							);
 						}
 					}
@@ -171,128 +177,106 @@ class NBUF_Public_Profiles {
 			}
 		}
 
-		// Start output buffering.
-		ob_start();
+		/* Build cover photo HTML */
+		if ( $allow_cover && ! empty( $cover_photo ) ) {
+			$cover_photo_html = '<div class="nbuf-profile-cover" style="background-image: url(\'' . esc_url( $cover_photo ) . '\');"><div class="nbuf-profile-cover-overlay"></div></div>';
+		} else {
+			$cover_photo_html = '<div class="nbuf-profile-cover nbuf-profile-cover-default"><div class="nbuf-profile-cover-overlay"></div></div>';
+		}
 
-		// Output HTML head.
-		?>
-		<!DOCTYPE html>
-		<html <?php language_attributes(); ?>>
-		<head>
-			<meta charset="<?php bloginfo( 'charset' ); ?>">
-			<meta name="viewport" content="width=device-width, initial-scale=1">
-			<title><?php echo esc_html( $display_name ); ?> - <?php bloginfo( 'name' ); ?></title>
-		<?php wp_head(); ?>
-		</head>
-		<body <?php body_class( 'nbuf-profile-page-body' ); ?>>
+		/* Build profile fields HTML */
+		$profile_fields_html = '';
+		if ( ! empty( $display_fields ) ) {
+			$profile_fields_html .= '<div class="nbuf-profile-fields">';
+			$profile_fields_html .= '<h2 class="nbuf-profile-fields-title">' . esc_html__( 'Profile Information', 'nobloat-user-foundry' ) . '</h2>';
+			$profile_fields_html .= '<div class="nbuf-profile-fields-grid">';
 
-		<div class="nbuf-profile-page">
-			<!-- Profile Header with Cover Photo -->
-			<div class="nbuf-profile-header">
-		<?php if ( $allow_cover && ! empty( $cover_photo ) ) : ?>
-					<div class="nbuf-profile-cover" style="background-image: url('<?php echo esc_url( $cover_photo ); ?>');">
-						<div class="nbuf-profile-cover-overlay"></div>
-					</div>
-				<?php else : ?>
-					<div class="nbuf-profile-cover nbuf-profile-cover-default">
-						<div class="nbuf-profile-cover-overlay"></div>
-					</div>
-				<?php endif; ?>
-
-				<div class="nbuf-profile-avatar-wrap">
-					<?php
-					/* Data URIs (SVG avatars) need esc_attr, regular URLs use esc_url */
-					$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
-					?>
-					<img src="<?php echo $photo_src; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above based on type. ?>" alt="<?php echo esc_attr( $display_name ); ?>" class="nbuf-profile-avatar" width="150" height="150" loading="lazy">
-				</div>
-			</div>
-
-			<!-- Profile Info -->
-			<div class="nbuf-profile-content">
-				<div class="nbuf-profile-info">
-					<h1 class="nbuf-profile-name"><?php echo esc_html( $display_name ); ?></h1>
-					<p class="nbuf-profile-username">@<?php echo esc_html( $user->user_login ); ?></p>
-
-					<div class="nbuf-profile-meta">
-						<span class="nbuf-profile-meta-item">
-							<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-								<path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
-							</svg>
-		<?php
-			/* translators: %s: User registration date */
-			printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
-		?>
-						</span>
-					</div>
-				</div>
-
-		<?php if ( ! empty( $display_fields ) ) : ?>
-				<div class="nbuf-profile-fields">
-					<h2 class="nbuf-profile-fields-title"><?php esc_html_e( 'Profile Information', 'nobloat-user-foundry' ); ?></h2>
-					<div class="nbuf-profile-fields-grid">
-			<?php foreach ( $display_fields as $key => $field_data ) : ?>
-						<div class="nbuf-profile-field">
-							<div class="nbuf-profile-field-label"><?php echo esc_html( $field_data['label'] ); ?></div>
-							<div class="nbuf-profile-field-value">
-				<?php
-				$field_type  = isset( $field_data['type'] ) ? $field_data['type'] : 'text';
-				$field_value = $field_data['value'];
+			foreach ( $display_fields as $field_key => $field_data ) {
+				$wide_class   = ! empty( $field_data['wide'] ) ? ' nbuf-profile-field-wide' : '';
+				$field_type   = isset( $field_data['type'] ) ? $field_data['type'] : 'text';
+				$field_value  = $field_data['value'];
+				$field_output = '';
 
 				if ( 'url' === $field_type && ! empty( $field_value ) ) {
-					/* Display as clickable link */
-					echo '<a href="' . esc_url( $field_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $field_value ) . '</a>';
+					$field_output = '<a href="' . esc_url( $field_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $field_value ) . '</a>';
 				} elseif ( 'email' === $field_type && ! empty( $field_value ) ) {
-					/* Display as mailto link */
-					echo '<a href="mailto:' . esc_attr( $field_value ) . '">' . esc_html( $field_value ) . '</a>';
+					$field_output = '<a href="mailto:' . esc_attr( $field_value ) . '">' . esc_html( $field_value ) . '</a>';
 				} elseif ( 'textarea' === $field_type && ! empty( $field_value ) ) {
-					/* Display as formatted text with paragraphs */
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_kses_post() handles escaping.
-					echo wpautop( wp_kses_post( $field_value ) );
+					$field_output = wpautop( wp_kses_post( $field_value ) );
 				} else {
-					/* Display as plain text */
-					echo esc_html( $field_value );
+					$field_output = esc_html( $field_value );
 				}
-				?>
-							</div>
-						</div>
-			<?php endforeach; ?>
-					</div>
-				</div>
-		<?php endif; ?>
 
-		<?php
-		/**
-		 * Hook for adding custom content to profile page
-		 *
-		 * @param WP_User $user User object.
-		 * @param array   $user_data User data from custom table.
-		 */
-		do_action( 'nbuf_public_profile_content', $user, $user_data );
-		?>
+				$profile_fields_html .= '<div class="nbuf-profile-field' . esc_attr( $wide_class ) . '">';
+				$profile_fields_html .= '<div class="nbuf-profile-field-label">' . esc_html( $field_data['label'] ) . '</div>';
+				$profile_fields_html .= '<div class="nbuf-profile-field-value">' . $field_output . '</div>';
+				$profile_fields_html .= '</div>';
+			}
 
-		<?php if ( is_user_logged_in() && get_current_user_id() === $user->ID ) : ?>
-					<div class="nbuf-profile-actions">
-			<?php
-			$account_page_id = NBUF_Options::get( 'nbuf_page_account' );
-			if ( $account_page_id ) :
-				?>
-							<a href="<?php echo esc_url( get_permalink( $account_page_id ) ); ?>" class="nbuf-button nbuf-button-primary">
-				<?php esc_html_e( 'Edit Profile', 'nobloat-user-foundry' ); ?>
-							</a>
-			<?php endif; ?>
-					</div>
-		<?php endif; ?>
-			</div>
-		</div>
+			$profile_fields_html .= '</div></div>';
 
-		<?php wp_footer(); ?>
-		</body>
-		</html>
-		<?php
+			/**
+			 * Hook for adding custom content to profile page
+			 *
+			 * @param WP_User $user      User object.
+			 * @param object  $user_data User data from custom table.
+			 */
+			ob_start();
+			do_action( 'nbuf_public_profile_content', $user, $user_data );
+			$profile_fields_html .= ob_get_clean();
+		}
 
-		// Output the buffer.
-		echo ob_get_clean(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template output with escaped content.
+		/* Build edit profile button */
+		$edit_profile_button = '';
+		if ( is_user_logged_in() && get_current_user_id() === $user->ID ) {
+			$account_url = class_exists( 'NBUF_URL' ) ? NBUF_URL::get( 'account' ) : '';
+			if ( $account_url ) {
+				$edit_profile_button = '<div class="nbuf-profile-actions">';
+				$edit_profile_button .= '<a href="' . esc_url( $account_url ) . '" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Edit Profile', 'nobloat-user-foundry' ) . '</a>';
+				$edit_profile_button .= '</div>';
+			}
+		}
+
+		/* Capture wp_head output */
+		ob_start();
+		wp_head();
+		$wp_head = ob_get_clean();
+
+		/* Capture wp_footer output */
+		ob_start();
+		wp_footer();
+		$wp_footer = ob_get_clean();
+
+		/* Get body classes */
+		$body_class = implode( ' ', get_body_class( 'nbuf-profile-page-body' ) );
+
+		/* Data URIs (SVG avatars) need esc_attr, regular URLs use esc_url */
+		$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
+
+		/* Load template */
+		$template = NBUF_Template_Manager::load_template( 'public-profile-html' );
+
+		/* Build replacements */
+		$replacements = array(
+			'{language_attributes}' => get_language_attributes(),
+			'{charset}'             => esc_attr( get_bloginfo( 'charset' ) ),
+			'{display_name}'        => esc_html( $display_name ),
+			'{site_name}'           => esc_html( get_bloginfo( 'name' ) ),
+			'{wp_head}'             => $wp_head,
+			'{body_class}'          => esc_attr( $body_class ),
+			'{cover_photo_html}'    => $cover_photo_html,
+			'{profile_photo}'       => $photo_src,
+			'{username}'            => esc_html( $user->user_login ),
+			/* translators: %s: User registration date */
+			'{joined_date}'         => sprintf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) ),
+			'{profile_fields_html}' => $profile_fields_html,
+			'{edit_profile_button}' => $edit_profile_button,
+			'{wp_footer}'           => $wp_footer,
+		);
+
+		/* Replace placeholders and output */
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- All values escaped above.
+		echo str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}
 
 	/**

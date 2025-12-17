@@ -93,8 +93,13 @@ class NBUF_Template_Manager {
 		'2fa-verify'                => '2fa-verify.html',
 		'2fa-setup-totp'            => '2fa-setup-totp.html',
 		'2fa-backup-codes'          => '2fa-backup-codes.html',
-		'policy-privacy-html'       => 'policy-privacy.html',
-		'policy-terms-html'         => 'policy-terms.html',
+		'policy-privacy-html'         => 'policy-privacy.html',
+		'policy-terms-html'           => 'policy-terms.html',
+		'public-profile-html'         => 'public-profile.html',
+		'member-directory-html'       => 'member-directory.html',
+		'member-directory-list-html'  => 'member-directory-list.html',
+		'account-data-export-html'    => 'account-data-export.html',
+		'version-history-viewer-html' => 'version-history-viewer.html',
 	);
 
 	/**

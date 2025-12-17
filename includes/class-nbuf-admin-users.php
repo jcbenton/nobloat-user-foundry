@@ -1600,10 +1600,8 @@ class NBUF_Admin_Users {
 		?>
 		<div class="nbuf-vh-metabox">
 		<?php
-		/* Include the version history viewer template */
-		$context    = 'metabox';
-		$can_revert = true; // Admins can always revert.
-		include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- NBUF_Version_History::render_viewer() returns escaped HTML.
+		echo NBUF_Version_History::render_viewer( $user_id, 'metabox', true );
 		?>
 		</div>
 

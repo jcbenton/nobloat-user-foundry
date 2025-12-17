@@ -936,16 +936,7 @@ class NBUF_Shortcodes {
 		// which is already hooked into 'authenticate' filter.
 
 		// If we got here, user is logged in and passed all checks.
-		// Log successful login to audit log (only for non-2FA logins; 2FA logins are logged after verification).
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
-				$user->ID,
-				'login_success',
-				'success',
-				'User logged in successfully',
-				array( 'username' => $user->user_login )
-			);
-		}
+		// Note: Login success is logged via wp_login hook in main plugin file.
 
 		wp_safe_redirect( $redirect );
 		exit;
@@ -1518,23 +1509,12 @@ class NBUF_Shortcodes {
 			/* Build history tab content directly */
 			$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
 
-			ob_start();
-			?>
-			<div class="nbuf-account-section nbuf-vh-account">
-				<?php if ( ! $allow_user_revert ) : ?>
-					<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">
-						<?php esc_html_e( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
-					</div>
-				<?php endif; ?>
-				<?php
-				/* Include the version history viewer template - $user_id already defined at line 1153 */
-				$context    = 'account';
-				$can_revert = $allow_user_revert;
-				include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
-				?>
-			</div>
-			<?php
-			$version_history_html = ob_get_clean();
+			$info_message = '';
+			if ( ! $allow_user_revert ) {
+				$info_message = '<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">' . esc_html__( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ) . '</div>';
+			}
+
+			$version_history_html = '<div class="nbuf-account-section nbuf-vh-account">' . $info_message . NBUF_Version_History::render_viewer( $user_id, 'account', $allow_user_revert ) . '</div>';
 
 			/* Enqueue version history assets */
 			wp_enqueue_style(

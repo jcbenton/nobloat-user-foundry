@@ -41,6 +41,13 @@ class NBUF_Security_Log {
 	const MAX_EXPORT_LIMIT = 100000;
 
 	/**
+	 * Schema version for tracking migrations
+	 *
+	 * @var int
+	 */
+	const SCHEMA_VERSION = 2;
+
+	/**
 	 * Initialize security log
 	 *
 	 * Sets up database table and cron jobs.
@@ -49,12 +56,27 @@ class NBUF_Security_Log {
 		/* Create database table on activation */
 		register_activation_hook( NBUF_PLUGIN_FILE, array( __CLASS__, 'create_table' ) );
 
+		/* Check for schema updates on admin pages */
+		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_schema' ) );
+
 		/* Register daily cron for log pruning */
 		add_action( 'nbuf_daily_security_log_prune', array( __CLASS__, 'prune_old_logs' ) );
 
 		/* Schedule cron if not already scheduled */
 		if ( ! wp_next_scheduled( 'nbuf_daily_security_log_prune' ) ) {
 			wp_schedule_event( time(), 'daily', 'nbuf_daily_security_log_prune' );
+		}
+	}
+
+	/**
+	 * Check and run schema upgrades if needed
+	 */
+	public static function maybe_upgrade_schema() {
+		$current_version = get_option( 'nbuf_security_log_schema_version', 0 );
+
+		if ( $current_version < self::SCHEMA_VERSION ) {
+			self::migrate_existing_records();
+			update_option( 'nbuf_security_log_schema_version', self::SCHEMA_VERSION );
 		}
 	}
 
@@ -100,17 +122,31 @@ class NBUF_Security_Log {
 	}
 
 	/**
-	 * Migrate existing records to set first_seen
+	 * Migrate existing table schema and records
 	 *
-	 * For existing records without first_seen, set it to timestamp.
+	 * Adds missing columns and migrates data for upgrades.
 	 */
 	private static function migrate_existing_records() {
 		global $wpdb;
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 
-		/* Check if first_seen column exists (for upgrades) */
+		/* Check if table exists */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check.
+		$table_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+				DB_NAME,
+				$table_name
+			)
+		);
+
+		if ( ! $table_exists ) {
+			return;
+		}
+
+		/* Check and add first_seen column if missing */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration check.
-		$column_exists = $wpdb->get_var(
+		$first_seen_exists = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'first_seen'",
 				DB_NAME,
@@ -118,16 +154,73 @@ class NBUF_Security_Log {
 			)
 		);
 
-		if ( $column_exists ) {
-			/* Set first_seen = timestamp for existing records where first_seen is NULL */
+		if ( ! $first_seen_exists ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
 			$wpdb->query(
 				$wpdb->prepare(
-					'UPDATE %i SET first_seen = timestamp WHERE first_seen IS NULL',
+					'ALTER TABLE %i ADD COLUMN first_seen DATETIME DEFAULT NULL AFTER timestamp',
 					$table_name
 				)
 			);
 		}
+
+		/* Check and add occurrence_count column if missing */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration check.
+		$occurrence_count_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'occurrence_count'",
+				DB_NAME,
+				$table_name
+			)
+		);
+
+		if ( ! $occurrence_count_exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			$wpdb->query(
+				$wpdb->prepare(
+					'ALTER TABLE %i ADD COLUMN occurrence_count INT UNSIGNED DEFAULT 1 AFTER first_seen',
+					$table_name
+				)
+			);
+		}
+
+		/* Add index for event_type + ip_address lookups if missing */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check.
+		$index_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = 'idx_event_ip'",
+				DB_NAME,
+				$table_name
+			)
+		);
+
+		if ( ! $index_exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			$wpdb->query(
+				$wpdb->prepare(
+					'ALTER TABLE %i ADD INDEX idx_event_ip (event_type, ip_address)',
+					$table_name
+				)
+			);
+		}
+
+		/* Set first_seen = timestamp for existing records where first_seen is NULL */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data migration.
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET first_seen = timestamp WHERE first_seen IS NULL',
+				$table_name
+			)
+		);
+
+		/* Set occurrence_count = 1 for existing records where it's NULL */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data migration.
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET occurrence_count = 1 WHERE occurrence_count IS NULL',
+				$table_name
+			)
+		);
 	}
 
 	/**

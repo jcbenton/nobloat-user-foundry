@@ -1,0 +1,107 @@
+<div class="nbuf-version-history-viewer" data-user-id="{user_id}" data-context="{context}">
+
+	<!-- Header -->
+	<div class="nbuf-vh-header">
+		<h3>{header_title}</h3>
+		<p class="description">{header_description}</p>
+	</div>
+
+	<!-- Loading State -->
+	<div class="nbuf-vh-loading" style="text-align: center; padding: 40px;">
+		<span class="spinner is-active"></span>
+		<p>{loading_text}</p>
+	</div>
+
+	<!-- Timeline Container (populated via AJAX) -->
+	<div class="nbuf-vh-timeline" style="display: none;">
+		<!-- Timeline items will be inserted here via JavaScript -->
+	</div>
+
+	<!-- Pagination -->
+	<div class="nbuf-vh-pagination" style="display: none; margin-top: 20px; text-align: center;">
+		<button class="button nbuf-vh-prev-page" disabled>
+			{prev_button}
+		</button>
+		<span class="nbuf-vh-page-info" style="margin: 0 15px;">
+			{page_info}
+		</span>
+		<button class="button nbuf-vh-next-page" disabled>
+			{next_button}
+		</button>
+	</div>
+
+	<!-- Empty State -->
+	<div class="nbuf-vh-empty" style="display: none; text-align: center; padding: 40px; background: #f9f9f9; border: 1px dashed #ddd; border-radius: 4px;">
+		<p style="font-size: 16px; color: #666;">{empty_title}</p>
+		<p class="description">{empty_description}</p>
+	</div>
+
+	<!-- Diff Modal (hidden by default) -->
+	<div class="nbuf-vh-diff-modal" style="display: none;">
+		<div class="nbuf-vh-diff-overlay"></div>
+		<div class="nbuf-vh-diff-content">
+			<div class="nbuf-vh-diff-header">
+				<h3>{diff_modal_title}</h3>
+				<button class="nbuf-vh-close-diff button">{close_button}</button>
+			</div>
+			<div class="nbuf-vh-diff-body">
+				<div class="nbuf-vh-diff-loading" style="text-align: center; padding: 40px;">
+					<span class="spinner is-active"></span>
+					<p>{comparing_text}</p>
+				</div>
+				<div class="nbuf-vh-diff-result" style="display: none;">
+					<!-- Diff content inserted via JavaScript -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+<!-- Timeline Item Template (JavaScript uses this) -->
+<script type="text/template" id="nbuf-vh-timeline-item-template">
+	<div class="nbuf-vh-item" data-version-id="{{version_id}}">
+		<div class="nbuf-vh-item-icon">
+			<span class="dashicons dashicons-{{icon}}"></span>
+		</div>
+		<div class="nbuf-vh-item-content">
+			<div class="nbuf-vh-item-header">
+				<div class="nbuf-vh-item-meta">
+					<span class="nbuf-vh-item-date">{{date}}</span>
+					<span class="nbuf-vh-item-time">{{time}}</span>
+					<span class="nbuf-vh-item-type nbuf-vh-type-{{change_type}}">{{change_type_label}}</span>
+				</div>
+				<div class="nbuf-vh-item-user">
+					{{changed_by}}
+				</div>
+			</div>
+			<div class="nbuf-vh-item-details">
+				<p class="nbuf-vh-item-fields">
+					<strong>{fields_changed_label}</strong>
+					{{fields_changed}}
+				</p>
+				{{#ip_address}}
+				<p class="nbuf-vh-item-ip">
+					<strong>{ip_address_label}</strong>
+					{{ip_address}}
+				</p>
+				{{/ip_address}}
+			</div>
+			<div class="nbuf-vh-item-actions">
+				<button class="button button-small nbuf-vh-view-details" data-version-id="{{version_id}}">
+					{view_snapshot_button}
+				</button>
+				{{#has_previous}}
+				<button class="button button-small nbuf-vh-compare" data-version-id="{{version_id}}" data-previous-id="{{previous_id}}">
+					{compare_button}
+				</button>
+				{{/has_previous}}
+				{{#can_revert}}
+				<button class="button button-primary button-small nbuf-vh-revert" data-version-id="{{version_id}}">
+					{revert_button}
+				</button>
+				{{/can_revert}}
+			</div>
+		</div>
+	</div>
+</script>

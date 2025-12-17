@@ -188,7 +188,7 @@ body.nbuf-page .nbuf-profile-meta-item {
 
 .nbuf-profile-fields-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	grid-template-columns: repeat(2, 1fr);
 	gap: 20px;
 }
 
@@ -197,6 +197,11 @@ body.nbuf-page .nbuf-profile-meta-item {
 	background: #fff;
 	border-radius: 6px;
 	border: 1px solid #e2e8f0;
+}
+
+/* Full-width fields (Website, Biography) */
+.nbuf-profile-field-wide {
+	grid-column: 1 / -1;
 }
 
 .nbuf-profile-field-label {

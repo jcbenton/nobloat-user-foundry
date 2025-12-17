@@ -968,12 +968,67 @@ class NBUF_Version_History {
 		<?php endif; ?>
 
 		<?php
-		/* Include the version history viewer template */
-		$context = 'account';
-		include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+		/* Render the version history viewer */
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_viewer() returns escaped HTML.
+		echo self::render_viewer( $user_id, 'account' );
 		?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Render version history viewer HTML
+	 *
+	 * Centralized method for rendering the version history viewer from HTML template.
+	 * Called by admin, metabox, shortcode, and account page contexts.
+	 *
+	 * @since 1.4.0
+	 * @param int    $user_id    User ID whose history to display.
+	 * @param string $context    Context: 'admin', 'metabox', or 'account'.
+	 * @param bool   $can_revert Optional. Override can_revert check. Default null (auto-determine).
+	 * @return string HTML output.
+	 */
+	public static function render_viewer( $user_id, $context = 'admin', $can_revert = null ) {
+		/* Get user */
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return '';
+		}
+
+		/* Check revert permission if not provided */
+		if ( null === $can_revert ) {
+			$current_user_id   = get_current_user_id();
+			$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
+			$can_revert        = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
+		}
+
+		/* Load HTML template */
+		$template = NBUF_Template_Manager::load_default_file( 'version-history-viewer-html' );
+
+		/* Build replacements */
+		$replacements = array(
+			'{user_id}'              => esc_attr( $user_id ),
+			'{context}'              => esc_attr( $context ),
+			/* translators: %s: User display name */
+			'{header_title}'         => esc_html( sprintf( __( 'Profile History: %s', 'nobloat-user-foundry' ), $user->display_name ) ),
+			'{header_description}'   => esc_html__( 'Complete timeline of all profile changes. Click any version to view details or compare changes.', 'nobloat-user-foundry' ),
+			'{loading_text}'         => esc_html__( 'Loading version history...', 'nobloat-user-foundry' ),
+			'{prev_button}'          => esc_html__( '« Previous', 'nobloat-user-foundry' ),
+			'{page_info}'            => esc_html__( 'Page 1', 'nobloat-user-foundry' ),
+			'{next_button}'          => esc_html__( 'Next »', 'nobloat-user-foundry' ),
+			'{empty_title}'          => esc_html__( 'No version history found.', 'nobloat-user-foundry' ),
+			'{empty_description}'    => esc_html__( 'This user has no recorded profile changes yet. Changes will appear here as the user updates their profile.', 'nobloat-user-foundry' ),
+			'{diff_modal_title}'     => esc_html__( 'Version Comparison', 'nobloat-user-foundry' ),
+			'{close_button}'         => esc_html__( '× Close', 'nobloat-user-foundry' ),
+			'{comparing_text}'       => esc_html__( 'Comparing versions...', 'nobloat-user-foundry' ),
+			'{fields_changed_label}' => esc_html__( 'Fields changed:', 'nobloat-user-foundry' ),
+			'{ip_address_label}'     => esc_html__( 'IP Address:', 'nobloat-user-foundry' ),
+			'{view_snapshot_button}' => esc_html__( 'View Snapshot', 'nobloat-user-foundry' ),
+			'{compare_button}'       => esc_html__( 'Compare Changes', 'nobloat-user-foundry' ),
+			'{revert_button}'        => esc_html__( '⟲ Revert to This Version', 'nobloat-user-foundry' ),
+		);
+
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

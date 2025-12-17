@@ -126,6 +126,7 @@ function nbuf_ensure_live_css_files() {
 		'account-page'      => 'nbuf_css_write_failed_account',
 		'2fa-setup'         => 'nbuf_css_write_failed_2fa',
 		'profile'           => 'nbuf_css_write_failed_profile',
+		'member-directory'  => 'nbuf_css_write_failed_member_directory',
 	);
 
 	$frontend_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';

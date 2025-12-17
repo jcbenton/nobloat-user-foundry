@@ -234,11 +234,8 @@ class NBUF_Version_History_Page {
 				?>
 					<div class="nbuf-vh-admin-page" style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; border-radius: 4px;">
 				<?php
-				/* Include the version history viewer template */
-				$user_id    = $selected_user_id;
-				$context    = 'admin';
-				$can_revert = true; // Admins can always revert.
-				include plugin_dir_path( __DIR__ ) . 'templates/version-history-viewer.php';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- NBUF_Version_History::render_viewer() returns escaped HTML.
+				echo NBUF_Version_History::render_viewer( $selected_user_id, 'admin', true );
 				?>
 					</div>
 				<?php else : ?>

@@ -62,12 +62,16 @@ class NBUF_Member_Directory {
 	 * Enqueue the directory assets (CSS and JS)
 	 */
 	private static function do_enqueue_assets() {
-		wp_enqueue_style(
-			'nbuf-directory',
-			plugin_dir_url( __DIR__ ) . 'assets/css/frontend/member-directory.css',
-			array(),
-			NBUF_VERSION
-		);
+		/* Use CSS Manager for minified live CSS (same as other pages) */
+		$css_load = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
+		if ( $css_load && class_exists( 'NBUF_CSS_Manager' ) ) {
+			NBUF_CSS_Manager::enqueue_css(
+				'nbuf-member-directory',
+				'member-directory',
+				'nbuf_member_directory_custom_css',
+				'nbuf_css_write_failed_member_directory'
+			);
+		}
 
 		wp_enqueue_script(
 			'nbuf-directory',
@@ -123,11 +127,11 @@ class NBUF_Member_Directory {
 		/*
 		Get members
 		*/
-     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Public directory display only, no sensitive operations.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Public directory display only, no sensitive operations.
 		$page        = isset( $_GET['member_page'] ) ? absint( $_GET['member_page'] ) : 1;
 		$search      = isset( $_GET['member_search'] ) ? sanitize_text_field( wp_unslash( $_GET['member_search'] ) ) : '';
 		$role_filter = isset( $_GET['member_role'] ) ? sanitize_text_field( wp_unslash( $_GET['member_role'] ) ) : '';
-     // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$members = self::get_members(
 			array(
@@ -140,48 +144,251 @@ class NBUF_Member_Directory {
 			)
 		);
 
-		/* Load template */
-		ob_start();
+		$show_search  = 'yes' === $atts['show_search'];
+		$show_filters = 'yes' === $atts['show_filters'];
+		$total        = $members['total'];
+		$total_pages  = $members['pages'];
+		$is_list_view = 'list' === $atts['view'];
 
-		$template_file = 'list' === $atts['view']
-		? 'member-directory-list.php'
-		: 'member-directory.php';
+		/* Build directory controls HTML */
+		$directory_controls = self::build_controls_html( $show_search, $show_filters, $search, $role_filter, $total );
 
-		$template_path = plugin_dir_path( __DIR__ ) . 'templates/' . $template_file;
+		/* Build members content HTML */
+		$members_content = self::build_members_html( $members['members'], $is_list_view, $search, $role_filter );
 
-		/* Allow theme override */
-		$theme_template = locate_template(
-			array(
-				'nbuf-templates/' . $template_file,
-				'nobloat-user-foundry/' . $template_file,
-			)
+		/* Build pagination HTML */
+		$pagination = self::build_pagination_html( $page, $total_pages );
+
+		/* Load HTML template */
+		$template_name = $is_list_view ? 'member-directory-list-html' : 'member-directory-html';
+		$template      = NBUF_Template_Manager::load_default_file( $template_name );
+
+		/* Build replacements */
+		$replacements = array(
+			'{directory_controls}' => $directory_controls,
+			'{members_content}'    => $members_content,
+			'{pagination}'         => $pagination,
 		);
 
-		if ( $theme_template ) {
-			$template_path = $theme_template;
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+	}
+
+	/**
+	 * Build directory controls HTML (search, filters, stats)
+	 *
+	 * @param  bool   $show_search  Whether to show search box.
+	 * @param  bool   $show_filters Whether to show filter dropdowns.
+	 * @param  string $current_search Current search value.
+	 * @param  string $current_role Current role filter value.
+	 * @param  int    $total Total member count.
+	 * @return string HTML.
+	 */
+	private static function build_controls_html( $show_search, $show_filters, $current_search, $current_role, $total ) {
+		if ( ! $show_search && ! $show_filters ) {
+			return '';
 		}
 
-		if ( file_exists( $template_path ) ) {
-			/*
-			* Extract variables for template
-			*/
-         // phpcs:ignore WordPress.PHP.DontExtract.extract_extract -- Controlled variables for template.
-			extract(
-				array(
-					'members'      => $members['members'],
-					'total'        => $members['total'],
-					'per_page'     => $atts['per_page'],
-					'current_page' => $page,
-					'total_pages'  => $members['pages'],
-					'show_search'  => 'yes' === $atts['show_search'],
-					'show_filters' => 'yes' === $atts['show_filters'],
-				)
-			);
+		$html = '<div class="nbuf-directory-controls">';
+		$html .= '<form method="get" action="" class="nbuf-directory-form">';
 
-			include $template_path;
+		/* Preserve existing query vars */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
+		foreach ( $_GET as $key => $value ) {
+			if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) {
+				/* Skip arrays to prevent injection */
+				if ( is_array( $value ) ) {
+					continue;
+				}
+				$html .= '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( $value ) . '">';
+			}
 		}
 
-		return ob_get_clean();
+		/* Search */
+		if ( $show_search ) {
+			$html .= '<div class="nbuf-directory-search">';
+			$html .= '<input type="text" name="member_search" placeholder="' . esc_attr__( 'Search members...', 'nobloat-user-foundry' ) . '" value="' . esc_attr( $current_search ) . '" class="nbuf-search-input">';
+			$html .= '<button type="submit" class="nbuf-search-button">' . esc_html__( 'Search', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '</div>';
+		}
+
+		/* Filters */
+		if ( $show_filters ) {
+			$html .= '<div class="nbuf-directory-filters">';
+			$html .= '<select name="member_role" class="nbuf-filter-select">';
+			$html .= '<option value="">' . esc_html__( 'All Roles', 'nobloat-user-foundry' ) . '</option>';
+
+			/* Only show roles that are allowed in directory */
+			$allowed_roles = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
+			if ( ! is_array( $allowed_roles ) ) {
+				$allowed_roles = array( 'author', 'contributor', 'subscriber' );
+			}
+			$all_roles = wp_roles()->get_names();
+			foreach ( $allowed_roles as $role_slug ) {
+				if ( ! isset( $all_roles[ $role_slug ] ) ) {
+					continue;
+				}
+				$role_name = $all_roles[ $role_slug ];
+				$selected  = selected( $current_role, $role_slug, false );
+				$html     .= '<option value="' . esc_attr( $role_slug ) . '"' . $selected . '>' . esc_html( $role_name ) . '</option>';
+			}
+
+			$html .= '</select>';
+			$html .= '<button type="submit" class="nbuf-filter-button">' . esc_html__( 'Filter', 'nobloat-user-foundry' ) . '</button>';
+
+			if ( $current_search || $current_role ) {
+				$html .= '<a href="?" class="nbuf-clear-filters">' . esc_html__( 'Clear', 'nobloat-user-foundry' ) . '</a>';
+			}
+
+			$html .= '</div>';
+		}
+
+		$html .= '</form>';
+
+		/* Stats */
+		$html .= '<div class="nbuf-directory-stats">';
+		/* translators: %d: total member count */
+		$html .= esc_html( sprintf( _n( '%d member found', '%d members found', $total, 'nobloat-user-foundry' ), (int) $total ) );
+		$html .= '</div>';
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Build members content HTML (grid/list of member cards or empty message)
+	 *
+	 * @param  array  $members Array of member objects.
+	 * @param  bool   $is_list_view Whether this is list view.
+	 * @param  string $current_search Current search value.
+	 * @param  string $current_role Current role filter value.
+	 * @return string HTML.
+	 */
+	private static function build_members_html( $members, $is_list_view, $current_search, $current_role ) {
+		if ( empty( $members ) ) {
+			$html  = '<div class="nbuf-no-members">';
+			$html .= '<p>' . esc_html__( 'No members found.', 'nobloat-user-foundry' ) . '</p>';
+			if ( $current_search || $current_role ) {
+				$html .= '<p><a href="?">' . esc_html__( 'Clear filters and show all members', 'nobloat-user-foundry' ) . '</a></p>';
+			}
+			$html .= '</div>';
+			return $html;
+		}
+
+		$container_class = $is_list_view ? 'nbuf-members-list' : 'nbuf-members-grid';
+		$html            = '<div class="' . esc_attr( $container_class ) . '">';
+
+		foreach ( $members as $member ) {
+			if ( $is_list_view ) {
+				$html .= self::get_member_list_item( $member );
+			} else {
+				$html .= self::get_member_card( $member );
+			}
+		}
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Get member list item HTML (for list view)
+	 *
+	 * @param  object $member Member data.
+	 * @return string HTML.
+	 */
+	public static function get_member_list_item( $member ) {
+		$viewer_id = get_current_user_id();
+		$username  = isset( $member->user_login ) ? $member->user_login : get_userdata( $member->ID )->user_login;
+
+		$html  = '<div class="nbuf-member-item" data-user-id="' . esc_attr( $member->ID ) . '">';
+		$html .= '<div class="nbuf-member-avatar-small">' . wp_kses_post( get_avatar( $member->ID, 48 ) ) . '</div>';
+		$html .= '<div class="nbuf-member-details">';
+		$html .= '<h4 class="nbuf-member-name">';
+		$html .= '<a href="' . esc_url( NBUF_URL::get_profile( $username ) ) . '" aria-label="' . esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ) . '">';
+		$html .= esc_html( $member->display_name );
+		$html .= '</a></h4>';
+
+		$html .= '<div class="nbuf-member-meta-inline">';
+
+		/* Location */
+		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'location', $viewer_id ) ) {
+			if ( ! empty( $member->city ) || ! empty( $member->country ) ) {
+				$location_parts = array_filter( array( $member->city, $member->state, $member->country ) );
+				$html          .= '<span class="nbuf-member-location-inline">';
+				$html          .= '<span class="dashicons dashicons-location"></span>';
+				$html          .= esc_html( implode( ', ', $location_parts ) );
+				$html          .= '</span>';
+			}
+		}
+
+		/* Joined date */
+		$html .= '<span class="nbuf-member-joined-inline">';
+		/* translators: %s: registration date */
+		$html .= sprintf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( date_i18n( get_option( 'date_format' ), strtotime( $member->user_registered ) ) ) );
+		$html .= '</span>';
+		$html .= '</div>';
+
+		/* Bio */
+		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && ! empty( $member->bio ) ) {
+			$html .= '<div class="nbuf-member-bio-inline">' . esc_html( wp_trim_words( $member->bio, 15 ) ) . '</div>';
+		}
+
+		$html .= '</div>';
+
+		/* Website link */
+		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && ! empty( $member->website ) ) {
+			$html .= '<div class="nbuf-member-actions">';
+			$html .= '<a href="' . esc_url( $member->website ) . '" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">' . esc_html__( 'Website', 'nobloat-user-foundry' ) . '</a>';
+			$html .= '</div>';
+		}
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Build pagination HTML
+	 *
+	 * @param  int $current_page Current page number.
+	 * @param  int $total_pages Total number of pages.
+	 * @return string HTML.
+	 */
+	private static function build_pagination_html( $current_page, $total_pages ) {
+		if ( $total_pages <= 1 ) {
+			return '';
+		}
+
+		$base_url = remove_query_arg( 'member_page' );
+		$html     = '<div class="nbuf-directory-pagination">';
+
+		/* Previous link */
+		if ( $current_page > 1 ) {
+			$prev_url = add_query_arg( 'member_page', $current_page - 1, $base_url );
+			$html    .= '<a href="' . esc_url( $prev_url ) . '" class="nbuf-page-prev">' . esc_html__( '&laquo; Previous', 'nobloat-user-foundry' ) . '</a>';
+		}
+
+		/* Page numbers */
+		$html .= '<span class="nbuf-page-numbers">';
+		for ( $i = 1; $i <= $total_pages; $i++ ) {
+			if ( $current_page === $i ) {
+				$html .= '<span class="nbuf-page-number current">' . (int) $i . '</span>';
+			} else {
+				$html .= '<a href="' . esc_url( add_query_arg( 'member_page', $i, $base_url ) ) . '" class="nbuf-page-number">' . (int) $i . '</a>';
+			}
+		}
+		$html .= '</span>';
+
+		/* Next link */
+		if ( $current_page < $total_pages ) {
+			$next_url = add_query_arg( 'member_page', $current_page + 1, $base_url );
+			$html    .= '<a href="' . esc_url( $next_url ) . '" class="nbuf-page-next">' . esc_html__( 'Next &raquo;', 'nobloat-user-foundry' ) . '</a>';
+		}
+
+		$html .= '</div>';
+
+		return $html;
 	}
 
 	/**
@@ -216,6 +423,7 @@ class NBUF_Member_Directory {
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$sql = "SELECT SQL_CALC_FOUND_ROWS
 		        u.ID,
+		        u.user_login,
 		        u.display_name,
 		        u.user_email,
 		        u.user_registered,
@@ -371,14 +579,16 @@ class NBUF_Member_Directory {
 		<div class="nbuf-member-card" data-user-id="<?php echo esc_attr( $member->ID ); ?>">
 			<div class="nbuf-member-avatar">
 		<?php
-       // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		echo get_avatar( $member->ID, 96 );
+		echo wp_kses_post( get_avatar( $member->ID, 96 ) );
 		?>
 			</div>
 
 			<div class="nbuf-member-info">
+				<?php
+				$username = isset( $member->user_login ) ? $member->user_login : get_userdata( $member->ID )->user_login;
+				?>
 				<h3 class="nbuf-member-name">
-					<a href="<?php echo esc_url( get_author_posts_url( $member->ID ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ); ?>">
+					<a href="<?php echo esc_url( NBUF_URL::get_profile( $username ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ); ?>">
 						<?php echo esc_html( $member->display_name ); ?>
 					</a>
 				</h3>

@@ -83,8 +83,9 @@ class NBUF_Login_Limiting {
 					'critical',
 					'Login attempt blocked due to rate limiting',
 					array(
-						'username' => $username,
-						'reason'   => 'too_many_attempts',
+						'ip_address' => $ip_address,
+						'username'   => $username,
+						'reason'     => 'too_many_attempts',
 					)
 				);
 			}
@@ -150,7 +151,8 @@ class NBUF_Login_Limiting {
 				'warning',
 				$message,
 				array(
-					'username'   => $username,
+					'ip_address'  => $ip_address,
+					'username'    => $username,
 					'user_exists' => $user ? true : false,
 				),
 				$user_id

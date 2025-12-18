@@ -41,16 +41,60 @@ class NBUF_Passkeys_Login {
 	}
 
 	/**
+	 * Get the redirect URL based on settings.
+	 *
+	 * Uses the same logic as regular login for consistency.
+	 *
+	 * @since  1.5.0
+	 * @return string Redirect URL.
+	 */
+	private static function get_redirect_url() {
+		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'account' );
+
+		switch ( $login_redirect_setting ) {
+			case 'account':
+				if ( class_exists( 'NBUF_Universal_Router' ) ) {
+					return NBUF_Universal_Router::get_url( 'account' );
+				}
+				$account_page = NBUF_Options::get( 'nbuf_account_page', 0 );
+				return $account_page ? get_permalink( $account_page ) : home_url( '/' );
+
+			case 'admin':
+				return admin_url();
+
+			case 'home':
+				return home_url( '/' );
+
+			case 'custom':
+				$custom_url = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
+				if ( $custom_url ) {
+					/* Handle both absolute URLs and relative paths */
+					if ( strpos( $custom_url, 'http' ) === 0 ) {
+						return $custom_url;
+					}
+					return home_url( $custom_url );
+				}
+				/* Fall back to account page if custom URL is empty */
+				if ( class_exists( 'NBUF_Universal_Router' ) ) {
+					return NBUF_Universal_Router::get_url( 'account' );
+				}
+				return home_url( '/' );
+
+			default:
+				return home_url( '/' );
+		}
+	}
+
+	/**
 	 * Get common localization data for JavaScript.
 	 *
 	 * @since  1.5.0
-	 * @param  string $redirect_url Default redirect URL after login.
 	 * @return array Localization data.
 	 */
-	private static function get_localize_data( $redirect_url ) {
+	private static function get_localize_data() {
 		return array(
 			'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
-			'redirectUrl'     => $redirect_url,
+			'redirectUrl'     => self::get_redirect_url(),
 			'passkeysEnabled' => true,
 			'twoStepEnabled'  => true, /* Enable two-step login flow */
 			'strings'         => array(
@@ -90,7 +134,7 @@ class NBUF_Passkeys_Login {
 		wp_localize_script(
 			'nbuf-passkeys-login',
 			'nbufPasskeyLogin',
-			self::get_localize_data( admin_url() )
+			self::get_localize_data()
 		);
 
 		/* Add inline styles for two-step flow */
@@ -144,17 +188,10 @@ class NBUF_Passkeys_Login {
 			true
 		);
 
-		/* Determine redirect URL */
-		$redirect_url = home_url();
-		$account_page = NBUF_Options::get( 'nbuf_account_page', 0 );
-		if ( $account_page ) {
-			$redirect_url = get_permalink( $account_page );
-		}
-
 		wp_localize_script(
 			'nbuf-passkeys-login',
 			'nbufPasskeyLogin',
-			self::get_localize_data( $redirect_url )
+			self::get_localize_data()
 		);
 	}
 }

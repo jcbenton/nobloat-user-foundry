@@ -271,9 +271,9 @@ class NBUF_Shortcodes {
 
 		/* Get error message from query string */
 		$error_message = '';
-		if ( isset( $_GET['error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error         = sanitize_text_field( wp_unslash( $_GET['error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-reset-error">' . esc_html( urldecode( $error ) ) . '</div>';
+		$error_param   = self::get_query_param( 'error' );
+		if ( $error_param ) {
+			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-reset-error">' . esc_html( urldecode( $error_param ) ) . '</div>';
 		}
 
 		/* Build password requirements list if enabled */
@@ -361,13 +361,13 @@ class NBUF_Shortcodes {
 		$success_message = '';
 		$error_message   = '';
 
-		if ( isset( $_GET['reset'] ) && 'sent' === $_GET['reset'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( 'sent' === self::get_query_param( 'reset' ) ) {
 			$success_message = '<div class="nbuf-message nbuf-message-success nbuf-reset-success">' . esc_html__( 'Password reset link has been sent to your email address.', 'nobloat-user-foundry' ) . '</div>';
 		}
 
-		if ( isset( $_GET['error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error         = sanitize_text_field( wp_unslash( $_GET['error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-reset-error">' . esc_html( urldecode( $error ) ) . '</div>';
+		$error_param = self::get_query_param( 'error' );
+		if ( $error_param ) {
+			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-reset-error">' . esc_html( urldecode( $error_param ) ) . '</div>';
 		}
 
 		/* Get login and registration URLs */
@@ -755,10 +755,8 @@ class NBUF_Shortcodes {
 
 		// Get error message if present.
 		$error_message = '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameter for display purposes only
-		if ( isset( $_GET['login'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL parameter for display purposes only
-			$login_status = sanitize_text_field( wp_unslash( $_GET['login'] ) );
+		$login_status  = self::get_query_param( 'login' );
+		if ( $login_status ) {
 			switch ( $login_status ) {
 				case 'failed':
 					$error_message = '<div class="nbuf-message nbuf-message-error nbuf-login-error">' . esc_html__( 'Invalid username or password.', 'nobloat-user-foundry' ) . '</div>';
@@ -1000,13 +998,43 @@ class NBUF_Shortcodes {
 		$success_message = '';
 		$error_message   = '';
 
-		if ( isset( $_GET['registration'] ) && 'success' === $_GET['registration'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$success_message = '<div class="nbuf-message nbuf-message-success nbuf-registration-success">' . esc_html__( 'Registration successful! Please check your email to verify your account.', 'nobloat-user-foundry' ) . '</div>';
+		/* Handle successful registration - hide form and show appropriate message */
+		if ( 'success' === self::get_query_param( 'registration' ) ) {
+			$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
+
+			if ( $require_verification ) {
+				/* Email verification required - show message to check email */
+				return '<div class="nbuf-registration-success-container">
+					<div class="nbuf-message nbuf-message-success nbuf-registration-success">
+						<h3>' . esc_html__( 'Registration Successful!', 'nobloat-user-foundry' ) . '</h3>
+						<p>' . esc_html__( 'Please check your email to verify your account. You will need to click the verification link before you can log in.', 'nobloat-user-foundry' ) . '</p>
+					</div>
+					<p class="nbuf-registration-success-login">
+						' . sprintf(
+							/* translators: %1$s: opening link tag, %2$s: closing link tag */
+							esc_html__( 'Already have an account? %1$sLog in%2$s.', 'nobloat-user-foundry' ),
+							'<a href="' . esc_url( $login_url ) . '">',
+							'</a>'
+						) . '
+					</p>
+				</div>';
+			} else {
+				/* No verification required - show success and prompt to log in */
+				return '<div class="nbuf-registration-success-container">
+					<div class="nbuf-message nbuf-message-success nbuf-registration-success">
+						<h3>' . esc_html__( 'Registration Successful!', 'nobloat-user-foundry' ) . '</h3>
+						<p>' . esc_html__( 'Your account has been created. You can now log in with your credentials.', 'nobloat-user-foundry' ) . '</p>
+					</div>
+					<p class="nbuf-registration-success-login">
+						<a href="' . esc_url( $login_url ) . '" class="nbuf-button">' . esc_html__( 'Log In Now', 'nobloat-user-foundry' ) . '</a>
+					</p>
+				</div>';
+			}
 		}
 
-		if ( isset( $_GET['error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error         = sanitize_text_field( wp_unslash( $_GET['error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-registration-error">' . esc_html( urldecode( $error ) ) . '</div>';
+		$error_param = self::get_query_param( 'error' );
+		if ( $error_param ) {
+			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-registration-error">' . esc_html( urldecode( $error_param ) ) . '</div>';
 		}
 
 		/* Build username field HTML if needed */
@@ -1128,6 +1156,7 @@ class NBUF_Shortcodes {
 		$replacements = array(
 			'{action_url}'            => esc_url( self::get_current_page_url() ),
 			'{nonce_field}'           => wp_nonce_field( 'nbuf_registration', 'nbuf_registration_nonce', true, false ),
+			'{antibot_fields}'        => class_exists( 'NBUF_Antibot' ) ? NBUF_Antibot::render_fields() : '',
 			'{username_field}'        => $username_field_html,
 			'{profile_fields}'        => $profile_fields_html,
 			'{email_value}'           => $email_value,
@@ -1167,6 +1196,16 @@ class NBUF_Shortcodes {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_registration_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_registration_nonce'] ) ), 'nbuf_registration' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Anti-bot validation - must run BEFORE any other validation */
+		if ( class_exists( 'NBUF_Antibot' ) ) {
+			$antibot_result = NBUF_Antibot::validate( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce already verified above
+			if ( is_wp_error( $antibot_result ) ) {
+				$redirect_url = add_query_arg( 'error', rawurlencode( $antibot_result->get_error_message() ), self::get_current_page_url() );
+				wp_safe_redirect( $redirect_url );
+				exit;
+			}
 		}
 
 		/* Don't allow registration if user is already logged in */
@@ -3758,6 +3797,36 @@ Best regards,
 
 		/* Fall back to get_permalink for real WordPress pages */
 		return get_permalink();
+	}
+
+	/**
+	 * Get a query parameter from the current request.
+	 *
+	 * On virtual pages handled by Universal Router, $_GET may not be populated
+	 * by WordPress/server, so we manually parse the query string from REQUEST_URI.
+	 *
+	 * @param  string $param   Parameter name to retrieve.
+	 * @param  mixed  $default Default value if parameter not found.
+	 * @return mixed Parameter value or default.
+	 */
+	private static function get_query_param( $param, $default = '' ) {
+		/* First try $_GET */
+		if ( isset( $_GET[ $param ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return sanitize_text_field( wp_unslash( $_GET[ $param ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		}
+
+		/* Fallback: manually parse query string for virtual pages */
+		if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+			$query_string = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_QUERY ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			if ( $query_string ) {
+				parse_str( $query_string, $query_params );
+				if ( isset( $query_params[ $param ] ) ) {
+					return sanitize_text_field( $query_params[ $param ] );
+				}
+			}
+		}
+
+		return $default;
 	}
 
 	/**

@@ -182,6 +182,23 @@ class NBUF_Settings {
 			'nbuf_login_lockout_duration'         => array( __CLASS__, 'sanitize_positive_int' ),
 			'nbuf_login_trusted_proxies'          => array( __CLASS__, 'sanitize_trusted_proxies' ),
 
+			/* Security - Anti-Bot Registration Protection */
+			'nbuf_antibot_enabled'                => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_honeypot'               => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_time_check'             => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_min_time'               => function ( $value ) {
+				return max( 1, min( 30, absint( $value ) ) );
+			},
+			'nbuf_antibot_js_token'               => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_interaction'            => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_min_interactions'       => function ( $value ) {
+				return max( 1, min( 50, absint( $value ) ) );
+			},
+			'nbuf_antibot_pow'                    => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_antibot_pow_difficulty'         => function ( $value ) {
+				return in_array( $value, array( 'low', 'medium', 'high' ), true ) ? $value : 'medium';
+			},
+
 			/* Security - Password strength */
 			'nbuf_password_requirements_enabled'  => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_password_min_strength'          => function ( $value ) {
@@ -1293,8 +1310,9 @@ class NBUF_Settings {
 			'security'    => array(
 				'label'   => __( 'Security', 'nobloat-user-foundry' ),
 				'subtabs' => array(
-					'login-limits'  => __( 'Login Limits', 'nobloat-user-foundry' ),
-					'passwords'     => __( 'Passwords', 'nobloat-user-foundry' ),
+					'login-limits'            => __( 'Login Limits', 'nobloat-user-foundry' ),
+					'registration-protection' => __( 'Registration', 'nobloat-user-foundry' ),
+					'passwords'               => __( 'Passwords', 'nobloat-user-foundry' ),
 					'app-passwords' => __( 'App Passwords', 'nobloat-user-foundry' ),
 					'passkeys'      => __( 'Passkeys', 'nobloat-user-foundry' ),
 					'2fa-settings'  => __( '2FA Config', 'nobloat-user-foundry' ),

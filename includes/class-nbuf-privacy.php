@@ -729,12 +729,55 @@ class NBUF_Privacy {
 	/**
 	 * Handle user deletion
 	 *
-	 * Called when a user is deleted to handle logs per GDPR settings.
-	 * Processes all 3 enterprise logging tables.
+	 * Called when a user is deleted to:
+	 * 1. Clean up all user data from plugin tables (always)
+	 * 2. Handle logs per GDPR settings (delete, anonymize, or keep)
 	 *
 	 * @param int $user_id User ID being deleted.
 	 */
 	public static function handle_user_deletion( $user_id ) {
+		/*
+		 * ALWAYS clean up user data from plugin tables.
+		 * This is not affected by log deletion settings - user data must be removed.
+		 */
+
+		/* Delete verification/password reset tokens */
+		if ( class_exists( 'NBUF_Database' ) ) {
+			NBUF_Database::delete_user_tokens( $user_id );
+		}
+
+		/* Delete user data record */
+		if ( class_exists( 'NBUF_User_Data' ) ) {
+			NBUF_User_Data::delete( $user_id );
+		}
+
+		/* Delete profile data */
+		if ( class_exists( 'NBUF_Profile_Data' ) ) {
+			NBUF_Profile_Data::delete( $user_id );
+		}
+
+		/* Delete 2FA data */
+		if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
+			NBUF_User_2FA_Data::delete( $user_id );
+		}
+
+		/* Delete user notes */
+		if ( class_exists( 'NBUF_User_Notes' ) ) {
+			NBUF_User_Notes::delete_user_notes( $user_id );
+		}
+
+		/* Delete version history */
+		if ( class_exists( 'NBUF_Version_History' ) ) {
+			$version_history = new NBUF_Version_History();
+			$version_history->delete_user_versions( $user_id );
+		}
+
+		/* Passkeys are handled separately via delete_user hook in NBUF_Passkeys */
+
+		/*
+		 * Handle logs per GDPR settings.
+		 * These are audit/security logs, not user data.
+		 */
 		$deletion_mode = NBUF_Options::get( 'nbuf_logging_user_deletion_action', 'anonymize' );
 
 		if ( 'delete' === $deletion_mode ) {

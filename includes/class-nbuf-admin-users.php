@@ -956,6 +956,13 @@ class NBUF_Admin_Users {
 		<h2><?php esc_html_e( 'NoBloat User Options', 'nobloat-user-foundry' ); ?></h2>
 		<table class="form-table">
 			<tr>
+				<th><?php esc_html_e( 'User ID', 'nobloat-user-foundry' ); ?></th>
+				<td>
+					<code style="font-size: 14px; padding: 4px 8px; background: #f0f0f1; border-radius: 3px;"><?php echo esc_html( $user_id ); ?></code>
+					<p class="description"><?php esc_html_e( 'Unique identifier for this user in the database.', 'nobloat-user-foundry' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th><?php esc_html_e( 'User Enabled', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>

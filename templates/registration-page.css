@@ -353,6 +353,71 @@ textarea.nbuf-registration-input {
 }
 
 /* ==========================================================
+   REGISTRATION SUCCESS PAGE
+   ----------------------------------------------------------
+   Shown after successful registration, hides the form.
+   ========================================================== */
+
+.nbuf-registration-success-container {
+    max-width: 480px;
+    margin: var(--nbuf-space-3xl) auto;
+    padding: var(--nbuf-space-xl);
+    text-align: center;
+}
+
+.nbuf-registration-success-container .nbuf-message {
+    font-size: var(--nbuf-font-size-base);
+    padding: var(--nbuf-space-xl);
+    text-align: center;
+}
+
+.nbuf-registration-success-container .nbuf-message h3 {
+    margin: 0 0 var(--nbuf-space-md) 0;
+    font-size: var(--nbuf-font-size-xl);
+    font-weight: 600;
+    color: var(--nbuf-success);
+}
+
+.nbuf-registration-success-container .nbuf-message p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.nbuf-registration-success-login {
+    margin-top: var(--nbuf-space-xl);
+    font-size: 12px;
+}
+
+.nbuf-registration-success-login a {
+    color: var(--nbuf-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.nbuf-registration-success-login a:hover {
+    text-decoration: underline;
+}
+
+/* Button variant for "Log In Now" */
+.nbuf-registration-success-login .nbuf-button {
+    display: inline-block;
+    width: auto;
+    padding: var(--nbuf-space-md) var(--nbuf-space-2xl);
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: var(--nbuf-radius-sm);
+    transition: background-color var(--nbuf-transition-base);
+}
+
+.nbuf-registration-success-login .nbuf-button:hover {
+    background: var(--nbuf-primary-hover);
+    text-decoration: none;
+}
+
+/* ==========================================================
    FOOTER
    ========================================================== */
 

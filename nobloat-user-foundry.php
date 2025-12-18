@@ -468,6 +468,12 @@ add_action(
 			NBUF_Login_Limiting::init();
 		}
 
+		/* Anti-bot registration protection - works independently of main system toggle */
+		$antibot_enabled = NBUF_Options::get( 'nbuf_antibot_enabled', true );
+		if ( $antibot_enabled ) {
+			NBUF_Antibot::init();
+		}
+
 		/* Password expiration - requires main system to be enabled */
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 		if ( $system_enabled ) {

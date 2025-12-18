@@ -155,19 +155,20 @@ class NBUF_Verifier {
 		$msg  = __( 'Your email address has been successfully verified. You may now log in.', 'nobloat-user-foundry' );
 		$html = self::wrap_notice( $msg, true );
 
-		if ( $redirect_url ) {
-			// Add a small follow-up line with a link (no auto-redirect to keep it simple & reliable).
-			$html .= '<p class="nobloat-verify-next" style="text-align:center;margin-top:12px;">'
-			. '<a class="nobloat-verify-return" href="' . esc_url( $redirect_url ) . '">'
-			. esc_html__( 'Continue', 'nobloat-user-foundry' )
-			. '</a></p>';
-		} else {
-			// Fallback link to home.
-			$html .= '<p class="nobloat-verify-next" style="text-align:center;margin-top:12px;">'
-			. '<a class="nobloat-verify-return" href="' . esc_url( home_url( '/' ) ) . '">'
-			. esc_html__( 'Return to site', 'nobloat-user-foundry' )
-			. '</a></p>';
+		/* Get login URL from settings (respects Universal Router) */
+		$login_url = '';
+		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_login_url' ) ) {
+			$login_url = NBUF_Shortcodes::get_login_url();
 		}
+		if ( empty( $login_url ) ) {
+			$login_url = wp_login_url();
+		}
+
+		/* Add "Go to Login" button */
+		$html .= '<p class="nobloat-verify-next" style="text-align:center;margin-top:20px;">'
+			. '<a class="nobloat-verify-login-btn" href="' . esc_url( $login_url ) . '" style="display:inline-block;padding:12px 24px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:500;">'
+			. esc_html__( 'Go to Login', 'nobloat-user-foundry' )
+			. '</a></p>';
 
 		return $html;
 	}

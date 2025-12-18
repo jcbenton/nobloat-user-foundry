@@ -37,6 +37,7 @@ class NBUF_Activator {
 			NBUF_Database::create_user_profile_table();
 			NBUF_Database::create_login_attempts_table();
 			NBUF_Database::create_user_2fa_table();
+			NBUF_Database::create_user_passkeys_table();
 			NBUF_Database::create_user_audit_log_table();
 			NBUF_Database::create_admin_audit_log_table();
 			NBUF_Database::create_user_notes_table();

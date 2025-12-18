@@ -19,6 +19,23 @@ $nbuf_trusted_proxies        = NBUF_Options::get( 'nbuf_login_trusted_proxies', 
 
 /* Convert array to comma-separated string for display */
 $nbuf_trusted_proxies_str = is_array( $nbuf_trusted_proxies ) ? implode( ', ', $nbuf_trusted_proxies ) : '';
+
+/* Statistics - count currently blocked IPs */
+$blocked_ips_count = 0;
+global $wpdb;
+$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
+	$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$nbuf_login_lockout_duration} minutes" ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$blocked_ips_count = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM (SELECT ip_address FROM %i WHERE attempt_time > %s GROUP BY ip_address HAVING COUNT(*) >= %d) AS blocked",
+			$table_name,
+			$cutoff_time,
+			$nbuf_login_max_attempts
+		)
+	);
+}
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -84,3 +101,27 @@ $nbuf_trusted_proxies_str = is_array( $nbuf_trusted_proxies ) ? implode( ', ', $
 
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
+
+<h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
+<p class="description">
+	<?php
+	if ( $blocked_ips_count > 0 ) {
+		printf(
+			/* translators: %d: number of blocked IPs */
+			esc_html( _n( '%d IP address is currently blocked.', '%d IP addresses are currently blocked.', $blocked_ips_count, 'nobloat-user-foundry' ) ),
+			(int) $blocked_ips_count
+		);
+	} else {
+		esc_html_e( 'No IP addresses are currently blocked.', 'nobloat-user-foundry' );
+	}
+	?>
+</p>
+<p class="description">
+	<?php
+	printf(
+		/* translators: %s: link to Security Log */
+		esc_html__( 'Blocked IPs can be managed from the %s.', 'nobloat-user-foundry' ),
+		'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-security-log' ) ) . '">' . esc_html__( 'Security Log', 'nobloat-user-foundry' ) . '</a>'
+	);
+	?>
+</p>

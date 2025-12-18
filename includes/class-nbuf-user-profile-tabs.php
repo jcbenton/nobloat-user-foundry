@@ -183,9 +183,37 @@ class NBUF_User_Profile_Tabs {
 
 			/* Build sections array - each section is h2 + content until next h2 */
 			var sections = [];
+			/* Tab title renames */
+			var titleRenames = {
+				'Personal Options': 'Options',
+				'Name': 'Details',
+				'Account Management': 'Account',
+				'Extended Profile': 'Profile',
+				'User Photos': 'Photos',
+				'Two-Factor Authentication': '2FA',
+				'Profile History': 'History'
+			};
+
+			/* Sections to merge into another tab (key = section to merge, value = target section) */
+			var sectionsToMerge = {
+				'Contact Info': 'Details',
+				'About the user': 'Details',
+				'NoBloat User Options': 'Account'
+			};
+
+			/* Desired tab order (tabs not listed will appear at end in original order) */
+			var tabOrder = ['Options', 'Details', 'Account', 'Profile', 'Roles', '2FA', 'History', 'Photos', 'Notes'];
+
 			\$headings.each(function(index) {
 				var \$h2 = $(this);
-				var title = \$h2.text().trim();
+				var originalTitle = \$h2.text().trim();
+				var title = originalTitle;
+
+				/* Apply any title renames */
+				if (titleRenames[title]) {
+					title = titleRenames[title];
+				}
+
 				var id = 'nbuf-profile-tab-' + index;
 
 				/* Get all siblings until next h2 */
@@ -194,9 +222,54 @@ class NBUF_User_Profile_Tabs {
 				sections.push({
 					id: id,
 					title: title,
+					originalTitle: originalTitle,
 					\$heading: \$h2,
-					\$content: \$content
+					\$content: \$content,
+					mergeInto: sectionsToMerge[originalTitle] || null
 				});
+			});
+
+			/* Process merges - move content from merged sections into target sections */
+			var sectionsToRemove = [];
+			sections.forEach(function(section) {
+				if (section.mergeInto) {
+					/* Find target section */
+					var targetSection = sections.find(function(s) {
+						return s.title === section.mergeInto;
+					});
+
+					if (targetSection) {
+						/* Store content to append later (heading + content for subsection display) */
+						if (!targetSection.mergedContent) {
+							targetSection.mergedContent = [];
+						}
+						targetSection.mergedContent.push({
+							\$heading: section.\$heading,
+							\$content: section.\$content
+						});
+						sectionsToRemove.push(section);
+					}
+				}
+			});
+
+			/* Remove merged sections from main sections array */
+			sectionsToRemove.forEach(function(sectionToRemove) {
+				var idx = sections.indexOf(sectionToRemove);
+				if (idx > -1) {
+					sections.splice(idx, 1);
+				}
+			});
+
+			/* Sort sections according to tabOrder */
+			sections.sort(function(a, b) {
+				var aIndex = tabOrder.indexOf(a.title);
+				var bIndex = tabOrder.indexOf(b.title);
+
+				/* If not in tabOrder, place at end */
+				if (aIndex === -1) aIndex = 999;
+				if (bIndex === -1) bIndex = 999;
+
+				return aIndex - bIndex;
 			});
 
 			/* Also grab the submit button */
@@ -236,6 +309,14 @@ class NBUF_User_Profile_Tabs {
 				section.\$heading.appendTo(\$tabPanel);
 				section.\$content.appendTo(\$tabPanel);
 
+				/* Append any merged content (shows as subsections with visible headings) */
+				if (section.mergedContent) {
+					section.mergedContent.forEach(function(merged) {
+						merged.\$heading.appendTo(\$tabPanel);
+						merged.\$content.appendTo(\$tabPanel);
+					});
+				}
+
 				\$tabPanels.append(\$tabPanel);
 			});
 
@@ -253,6 +334,44 @@ class NBUF_User_Profile_Tabs {
 
 			/* Remove loading class */
 			\$form.removeClass('nbuf-tabs-loading');
+
+			/* Add Application Passwords heading after Sessions in Account tab */
+			/* Try multiple selectors for Sessions button */
+			var \$sessionsBtn = \$tabPanels.find('#destroy-sessions, .destroy-sessions, button[name=\"destroy-sessions\"]');
+			if (\$sessionsBtn.length) {
+				var \$sessionsTable = \$sessionsBtn.closest('table.form-table');
+				if (\$sessionsTable.length) {
+					\$sessionsTable.after('<h2>Application Passwords</h2>');
+				}
+			} else {
+				/* Fallback: Find by button text containing Log Out */
+				\$tabPanels.find('button, input[type=\"button\"], input[type=\"submit\"]').each(function() {
+					var btnText = $(this).text() || $(this).val() || '';
+					if (btnText.indexOf('Log Out') !== -1 && btnText.indexOf('Everywhere') !== -1) {
+						var \$table = $(this).closest('table.form-table');
+						if (\$table.length) {
+							\$table.after('<h2>Application Passwords</h2>');
+						}
+						return false;
+					}
+				});
+			}
+
+			/* Add Existing Application Passwords heading above the app passwords table */
+			var subheadingStyle = 'margin-top: 30px; padding-top: 20px; border-top: 1px solid #dcdcde; font-size: 1.1em;';
+			var \$appPasswordsTable = \$tabPanels.find('#application-passwords-section .wp-list-table, .application-passwords-list-table, table.application-passwords');
+			if (\$appPasswordsTable.length) {
+				\$appPasswordsTable.first().before('<h2 style=\"' + subheadingStyle + '\">Existing Application Passwords</h2>');
+			} else {
+				/* Fallback: find table after the new app password form */
+				var \$newAppForm = \$tabPanels.find('#new_application_password_form, .create-application-password');
+				if (\$newAppForm.length) {
+					var \$nextTable = \$newAppForm.nextAll('table.wp-list-table').first();
+					if (\$nextTable.length) {
+						\$nextTable.before('<h2 style=\"' + subheadingStyle + '\">Existing Application Passwords</h2>');
+					}
+				}
+			}
 
 			/* Tab click handler */
 			\$tabNav.on('click', '.nbuf-profile-tab-link', function(e) {

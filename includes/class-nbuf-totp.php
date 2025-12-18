@@ -76,9 +76,10 @@ class NBUF_TOTP {
 		/* Convert to integer and mask to 31 bits */
 		$code = unpack( 'N', $truncated )[1] & 0x7FFFFFFF;
 
-		/* Get modulo based on code length */
-		$modulo = pow( 10, $code_length );
-		$code   = $code % $modulo;
+		/* Get modulo based on code length (cast to int - options may return string) */
+		$code_length = (int) $code_length;
+		$modulo      = pow( 10, $code_length );
+		$code        = $code % $modulo;
 
 		/* Pad with zeros */
 		return str_pad( (string) $code, $code_length, '0', STR_PAD_LEFT );
@@ -102,8 +103,8 @@ class NBUF_TOTP {
 		/* Sanitize code - remove spaces and non-numeric characters */
 		$code = preg_replace( '/[^0-9]/', '', $code );
 
-		/* Validate code length */
-		if ( strlen( $code ) !== $code_length ) {
+		/* Validate code length (cast to int for comparison - options may return string) */
+		if ( strlen( $code ) !== (int) $code_length ) {
 			return false;
 		}
 

@@ -111,6 +111,45 @@ add_filter(
 );
 
 /**
+ * Check and run database upgrades if needed.
+ *
+ * Compares stored DB version with current and runs table creation
+ * for any new tables added in updates. Uses dbDelta which is safe
+ * to run on existing tables (only makes changes if needed).
+ */
+function nbuf_maybe_upgrade_database() {
+	$current_db_version = '1.5.0'; /* Update this when adding new tables */
+	$stored_db_version  = get_option( 'nbuf_db_version', '0' );
+
+	if ( version_compare( $stored_db_version, $current_db_version, '<' ) ) {
+		if ( class_exists( 'NBUF_Database' ) ) {
+			/* Run all table creation - dbDelta only modifies if needed */
+			NBUF_Database::create_table();
+			NBUF_Database::create_user_data_table();
+			NBUF_Database::create_options_table();
+			NBUF_Database::create_user_profile_table();
+			NBUF_Database::create_login_attempts_table();
+			NBUF_Database::create_user_2fa_table();
+			NBUF_Database::create_user_passkeys_table();
+			NBUF_Database::create_user_audit_log_table();
+			NBUF_Database::create_admin_audit_log_table();
+			NBUF_Database::create_user_notes_table();
+			NBUF_Database::create_import_history_table();
+			NBUF_Database::create_menu_restrictions_table();
+			NBUF_Database::create_content_restrictions_table();
+			NBUF_Database::create_user_roles_table();
+
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::create_table();
+			}
+		}
+
+		/* Update stored version */
+		update_option( 'nbuf_db_version', $current_db_version );
+	}
+}
+
+/**
  * Ensure minified live CSS files exist.
  *
  * Creates -live.min.css files from default templates if they don't exist.
@@ -178,6 +217,9 @@ add_action(
 	function () {
 		// Preload all autoload settings in ONE query (massive performance boost).
 		NBUF_Options::preload_autoload();
+
+		// Check for database upgrades (creates new tables on plugin update).
+		nbuf_maybe_upgrade_database();
 
 		// Ensure minified CSS files exist (for upgrades from older versions).
 		nbuf_ensure_live_css_files();
@@ -347,6 +389,13 @@ add_action(
 
 		if ( $email_2fa_enabled || $totp_2fa_enabled ) {
 			NBUF_2FA_Login::init();
+		}
+
+		// Initialize Passkeys (if enabled).
+		$passkeys_enabled = NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+		if ( $passkeys_enabled ) {
+			NBUF_Passkeys::init();
+			NBUF_Passkeys_Login::init();
 		}
 
 		// Initialize Access Restrictions (if enabled).

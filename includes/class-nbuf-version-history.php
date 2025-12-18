@@ -393,11 +393,15 @@ class NBUF_Version_History {
 	private function get_ip_address( $anonymize = false ) {
 		$ip = '';
 
-		/* Check various headers for IP */
+		/* Check various headers for IP - parse first IP from comma-separated lists */
 		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+			$client_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+			$ip_list   = array_map( 'trim', explode( ',', $client_ip ) );
+			$ip        = $ip_list[0];
 		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			$forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			$ip_list   = array_map( 'trim', explode( ',', $forwarded ) );
+			$ip        = $ip_list[0];
 		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
 			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
 		}
@@ -417,15 +421,19 @@ class NBUF_Version_History {
 	}
 
 	/**
-	 * Anonymize IP address (remove last octet for IPv4, last 80 bits for IPv6)
+	 * Anonymize IP address for GDPR compliance
+	 *
+	 * Removes last two octets for IPv4 (/16 network) and last 80 bits for IPv6.
+	 * This provides stronger anonymization than single-octet removal.
 	 *
 	 * @param  string $ip IP address.
 	 * @return string Anonymized IP.
 	 */
 	private function anonymize_ip( $ip ) {
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
-			/* IPv4: Replace last octet with 0 */
+			/* IPv4: Replace last TWO octets with 0 for stronger GDPR compliance (/16 network) */
 			$parts    = explode( '.', $ip );
+			$parts[2] = '0';
 			$parts[3] = '0';
 			return implode( '.', $parts );
 		} elseif ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
@@ -748,6 +756,17 @@ class NBUF_Version_History {
 	public function ajax_get_version_timeline() {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
+		/* Rate limiting: 30 requests per minute per user */
+		$current_user_id = get_current_user_id();
+		$rate_key        = 'nbuf_vh_rate_' . $current_user_id;
+		$requests        = (int) get_transient( $rate_key );
+
+		if ( $requests >= 30 ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait a moment.', 'nobloat-user-foundry' ) ) );
+		}
+
+		set_transient( $rate_key, $requests + 1, MINUTE_IN_SECONDS );
+
 		$user_id  = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
 		$page     = isset( $_POST['page'] ) ? absint( $_POST['page'] ) : 1;
 		$per_page = 20;
@@ -983,24 +1002,21 @@ class NBUF_Version_History {
 	 * Called by admin, metabox, shortcode, and account page contexts.
 	 *
 	 * @since 1.4.0
-	 * @param int    $user_id    User ID whose history to display.
-	 * @param string $context    Context: 'admin', 'metabox', or 'account'.
-	 * @param bool   $can_revert Optional. Override can_revert check. Default null (auto-determine).
+	 * @param int    $user_id User ID whose history to display.
+	 * @param string $context Context: 'admin', 'metabox', or 'account'.
 	 * @return string HTML output.
 	 */
-	public static function render_viewer( $user_id, $context = 'admin', $can_revert = null ) {
+	public static function render_viewer( $user_id, $context = 'admin' ) {
 		/* Get user */
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return '';
 		}
 
-		/* Check revert permission if not provided */
-		if ( null === $can_revert ) {
-			$current_user_id   = get_current_user_id();
-			$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
-			$can_revert        = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
-		}
+		/* Check revert permission */
+		$current_user_id   = get_current_user_id();
+		$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
+		$can_revert        = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
 
 		/* Load HTML template */
 		$template = NBUF_Template_Manager::load_default_file( 'version-history-viewer-html' );

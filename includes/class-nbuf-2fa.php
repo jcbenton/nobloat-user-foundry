@@ -471,10 +471,15 @@ If you did not request this code, please ignore this email.
 			);
 		}
 
-		/* Get settings */
+		/*
+		 * Get settings.
+		 * Tolerance of 2 allows ±60 seconds clock drift between server and
+		 * authenticator app. This is hardcoded to match TOTP setup tolerance
+		 * and ensure consistent verification behavior.
+		 */
 		$code_length = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
 		$time_window = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
-		$tolerance   = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
+		$tolerance   = 2; /* Hardcoded - must match setup tolerance */
 
 		/* Verify code */
 		$valid = NBUF_TOTP::verify_code( $secret, $code, $tolerance, $code_length, $time_window );

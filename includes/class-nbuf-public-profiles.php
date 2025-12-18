@@ -130,16 +130,16 @@ class NBUF_Public_Profiles {
 		/* Get custom profile data */
 		$profile_data = null;
 		if ( class_exists( 'NBUF_Profile_Data' ) ) {
-			$profile_data     = NBUF_Profile_Data::get( $user->ID );
-			$field_registry   = NBUF_Profile_Data::get_field_registry();
-			$custom_labels    = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
-			$enabled_fields   = NBUF_Profile_Data::get_account_fields();
+			$profile_data   = NBUF_Profile_Data::get( $user->ID );
+			$field_registry = NBUF_Profile_Data::get_field_registry();
+			$custom_labels  = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
 
-			/* Build custom fields array */
+			/* Build custom fields array - include all fields from registry that user selected as visible */
 			foreach ( $field_registry as $category ) {
 				if ( isset( $category['fields'] ) && is_array( $category['fields'] ) ) {
 					foreach ( $category['fields'] as $key => $default_label ) {
-						if ( in_array( $key, $enabled_fields, true ) ) {
+						/* Include field if it's in the user's visible fields selection */
+						if ( in_array( $key, $visible_fields, true ) ) {
 							$label = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : $default_label;
 							$value = $profile_data && isset( $profile_data->$key ) ? $profile_data->$key : '';
 

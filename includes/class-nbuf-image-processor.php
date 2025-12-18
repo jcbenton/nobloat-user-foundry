@@ -964,6 +964,7 @@ class NBUF_Image_Processor {
 				$user_id,
 				'privacy',
 				'photos_deleted_account_closure',
+				'User photos deleted during account closure',
 				array( 'directory' => $user_dir )
 			);
 		}

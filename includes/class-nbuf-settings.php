@@ -282,6 +282,21 @@ class NBUF_Settings {
 			'nbuf_2fa_notify_lockout'             => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_2fa_notify_disable'             => array( __CLASS__, 'sanitize_checkbox' ),
 
+			/* Security - Passkeys */
+			'nbuf_passkeys_enabled'               => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_passkeys_max_per_user'          => function ( $value ) {
+				return max( 1, min( 20, absint( $value ) ) );
+			},
+			'nbuf_passkeys_user_verification'     => function ( $value ) {
+				return in_array( $value, array( 'preferred', 'required', 'discouraged' ), true ) ? $value : 'preferred';
+			},
+			'nbuf_passkeys_attestation'           => function ( $value ) {
+				return in_array( $value, array( 'none', 'indirect', 'direct' ), true ) ? $value : 'none';
+			},
+			'nbuf_passkeys_timeout'               => function ( $value ) {
+				return max( 30000, min( 300000, absint( $value ) ) );
+			},
+
 			/* Security - Account Verification & Approval */
 			'nbuf_require_approval'               => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_delete_unverified_days'         => 'absint',
@@ -1281,6 +1296,7 @@ class NBUF_Settings {
 					'login-limits'  => __( 'Login Limits', 'nobloat-user-foundry' ),
 					'passwords'     => __( 'Passwords', 'nobloat-user-foundry' ),
 					'app-passwords' => __( 'App Passwords', 'nobloat-user-foundry' ),
+					'passkeys'      => __( 'Passkeys', 'nobloat-user-foundry' ),
 					'2fa-settings'  => __( '2FA Config', 'nobloat-user-foundry' ),
 					'2fa-email'     => __( 'Email Auth', 'nobloat-user-foundry' ),
 					'2fa-totp'      => __( 'Authenticator', 'nobloat-user-foundry' ),
@@ -1639,9 +1655,6 @@ class NBUF_Settings {
 	 */
 	public static function enqueue_admin_assets( $hook ) {
 		/* Load on all NoBloat User Foundry admin pages */
-		/* Debug: uncomment to see hook name */
-		/* error_log( 'NBUF Hook: ' . $hook ); */
-
 		if ( strpos( $hook, 'nobloat-foundry' ) === false && strpos( $hook, 'user-foundry' ) === false ) {
 			return;
 		}

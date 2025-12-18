@@ -66,7 +66,12 @@ class NBUF_Hooks {
 	 */
 	public static function register_hooks() {
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
-		$hooks    = isset( $settings['hooks'] ) ? (array) $settings['hooks'] : array( 'register_new_user' );
+		$hooks    = isset( $settings['hooks'] ) && ! empty( $settings['hooks'] ) ? (array) $settings['hooks'] : array();
+
+		/* Always include user_register as the base hook - this is required for the plugin's own registration */
+		if ( ! in_array( 'user_register', $hooks, true ) ) {
+			$hooks[] = 'user_register';
+		}
 
 		foreach ( $hooks as $hook_name ) {
 			add_action( $hook_name, array( __CLASS__, 'trigger_verification_email' ), 10, 1 );
@@ -75,6 +80,26 @@ class NBUF_Hooks {
 		// Optional re-verification on email change.
 		if ( ! empty( $settings['reverify_on_email_change'] ) ) {
 			add_action( 'profile_update', array( __CLASS__, 'handle_email_change' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * Track users who have already received verification emails in this request.
+	 *
+	 * @var array
+	 */
+	private static $verification_sent_to = array();
+
+	/**
+	 * Mark that verification email was sent to a user.
+	 *
+	 * Called by NBUF_Registration to prevent duplicate emails from hook.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public static function mark_verification_sent( $user_id ) {
+		if ( ! in_array( $user_id, self::$verification_sent_to, true ) ) {
+			self::$verification_sent_to[] = $user_id;
 		}
 	}
 
@@ -88,6 +113,11 @@ class NBUF_Hooks {
 	 */
 	public static function trigger_verification_email( $user_id ) {
 		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+			return;
+		}
+
+		/* Skip if we already sent verification email to this user in this request */
+		if ( in_array( $user_id, self::$verification_sent_to, true ) ) {
 			return;
 		}
 
@@ -106,6 +136,16 @@ class NBUF_Hooks {
 			return;
 		}
 
+		/* Check if user already has a recent verification token (avoid duplicates) */
+		if ( class_exists( 'NBUF_Database' ) ) {
+			$existing_token = NBUF_Database::get_valid_token( $user->user_email );
+			if ( $existing_token ) {
+				/* Token already exists, skip sending duplicate email */
+				self::$verification_sent_to[] = $user_id;
+				return;
+			}
+		}
+
 		$user_email = $user->user_email;
 
 		/* Generate cryptographically secure token and expiration */
@@ -115,6 +155,9 @@ class NBUF_Hooks {
 		/* Store and send */
 		NBUF_Database::insert_token( $user_id, $user_email, $token, $expires, 0 );
 		NBUF_Email::send_verification_email( $user_email, $token );
+
+		/* Track that we sent to this user */
+		self::$verification_sent_to[] = $user_id;
 
 		/* Log user registration */
 		NBUF_Audit_Log::log(
@@ -161,11 +204,6 @@ class NBUF_Hooks {
 
 			NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
 			NBUF_Email::send_verification_email( $user->user_email, $token );
-
-			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- Intentional placeholder for future debug logging
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// Future: Add debug logging here.
-			}
 		}
 	}
 

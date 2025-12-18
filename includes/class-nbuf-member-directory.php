@@ -92,6 +92,51 @@ class NBUF_Member_Directory {
 	}
 
 	/**
+	 * Get member avatar HTML with initials fallback.
+	 *
+	 * Uses NBUF_Profile_Photos if available, otherwise generates SVG initials.
+	 *
+	 * @param  int $user_id User ID.
+	 * @param  int $size    Avatar size in pixels.
+	 * @return string Avatar HTML.
+	 */
+	public static function get_member_avatar( $user_id, $size = 96 ) {
+		$user = get_userdata( $user_id );
+		$alt  = $user ? $user->display_name : '';
+
+		/* Try to use profile photos class if available */
+		if ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_profile_photo' ) ) {
+			$photo_url = NBUF_Profile_Photos::get_profile_photo( $user_id, $size );
+
+			/* Check if it's a data URI (SVG initials avatar) */
+			if ( 0 === strpos( $photo_url, 'data:' ) ) {
+				/* Data URI - use esc_attr instead of esc_url */
+				return sprintf(
+					'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar nbuf-svg-avatar" width="%d" height="%d" loading="lazy" style="border-radius: 50%%;" />',
+					esc_attr( $photo_url ),
+					esc_attr( $alt ),
+					$size,
+					$size,
+					$size
+				);
+			}
+
+			/* Regular URL - use esc_url */
+			return sprintf(
+				'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar" width="%d" height="%d" loading="lazy" style="border-radius: 50%%; object-fit: cover;" />',
+				esc_url( $photo_url ),
+				esc_attr( $alt ),
+				$size,
+				$size,
+				$size
+			);
+		}
+
+		/* Fallback: Use get_avatar if profile photos not available */
+		return get_avatar( $user_id, $size );
+	}
+
+	/**
 	 * Render member directory
 	 *
 	 * @param  array $atts Shortcode attributes.
@@ -191,15 +236,12 @@ class NBUF_Member_Directory {
 		$html = '<div class="nbuf-directory-controls">';
 		$html .= '<form method="get" action="" class="nbuf-directory-form">';
 
-		/* Preserve existing query vars */
+		/* Preserve existing query vars using whitelist approach for security */
+		$allowed_params = apply_filters( 'nbuf_directory_allowed_params', array( 'page_id', 'p', 'preview', 'preview_id', 'preview_nonce' ) );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
-		foreach ( $_GET as $key => $value ) {
-			if ( ! in_array( $key, array( 'member_search', 'member_role', 'member_page' ), true ) ) {
-				/* Skip arrays to prevent injection */
-				if ( is_array( $value ) ) {
-					continue;
-				}
-				$html .= '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( $value ) . '">';
+		foreach ( $allowed_params as $param ) {
+			if ( isset( $_GET[ $param ] ) && ! is_array( $_GET[ $param ] ) ) {
+				$html .= '<input type="hidden" name="' . esc_attr( $param ) . '" value="' . esc_attr( sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) ) . '">';
 			}
 		}
 
@@ -302,7 +344,7 @@ class NBUF_Member_Directory {
 		$username  = isset( $member->user_login ) ? $member->user_login : get_userdata( $member->ID )->user_login;
 
 		$html  = '<div class="nbuf-member-item" data-user-id="' . esc_attr( $member->ID ) . '">';
-		$html .= '<div class="nbuf-member-avatar-small">' . wp_kses_post( get_avatar( $member->ID, 48 ) ) . '</div>';
+		$html .= '<div class="nbuf-member-avatar-small">' . self::get_member_avatar( $member->ID, 48 ) . '</div>';
 		$html .= '<div class="nbuf-member-details">';
 		$html .= '<h4 class="nbuf-member-name">';
 		$html .= '<a href="' . esc_url( NBUF_URL::get_profile( $username ) ) . '" aria-label="' . esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ) . '">';
@@ -579,7 +621,7 @@ class NBUF_Member_Directory {
 		<div class="nbuf-member-card" data-user-id="<?php echo esc_attr( $member->ID ); ?>">
 			<div class="nbuf-member-avatar">
 		<?php
-		echo wp_kses_post( get_avatar( $member->ID, 96 ) );
+		echo self::get_member_avatar( $member->ID, 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG is generated internally with escaped values.
 		?>
 			</div>
 

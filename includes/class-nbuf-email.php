@@ -37,9 +37,14 @@ class NBUF_Email {
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
 		$mode     = isset( $settings['email_mode'] ) && 'text' === $settings['email_mode'] ? 'text' : 'html';
 
-		// Get verification page URL from page ID.
-		$verification_page_id = NBUF_Options::get( 'nbuf_page_verification', 0 );
-		$verification_base    = $verification_page_id ? get_permalink( $verification_page_id ) : home_url( '/nobloat-verify' );
+		// Get verification page URL using helper method (supports Universal Router).
+		$verification_base = '';
+		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_verification_url' ) ) {
+			$verification_base = NBUF_Shortcodes::get_verification_url();
+		} else {
+			$verification_page_id = NBUF_Options::get( 'nbuf_page_verification', 0 );
+			$verification_base    = $verification_page_id ? get_permalink( $verification_page_id ) : home_url( '/nobloat-verify' );
+		}
 
 		// Construct verification URL.
 		$verification_url = add_query_arg( 'token', rawurlencode( $token ), $verification_base );

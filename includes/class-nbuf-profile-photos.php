@@ -1138,6 +1138,9 @@ class NBUF_Profile_Photos {
 		/* Get current photo - either custom upload, gravatar, or SVG avatar */
 		$user = get_userdata( $user_id );
 		?>
+		<h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Profile Photo', 'nobloat-user-foundry' ); ?></h3>
+		<p class="nbuf-method-description" style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #4a5568;"><?php esc_html_e( 'Manage your profile photo appearance. Choose between a custom upload, Gravatar, or default initials avatar.', 'nobloat-user-foundry' ); ?></p>
+
 		<div class="nbuf-photo-upload-group">
 			<div class="nbuf-current-photo">
 				<?php
@@ -1166,18 +1169,18 @@ class NBUF_Profile_Photos {
 				<?php if ( $profiles_enabled ) : ?>
 					<div class="nbuf-photo-option" style="margin-bottom: 15px;">
 						<div class="nbuf-photo-actions">
-							<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_profile_photo_upload_btn">
+							<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_profile_photo_upload_btn" style="padding: 12px 24px; font-size: 15px;">
 								<?php esc_html_e( 'Upload Custom Photo', 'nobloat-user-foundry' ); ?>
 							</button>
 							<input type="file" id="nbuf_profile_photo_upload" accept="image/*" style="display:none;">
 
 							<?php if ( $has_custom_profile ) : ?>
-								<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_profile_photo">
+								<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_profile_photo" style="padding: 12px 24px; font-size: 15px;">
 									<?php esc_html_e( 'Delete Photo', 'nobloat-user-foundry' ); ?>
 								</button>
 							<?php endif; ?>
 						</div>
-						<p class="description">
+						<p class="description" style="margin-top: 8px; font-size: 14px; color: #6c757d;">
 							<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 5MB. Images are automatically converted to WebP for optimal performance.', 'nobloat-user-foundry' ); ?>
 						</p>
 					</div>
@@ -1206,7 +1209,7 @@ class NBUF_Profile_Photos {
 								<br>
 								<em style="color: #856404;"><?php esc_html_e( 'Note: Gravatar requires external API calls which may have privacy implications.', 'nobloat-user-foundry' ); ?></em>
 							</p>
-							<button type="submit" class="nbuf-button nbuf-button-primary" style="margin-top: 12px;">
+							<button type="submit" class="nbuf-button nbuf-button-primary" style="margin-top: 12px; padding: 12px 24px; font-size: 15px;">
 								<?php esc_html_e( 'Save Gravatar Setting', 'nobloat-user-foundry' ); ?>
 							</button>
 						</div>
@@ -1240,11 +1243,10 @@ class NBUF_Profile_Photos {
 		$cover_photo_url = self::get_cover_photo( $user_id );
 		$has_cover       = ! empty( $cover_photo_url );
 		?>
-		<div class="nbuf-photo-upload-group">
-			<p class="description" style="margin-bottom: 15px;">
-				<?php esc_html_e( 'Cover photos appear at the top of your public profile page.', 'nobloat-user-foundry' ); ?>
-			</p>
+		<h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Cover Photo', 'nobloat-user-foundry' ); ?></h3>
+		<p class="nbuf-method-description" style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #4a5568;"><?php esc_html_e( 'Cover photos appear at the top of your public profile page.', 'nobloat-user-foundry' ); ?></p>
 
+		<div class="nbuf-photo-upload-group">
 			<?php if ( $has_cover ) : ?>
 				<div class="nbuf-current-cover" style="margin-bottom: 15px;">
 					<img src="<?php echo esc_url( $cover_photo_url ); ?>" alt="<?php esc_attr_e( 'Cover Photo', 'nobloat-user-foundry' ); ?>" class="nbuf-cover-photo" style="max-width: 100%; height: auto; border-radius: 4px;">
@@ -1252,19 +1254,19 @@ class NBUF_Profile_Photos {
 			<?php endif; ?>
 
 			<div class="nbuf-photo-actions">
-				<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_cover_photo_upload_btn">
+				<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-upload-btn" id="nbuf_cover_photo_upload_btn" style="padding: 12px 24px; font-size: 15px;">
 					<?php echo $has_cover ? esc_html__( 'Change Cover Photo', 'nobloat-user-foundry' ) : esc_html__( 'Upload Cover Photo', 'nobloat-user-foundry' ); ?>
 				</button>
 				<input type="file" id="nbuf_cover_photo_upload" accept="image/*" style="display:none;">
 
 				<?php if ( $has_cover ) : ?>
-					<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_cover_photo">
+					<button type="button" class="nbuf-button nbuf-button-primary nbuf-photo-delete-btn" id="nbuf_delete_cover_photo" style="padding: 12px 24px; font-size: 15px;">
 						<?php esc_html_e( 'Delete Cover', 'nobloat-user-foundry' ); ?>
 					</button>
 				<?php endif; ?>
 			</div>
 
-			<p class="description" style="margin-top: 10px;">
+			<p class="description" style="margin-top: 8px; font-size: 14px; color: #6c757d;">
 				<?php esc_html_e( 'JPG, PNG, GIF, or WebP. Max 10MB. Recommended size: 1500x500px.', 'nobloat-user-foundry' ); ?>
 			</p>
 
@@ -1295,16 +1297,19 @@ class NBUF_Profile_Photos {
 			}
 		}
 		?>
+		<h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Profile Settings', 'nobloat-user-foundry' ); ?></h3>
+		<p class="nbuf-method-description" style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #4a5568;"><?php esc_html_e( 'Configure your profile visibility and control which information appears on your public profile.', 'nobloat-user-foundry' ); ?></p>
+
 		<div class="nbuf-profile-settings-section">
 
 			<!-- Profile Privacy Settings -->
-			<div class="nbuf-profile-settings-group">
-				<h4><?php esc_html_e( 'Profile Privacy', 'nobloat-user-foundry' ); ?></h4>
-				<p class="description">
+			<div class="nbuf-profile-settings-group" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px;">
+				<h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Profile Privacy', 'nobloat-user-foundry' ); ?></h4>
+				<p class="description" style="margin: 0 0 15px 0; font-size: 14px; color: #6c757d;">
 					<?php esc_html_e( 'Control who can see your public profile page.', 'nobloat-user-foundry' ); ?>
 				</p>
 
-				<select name="nbuf_profile_privacy" class="regular-text">
+				<select name="nbuf_profile_privacy" class="regular-text" style="width: 100%; max-width: 400px; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
 					<option value="private" <?php selected( $profile_privacy, 'private' ); ?>>
 						<?php esc_html_e( 'Private - Only you can see your profile', 'nobloat-user-foundry' ); ?>
 					</option>
@@ -1328,9 +1333,9 @@ class NBUF_Profile_Photos {
 			</div>
 
 			<!-- Member Directory Settings -->
-			<div class="nbuf-profile-settings-group">
-				<h4><?php esc_html_e( 'Member Directory', 'nobloat-user-foundry' ); ?></h4>
-				<p class="description">
+			<div class="nbuf-profile-settings-group" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px;">
+				<h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Member Directory', 'nobloat-user-foundry' ); ?></h4>
+				<p class="description" style="margin: 0 0 15px 0; font-size: 14px; color: #6c757d;">
 					<?php esc_html_e( 'Control whether your profile appears in the public member directory.', 'nobloat-user-foundry' ); ?>
 				</p>
 
@@ -1352,10 +1357,10 @@ class NBUF_Profile_Photos {
 			</div>
 
 			<!-- Profile Fields Visibility -->
-			<div class="nbuf-profile-settings-group">
+			<div class="nbuf-profile-settings-group" style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px;">
 				<div class="nbuf-profile-fields-section">
-					<h4><?php esc_html_e( 'Visible Profile Fields', 'nobloat-user-foundry' ); ?></h4>
-					<p class="description">
+					<h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1a202c;"><?php esc_html_e( 'Visible Profile Fields', 'nobloat-user-foundry' ); ?></h4>
+					<p class="description" style="margin: 0 0 15px 0; font-size: 14px; color: #6c757d;">
 						<?php esc_html_e( 'Select which fields to show on your public profile page.', 'nobloat-user-foundry' ); ?>
 					</p>
 

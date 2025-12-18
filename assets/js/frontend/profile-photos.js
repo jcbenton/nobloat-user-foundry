@@ -14,6 +14,36 @@
  */
 
 jQuery(document).ready(function($) {
+	/**
+	 * Helper function to reload page while preserving tab state.
+	 *
+	 * @param {string} subtab The subtab to navigate to (profile-photo or cover-photo).
+	 */
+	function reloadWithSubtab(subtab) {
+		var url = new URL(window.location.href);
+		var pathParts = url.pathname.split('/').filter(Boolean);
+
+		/* Check if using Universal Router (path contains 'account') */
+		var accountIndex = pathParts.indexOf('account');
+		if (accountIndex !== -1) {
+			/* Universal Router mode - build path URL */
+			var basePath = '/' + pathParts.slice(0, accountIndex + 1).join('/');
+			basePath += '/profile/';
+			if (subtab) {
+				url.search = '?subtab=' + encodeURIComponent(subtab);
+			}
+			url.pathname = basePath;
+		} else {
+			/* Legacy mode - use query parameters */
+			url.searchParams.set('tab', 'profile');
+			if (subtab) {
+				url.searchParams.set('subtab', subtab);
+			}
+		}
+
+		window.location.href = url.toString();
+	}
+
 	/* Button click triggers file input */
 	$('#nbuf_profile_photo_upload_btn').on('click', function() {
 		$('#nbuf_profile_photo_upload').trigger('click');
@@ -41,7 +71,7 @@ jQuery(document).ready(function($) {
 			contentType: false,
 			success: function(response) {
 				if (response.success) {
-					location.reload();
+					reloadWithSubtab('profile-photo');
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.upload_failed);
 				}
@@ -70,7 +100,7 @@ jQuery(document).ready(function($) {
 			contentType: false,
 			success: function(response) {
 				if (response.success) {
-					location.reload();
+					reloadWithSubtab('cover-photo');
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.upload_failed);
 				}
@@ -98,7 +128,7 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					location.reload();
+					reloadWithSubtab('profile-photo');
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.delete_failed);
 				}
@@ -126,7 +156,7 @@ jQuery(document).ready(function($) {
 			},
 			success: function(response) {
 				if (response.success) {
-					location.reload();
+					reloadWithSubtab('cover-photo');
 				} else {
 					alert(response.data.message || NBUF_ProfilePhotos.i18n.delete_failed);
 				}

@@ -21,13 +21,11 @@ jQuery(document).ready(function($) {
 
 	/* Check if viewer exists */
 	if (!$viewer.length) {
-		console.log('NBUF Version History: Viewer element not found');
 		return;
 	}
 
 	/* Check if localization object exists */
 	if (typeof NBUF_VersionHistory === 'undefined') {
-		console.error('NBUF Version History: NBUF_VersionHistory not defined - AJAX handlers may not be registered');
 		$viewer.find('.nbuf-vh-loading').hide();
 		$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Version History is not available. Please check plugin settings.');
 		return;
@@ -63,7 +61,6 @@ jQuery(document).ready(function($) {
 			success: function(response) {
 				/* Check for WordPress AJAX error (action not registered) */
 				if (response === 0 || response === '0' || response === '-1') {
-					console.error('NBUF Version History: AJAX action not registered (response: ' + response + ')');
 					$viewer.find('.nbuf-vh-loading').hide();
 					$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Version History AJAX handler not available. The feature may be disabled.');
 					return;
@@ -91,14 +88,12 @@ jQuery(document).ready(function($) {
 					$viewer.find('.nbuf-vh-timeline').show();
 					$viewer.find('.nbuf-vh-pagination').show();
 				} else {
-					console.error('NBUF Version History: AJAX error', response);
 					var message = (response.data && response.data.message) ? response.data.message : 'Failed to load version history.';
 					$viewer.find('.nbuf-vh-loading').hide();
 					$viewer.find('.nbuf-vh-empty').show().find('p:first').text(message);
 				}
 			},
 			error: function(xhr, status, error) {
-				console.error('NBUF Version History: AJAX request failed', status, error);
 				$viewer.find('.nbuf-vh-loading').hide();
 				$viewer.find('.nbuf-vh-empty').show().find('p:first').text('Failed to load version history: ' + error);
 			}
@@ -144,19 +139,19 @@ jQuery(document).ready(function($) {
 			}
 
 			let html = template
-				.replace(/{{version_id}}/g, item.id)
-				.replace(/{{icon}}/g, icons[item.change_type] || 'edit')
-				.replace(/{{date}}/g, dateStr)
-				.replace(/{{time}}/g, timeStr)
-				.replace(/{{change_type}}/g, item.change_type)
-				.replace(/{{change_type_label}}/g, changeTypeLabels[item.change_type] || item.change_type)
-				.replace(/{{changed_by}}/g, changedByText)
-				.replace(/{{fields_changed}}/g, fieldsDisplay);
+				.replace(/{{version_id}}/g, escapeHtml(String(item.id)))
+				.replace(/{{icon}}/g, escapeHtml(icons[item.change_type] || 'edit'))
+				.replace(/{{date}}/g, escapeHtml(dateStr))
+				.replace(/{{time}}/g, escapeHtml(timeStr))
+				.replace(/{{change_type}}/g, escapeHtml(item.change_type))
+				.replace(/{{change_type_label}}/g, escapeHtml(changeTypeLabels[item.change_type] || item.change_type))
+				.replace(/{{changed_by}}/g, escapeHtml(changedByText))
+				.replace(/{{fields_changed}}/g, escapeHtml(fieldsDisplay));
 
 			/* Handle optional IP address */
 			if (item.ip_address) {
 				html = html.replace(/{{#ip_address}}([\s\S]*?){{\/ip_address}}/g, '$1');
-				html = html.replace(/{{ip_address}}/g, item.ip_address);
+				html = html.replace(/{{ip_address}}/g, escapeHtml(item.ip_address));
 			} else {
 				html = html.replace(/{{#ip_address}}[\s\S]*?{{\/ip_address}}/g, '');
 			}
@@ -164,7 +159,7 @@ jQuery(document).ready(function($) {
 			/* Handle previous version */
 			if (index < items.length - 1) {
 				html = html.replace(/{{#has_previous}}([\s\S]*?){{\/has_previous}}/g, '$1');
-				html = html.replace(/{{previous_id}}/g, items[index + 1].id);
+				html = html.replace(/{{previous_id}}/g, escapeHtml(String(items[index + 1].id)));
 			} else {
 				html = html.replace(/{{#has_previous}}[\s\S]*?{{\/has_previous}}/g, '');
 			}
@@ -192,7 +187,10 @@ jQuery(document).ready(function($) {
 	});
 
 	/* View Details (Snapshot) */
-	$viewer.on('click', '.nbuf-vh-view-details', function() {
+	$viewer.on('click', '.nbuf-vh-view-details', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		const versionId = $(this).data('version-id');
 		const version = versions.find(v => v.id == versionId);
 
@@ -206,7 +204,10 @@ jQuery(document).ready(function($) {
 	});
 
 	/* Compare Versions */
-	$viewer.on('click', '.nbuf-vh-compare', function() {
+	$viewer.on('click', '.nbuf-vh-compare', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		const versionId = $(this).data('version-id');
 		const previousId = $(this).data('previous-id');
 
@@ -214,7 +215,10 @@ jQuery(document).ready(function($) {
 	});
 
 	/* Revert Version */
-	$viewer.on('click', '.nbuf-vh-revert', function() {
+	$viewer.on('click', '.nbuf-vh-revert', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		const versionId = $(this).data('version-id');
 
 		if (!confirm(NBUF_VersionHistory.i18n.confirm_revert)) {
@@ -408,7 +412,9 @@ jQuery(document).ready(function($) {
 	}
 
 	/* Close diff modal */
-	$viewer.on('click', '.nbuf-vh-close-diff, .nbuf-vh-diff-overlay', function() {
+	$viewer.on('click', '.nbuf-vh-close-diff, .nbuf-vh-diff-overlay', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
 		$viewer.find('.nbuf-vh-diff-modal').hide();
 	});
 

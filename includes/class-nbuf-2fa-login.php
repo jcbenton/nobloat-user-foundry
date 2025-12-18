@@ -61,13 +61,21 @@ class NBUF_2FA_Login {
 
 		$user_id = get_current_user_id();
 
-		/* Check if we're already on the TOTP setup page */
+		/* Check if we're on Universal Router pages (2fa-setup or account) */
+		if ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() ) {
+			$current_view = NBUF_Universal_Router::get_current_view();
+			if ( in_array( $current_view, array( '2fa-setup', 'account' ), true ) ) {
+				return;
+			}
+		}
+
+		/* Check if we're already on the TOTP setup page (legacy) */
 		$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
 		if ( $setup_page_id && is_page( $setup_page_id ) ) {
 			return;
 		}
 
-		/* Check if we're on the account page (allow access to security settings) */
+		/* Check if we're on the account page (legacy - allow access to security settings) */
 		$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
 		if ( $account_page_id && is_page( $account_page_id ) ) {
 			return;
@@ -168,14 +176,17 @@ class NBUF_2FA_Login {
 	 * @param int $user_id User ID.
 	 */
 	private static function redirect_to_2fa_page( $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $user_id parameter kept for potential future use in redirect customization
-		/* Get 2FA verification page */
-		$page_id = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
-
-		if ( $page_id ) {
-			$redirect_url = get_permalink( $page_id );
+		/* Prefer Universal Router URL (respects base slug setting) */
+		if ( class_exists( 'NBUF_Universal_Router' ) ) {
+			$redirect_url = NBUF_Universal_Router::get_url( '2fa' );
 		} else {
-			/* Fallback to custom endpoint */
-			$redirect_url = home_url( '/2fa-verify/' );
+			/* Fallback to legacy page */
+			$page_id = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
+			if ( $page_id ) {
+				$redirect_url = get_permalink( $page_id );
+			} else {
+				$redirect_url = home_url( '/2fa-verify/' );
+			}
 		}
 
 		wp_safe_redirect( $redirect_url );
@@ -228,8 +239,8 @@ class NBUF_2FA_Login {
 
 		if ( empty( $code ) ) {
 			/* Redirect back with error for empty code */
-			$current_url = remove_query_arg( 'error' );
-			wp_safe_redirect( add_query_arg( 'error', '1', $current_url ) );
+			$current_url = self::get_2fa_page_url();
+			wp_safe_redirect( add_query_arg( 'error', 'invalid', $current_url ) );
 			exit;
 		}
 
@@ -260,21 +271,32 @@ class NBUF_2FA_Login {
 
 		/* If verification failed, reload with error */
 		if ( ! $verified ) {
+			/* Determine error code for display */
+			$error_code = 'invalid';
+			if ( is_wp_error( $result ) ) {
+				$wp_error_code = $result->get_error_code();
+				if ( '2fa_locked_out' === $wp_error_code ) {
+					$error_code = 'locked';
+				} elseif ( '2fa_code_expired' === $wp_error_code ) {
+					$error_code = 'expired';
+				}
+			}
+
 			/* Log 2FA verification failure */
 			NBUF_Audit_Log::log(
 				$user_id,
 				'2fa_failed',
 				'failure',
-				'2FA verification failed - incorrect code',
+				'2FA verification failed - ' . $error_code,
 				array(
 					'method'    => $method,
 					'code_type' => $code_type,
 				)
 			);
 
-			/* Redirect to current page with error - don't rely on referer */
-			$current_url = remove_query_arg( 'error' );
-			wp_safe_redirect( add_query_arg( 'error', '1', $current_url ) );
+			/* Redirect to 2FA page with specific error */
+			$current_url = self::get_2fa_page_url();
+			wp_safe_redirect( add_query_arg( 'error', $error_code, $current_url ) );
 			exit;
 		}
 
@@ -409,12 +431,6 @@ class NBUF_2FA_Login {
 			return false; /* User already has TOTP set up */
 		}
 
-		/* Get TOTP setup page */
-		$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
-		if ( ! $setup_page_id ) {
-			return false; /* No setup page configured */
-		}
-
 		/* Log that user is being redirected to TOTP setup */
 		NBUF_Audit_Log::log(
 			$user_id,
@@ -423,7 +439,38 @@ class NBUF_2FA_Login {
 			'User redirected to TOTP setup - authenticator app is required'
 		);
 
-		return get_permalink( $setup_page_id );
+		/* Prefer Universal Router URL (respects base slug setting) */
+		if ( class_exists( 'NBUF_Universal_Router' ) ) {
+			return NBUF_Universal_Router::get_url( '2fa-setup' );
+		}
+
+		/* Fallback to legacy page */
+		$setup_page_id = NBUF_Options::get( 'nbuf_page_totp_setup', 0 );
+		if ( $setup_page_id ) {
+			return get_permalink( $setup_page_id );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get 2FA verification page URL.
+	 *
+	 * @return string URL of the 2FA verification page.
+	 */
+	private static function get_2fa_page_url() {
+		/* Prefer Universal Router URL (respects base slug setting) */
+		if ( class_exists( 'NBUF_Universal_Router' ) ) {
+			return NBUF_Universal_Router::get_url( '2fa' );
+		}
+
+		/* Fallback to legacy page */
+		$page_id = NBUF_Options::get( 'nbuf_page_2fa_verify', 0 );
+		if ( $page_id ) {
+			return get_permalink( $page_id );
+		}
+
+		return home_url( '/2fa-verify/' );
 	}
 
 	/**
@@ -509,8 +556,22 @@ class NBUF_2FA_Login {
 		$error_message = '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only error message display
 		$error_param = isset( $_GET['error'] ) ? sanitize_text_field( wp_unslash( $_GET['error'] ) ) : '';
-		if ( '1' === $error_param ) {
-			$error_message = '<div class="nbuf-error">' . esc_html__( 'Invalid code. Please try again.', 'nobloat-user-foundry' ) . '</div>';
+		if ( ! empty( $error_param ) ) {
+			$error_text = '';
+			switch ( $error_param ) {
+				case 'locked':
+					$error_text = __( 'Too many failed attempts. Please try again later.', 'nobloat-user-foundry' );
+					break;
+				case 'expired':
+					$error_text = __( 'Verification code has expired. Please request a new code.', 'nobloat-user-foundry' );
+					break;
+				case 'invalid':
+				case '1':
+				default:
+					$error_text = __( 'Invalid code. Please try again.', 'nobloat-user-foundry' );
+					break;
+			}
+			$error_message = '<div class="nbuf-error">' . esc_html( $error_text ) . '</div>';
 		}
 
 		/* Build device trust checkbox */

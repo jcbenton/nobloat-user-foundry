@@ -1305,34 +1305,6 @@ class NBUF_GDPR_Export {
 	}
 
 	/**
-	 * AJAX handler: Get export info (for admin backend)
-	 *
-	 * @since 1.4.0
-	 * @return void
-	 */
-	public static function ajax_get_export_info() {
-		/* Verify nonce */
-		check_ajax_referer( 'nbuf_admin_export_data', 'nonce' );
-
-		/* Check admin capability */
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'Insufficient permissions.', 'nobloat-user-foundry' ) );
-		}
-
-		/* Get user ID */
-		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
-
-		if ( ! $user_id ) {
-			wp_send_json_error( __( 'Invalid user ID.', 'nobloat-user-foundry' ) );
-		}
-
-		/* Get export info */
-		$counts = self::get_data_counts( $user_id );
-
-		wp_send_json_success( $counts );
-	}
-
-	/**
 	 * AJAX handler: Generate admin export (for admin backend)
 	 *
 	 * @since 1.4.0
@@ -1558,6 +1530,29 @@ class NBUF_GDPR_Export {
 			return;
 		}
 
+		/* Enqueue external script with localized data */
+		wp_enqueue_script(
+			'nbuf-gdpr-admin-export',
+			NBUF_PLUGIN_URL . 'assets/js/admin/gdpr-admin-export.js',
+			array( 'jquery' ),
+			NBUF_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'nbuf-gdpr-admin-export',
+			'nbufAdminExport',
+			array(
+				'nonce' => wp_create_nonce( 'nbuf_admin_export_data' ),
+				'i18n'  => array(
+					'generating'        => __( 'Generating...', 'nobloat-user-foundry' ),
+					'generating_export' => __( 'Generating export...', 'nobloat-user-foundry' ),
+					'download_button'   => __( 'Download User Data (ZIP)', 'nobloat-user-foundry' ),
+					'error'             => __( 'Error occurred. Please try again.', 'nobloat-user-foundry' ),
+				),
+			)
+		);
+
 		?>
 		<h2><?php esc_html_e( 'GDPR Data Export', 'nobloat-user-foundry' ); ?></h2>
 		<table class="form-table">
@@ -1581,45 +1576,6 @@ class NBUF_GDPR_Export {
 				</td>
 			</tr>
 		</table>
-
-		<script>
-		jQuery(document).ready(function($) {
-			$('#nbuf-admin-export-btn').on('click', function() {
-				var $btn = $(this);
-				var $status = $('#nbuf-admin-export-status');
-				var userId = $btn.data('user-id');
-
-				$btn.prop('disabled', true).text('<?php esc_html_e( 'Generating...', 'nobloat-user-foundry' ); ?>');
-				$status.html('<span style="color: #0073aa;"><?php esc_html_e( 'Generating export...', 'nobloat-user-foundry' ); ?></span>');
-
-				$.ajax({
-					url: ajaxurl,
-					type: 'POST',
-					data: {
-						action: 'nbuf_admin_export',
-						nonce: '<?php echo esc_js( wp_create_nonce( 'nbuf_admin_export_data' ) ); ?>',
-						user_id: userId
-					},
-					success: function(response) {
-						if (response.success) {
-							$status.html('<span style="color: #46b450;">' + response.data.message + '</span>');
-							window.location.href = response.data.download_url;
-							setTimeout(function() {
-								$btn.prop('disabled', false).text('<?php esc_html_e( 'Download User Data (ZIP)', 'nobloat-user-foundry' ); ?>');
-							}, 2000);
-						} else {
-							$status.html('<span style="color: #dc3232;">' + response.data + '</span>');
-							$btn.prop('disabled', false).text('<?php esc_html_e( 'Download User Data (ZIP)', 'nobloat-user-foundry' ); ?>');
-						}
-					},
-					error: function() {
-						$status.html('<span style="color: #dc3232;"><?php esc_html_e( 'Error occurred. Please try again.', 'nobloat-user-foundry' ); ?></span>');
-						$btn.prop('disabled', false).text('<?php esc_html_e( 'Download User Data (ZIP)', 'nobloat-user-foundry' ); ?>');
-					}
-				});
-			});
-		});
-		</script>
 		<?php
 	}
 }

@@ -262,6 +262,20 @@ class NBUF_Registration {
 			if ( class_exists( 'NBUF_User_Data' ) ) {
 				NBUF_User_Data::set_verified( $user_id );
 			}
+		} else {
+			/* Send verification email directly (more reliable than hook-based approach) */
+			$user = get_userdata( $user_id );
+			if ( $user && class_exists( 'NBUF_Database' ) && class_exists( 'NBUF_Email' ) ) {
+				$token   = bin2hex( random_bytes( 32 ) );
+				$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+				NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
+				NBUF_Email::send_verification_email( $user->user_email, $token, $user );
+
+				/* Mark that verification email was sent - prevents duplicate from hook */
+				if ( class_exists( 'NBUF_Hooks' ) ) {
+					NBUF_Hooks::mark_verification_sent( $user_id );
+				}
+			}
 		}
 
 		/* Check if admin approval is required */
@@ -272,7 +286,7 @@ class NBUF_Registration {
 			NBUF_User_Data::set_requires_approval( $user_id, true );
 		}
 
-		/* Trigger WordPress registration action (will send verification email if enabled) */
+		/* Trigger WordPress registration action for plugin compatibility */
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Firing WordPress core hook for compatibility with other plugins.
 		do_action( 'user_register', $user_id );
 

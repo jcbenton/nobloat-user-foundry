@@ -425,8 +425,8 @@ class NBUF_Migration {
 			wp_send_json_error( array( 'message' => __( 'Invalid import ID', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* TODO: Implement rollback logic */
-		wp_send_json_error( array( 'message' => __( 'Rollback not yet implemented', 'nobloat-user-foundry' ) ) );
+		/* Rollback feature not available - migrations are one-way */
+		wp_send_json_error( array( 'message' => __( 'Rollback is not available. Migrations are one-way operations.', 'nobloat-user-foundry' ) ) );
 	}
 
 	/*

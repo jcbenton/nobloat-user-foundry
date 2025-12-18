@@ -141,6 +141,11 @@ class NBUF_Universal_Router {
 			}
 		}
 
+		/* 2FA verification form handler */
+		if ( class_exists( 'NBUF_2FA_Login' ) && method_exists( 'NBUF_2FA_Login', 'maybe_handle_2fa_verification' ) ) {
+			NBUF_2FA_Login::maybe_handle_2fa_verification();
+		}
+
 		/* Render the page and exit */
 		self::render_page();
 		exit;

@@ -364,6 +364,42 @@ class NBUF_Database {
 
 	/**
 	==========================================================
+	CREATE USER PASSKEYS TABLE
+	----------------------------------------------------------
+	Creates table for storing WebAuthn passkey credentials.
+	Enables passwordless authentication via biometrics or
+	security keys. Stores COSE public keys and credential IDs.
+	==========================================================
+	 */
+	public static function create_user_passkeys_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_user_passkeys';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            credential_id VARBINARY(255) NOT NULL,
+            public_key BLOB NOT NULL,
+            sign_count INT(10) UNSIGNED NOT NULL DEFAULT 0,
+            transports VARCHAR(255) DEFAULT NULL,
+            aaguid BINARY(16) DEFAULT NULL,
+            device_name VARCHAR(255) DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_used DATETIME DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY credential_id (credential_id),
+            KEY user_id (user_id),
+            KEY user_device (user_id, device_name)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	==========================================================
 	CREATE USER AUDIT LOG TABLE
 	----------------------------------------------------------
 	Creates table for tracking user activity and security events.
@@ -569,6 +605,32 @@ class NBUF_Database {
 			self::$table_name,
 			array( 'user_id' => (int) $user_id ),
 			array( '%d' )
+		);
+	}
+
+	/**
+	==========================================================
+	GET VALID TOKEN BY EMAIL
+	----------------------------------------------------------
+	Check if user has a valid (unexpired, unverified) token.
+	Used to avoid sending duplicate verification emails.
+
+	@param  string $email User email address.
+	@return object|null Token row if exists, null otherwise.
+	==========================================================
+	 */
+	public static function get_valid_token( $email ) {
+		global $wpdb;
+		self::init();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE user_email = %s AND verified = 0 AND expires_at > %s LIMIT 1',
+				self::$table_name,
+				sanitize_email( $email ),
+				current_time( 'mysql', true )
+			)
 		);
 	}
 

@@ -312,7 +312,7 @@ function nbuf_get_field_description( $nbuf_field_key ) {
 		'vimeo'                    => __( 'Vimeo channel', 'nobloat-user-foundry' ),
 		'spotify'                  => __( 'Spotify profile', 'nobloat-user-foundry' ),
 		'pinterest'                => __( 'Pinterest profile', 'nobloat-user-foundry' ),
-		'website'                  => __( 'Personal or professional website', 'nobloat-user-foundry' ),
+		'website'                  => __( 'Secondary website (separate from WordPress user_url)', 'nobloat-user-foundry' ),
 		'nationality'              => __( 'Nationality or citizenship', 'nobloat-user-foundry' ),
 		'languages'                => __( 'Languages spoken', 'nobloat-user-foundry' ),
 		'emergency_contact'        => __( 'Emergency contact info', 'nobloat-user-foundry' ),

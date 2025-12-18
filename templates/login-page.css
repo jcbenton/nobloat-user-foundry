@@ -28,6 +28,7 @@
     --nbuf-surface: #fff;
 
     /* Spacing */
+    --nbuf-space-xs: 0.25rem;
     --nbuf-space-sm: 0.5rem;
     --nbuf-space-md: 0.75rem;
     --nbuf-space-lg: 1rem;
@@ -337,4 +338,163 @@ body.nbuf-page .nbuf-login-wrapper a {
         width: 100%;
         max-width: 480px;
     }
+}
+
+/* ==========================================================
+   TWO-STEP LOGIN FLOW
+   ========================================================== */
+
+/* Step indicator */
+.nbuf-step-indicator {
+    display: flex;
+    justify-content: center;
+    gap: var(--nbuf-space-md);
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nbuf-border);
+    transition: all 0.3s ease;
+}
+
+.nbuf-step-dot.active {
+    background: var(--nbuf-primary);
+    width: 24px;
+    border-radius: 4px;
+}
+
+/* Current user display in Step 2 */
+.nbuf-current-user {
+    background: #f8f9fa;
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-lg);
+    margin-bottom: var(--nbuf-space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nbuf-current-user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-md);
+    font-weight: 600;
+    color: #1e1e1e;
+}
+
+.nbuf-change-user-link {
+    color: var(--nbuf-primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.nbuf-change-user-link:hover {
+    text-decoration: underline;
+}
+
+/* Continue button */
+#nbuf-continue-btn {
+    width: 100%;
+    margin-top: var(--nbuf-space-xl);
+    padding: 12px var(--nbuf-space-lg);
+    border: none;
+    border-radius: var(--nbuf-radius-md);
+    background: var(--nbuf-primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 115, 170, 0.2);
+}
+
+#nbuf-continue-btn:hover {
+    background: var(--nbuf-primary-hover);
+    box-shadow: 0 4px 8px rgba(0, 115, 170, 0.3);
+}
+
+#nbuf-continue-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Passkey section */
+#nbuf-passkey-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-lg);
+    padding: var(--nbuf-space-2xl);
+    margin: var(--nbuf-space-lg) 0;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.nbuf-passkey-message {
+    margin-bottom: var(--nbuf-space-xl);
+    color: #50575e;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* Passkey button */
+#nbuf-passkey-login-btn {
+    width: 100%;
+    padding: 12px var(--nbuf-space-lg);
+    border: none;
+    border-radius: var(--nbuf-radius-md);
+    background: var(--nbuf-primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 115, 170, 0.2);
+}
+
+#nbuf-passkey-login-btn:hover {
+    background: var(--nbuf-primary-hover);
+    box-shadow: 0 4px 8px rgba(0, 115, 170, 0.3);
+}
+
+#nbuf-passkey-login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Password alternative link */
+.nbuf-passkey-alternative {
+    margin-top: var(--nbuf-space-xl);
+    padding-top: var(--nbuf-space-lg);
+    border-top: 1px solid var(--nbuf-border);
+}
+
+#nbuf-use-password-link {
+    color: var(--nbuf-primary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#nbuf-use-password-link:hover {
+    text-decoration: underline;
+}
+
+/* Passkey error */
+#nbuf-passkey-error {
+    background: var(--nbuf-error-bg);
+    border: 1px solid var(--nbuf-error-border);
+    color: var(--nbuf-error);
+    padding: var(--nbuf-space-md);
+    border-radius: var(--nbuf-radius-md);
+    margin-top: var(--nbuf-space-lg);
+    font-size: 14px;
 }

@@ -819,6 +819,30 @@ class NBUF_Admin_Users {
 			wp_safe_redirect( add_query_arg( 'nbuf_2fa_action', 'devices_cleared', admin_url( 'user-edit.php?user_id=' . $user_id ) ) );
 			exit;
 		}
+
+		/* Delete Single Passkey */
+		if ( 'nbuf_delete_passkey' === $action ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$passkey_id = isset( $_GET['passkey_id'] ) ? absint( $_GET['passkey_id'] ) : 0;
+			if ( $passkey_id ) {
+				check_admin_referer( 'nbuf_delete_passkey_' . $passkey_id );
+				/* Verify passkey belongs to this user */
+				$passkey = NBUF_User_Passkeys_Data::get_by_id( $passkey_id );
+				if ( $passkey && (int) $passkey->user_id === $user_id ) {
+					NBUF_User_Passkeys_Data::delete( $passkey_id );
+				}
+			}
+			wp_safe_redirect( add_query_arg( 'nbuf_passkey_action', 'deleted', admin_url( 'user-edit.php?user_id=' . $user_id ) ) . '#security' );
+			exit;
+		}
+
+		/* Delete All Passkeys */
+		if ( 'nbuf_delete_all_passkeys' === $action ) {
+			check_admin_referer( 'nbuf_delete_all_passkeys_' . $user_id );
+			NBUF_User_Passkeys_Data::delete_all( $user_id );
+			wp_safe_redirect( add_query_arg( 'nbuf_passkey_action', 'all_deleted', admin_url( 'user-edit.php?user_id=' . $user_id ) ) . '#security' );
+			exit;
+		}
 	}
 
 	/**
@@ -1101,7 +1125,9 @@ class NBUF_Admin_Users {
 		}
 		?>
 
-		<h2><?php esc_html_e( 'Two-Factor Authentication', 'nobloat-user-foundry' ); ?></h2>
+		<h2><?php esc_html_e( 'Security', 'nobloat-user-foundry' ); ?></h2>
+
+		<h3><?php esc_html_e( 'Two-Factor Authentication', 'nobloat-user-foundry' ); ?></h3>
 		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( '2FA Status', 'nobloat-user-foundry' ); ?></th>
@@ -1126,7 +1152,7 @@ class NBUF_Admin_Users {
 							<p class="description">
 				<?php
 				/* translators: %s: last used date and time */
-				echo esc_html( sprintf( __( 'Last used: %s', 'nobloat-user-foundry' ), gmdate( 'Y-m-d H:i:s', $twofa_last_used ) ) );
+				echo esc_html( sprintf( __( 'Last used: %s', 'nobloat-user-foundry' ), gmdate( 'Y-m-d H:i:s', strtotime( $twofa_last_used ) ) ) );
 				?>
 							</p>
 			<?php endif; ?>
@@ -1145,7 +1171,7 @@ class NBUF_Admin_Users {
 						<li><strong><?php esc_html_e( 'Trusted Devices:', 'nobloat-user-foundry' ); ?></strong> <?php echo (int) $trusted_device_count; ?></li>
 						<li><strong><?php esc_html_e( 'Backup Codes Remaining:', 'nobloat-user-foundry' ); ?></strong> <?php echo (int) $backup_codes_remaining; ?> / 10</li>
 			<?php if ( $twofa_forced_at ) : ?>
-							<li><strong><?php esc_html_e( 'Enforcement Started:', 'nobloat-user-foundry' ); ?></strong> <?php echo esc_html( gmdate( 'Y-m-d H:i:s', $twofa_forced_at ) ); ?></li>
+							<li><strong><?php esc_html_e( 'Enforcement Started:', 'nobloat-user-foundry' ); ?></strong> <?php echo esc_html( gmdate( 'Y-m-d H:i:s', strtotime( $twofa_forced_at ) ) ); ?></li>
 			<?php endif; ?>
 					</ul>
 				</td>
@@ -1246,6 +1272,81 @@ class NBUF_Admin_Users {
 			</tr>
 		<?php endif; ?>
 		</table>
+
+		<?php
+		/* Passkeys Section */
+		$passkeys_enabled = NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+		if ( $passkeys_enabled && class_exists( 'NBUF_User_Passkeys_Data' ) ) :
+			$user_passkeys = NBUF_User_Passkeys_Data::get_all( $user_id );
+			$passkey_count = count( $user_passkeys );
+			?>
+		<h3><?php esc_html_e( 'Passkeys', 'nobloat-user-foundry' ); ?></h3>
+		<table class="form-table">
+			<tr>
+				<th><?php esc_html_e( 'Passkey Status', 'nobloat-user-foundry' ); ?></th>
+				<td>
+			<?php if ( $passkey_count > 0 ) : ?>
+					<p><strong style="color:#46b450;">
+						<?php
+						/* translators: %d: number of registered passkeys */
+						printf( esc_html( _n( '%d passkey registered', '%d passkeys registered', $passkey_count, 'nobloat-user-foundry' ) ), (int) $passkey_count );
+						?>
+					</strong></p>
+				<?php else : ?>
+					<p><strong style="color:#999;"><?php esc_html_e( 'No passkeys registered', 'nobloat-user-foundry' ); ?></strong></p>
+					<p class="description"><?php esc_html_e( 'User has not registered any passkeys for passwordless login.', 'nobloat-user-foundry' ); ?></p>
+				<?php endif; ?>
+				</td>
+			</tr>
+			<?php if ( $passkey_count > 0 ) : ?>
+			<tr>
+				<th><?php esc_html_e( 'Registered Passkeys', 'nobloat-user-foundry' ); ?></th>
+				<td>
+					<table class="widefat fixed striped" style="max-width: 600px;">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Device', 'nobloat-user-foundry' ); ?></th>
+								<th><?php esc_html_e( 'Created', 'nobloat-user-foundry' ); ?></th>
+								<th><?php esc_html_e( 'Last Used', 'nobloat-user-foundry' ); ?></th>
+								<th><?php esc_html_e( 'Actions', 'nobloat-user-foundry' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+					<?php foreach ( $user_passkeys as $passkey ) : ?>
+							<tr>
+								<td>
+									<span class="dashicons dashicons-admin-network" style="vertical-align:middle;"></span>
+						<?php echo esc_html( $passkey->device_name ? $passkey->device_name : __( 'Unknown Device', 'nobloat-user-foundry' ) ); ?>
+								</td>
+								<td><?php echo esc_html( $passkey->created_at ? wp_date( 'Y-m-d', strtotime( $passkey->created_at ) ) : '—' ); ?></td>
+								<td><?php echo esc_html( $passkey->last_used ? wp_date( 'Y-m-d', strtotime( $passkey->last_used ) ) : __( 'Never', 'nobloat-user-foundry' ) ); ?></td>
+								<td>
+									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'nbuf_delete_passkey', 'passkey_id' => $passkey->id, 'user_id' => $user_id ), admin_url( 'user-edit.php' ) ), 'nbuf_delete_passkey_' . $passkey->id ) ); ?>"
+									   class="button-link-delete"
+									   onclick="return confirm('<?php echo esc_js( __( 'Delete this passkey?', 'nobloat-user-foundry' ) ); ?>');">
+						<?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?>
+									</a>
+								</td>
+							</tr>
+					<?php endforeach; ?>
+						</tbody>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<th><?php esc_html_e( 'Admin Actions', 'nobloat-user-foundry' ); ?></th>
+				<td>
+					<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'nbuf_delete_all_passkeys', 'user_id' => $user_id ), admin_url( 'user-edit.php' ) ), 'nbuf_delete_all_passkeys_' . $user_id ) ); ?>"
+					   class="button"
+					   onclick="return confirm('<?php echo esc_js( __( 'Delete ALL passkeys for this user? They will need to register new passkeys.', 'nobloat-user-foundry' ) ); ?>');">
+						<?php esc_html_e( 'Delete All Passkeys', 'nobloat-user-foundry' ); ?>
+					</a>
+					<span class="description"><?php esc_html_e( 'Removes all registered passkeys for this user.', 'nobloat-user-foundry' ); ?></span>
+				</td>
+			</tr>
+			<?php endif; ?>
+		</table>
+		<?php endif; ?>
 
 		<?php
 		/* Password Expiration Section */
@@ -1598,10 +1699,11 @@ class NBUF_Admin_Users {
 		/* Assets are now enqueued in enqueue_user_profile_scripts() */
 
 		?>
+		<h2><?php esc_html_e( 'Profile History', 'nobloat-user-foundry' ); ?></h2>
 		<div class="nbuf-vh-metabox">
 		<?php
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- NBUF_Version_History::render_viewer() returns escaped HTML.
-		echo NBUF_Version_History::render_viewer( $user_id, 'metabox', true );
+		echo NBUF_Version_History::render_viewer( $user_id, 'metabox' );
 		?>
 		</div>
 

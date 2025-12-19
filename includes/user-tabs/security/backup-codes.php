@@ -41,6 +41,8 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === 
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="backup-codes">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_backup_enabled">
 
 	<h2><?php esc_html_e( 'Backup Codes', 'nobloat-user-foundry' ); ?></h2>
 

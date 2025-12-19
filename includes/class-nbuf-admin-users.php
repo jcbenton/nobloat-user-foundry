@@ -3,13 +3,15 @@
  * NoBloat User Foundry - Admin User Enhancements
  *
  * Adds:
- * - "Enabled" column to Users list
- * - "Verified" column to Users list
+ * - "Expires" column to Users list
+ * - "2FA" column to Users list
  * - Bulk "Mark as Verified" action
  * - Bulk "Remove Verification" action (ignores admins)
  * - Bulk "Disable User" action (kills sessions)
  * - Bulk "Enable User" action
  * - "Resend Verification" action for unverified users
+ *
+ * Note: "Status" column (showing enabled/disabled/verified/expired) is in NBUF_Admin_User_Search
  *
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes
@@ -177,17 +179,17 @@ class NBUF_Admin_Users {
 	 * @return array Modified columns.
 	 */
 	public static function add_columns( $columns ) {
-		$columns['nbuf_enabled']  = __( 'Enabled', 'nobloat-user-foundry' );
-		$columns['nbuf_verified'] = __( 'Verified', 'nobloat-user-foundry' );
-		$columns['nbuf_expires']  = __( 'Expires', 'nobloat-user-foundry' );
-		$columns['nbuf_2fa']      = __( '2FA', 'nobloat-user-foundry' );
+		/* Note: nbuf_enabled and nbuf_verified are now part of the Status column in NBUF_Admin_User_Search */
+		$columns['nbuf_expires'] = __( 'Expires', 'nobloat-user-foundry' );
+		$columns['nbuf_2fa']     = __( '2FA', 'nobloat-user-foundry' );
 		return $columns;
 	}
 
 	/**
 	 * Render custom column content.
 	 *
-	 * Handles Enabled and Verified columns. Admins are immutable.
+	 * Handles Expires and 2FA columns.
+	 * Note: Enabled/Verified are now handled by Status column in NBUF_Admin_User_Search.
 	 *
 	 * @param  string $value       Current column value.
 	 * @param  string $column_name Column name.
@@ -195,33 +197,6 @@ class NBUF_Admin_Users {
 	 * @return string Column content.
 	 */
 	public static function render_column( $value, $column_name, $user_id ) {
-		/* Enabled column - check/X mark */
-		if ( 'nbuf_enabled' === $column_name ) {
-			$disabled = NBUF_User_Data::is_disabled( $user_id );
-			return $disabled ? '&#x2717;' : '&#x2713;';
-		}
-
-		/* Verified column */
-		if ( 'nbuf_verified' === $column_name ) {
-			$user = get_userdata( $user_id );
-
-			/* Admins are always verified - show as Immutable */
-			if ( $user && user_can( $user, 'manage_options' ) ) {
-				return '<em>' . esc_html__( 'Immutable', 'nobloat-user-foundry' ) . '</em>';
-			}
-
-			$user_data = NBUF_User_Data::get( $user_id );
-
-			if ( $user_data && $user_data->is_verified && $user_data->verified_date ) {
-				$parts = explode( ' ', $user_data->verified_date );
-				$d     = isset( $parts[0] ) ? esc_html( $parts[0] ) : '';
-				$t     = isset( $parts[1] ) ? esc_html( $parts[1] ) : '';
-				return $d . '<br><span style="color:#666;">' . $t . '</span>';
-			}
-
-			return esc_html__( 'Unverified', 'nobloat-user-foundry' );
-		}
-
 		/* Expires column */
 		if ( 'nbuf_expires' === $column_name ) {
 			$user_data = NBUF_User_Data::get( $user_id );
@@ -232,10 +207,10 @@ class NBUF_Admin_Users {
 				$parts             = explode( ' ', $user_data->expires_at );
 				$d                 = isset( $parts[0] ) ? esc_html( $parts[0] ) : '';
 				$t                 = isset( $parts[1] ) ? esc_html( $parts[1] ) : '';
-				$color             = $is_expired ? '#c0392b' : '#333';
-				$output            = '<span style="color:' . $color . ';">' . $d . '<br><span style="color:#666;">' . $t . '</span></span>';
+				$expired_class     = $is_expired ? ' nbuf-expired' : '';
+				$output            = '<span class="nbuf-expiration-date' . $expired_class . '">' . $d . '<br><span class="nbuf-expiration-time">' . $t . '</span></span>';
 				if ( $is_expired ) {
-					$output .= '<br><span style="color:#c0392b;font-weight:bold;">' . esc_html__( 'EXPIRED', 'nobloat-user-foundry' ) . '</span>';
+					$output .= '<br><span class="nbuf-expired-label">' . esc_html__( 'EXPIRED', 'nobloat-user-foundry' ) . '</span>';
 				}
 				return $output;
 			}
@@ -265,7 +240,7 @@ class NBUF_Admin_Users {
 			}
 
 			return sprintf(
-				'<span class="dashicons %s" title="%s" style="font-size: 18px;"></span>',
+				'<span class="dashicons %s nbuf-2fa-icon" title="%s"></span>',
 				esc_attr( $icon ),
 				esc_attr( $title )
 			);
@@ -340,7 +315,7 @@ class NBUF_Admin_Users {
 			);
 
 			$actions['nbuf_approve'] = sprintf(
-				'<a href="%s" style="color:#0a0;">%s</a>',
+				'<a href="%s" class="nbuf-action-approve">%s</a>',
 				esc_url( $approve_url ),
 				esc_html__( 'Approve', 'nobloat-user-foundry' )
 			);
@@ -358,7 +333,7 @@ class NBUF_Admin_Users {
 			);
 
 			$actions['nbuf_reject'] = sprintf(
-				'<a href="%s" style="color:#c00;">%s</a>',
+				'<a href="%s" class="nbuf-action-reject">%s</a>',
 				esc_url( $reject_url ),
 				esc_html__( 'Reject', 'nobloat-user-foundry' )
 			);
@@ -958,7 +933,7 @@ class NBUF_Admin_Users {
 			<tr>
 				<th><?php esc_html_e( 'User ID', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<code style="font-size: 14px; padding: 4px 8px; background: #f0f0f1; border-radius: 3px;"><?php echo esc_html( $user_id ); ?></code>
+					<code class="nbuf-user-id-code"><?php echo esc_html( $user_id ); ?></code>
 					<p class="description"><?php esc_html_e( 'Unique identifier for this user in the database.', 'nobloat-user-foundry' ); ?></p>
 				</td>
 			</tr>
@@ -985,7 +960,7 @@ class NBUF_Admin_Users {
 						<?php esc_html_e( 'Email address verified', 'nobloat-user-foundry' ); ?>
 						</label>
 						<?php if ( $verified && $verified_date ) : ?>
-							<p class="description" style="margin-top:5px;">
+							<p class="description nbuf-description-spaced">
 							<?php
 							/* translators: %s: verification date */
 							echo esc_html( sprintf( __( 'Verified on: %s', 'nobloat-user-foundry' ), $verified_date ) );
@@ -1003,14 +978,14 @@ class NBUF_Admin_Users {
 						<input type="checkbox" id="nbuf_never_expires" name="nbuf_never_expires" value="1" <?php checked( empty( $expires_at ), true ); ?>>
 			<?php esc_html_e( 'Never expires', 'nobloat-user-foundry' ); ?>
 					</label>
-					<div id="nbuf_expiration_date_wrapper" style="margin-top:10px;<?php echo empty( $expires_at ) ? 'display:none;' : ''; ?>">
+					<div id="nbuf_expiration_date_wrapper" class="nbuf-expiration-wrapper"<?php echo empty( $expires_at ) ? ' style="display:none;"' : ''; ?>>
 						<label for="nbuf_expires_at_date"><?php esc_html_e( 'Expires on:', 'nobloat-user-foundry' ); ?></label><br>
-						<input type="date" id="nbuf_expires_at_date" name="nbuf_expires_at_date" value="<?php echo esc_attr( $expires_at ? gmdate( 'Y-m-d', strtotime( $expires_at ) ) : '' ); ?>" style="width: 150px;">
-						<input type="time" id="nbuf_expires_at_time" name="nbuf_expires_at_time" value="<?php echo esc_attr( $expires_at ? gmdate( 'H:i', strtotime( $expires_at ) ) : '00:00' ); ?>" style="width: 100px;">
+						<input type="date" id="nbuf_expires_at_date" name="nbuf_expires_at_date" value="<?php echo esc_attr( $expires_at ? gmdate( 'Y-m-d', strtotime( $expires_at ) ) : '' ); ?>" class="nbuf-date-input">
+						<input type="time" id="nbuf_expires_at_time" name="nbuf_expires_at_time" value="<?php echo esc_attr( $expires_at ? gmdate( 'H:i', strtotime( $expires_at ) ) : '00:00' ); ?>" class="nbuf-time-input">
 						<p class="description"><?php esc_html_e( 'Select expiration date and time', 'nobloat-user-foundry' ); ?></p>
 					</div>
 			<?php if ( $expires_at && NBUF_User_Data::is_expired( $user_id ) ) : ?>
-						<p class="description" style="margin-top:10px;color:#c0392b;font-weight:bold;">
+						<p class="description nbuf-expired-warning">
 				<?php esc_html_e( '⚠️ This account is currently EXPIRED.', 'nobloat-user-foundry' ); ?>
 						</p>
 			<?php endif; ?>
@@ -1140,7 +1115,7 @@ class NBUF_Admin_Users {
 				<th><?php esc_html_e( '2FA Status', 'nobloat-user-foundry' ); ?></th>
 				<td>
 		<?php if ( $twofa_enabled && $twofa_method && 'disabled' !== $twofa_method ) : ?>
-						<p><strong style="color:#46b450;"><?php esc_html_e( '✓ Enabled', 'nobloat-user-foundry' ); ?></strong></p>
+						<p><strong class="nbuf-status-enabled"><?php esc_html_e( '✓ Enabled', 'nobloat-user-foundry' ); ?></strong></p>
 						<p class="description">
 			<?php
 			if ( 'email' === $twofa_method ) {
@@ -1164,7 +1139,7 @@ class NBUF_Admin_Users {
 							</p>
 			<?php endif; ?>
 					<?php else : ?>
-						<p><strong style="color:#999;"><?php esc_html_e( 'Disabled', 'nobloat-user-foundry' ); ?></strong></p>
+						<p><strong class="nbuf-status-disabled"><?php esc_html_e( 'Disabled', 'nobloat-user-foundry' ); ?></strong></p>
 						<p class="description"><?php esc_html_e( 'User has not set up 2FA', 'nobloat-user-foundry' ); ?></p>
 					<?php endif; ?>
 				</td>
@@ -1174,7 +1149,7 @@ class NBUF_Admin_Users {
 			<tr>
 				<th><?php esc_html_e( 'Security Details', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<ul style="margin:0;">
+					<ul class="nbuf-security-list">
 						<li><strong><?php esc_html_e( 'Trusted Devices:', 'nobloat-user-foundry' ); ?></strong> <?php echo (int) $trusted_device_count; ?></li>
 						<li><strong><?php esc_html_e( 'Backup Codes Remaining:', 'nobloat-user-foundry' ); ?></strong> <?php echo (int) $backup_codes_remaining; ?> / 10</li>
 			<?php if ( $twofa_forced_at ) : ?>
@@ -1187,7 +1162,7 @@ class NBUF_Admin_Users {
 			<tr>
 				<th><?php esc_html_e( 'Admin Actions', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<p style="margin-bottom:10px;">
+					<p class="nbuf-admin-action">
 						<a href="
 			<?php
 			echo esc_url(
@@ -1208,7 +1183,7 @@ class NBUF_Admin_Users {
 						</a>
 						<span class="description"><?php esc_html_e( 'Clears all 2FA data, user must set up again', 'nobloat-user-foundry' ); ?></span>
 					</p>
-					<p style="margin-bottom:10px;">
+					<p class="nbuf-admin-action">
 						<a href="
 			<?php
 			echo esc_url(
@@ -1230,7 +1205,7 @@ class NBUF_Admin_Users {
 						<span class="description"><?php esc_html_e( 'Turns off 2FA for this user only', 'nobloat-user-foundry' ); ?></span>
 					</p>
 			<?php if ( $backup_codes_remaining < 3 ) : ?>
-					<p style="margin-bottom:10px;">
+					<p class="nbuf-admin-action">
 						<a href="
 				<?php
 				echo esc_url(
@@ -1253,7 +1228,7 @@ class NBUF_Admin_Users {
 					</p>
 			<?php endif; ?>
 			<?php if ( $trusted_device_count > 0 ) : ?>
-					<p style="margin-bottom:10px;">
+					<p class="nbuf-admin-action">
 						<a href="
 				<?php
 				echo esc_url(
@@ -1293,14 +1268,14 @@ class NBUF_Admin_Users {
 				<th><?php esc_html_e( 'Passkey Status', 'nobloat-user-foundry' ); ?></th>
 				<td>
 			<?php if ( $passkey_count > 0 ) : ?>
-					<p><strong style="color:#46b450;">
+					<p><strong class="nbuf-status-enabled">
 						<?php
 						/* translators: %d: number of registered passkeys */
 						printf( esc_html( _n( '%d passkey registered', '%d passkeys registered', $passkey_count, 'nobloat-user-foundry' ) ), (int) $passkey_count );
 						?>
 					</strong></p>
 				<?php else : ?>
-					<p><strong style="color:#999;"><?php esc_html_e( 'No passkeys registered', 'nobloat-user-foundry' ); ?></strong></p>
+					<p><strong class="nbuf-status-disabled"><?php esc_html_e( 'No passkeys registered', 'nobloat-user-foundry' ); ?></strong></p>
 					<p class="description"><?php esc_html_e( 'User has not registered any passkeys for passwordless login.', 'nobloat-user-foundry' ); ?></p>
 				<?php endif; ?>
 				</td>
@@ -1309,7 +1284,7 @@ class NBUF_Admin_Users {
 			<tr>
 				<th><?php esc_html_e( 'Registered Passkeys', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<table class="widefat fixed striped" style="max-width: 600px;">
+					<table class="widefat fixed striped nbuf-passkeys-table">
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Device', 'nobloat-user-foundry' ); ?></th>
@@ -1322,7 +1297,7 @@ class NBUF_Admin_Users {
 					<?php foreach ( $user_passkeys as $passkey ) : ?>
 							<tr>
 								<td>
-									<span class="dashicons dashicons-admin-network" style="vertical-align:middle;"></span>
+									<span class="dashicons dashicons-admin-network nbuf-passkey-icon"></span>
 						<?php echo esc_html( $passkey->device_name ? $passkey->device_name : __( 'Unknown Device', 'nobloat-user-foundry' ) ); ?>
 								</td>
 								<td><?php echo esc_html( $passkey->created_at ? wp_date( 'Y-m-d', strtotime( $passkey->created_at ) ) : '—' ); ?></td>
@@ -1370,16 +1345,16 @@ class NBUF_Admin_Users {
 				<th><?php esc_html_e( 'Password Status', 'nobloat-user-foundry' ); ?></th>
 				<td>
 			<?php if ( $force_change ) : ?>
-						<p style="color: #d63638; font-weight: 600;">
-							<span class="dashicons dashicons-warning" style="font-size: 18px; vertical-align: middle;"></span>
+						<p class="nbuf-status-warning">
+							<span class="dashicons dashicons-warning nbuf-2fa-icon nbuf-passkey-icon"></span>
 				<?php esc_html_e( 'Password change forced by administrator', 'nobloat-user-foundry' ); ?>
 						</p>
 						<p class="description">
 				<?php esc_html_e( 'User will be required to change password on next login.', 'nobloat-user-foundry' ); ?>
 						</p>
 					<?php elseif ( $is_expired ) : ?>
-						<p style="color: #d63638; font-weight: 600;">
-							<span class="dashicons dashicons-clock" style="font-size: 18px; vertical-align: middle;"></span>
+						<p class="nbuf-status-warning">
+							<span class="dashicons dashicons-clock nbuf-2fa-icon nbuf-passkey-icon"></span>
 						<?php esc_html_e( 'Password has expired', 'nobloat-user-foundry' ); ?>
 						</p>
 						<p class="description">
@@ -1387,7 +1362,7 @@ class NBUF_Admin_Users {
 						</p>
 					<?php elseif ( null !== $password_age ) : ?>
 						<p>
-							<span class="dashicons dashicons-shield" style="color: #00a32a; font-size: 18px; vertical-align: middle;"></span>
+							<span class="dashicons dashicons-shield nbuf-status-enabled nbuf-2fa-icon nbuf-passkey-icon"></span>
 						<?php
 						/* translators: %d: number of days */
 						echo esc_html( sprintf( _n( 'Password is %d day old', 'Password is %d days old', $password_age, 'nobloat-user-foundry' ), $password_age ) );
@@ -1433,7 +1408,7 @@ class NBUF_Admin_Users {
 					<p class="description">
 			<?php esc_html_e( 'Immediately require this user to change their password on next login.', 'nobloat-user-foundry' ); ?>
 					</p>
-					<div id="nbuf_force_password_message" style="margin-top: 10px; display: none;"></div>
+					<div id="nbuf_force_password_message" class="nbuf-ajax-message"></div>
 
 					<script type="text/javascript">
 					jQuery(document).ready(function($) {
@@ -1460,16 +1435,16 @@ class NBUF_Admin_Users {
 								},
 								success: function(response) {
 									if (response.success) {
-										$message.html('<p style="color: #00a32a;"><strong>' + response.data.message + '</strong></p>').slideDown();
+										$message.html('<p class="nbuf-ajax-success"><strong>' + response.data.message + '</strong></p>').slideDown();
 										// Also check the checkbox to reflect the change
 										$('input[name="nbuf_force_password_change"]').prop('checked', true);
 									} else {
-										$message.html('<p style="color: #d63638;"><strong>' + response.data.message + '</strong></p>').slideDown();
+										$message.html('<p class="nbuf-ajax-error"><strong>' + response.data.message + '</strong></p>').slideDown();
 									}
 									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Password Change Now', 'nobloat-user-foundry' ) ); ?>');
 								},
 								error: function() {
-									$message.html('<p style="color: #d63638;"><strong><?php echo esc_js( __( 'Error: Could not force password change.', 'nobloat-user-foundry' ) ); ?></strong></p>').slideDown();
+									$message.html('<p class="nbuf-ajax-error"><strong><?php echo esc_js( __( 'Error: Could not force password change.', 'nobloat-user-foundry' ) ); ?></strong></p>').slideDown();
 									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Password Change Now', 'nobloat-user-foundry' ) ); ?>');
 								}
 							});
@@ -1488,7 +1463,7 @@ class NBUF_Admin_Users {
 					<p class="description">
 			<?php esc_html_e( 'Immediately log this user out of all devices and sessions. They will need to log in again.', 'nobloat-user-foundry' ); ?>
 					</p>
-					<div id="nbuf_logout_message" style="margin-top: 10px; display: none;"></div>
+					<div id="nbuf_logout_message" class="nbuf-ajax-message"></div>
 
 					<script type="text/javascript">
 					jQuery(document).ready(function($) {
@@ -1515,14 +1490,14 @@ class NBUF_Admin_Users {
 								},
 								success: function(response) {
 									if (response.success) {
-										$message.html('<p style="color: #00a32a;"><strong>' + response.data.message + '</strong></p>').slideDown();
+										$message.html('<p class="nbuf-ajax-success"><strong>' + response.data.message + '</strong></p>').slideDown();
 									} else {
-										$message.html('<p style="color: #d63638;"><strong>' + response.data.message + '</strong></p>').slideDown();
+										$message.html('<p class="nbuf-ajax-error"><strong>' + response.data.message + '</strong></p>').slideDown();
 									}
 									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Logout All Devices', 'nobloat-user-foundry' ) ); ?>');
 								},
 								error: function() {
-									$message.html('<p style="color: #d63638;"><strong><?php echo esc_js( __( 'Error: Could not logout user.', 'nobloat-user-foundry' ) ); ?></strong></p>').slideDown();
+									$message.html('<p class="nbuf-ajax-error"><strong><?php echo esc_js( __( 'Error: Could not logout user.', 'nobloat-user-foundry' ) ); ?></strong></p>').slideDown();
 									$button.prop('disabled', false).text('<?php echo esc_js( __( 'Force Logout All Devices', 'nobloat-user-foundry' ) ); ?>');
 								}
 							});
@@ -1837,12 +1812,12 @@ add_action(
 				echo esc_html( sprintf( _n( 'Setting expiration for %d user.', 'Setting expiration for %d users.', $user_count, 'nobloat-user-foundry' ), $user_count ) );
 				?>
 				</p>
-				<form method="post" action="" style="margin-top:10px;">
+				<form method="post" action="" class="nbuf-bulk-form">
 				<?php wp_nonce_field( 'nbuf_bulk_set_expiration', 'nbuf_bulk_expiration_nonce' ); ?>
 					<label for="nbuf_bulk_expires_at"><strong><?php esc_html_e( 'Expiration Date & Time:', 'nobloat-user-foundry' ); ?></strong></label><br>
-					<input type="text" id="nbuf_bulk_expires_at" name="nbuf_bulk_expires_at" value="" placeholder="YYYY-MM-DD HH:MM" style="width:250px;">
+					<input type="text" id="nbuf_bulk_expires_at" name="nbuf_bulk_expires_at" value="" placeholder="YYYY-MM-DD HH:MM" class="nbuf-bulk-input">
 					<p class="description"><?php esc_html_e( 'Format: YYYY-MM-DD HH:MM (e.g., 2025-12-31 23:59)', 'nobloat-user-foundry' ); ?></p>
-					<button type="submit" class="button button-primary" style="margin-top:10px;"><?php esc_html_e( 'Set Expiration', 'nobloat-user-foundry' ); ?></button>
+					<button type="submit" class="button button-primary nbuf-bulk-submit"><?php esc_html_e( 'Set Expiration', 'nobloat-user-foundry' ); ?></button>
 					<a href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'nobloat-user-foundry' ); ?></a>
 				</form>
 			</div>
@@ -1937,7 +1912,7 @@ add_action(
 				if ( $codes && is_array( $codes ) ) {
 					echo '<div class="notice notice-success"><p><strong>' .
 					esc_html__( 'New backup codes generated! Save these codes now - they will not be shown again:', 'nobloat-user-foundry' ) .
-					'</strong></p><ul style="font-family:monospace;font-size:14px;line-height:1.8;">';
+					'</strong></p><ul class="nbuf-import-results">';
 					foreach ( $codes as $code ) {
 						echo '<li>' . esc_html( $code ) . '</li>';
 					}

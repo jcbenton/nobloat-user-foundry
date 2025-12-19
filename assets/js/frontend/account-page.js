@@ -116,8 +116,9 @@
                 if (accountIndex !== -1) {
                     pathParts = pathParts.slice(0, accountIndex + 1);
                 }
-                /* Add new tab to path */
-                if (tabName) {
+                /* Add new tab to path (but not if it's the default tab) */
+                /* Support both 'main' (new) and 'account' (legacy) as default */
+                if (tabName && tabName !== 'main' && tabName !== 'account') {
                     pathParts.push(tabName);
                 }
                 var newPath = pathParts.join('/') + '/';

@@ -20,9 +20,8 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 /* Get current settings */
-$nbuf_notify_enabled   = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
-$nbuf_notify_new_users = NBUF_Options::get( 'nbuf_notify_new_registrations', false );
-$nbuf_notify_to        = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
+$nbuf_notify_enabled = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
+$nbuf_notify_to      = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
 $nbuf_notify_fields    = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
 $nbuf_notify_digest    = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
@@ -69,7 +68,6 @@ $nbuf_available_fields = array(
 	<input type="hidden" name="nbuf_active_subtab" value="notifications">
 	<!-- Declare checkboxes on this form for proper unchecked handling -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_profile_changes">
-	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_new_registrations">
 
 	<h2><?php esc_html_e( 'Enable Notifications', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Get notified when users make changes to their profiles.', 'nobloat-user-foundry' ); ?></p>
@@ -90,23 +88,6 @@ $nbuf_available_fields = array(
 					<?php esc_html_e( 'Enable profile change notifications', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description"><?php esc_html_e( 'When enabled, admins will be notified of profile changes.', 'nobloat-user-foundry' ); ?></p>
-			</td>
-		</tr>
-		<tr>
-			<th scope="row">
-				<label for="nbuf_notify_new_registrations"><?php esc_html_e( 'New User Notifications', 'nobloat-user-foundry' ); ?></label>
-			</th>
-			<td>
-				<input type="hidden" name="nbuf_notify_new_registrations" value="0">
-				<label>
-					<input type="checkbox"
-							name="nbuf_notify_new_registrations"
-							id="nbuf_notify_new_registrations"
-							value="1"
-							<?php checked( $nbuf_notify_new_users ); ?> />
-					<?php esc_html_e( 'Notify when new users register', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description"><?php esc_html_e( 'Get notified immediately when a new user registers.', 'nobloat-user-foundry' ); ?></p>
 			</td>
 		</tr>
 	</table>
@@ -194,5 +175,5 @@ $nbuf_available_fields = array(
 		</tr>
 	</table>
 
-	<?php submit_button( __( 'Save Notification Settings', 'nobloat-user-foundry' ) ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>

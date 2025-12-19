@@ -45,6 +45,8 @@ if ( $users_with_app_passwords > 0 ) {
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="app-passwords">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_app_passwords_enabled">
 
 	<h2><?php esc_html_e( 'Application Passwords', 'nobloat-user-foundry' ); ?></h2>
 
@@ -88,7 +90,7 @@ if ( $users_with_app_passwords > 0 ) {
 		</ul>
 	</div>
 
-	<?php submit_button( __( 'Save Settings', 'nobloat-user-foundry' ) ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
 
 <?php if ( $users_with_app_passwords > 0 ) : ?>

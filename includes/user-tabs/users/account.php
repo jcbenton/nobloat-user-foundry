@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Login settings */
 $nbuf_reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
-$nbuf_login_method = $nbuf_reg_settings['login_method'] ?? 'email_only';
+$nbuf_login_method = $nbuf_reg_settings['login_method'] ?? 'email_or_username';
 
 /* Password reset */
 $nbuf_enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
@@ -32,6 +32,10 @@ $nbuf_warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 )
 	<?php NBUF_Settings::settings_nonce_field(); ?>
 	<input type="hidden" name="nbuf_active_tab" value="users">
 	<input type="hidden" name="nbuf_active_subtab" value="account">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_password_reset">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_verify_email_change">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_expiration">
 
 	<h2><?php esc_html_e( 'Account Settings', 'nobloat-user-foundry' ); ?></h2>
 
@@ -121,5 +125,5 @@ $nbuf_warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 )
 		</tr>
 	</table>
 
-	<?php submit_button( __( 'Save Account Settings', 'nobloat-user-foundry' ) ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>

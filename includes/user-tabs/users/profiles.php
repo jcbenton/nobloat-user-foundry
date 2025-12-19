@@ -145,29 +145,6 @@ $nbuf_max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 
 
 		</table>
 
-		<?php submit_button( __( 'Save Profile Settings', 'nobloat-user-foundry' ) ); ?>
+		<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 	</form>
-
-	<!-- Helper Information -->
-	<div class="nbuf-profile-info" style="background: #f9f9f9; padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
-		<h3><?php esc_html_e( 'Profile System Overview', 'nobloat-user-foundry' ); ?></h3>
-
-		<h4><?php esc_html_e( 'Privacy-First Design', 'nobloat-user-foundry' ); ?></h4>
-		<ul>
-			<li><?php esc_html_e( 'Profiles are OFF by default', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'SVG initials avatars by default (no external calls)', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Gravatar is opt-in only (with privacy warning)', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Users control their profile privacy (private/members-only/public)', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-
-		<h4 style="margin-top: 20px;"><?php esc_html_e( 'Photo Options', 'nobloat-user-foundry' ); ?></h4>
-		<ol>
-			<li><strong><?php esc_html_e( 'SVG Initials (Default):', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Clean, colorful initials generated from user name. Fast, no external calls, privacy-friendly.', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Custom Upload:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Users upload their own photos. Stored locally in WordPress media library.', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Gravatar (Optional):', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Users can opt-in to Gravatar if enabled by admin. Requires external API call with privacy implications.', 'nobloat-user-foundry' ); ?></li>
-		</ol>
-
-		<h4 style="margin-top: 20px;"><?php esc_html_e( 'Design Philosophy', 'nobloat-user-foundry' ); ?></h4>
-		<p><?php esc_html_e( 'The profile system uses minimal default CSS with a sleek, business-like design. Extensive CSS classes are provided for customization. Use the Custom CSS field above to style profiles to match your site design.', 'nobloat-user-foundry' ); ?></p>
-	</div>
 </div>

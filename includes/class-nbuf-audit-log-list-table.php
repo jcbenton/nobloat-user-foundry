@@ -193,12 +193,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		$label = isset( $status_labels[ $item->event_status ] ) ? $status_labels[ $item->event_status ] : $item->event_status;
 
 		/* Only use red color for failures */
-		$style = '';
-		if ( 'failure' === $item->event_status ) {
-			$style = 'color: #dc3232; font-weight: bold;';
-		}
+		$class = ( 'failure' === $item->event_status ) ? 'nbuf-status-failure-text' : '';
 
-		return sprintf( '<span style="%s">%s</span>', $style, esc_html( $label ) );
+		return sprintf( '<span class="%s">%s</span>', esc_attr( $class ), esc_html( $label ) );
 	}
 
 	/**
@@ -219,7 +216,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_ip_address( $item ) {
 		if ( empty( $item->ip_address ) ) {
-			return '<span style="color: #999;">N/A</span>';
+			return '<span class="nbuf-muted">N/A</span>';
 		}
 		return '<code>' . esc_html( $item->ip_address ) . '</code>';
 	}
@@ -232,7 +229,7 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_user_agent( $item ) {
 		if ( empty( $item->user_agent ) ) {
-			return '<span style="color: #999;">N/A</span>';
+			return '<span class="nbuf-muted">N/A</span>';
 		}
 
 		$user_agent = $item->user_agent;

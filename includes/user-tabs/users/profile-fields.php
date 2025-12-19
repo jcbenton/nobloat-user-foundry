@@ -213,7 +213,7 @@ if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
 		<?php esc_html_e( 'First Name and Last Name are always available on both forms. The "Required" column only applies to registration. Data is never deleted when fields are disabled.', 'nobloat-user-foundry' ); ?>
 	</p>
 
-	<?php submit_button( __( 'Save Profile Fields', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_profile_fields' ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_profile_fields' ); ?>
 </form>
 
 <script>

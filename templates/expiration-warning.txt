@@ -8,9 +8,7 @@ This is a courtesy reminder that your account on {site_name} is scheduled to exp
 
 EXPIRATION DATE: {expires_date}
 
-After this date, you will no longer be able to log in to your account. If you need to extend your account access, please contact the site administrator as soon as possible.
-
-If you believe this is an error, please reach out to us immediately.
+After this date, you will no longer be able to log in to your account.
 
 Visit our site: {site_url}
 

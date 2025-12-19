@@ -426,4 +426,50 @@ class NBUF_CSS_Manager {
 	public static function clear_write_failure_token( $token_key = 'nbuf_css_write_failed' ) {
 		NBUF_Options::delete( $token_key );
 	}
+
+	/**
+	 * Rebuild combined CSS file
+	 *
+	 * Combines all frontend CSS files into a single file.
+	 * Called when any individual CSS file is saved and combine is enabled.
+	 *
+	 * @return bool True if write successful, false otherwise.
+	 */
+	public static function rebuild_combined_css() {
+		/* Check if combine is enabled */
+		$combine_enabled = NBUF_Options::get( 'nbuf_css_combine_files', true );
+		if ( ! $combine_enabled ) {
+			return true;
+		}
+
+		/* Load all CSS - from DB or defaults */
+		$css_files = array(
+			'reset-page'        => 'nbuf_reset_page_css',
+			'login-page'        => 'nbuf_login_page_css',
+			'registration-page' => 'nbuf_registration_page_css',
+			'account-page'      => 'nbuf_account_page_css',
+			'2fa-setup'         => 'nbuf_2fa_page_css',
+			'profile'           => 'nbuf_profile_custom_css',
+			'member-directory'  => 'nbuf_member_directory_custom_css',
+			'version-history'   => 'nbuf_version_history_custom_css',
+			'data-export'       => 'nbuf_data_export_custom_css',
+			'security-account'  => 'nbuf_security_account_css',
+		);
+
+		$combined_parts = array();
+
+		foreach ( $css_files as $filename => $db_option ) {
+			$css = NBUF_Options::get( $db_option );
+			if ( empty( $css ) ) {
+				$css = self::load_default_css( $filename );
+			}
+			if ( ! empty( $css ) ) {
+				$combined_parts[] = $css;
+			}
+		}
+
+		$combined_css = implode( "\n\n", $combined_parts );
+
+		return self::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
+	}
 }

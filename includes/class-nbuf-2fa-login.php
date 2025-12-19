@@ -337,10 +337,38 @@ class NBUF_2FA_Login {
 	 * Complete login after successful 2FA
 	 *
 	 * Sets up the WordPress session and redirects to intended destination.
+	 * Re-checks user status before completing login to prevent bypass.
 	 *
 	 * @param int $user_id User ID.
 	 */
 	private static function complete_login( $user_id ) {
+		/*
+		 * SECURITY: Re-verify user status before completing login.
+		 * Status could have changed between initial auth and 2FA completion.
+		 * Also prevents 2FA from being used to bypass verification requirements.
+		 */
+		$status_error = self::check_user_login_status( $user_id );
+		if ( is_wp_error( $status_error ) ) {
+			/* Clear 2FA transient since we're blocking login */
+			self::clear_2fa_transient();
+
+			/* Log the blocked attempt */
+			NBUF_Audit_Log::log(
+				$user_id,
+				'login_blocked',
+				'failure',
+				'Login blocked after 2FA: ' . $status_error->get_error_code(),
+				array( 'reason' => $status_error->get_error_message() )
+			);
+
+			/* Redirect to login page with error */
+			$login_url = class_exists( 'NBUF_Universal_Router' )
+				? NBUF_Universal_Router::get_url( 'login' )
+				: wp_login_url();
+			wp_safe_redirect( add_query_arg( 'nbuf_error', $status_error->get_error_code(), $login_url ) );
+			exit;
+		}
+
 		/* Log the user in */
 		wp_clear_auth_cookie();
 		wp_set_current_user( $user_id );
@@ -510,7 +538,7 @@ class NBUF_2FA_Login {
 	public static function get_verification_form() {
 		/* Get token from cookie */
 		if ( ! isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
-			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'No pending verification. Please log in first.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p class="nbuf-centered-message">' . esc_html__( 'No pending verification. Please log in first.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		$token = sanitize_text_field( wp_unslash( $_COOKIE[ self::COOKIE_NAME ] ) );
@@ -519,7 +547,7 @@ class NBUF_2FA_Login {
 		$pending_data = get_transient( 'nbuf_2fa_pending_' . $token );
 
 		if ( false === $pending_data ) {
-			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'Session expired. Please log in again.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p class="nbuf-centered-message">' . esc_html__( 'Session expired. Please log in again.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		$user_id = absint( $pending_data['user_id'] );
@@ -624,9 +652,10 @@ class NBUF_2FA_Login {
 
 		/* Add backup code form if user has backup codes */
 		if ( ! empty( $backup_code_link ) ) {
-			$backup_form  = '<div id="nbuf-backup-form" style="display:none; margin-top: 20px;">';
+			$backup_form  = '<div id="nbuf-backup-form">';
 			$backup_form .= '<form method="post" class="nbuf-2fa-verify-form">';
-			$backup_form .= wp_nonce_field( 'nbuf_2fa_verify', 'nbuf_2fa_nonce', true, false );
+			/* Use unique ID to avoid duplicate ID warning - nonce value is same for validation */
+			$backup_form .= '<input type="hidden" id="nbuf_2fa_nonce_backup" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_verify' ) ) . '">';
 			$backup_form .= '<input type="hidden" name="nbuf_2fa_verify" value="1">';
 			$backup_form .= '<input type="hidden" name="code_type" value="backup">';
 			$backup_form .= '<div class="nbuf-form-group">';
@@ -644,5 +673,56 @@ class NBUF_2FA_Login {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Check user login status before completing login.
+	 *
+	 * Verifies user is not disabled, expired, unverified, or pending approval.
+	 * This prevents 2FA from being used to bypass these security checks.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return true|WP_Error True if user can login, WP_Error if blocked.
+	 */
+	private static function check_user_login_status( $user_id ) {
+		/* Admins bypass all restrictions */
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return true;
+		}
+
+		/* Check if user is disabled */
+		if ( NBUF_User_Data::is_disabled( $user_id ) ) {
+			return new WP_Error(
+				'user_disabled',
+				__( 'Your account has been disabled. Please contact the site administrator.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check if user is expired */
+		if ( NBUF_User_Data::is_expired( $user_id ) ) {
+			return new WP_Error(
+				'account_expired',
+				__( 'Your account has expired. Please contact the site administrator.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check if user is verified (only if verification is required) */
+		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
+		if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
+			return new WP_Error(
+				'nbuf_unverified',
+				__( 'Your email address has not been verified. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check admin approval (if user requires it) */
+		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
+			return new WP_Error(
+				'awaiting_approval',
+				__( 'Your account is pending administrator approval.', 'nobloat-user-foundry' )
+			);
+		}
+
+		return true;
 	}
 }

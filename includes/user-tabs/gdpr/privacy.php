@@ -19,7 +19,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 /* Handle form submission */
-if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_privacy_settings' ) ) {
+if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_privacy' === $_POST['nbuf_form_id'] && check_admin_referer( 'nbuf_gdpr_privacy_settings' ) ) {
 	/* Data Retention on User Deletion */
 	$nbuf_delete_audit_logs = isset( $_POST['nbuf_gdpr_delete_audit_logs'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_gdpr_delete_audit_logs'] ) ) : 'anonymize';
 	NBUF_Options::update( 'nbuf_gdpr_delete_audit_logs', $nbuf_delete_audit_logs, true, 'gdpr' );
@@ -51,6 +51,7 @@ $nbuf_delete_user_photos     = NBUF_Options::get( 'nbuf_gdpr_delete_user_photos'
 
 <form method="post" action="">
 	<?php wp_nonce_field( 'nbuf_gdpr_privacy_settings' ); ?>
+	<input type="hidden" name="nbuf_form_id" value="gdpr_privacy">
 	<input type="hidden" name="nbuf_active_tab" value="gdpr">
 	<input type="hidden" name="nbuf_active_subtab" value="privacy">
 

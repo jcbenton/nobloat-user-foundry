@@ -51,6 +51,16 @@ $nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', fal
 	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_settings' );
 	?>
+	<!-- Declare checkboxes on this form for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_user_manager_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_login">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_password_reset">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_custom_roles">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_redirect_default_login">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_redirect_default_register">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_redirect_default_logout">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_redirect_default_lostpassword">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_redirect_default_resetpass">
 
 	<!-- Master Toggle -->
 	<div style="background: #f0f0f1; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin-bottom: 30px;">
@@ -377,6 +387,7 @@ $nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', fal
 					);
 				}
 				?>
+				<input type="hidden" name="nbuf_settings[reverify_on_email_change]" value="0">
 				<label style="display:block;margin-top:8px;">
 					<input type="checkbox" name="nbuf_settings[reverify_on_email_change]" value="1" <?php checked( ! empty( $settings['reverify_on_email_change'] ), true ); ?>>
 					<?php esc_html_e( 'Require re-verification if a user changes their email address.', 'nobloat-user-foundry' ); ?>
@@ -386,6 +397,7 @@ $nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', fal
 		<tr>
 			<th><?php esc_html_e( 'Custom Hook', 'nobloat-user-foundry' ); ?></th>
 			<td>
+				<input type="hidden" name="nbuf_settings[custom_hook_enabled]" value="0">
 				<label>
 					<input type="checkbox" name="nbuf_settings[custom_hook_enabled]" value="1" <?php checked( ! empty( $settings['custom_hook_enabled'] ), true ); ?>>
 					<?php esc_html_e( 'Enable custom hook listener', 'nobloat-user-foundry' ); ?>
@@ -403,6 +415,7 @@ $nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', fal
 		<tr>
 			<th><?php esc_html_e( 'Auto-Verify Existing Users', 'nobloat-user-foundry' ); ?></th>
 			<td>
+				<input type="hidden" name="nbuf_settings[auto_verify_existing]" value="0">
 				<label>
 					<input type="checkbox" name="nbuf_settings[auto_verify_existing]" value="1" <?php checked( ! empty( $settings['auto_verify_existing'] ), true ); ?>>
 					<?php esc_html_e( 'Automatically verify all existing users when the plugin is activated.', 'nobloat-user-foundry' ); ?>

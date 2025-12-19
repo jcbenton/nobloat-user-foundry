@@ -1,97 +1,51 @@
-<div class="nbuf-gdpr-export-container" style="margin: 30px 0; padding: 25px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;">
-	<h2 style="margin-top: 0; color: #0073aa; border-bottom: 2px solid #0073aa; padding-bottom: 10px;">
-		{section_title}
-	</h2>
+<div class="nbuf-gdpr-export-container">
+	<h2>{section_title}</h2>
 
-	<div style="background: white; padding: 20px; border-radius: 3px; margin-bottom: 20px;">
+	<div class="nbuf-export-content">
 		<p>{gdpr_description}</p>
 
 		<h3>{export_includes_title}</h3>
-		<ul style="list-style: disc; margin-left: 25px;">
+		<ul class="nbuf-export-includes">
 			{export_includes_list}
 		</ul>
 
-		<p>
-			<strong>{estimated_size_label}</strong> {estimated_size}
-			<br>
-			<strong>{format_label}</strong> {format_value}
-		</p>
+		<div class="nbuf-export-info">
+			<p><strong>{estimated_size_label}</strong> {estimated_size}</p>
+			<p><strong>{format_label}</strong> {format_value}</p>
+		</div>
 
-		<div style="text-align: center; margin: 25px 0;">
+		<div class="nbuf-export-actions">
 			{export_button}
 		</div>
 
-		<div id="nbuf-export-messages" style="margin-top: 15px;"></div>
+		<div id="nbuf-export-messages"></div>
 	</div>
 
-	<div style="background: #f0f0f0; padding: 15px; border-left: 4px solid #0073aa; font-size: 0.9em;">
-		<h4 style="margin-top: 0;">{history_title}</h4>
+	<div class="nbuf-export-history">
+		<h4>{history_title}</h4>
 		{export_history}
 	</div>
 </div>
 
 <!-- Password Confirmation Modal -->
-<div id="nbuf-password-modal" style="display: none;">
-	<div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999999; display: flex; align-items: center; justify-content: center;">
-		<div style="background: white; padding: 30px; border-radius: 5px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-			<h3 style="margin-top: 0; color: #0073aa;">
-				{modal_title}
-			</h3>
+<div id="nbuf-password-modal" class="nbuf-export-modal-wrapper">
+	<div class="nbuf-export-modal-overlay">
+		<div class="nbuf-export-modal">
+			<h3>{modal_title}</h3>
 			<p>{modal_description}</p>
 			<p>
-				<label for="nbuf-export-password" style="display: block; margin-bottom: 5px; font-weight: bold;">
-					{password_label}
-				</label>
-				<input type="password" id="nbuf-export-password" class="regular-text" style="width: 100%;" />
+				<label for="nbuf-export-password">{password_label}</label>
+				<input type="password" id="nbuf-export-password" class="regular-text" />
 			</p>
-			<div id="nbuf-password-error" style="color: #d63301; margin-bottom: 15px; display: none;"></div>
-			<p style="text-align: right; margin-bottom: 0;">
+			<div id="nbuf-password-error"></div>
+			<div class="nbuf-export-modal-actions">
 				<button type="button" id="nbuf-cancel-export" class="button">
 					{cancel_button}
 				</button>
 				<button type="button" id="nbuf-confirm-export" class="button button-primary">
 					{confirm_button}
 				</button>
-			</p>
+			</div>
 		</div>
 	</div>
 </div>
-
-<style>
-	.nbuf-export-notice {
-		padding: 10px 15px;
-		border-left: 4px solid;
-		margin: 15px 0;
-		border-radius: 3px;
-	}
-	.nbuf-export-notice.success {
-		background: #d4edda;
-		border-color: #28a745;
-		color: #155724;
-	}
-	.nbuf-export-notice.error {
-		background: #f8d7da;
-		border-color: #dc3545;
-		color: #721c24;
-	}
-	.nbuf-export-notice.info {
-		background: #d1ecf1;
-		border-color: #17a2b8;
-		color: #0c5460;
-	}
-	.nbuf-export-spinner {
-		display: inline-block;
-		width: 16px;
-		height: 16px;
-		border: 2px solid #f3f3f3;
-		border-top: 2px solid #0073aa;
-		border-radius: 50%;
-		animation: nbuf-spin 1s linear infinite;
-		margin-right: 8px;
-		vertical-align: middle;
-	}
-	@keyframes nbuf-spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
-	}
-</style>

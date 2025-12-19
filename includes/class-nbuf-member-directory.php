@@ -112,7 +112,7 @@ class NBUF_Member_Directory {
 			if ( 0 === strpos( $photo_url, 'data:' ) ) {
 				/* Data URI - use esc_attr instead of esc_url */
 				return sprintf(
-					'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar nbuf-svg-avatar" width="%d" height="%d" loading="lazy" style="border-radius: 50%%;" />',
+					'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar nbuf-svg-avatar nbuf-avatar-rounded" width="%d" height="%d" loading="lazy" />',
 					esc_attr( $photo_url ),
 					esc_attr( $alt ),
 					$size,
@@ -123,7 +123,7 @@ class NBUF_Member_Directory {
 
 			/* Regular URL - use esc_url */
 			return sprintf(
-				'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar" width="%d" height="%d" loading="lazy" style="border-radius: 50%%; object-fit: cover;" />',
+				'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar nbuf-avatar-rounded" width="%d" height="%d" loading="lazy" />',
 				esc_url( $photo_url ),
 				esc_attr( $alt ),
 				$size,
@@ -146,7 +146,7 @@ class NBUF_Member_Directory {
 		/* Check if enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_member_directory', false );
 		if ( ! $enabled ) {
-			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'Member directory is currently disabled.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p class="nbuf-centered-message">' . esc_html__( 'Member directory is currently disabled.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		/* Get defaults from admin settings */
@@ -204,9 +204,9 @@ class NBUF_Member_Directory {
 		/* Build pagination HTML */
 		$pagination = self::build_pagination_html( $page, $total_pages );
 
-		/* Load HTML template */
+		/* Load HTML template (checks DB first, falls back to default file) */
 		$template_name = $is_list_view ? 'member-directory-list-html' : 'member-directory-html';
-		$template      = NBUF_Template_Manager::load_default_file( $template_name );
+		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		/* Build replacements */
 		$replacements = array(

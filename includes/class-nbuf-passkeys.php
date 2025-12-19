@@ -1165,6 +1165,15 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => $user_id->get_error_message() ) );
 		}
 
+		/*
+		 * SECURITY: Check user login status before allowing login.
+		 * Prevents passkey auth from bypassing disabled/expired/unverified checks.
+		 */
+		$status_error = self::check_user_login_status( $user_id );
+		if ( is_wp_error( $status_error ) ) {
+			wp_send_json_error( array( 'message' => $status_error->get_error_message() ) );
+		}
+
 		/* Check if 2FA is enabled for this user */
 		$twofa_required = false;
 		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::is_enabled( $user_id ) ) {
@@ -1282,11 +1291,14 @@ class NBUF_Passkeys {
 		/* Check if user has passkeys */
 		$has_passkeys = NBUF_User_Passkeys_Data::has_passkeys( $user->ID );
 
+		/*
+		 * Don't return user_id - it could aid user enumeration.
+		 * The login flow uses username/email directly for authentication.
+		 */
 		wp_send_json_success(
 			array(
 				'has_passkeys'  => $has_passkeys,
 				'show_password' => true, /* Always allow password fallback */
-				'user_id'       => $user->ID,
 			)
 		);
 	}
@@ -1299,5 +1311,56 @@ class NBUF_Passkeys {
 	 */
 	public static function on_user_delete( int $user_id ) {
 		NBUF_User_Passkeys_Data::delete_all( $user_id );
+	}
+
+	/**
+	 * Check user login status before completing login.
+	 *
+	 * Verifies user is not disabled, expired, unverified, or pending approval.
+	 * This prevents passkey auth from bypassing these security checks.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return true|WP_Error True if user can login, WP_Error if blocked.
+	 */
+	private static function check_user_login_status( $user_id ) {
+		/* Admins bypass all restrictions */
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return true;
+		}
+
+		/* Check if user is disabled */
+		if ( NBUF_User_Data::is_disabled( $user_id ) ) {
+			return new WP_Error(
+				'user_disabled',
+				__( 'Your account has been disabled.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check if user is expired */
+		if ( NBUF_User_Data::is_expired( $user_id ) ) {
+			return new WP_Error(
+				'account_expired',
+				__( 'Your account has expired.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check if user is verified (only if verification is required) */
+		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
+		if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
+			return new WP_Error(
+				'nbuf_unverified',
+				__( 'Your email address has not been verified. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/* Check admin approval (if user requires it) */
+		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
+			return new WP_Error(
+				'awaiting_approval',
+				__( 'Your account is pending administrator approval.', 'nobloat-user-foundry' )
+			);
+		}
+
+		return true;
 	}
 }

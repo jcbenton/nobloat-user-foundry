@@ -36,6 +36,8 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="passkeys">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_passkeys_enabled">
 
 	<h2><?php esc_html_e( 'Passkey Authentication', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -148,7 +150,7 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 		</tr>
 	</table>
 
-	<?php submit_button( __( 'Save Passkey Settings', 'nobloat-user-foundry' ) ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
 
 <h2><?php esc_html_e( 'Browser Support', 'nobloat-user-foundry' ); ?></h2>

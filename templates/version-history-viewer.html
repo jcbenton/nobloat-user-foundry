@@ -7,22 +7,22 @@
 	</div>
 
 	<!-- Loading State -->
-	<div class="nbuf-vh-loading" style="text-align: center; padding: 40px;">
+	<div class="nbuf-vh-loading">
 		<span class="spinner is-active"></span>
 		<p>{loading_text}</p>
 	</div>
 
 	<!-- Timeline Container (populated via AJAX) -->
-	<div class="nbuf-vh-timeline" style="display: none;">
+	<div class="nbuf-vh-timeline">
 		<!-- Timeline items will be inserted here via JavaScript -->
 	</div>
 
 	<!-- Pagination -->
-	<div class="nbuf-vh-pagination" style="display: none; margin-top: 20px; text-align: center;">
+	<div class="nbuf-vh-pagination">
 		<button class="button nbuf-vh-prev-page" disabled>
 			{prev_button}
 		</button>
-		<span class="nbuf-vh-page-info" style="margin: 0 15px;">
+		<span class="nbuf-vh-page-info">
 			{page_info}
 		</span>
 		<button class="button nbuf-vh-next-page" disabled>
@@ -31,13 +31,13 @@
 	</div>
 
 	<!-- Empty State -->
-	<div class="nbuf-vh-empty" style="display: none; text-align: center; padding: 40px; background: #f9f9f9; border: 1px dashed #ddd; border-radius: 4px;">
-		<p style="font-size: 16px; color: #666;">{empty_title}</p>
+	<div class="nbuf-vh-empty">
+		<p>{empty_title}</p>
 		<p class="description">{empty_description}</p>
 	</div>
 
 	<!-- Diff Modal (hidden by default) -->
-	<div class="nbuf-vh-diff-modal" style="display: none;">
+	<div class="nbuf-vh-diff-modal">
 		<div class="nbuf-vh-diff-overlay"></div>
 		<div class="nbuf-vh-diff-content">
 			<div class="nbuf-vh-diff-header">
@@ -45,11 +45,11 @@
 				<button class="nbuf-vh-close-diff button">{close_button}</button>
 			</div>
 			<div class="nbuf-vh-diff-body">
-				<div class="nbuf-vh-diff-loading" style="text-align: center; padding: 40px;">
+				<div class="nbuf-vh-diff-loading">
 					<span class="spinner is-active"></span>
 					<p>{comparing_text}</p>
 				</div>
-				<div class="nbuf-vh-diff-result" style="display: none;">
+				<div class="nbuf-vh-diff-result">
 					<!-- Diff content inserted via JavaScript -->
 				</div>
 			</div>

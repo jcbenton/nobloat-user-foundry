@@ -110,6 +110,10 @@ class NBUF_Settings {
 				return in_array( $value, $valid, true ) ? $value : 'show_admin';
 			},
 
+			/* Admin Dashboard Access */
+			'nbuf_restrict_admin_access'          => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_admin_redirect_url'             => 'esc_url_raw',
+
 			/* Logout settings */
 			'nbuf_logout_behavior'                => function ( $value ) {
 				return in_array( $value, array( 'immediate', 'confirm' ), true ) ? $value : 'immediate';
@@ -461,6 +465,30 @@ class NBUF_Settings {
 			'nbuf_welcome_email_text'             => function ( $value ) {
 				return NBUF_Template_Manager::sanitize_template( $value, 'welcome-email-text' );
 			},
+			'nbuf_2fa_email_html'                 => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, '2fa-html' );
+			},
+			'nbuf_2fa_email_text'                 => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, '2fa-text' );
+			},
+			'nbuf_expiration_warning_email_html'  => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'expiration-warning-html' );
+			},
+			'nbuf_expiration_warning_email_text'  => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'expiration-warning-text' );
+			},
+			'nbuf_expiration_notice_email_html'   => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'expiration-notice-html' );
+			},
+			'nbuf_expiration_notice_email_text'   => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'expiration-notice-text' );
+			},
+			'nbuf_password_reset_email_html'      => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'password-reset-html' );
+			},
+			'nbuf_password_reset_email_text'      => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'password-reset-text' );
+			},
 			'nbuf_admin_new_user_html'            => function ( $value ) {
 				return NBUF_Template_Manager::sanitize_template( $value, 'admin-new-user-html' );
 			},
@@ -475,11 +503,24 @@ class NBUF_Settings {
 			},
 
 			/* WooCommerce integration */
+			'nbuf_wc_require_verification'        => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_wc_prevent_active_subs'         => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_wc_prevent_recent_orders'       => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_wc_recent_order_days'           => function ( $value ) {
 				return max( 1, min( 365, absint( $value ) ) );
 			},
+
+			/* Access Restrictions */
+			'nbuf_restrictions_enabled'              => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrictions_menu_enabled'         => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrictions_content_enabled'      => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrict_content_shortcode_enabled' => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrict_widgets_enabled'          => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrict_taxonomies_enabled'       => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrictions_hide_from_queries'    => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrict_taxonomies_filter_queries' => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_restrictions_post_types'           => array( __CLASS__, 'sanitize_post_type_array' ),
+			'nbuf_restrict_taxonomies_list'          => array( __CLASS__, 'sanitize_taxonomy_array' ),
 		);
 	}
 
@@ -541,6 +582,36 @@ class NBUF_Settings {
 					if ( $result ) {
 						++$saved_count;
 					}
+				}
+			}
+		}
+
+		/* Handle empty arrays - only for array fields declared on the current form */
+		if ( isset( $_POST['nbuf_form_arrays'] ) && is_array( $_POST['nbuf_form_arrays'] ) ) {
+			$form_arrays = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_arrays'] ) );
+			foreach ( $form_arrays as $array_key ) {
+				/* If array was declared but not submitted, save empty array */
+				if ( ! isset( $_POST[ $array_key ] ) && isset( $registry[ $array_key ] ) ) {
+					$sanitize_callback = $registry[ $array_key ];
+					/* Call sanitizer with empty array to get proper default */
+					$sanitized_value = is_callable( $sanitize_callback ) ? call_user_func( $sanitize_callback, array() ) : array();
+					$result          = NBUF_Options::update( $array_key, $sanitized_value, true, 'settings' );
+					if ( $result ) {
+						++$saved_count;
+					}
+				}
+			}
+		}
+
+		/* Sync NBUF registration setting with WordPress users_can_register */
+		if ( isset( $_POST['nbuf_form_checkboxes'] ) && is_array( $_POST['nbuf_form_checkboxes'] ) ) {
+			$form_checkboxes = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_checkboxes'] ) );
+			if ( in_array( 'nbuf_enable_registration', $form_checkboxes, true ) ) {
+				$nbuf_registration_enabled = ! empty( $_POST['nbuf_enable_registration'] );
+				$wp_users_can_register     = (bool) get_option( 'users_can_register' );
+
+				if ( $nbuf_registration_enabled !== $wp_users_can_register ) {
+					update_option( 'users_can_register', $nbuf_registration_enabled ? 1 : 0 );
 				}
 			}
 		}
@@ -752,7 +823,7 @@ class NBUF_Settings {
 			echo '<div class="notice notice-warning is-dismissible">';
 			echo '<p><strong>' . esc_html__( 'NoBloat User Foundry:', 'nobloat-user-foundry' ) . '</strong> ';
 			echo esc_html__( 'Required pages are missing or misconfigured:', 'nobloat-user-foundry' );
-			echo '<ul style="list-style:disc;margin-left:20px;">';
+			echo '<ul class="nbuf-notice-list">';
 			foreach ( $missing_pages as $page_desc ) {
 				/* SECURITY: Allow <code> tags for page path display */
 				echo '<li>' . wp_kses_post( $page_desc ) . '</li>';
@@ -1018,7 +1089,7 @@ class NBUF_Settings {
 
 		$output['login_method'] = in_array( $input['login_method'] ?? '', $allowed_login_methods, true )
 		? $input['login_method']
-		: 'email_only';
+		: 'email_or_username';
 
 		$output['address_mode'] = in_array( $input['address_mode'] ?? '', $allowed_address_modes, true )
 		? $input['address_mode']
@@ -1081,6 +1152,62 @@ class NBUF_Settings {
 		}
 
 		return $sanitized;
+	}
+
+	/**
+	 * ==========================================================
+	 * SANITIZE POST TYPE ARRAY
+	 * ----------------------------------------------------------
+	 * Sanitizes array of post type names.
+	 * ==========================================================
+	 *
+	 * @param  mixed $input Raw input value.
+	 * @return array Sanitized array of post type slugs.
+	 */
+	public static function sanitize_post_type_array( $input ) {
+		if ( ! is_array( $input ) ) {
+			return array( 'post', 'page' );
+		}
+
+		$valid_post_types = get_post_types( array( 'public' => true ) );
+		$sanitized        = array();
+
+		foreach ( $input as $post_type ) {
+			$post_type = sanitize_key( $post_type );
+			if ( in_array( $post_type, $valid_post_types, true ) ) {
+				$sanitized[] = $post_type;
+			}
+		}
+
+		return ! empty( $sanitized ) ? $sanitized : array( 'post', 'page' );
+	}
+
+	/**
+	 * ==========================================================
+	 * SANITIZE TAXONOMY ARRAY
+	 * ----------------------------------------------------------
+	 * Sanitizes array of taxonomy names.
+	 * ==========================================================
+	 *
+	 * @param  mixed $input Raw input value.
+	 * @return array Sanitized array of taxonomy slugs.
+	 */
+	public static function sanitize_taxonomy_array( $input ) {
+		if ( ! is_array( $input ) ) {
+			return array( 'category', 'post_tag' );
+		}
+
+		$valid_taxonomies = get_taxonomies( array( 'public' => true ) );
+		$sanitized        = array();
+
+		foreach ( $input as $taxonomy ) {
+			$taxonomy = sanitize_key( $taxonomy );
+			if ( in_array( $taxonomy, $valid_taxonomies, true ) ) {
+				$sanitized[] = $taxonomy;
+			}
+		}
+
+		return ! empty( $sanitized ) ? $sanitized : array( 'category', 'post_tag' );
 	}
 
 	/**
@@ -1239,7 +1366,7 @@ class NBUF_Settings {
 						echo '<fieldset>';
 						foreach ( $options as $opt_key => $opt_label ) {
 							$checked = isset( $value[ $opt_key ] ) && $value[ $opt_key ];
-							echo '<label style="display:block;margin-bottom:6px;">';
+							echo '<label class="nbuf-checkbox-label">';
 							echo '<input type="checkbox" name="' . esc_attr( $id ) . '[' . esc_attr( $opt_key ) . ']" value="1" ' . checked( $checked, true, false ) . '>';
 							echo ' ' . esc_html( $opt_label );
 							echo '</label>';
@@ -1528,40 +1655,84 @@ class NBUF_Settings {
 
 		$type       = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
 		$file_map   = array(
-			'html'                => 'email-verification.html',
-			'text'                => 'email-verification.txt',
-			'welcome-html'        => 'welcome-email.html',
-			'welcome-text'        => 'welcome-email.txt',
-			'admin-new-user-html' => 'admin-new-user.html',
-			'admin-new-user-text' => 'admin-new-user.txt',
-			'login-form'          => 'login-form.html',
-			'registration-form'   => 'registration-form.html',
-			'account-page'        => 'account-page.html',
-			'request-reset-form'  => 'request-reset-form.html',
-			'reset-form'          => 'reset-form.html',
-			'2fa-verify'          => '2fa-verify.html',
-			'2fa-setup-totp'      => '2fa-setup-totp.html',
-			'2fa-backup-codes'    => '2fa-backup-codes.html',
-			'policy-privacy-html' => 'policy-privacy.html',
-			'policy-terms-html'   => 'policy-terms.html',
+			/* Email verification */
+			'html'                    => 'email-verification.html',
+			'text'                    => 'email-verification.txt',
+			/* Welcome email */
+			'welcome-html'            => 'welcome-email.html',
+			'welcome-text'            => 'welcome-email.txt',
+			/* Admin notification */
+			'admin-new-user-html'     => 'admin-new-user.html',
+			'admin-new-user-text'     => 'admin-new-user.txt',
+			/* 2FA email code */
+			'2fa-html'                => '2fa-email-code.html',
+			'2fa-text'                => '2fa-email-code.txt',
+			/* Expiration emails */
+			'expiration-warning-html' => 'expiration-warning.html',
+			'expiration-warning-text' => 'expiration-warning.txt',
+			'expiration-notice-html'  => 'expiration-notice.html',
+			'expiration-notice-text'  => 'expiration-notice.txt',
+			/* Password reset email */
+			'password-reset-html'     => 'password-reset.html',
+			'password-reset-text'     => 'password-reset.txt',
+			/* Form templates */
+			'login-form'              => 'login-form.html',
+			'registration-form'       => 'registration-form.html',
+			'account-page'            => 'account-page.html',
+			'request-reset-form'      => 'request-reset-form.html',
+			'reset-form'              => 'reset-form.html',
+			'2fa-verify'              => '2fa-verify.html',
+			'2fa-setup-totp'          => '2fa-setup-totp.html',
+			'2fa-backup-codes'        => '2fa-backup-codes.html',
+			/* Policy templates */
+			'policy-privacy-html'     => 'policy-privacy.html',
+			'policy-terms-html'       => 'policy-terms.html',
+			/* Page templates */
+			'public-profile-html'         => 'public-profile.html',
+			'member-directory-html'       => 'member-directory.html',
+			'member-directory-list-html'  => 'member-directory-list.html',
+			'account-data-export-html'    => 'account-data-export.html',
+			'version-history-viewer-html' => 'version-history-viewer.html',
 		);
 		$option_map = array(
-			'html'                => 'nbuf_email_template_html',
-			'text'                => 'nbuf_email_template_text',
-			'welcome-html'        => 'nbuf_welcome_email_html',
-			'welcome-text'        => 'nbuf_welcome_email_text',
-			'admin-new-user-html' => 'nbuf_admin_new_user_html',
-			'admin-new-user-text' => 'nbuf_admin_new_user_text',
-			'login-form'          => 'nbuf_login_form_template',
-			'registration-form'   => 'nbuf_registration_form_template',
-			'account-page'        => 'nbuf_account_page_template',
-			'request-reset-form'  => 'nbuf_request_reset_form_template',
-			'reset-form'          => 'nbuf_reset_form_template',
-			'2fa-verify'          => 'nbuf_2fa_verify_template',
-			'2fa-setup-totp'      => 'nbuf_2fa_setup_totp_template',
-			'2fa-backup-codes'    => 'nbuf_2fa_backup_codes_template',
-			'policy-privacy-html' => 'nbuf_policy_privacy_html',
-			'policy-terms-html'   => 'nbuf_policy_terms_html',
+			/* Email verification */
+			'html'                    => 'nbuf_email_template_html',
+			'text'                    => 'nbuf_email_template_text',
+			/* Welcome email */
+			'welcome-html'            => 'nbuf_welcome_email_html',
+			'welcome-text'            => 'nbuf_welcome_email_text',
+			/* Admin notification */
+			'admin-new-user-html'     => 'nbuf_admin_new_user_html',
+			'admin-new-user-text'     => 'nbuf_admin_new_user_text',
+			/* 2FA email code */
+			'2fa-html'                => 'nbuf_2fa_email_html',
+			'2fa-text'                => 'nbuf_2fa_email_text',
+			/* Expiration emails */
+			'expiration-warning-html' => 'nbuf_expiration_warning_email_html',
+			'expiration-warning-text' => 'nbuf_expiration_warning_email_text',
+			'expiration-notice-html'  => 'nbuf_expiration_notice_email_html',
+			'expiration-notice-text'  => 'nbuf_expiration_notice_email_text',
+			/* Password reset email */
+			'password-reset-html'     => 'nbuf_password_reset_email_html',
+			'password-reset-text'     => 'nbuf_password_reset_email_text',
+			/* Form templates */
+			'login-form'              => 'nbuf_login_form_template',
+			'registration-form'       => 'nbuf_registration_form_template',
+			'account-page'            => 'nbuf_account_page_template',
+			'request-reset-form'      => 'nbuf_request_reset_form_template',
+			'reset-form'              => 'nbuf_reset_form_template',
+			'2fa-verify'              => 'nbuf_2fa_verify_template',
+			'2fa-setup-totp'          => 'nbuf_2fa_setup_totp_template',
+			'2fa-backup-codes'        => 'nbuf_2fa_backup_codes_template',
+			/* Policy templates */
+			'policy-privacy-html'     => 'nbuf_policy_privacy_html',
+			'policy-terms-html'       => 'nbuf_policy_terms_html',
+			/* Page templates */
+			'public-profile-html'         => 'nbuf_public_profile_template',
+			'member-directory-html'       => 'nbuf_member_directory_template',
+			'member-directory-list-html'  => 'nbuf_member_directory_list_template',
+			'account-data-export-html'    => 'nbuf_account_data_export_template',
+			'version-history-viewer-html' => 'nbuf_version_history_viewer_template',
 		);
 
 		if ( empty( $file_map[ $type ] ) ) {
@@ -1591,8 +1762,13 @@ class NBUF_Settings {
 			wp_send_json_error( __( 'Failed to read template file.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Use Template Manager to save (stores in custom table, not wp_options) */
-		NBUF_Template_Manager::save_template( $type, $content );
+		/* Delete the custom template from database so it falls back to file */
+		if ( isset( $option_map[ $type ] ) ) {
+			NBUF_Options::delete( $option_map[ $type ] );
+		}
+
+		/* Clear Template Manager cache for this template */
+		NBUF_Template_Manager::clear_cache( $type );
 
 		wp_send_json_success(
 			array(
@@ -1616,14 +1792,26 @@ class NBUF_Settings {
 
 		$template   = isset( $_POST['template'] ) ? sanitize_text_field( wp_unslash( $_POST['template'] ) ) : '';
 		$file_map   = array(
-			'reset-page'   => 'reset-page.css',
-			'login-page'   => 'login-page.css',
-			'account-page' => 'account-page.css',
+			'reset-page'        => 'reset-page.css',
+			'login-page'        => 'login-page.css',
+			'registration-page' => 'registration-page.css',
+			'account-page'      => 'account-page.css',
+			'2fa-setup'         => '2fa-setup.css',
+			'profile'           => 'profile.css',
+			'member-directory'  => 'member-directory.css',
+			'version-history'   => 'version-history.css',
+			'data-export'       => 'data-export.css',
 		);
 		$option_map = array(
-			'reset-page'   => 'nbuf_reset_page_css',
-			'login-page'   => 'nbuf_login_page_css',
-			'account-page' => 'nbuf_account_page_css',
+			'reset-page'        => 'nbuf_reset_page_css',
+			'login-page'        => 'nbuf_login_page_css',
+			'registration-page' => 'nbuf_registration_page_css',
+			'account-page'      => 'nbuf_account_page_css',
+			'2fa-setup'         => 'nbuf_2fa_page_css',
+			'profile'           => 'nbuf_profile_custom_css',
+			'member-directory'  => 'nbuf_member_directory_custom_css',
+			'version-history'   => 'nbuf_version_history_custom_css',
+			'data-export'       => 'nbuf_data_export_custom_css',
 		);
 
 		if ( empty( $file_map[ $template ] ) ) {
@@ -1653,8 +1841,8 @@ class NBUF_Settings {
 			wp_send_json_error( __( 'Failed to read CSS file.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Use NBUF_Options to save (stores in custom table, not wp_options) */
-		NBUF_Options::update( $option_map[ $template ], $content, false, 'styles' );
+		/* Delete the custom CSS from database so it falls back to file */
+		NBUF_Options::delete( $option_map[ $template ] );
 
 		wp_send_json_success(
 			array(

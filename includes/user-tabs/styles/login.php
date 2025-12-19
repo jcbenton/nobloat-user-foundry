@@ -26,25 +26,7 @@ if ( isset( $_POST['nbuf_save_login_css'] ) && check_admin_referer( 'nbuf_login_
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_login_css, 'login-page', 'nbuf_css_write_failed_login' );
 
 	/* Rebuild combined file if enabled */
-	$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
-		$nbuf_account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
-
-		if ( empty( $nbuf_reset_css ) ) {
-			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
-		}
-		if ( empty( $nbuf_registration_css ) ) {
-			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
-		}
-		if ( empty( $nbuf_account_css ) ) {
-			$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
-		}
-
-		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
-	}
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Login page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -110,13 +92,14 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 		<h3><?php esc_html_e( 'CSS Class Reference', 'nobloat-user-foundry' ); ?></h3>
 		<ul>
 			<li><code>.nbuf-login-wrapper</code> - Main container</li>
-			<li><code>.nbuf-login-title</code> - Page title</li>
 			<li><code>.nbuf-login-form</code> - Form element</li>
-			<li><code>.nbuf-login-label</code> - Form labels</li>
-			<li><code>.nbuf-login-input</code> - Input fields</li>
+			<li><code>.nbuf-form-group</code> - Input group wrapper</li>
+			<li><code>.nbuf-form-label</code>, <code>.nbuf-login-label</code> - Form labels</li>
+			<li><code>.nbuf-form-input</code>, <code>.nbuf-login-input</code> - Input fields</li>
 			<li><code>.nbuf-login-button</code> - Submit button</li>
-			<li><code>.nbuf-login-error</code> - Error messages</li>
-			<li><code>.nbuf-login-notice</code> - Success messages</li>
+			<li><code>.nbuf-message-error</code>, <code>.nbuf-login-error</code> - Error messages</li>
+			<li><code>.nbuf-message-success</code>, <code>.nbuf-login-success</code> - Success messages</li>
+			<li><code>.nbuf-login-links</code> - Footer links container</li>
 			<li><code>.nbuf-login-container</code> - Container when policy panel is shown</li>
 			<li><code>.nbuf-policy-panel</code> - Policy panel container</li>
 		</ul>

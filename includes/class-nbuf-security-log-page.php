@@ -82,7 +82,7 @@ class NBUF_Security_Log_Page {
 			<hr class="wp-header-end">
 
 			<!-- Settings Link -->
-			<div class="notice notice-info" style="margin-top: 20px;">
+			<div class="notice notice-info nbuf-notice-margin">
 				<p>
 		<?php
 		printf(
@@ -109,29 +109,29 @@ class NBUF_Security_Log_Page {
 		<?php endif; ?>
 
 			<!-- Statistics -->
-			<div class="nbuf-stats-box" style="padding: 15px 0; margin: 20px 0;">
-				<h3 style="margin-top: 0;"><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<table style="max-width: 600px; border-collapse: collapse;">
+			<div class="nbuf-stats-box nbuf-stats-section">
+				<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
+				<table class="nbuf-stats-table">
 					<tbody>
 						<tr>
-							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td style="padding: 4px 0;"><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td>
+							<td><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Database Size:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td style="padding: 4px 0;"><?php echo esc_html( $stats['database_size'] ); ?></td>
+							<td><strong><?php esc_html_e( 'Database Size:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td><?php echo esc_html( $stats['database_size'] ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Oldest Entry:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td style="padding: 4px 0;"><?php echo esc_html( $stats['oldest_entry'] ); ?></td>
+							<td><strong><?php esc_html_e( 'Oldest Entry:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td><?php echo esc_html( $stats['oldest_entry'] ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td style="padding: 4px 0;"><?php echo esc_html( $stats['last_cleanup'] ); ?></td>
+							<td><strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td><?php echo esc_html( $stats['last_cleanup'] ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding: 4px 12px 4px 0;"><strong><?php esc_html_e( 'Retention Period:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td style="padding: 4px 0;"><?php echo esc_html( self::get_retention_label() ); ?></td>
+							<td><strong><?php esc_html_e( 'Retention Period:', 'nobloat-user-foundry' ); ?></strong></td>
+							<td><?php echo esc_html( self::get_retention_label() ); ?></td>
 						</tr>
 					</tbody>
 				</table>

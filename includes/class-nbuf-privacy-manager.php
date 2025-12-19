@@ -323,7 +323,7 @@ class NBUF_Privacy_Manager {
 			?>
 			<div class="nbuf-privacy-section">
 				<h3><?php esc_html_e( 'Privacy Settings', 'nobloat-user-foundry' ); ?></h3>
-				<p class="description" style="font-style: italic; color: #646970;">
+				<p class="description nbuf-description-italic">
 			<?php esc_html_e( 'Privacy settings are managed by the site administrator. Contact support if you need to change your privacy settings.', 'nobloat-user-foundry' ); ?>
 				</p>
 				<table class="form-table">

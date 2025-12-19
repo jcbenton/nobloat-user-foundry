@@ -131,12 +131,12 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 		if ( $count > 1 ) {
 			return sprintf(
-				'<span style="display: inline-block; padding: 2px 8px; background: #f0f0f1; border-radius: 10px; font-weight: 600;">%s</span>',
+				'<span class="nbuf-occurrence-badge">%s</span>',
 				esc_html( number_format( $count ) )
 			);
 		}
 
-		return '<span style="color: #999;">1</span>';
+		return '<span class="nbuf-muted">1</span>';
 	}
 
 	/**
@@ -188,7 +188,7 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_ip_address( $item ) {
 		if ( empty( $item->ip_address ) ) {
-			return '<span style="color: #999;">N/A</span>';
+			return '<span class="nbuf-muted">N/A</span>';
 		}
 		return '<code>' . esc_html( $item->ip_address ) . '</code>';
 	}
@@ -211,7 +211,7 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_context( $item ) {
 		if ( empty( $item->context ) ) {
-			return '<span style="color: #999;">—</span>';
+			return '<span class="nbuf-muted">—</span>';
 		}
 
 		$context = $item->context;
@@ -418,7 +418,7 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 		$value = isset( $_REQUEST['date_from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_from'] ) ) : '';
 
 		printf(
-			'<input type="date" name="date_from" id="date-from-filter" value="%s" placeholder="%s" style="line-height: 2;">',
+			'<input type="date" name="date_from" id="date-from-filter" value="%s" placeholder="%s" class="nbuf-date-filter">',
 			esc_attr( $value ),
 			esc_attr__( 'Date From', 'nobloat-user-foundry' )
 		);
@@ -432,7 +432,7 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 		$value = isset( $_REQUEST['date_to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_to'] ) ) : '';
 
 		printf(
-			'<input type="date" name="date_to" id="date-to-filter" value="%s" placeholder="%s" style="line-height: 2;">',
+			'<input type="date" name="date_to" id="date-to-filter" value="%s" placeholder="%s" class="nbuf-date-filter">',
 			esc_attr( $value ),
 			esc_attr__( 'Date To', 'nobloat-user-foundry' )
 		);

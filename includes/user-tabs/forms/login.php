@@ -57,7 +57,7 @@ if ( empty( $nbuf_login_form ) ) {
 		<?php submit_button( __( 'Save Login Form Template', 'nobloat-user-foundry' ) ); ?>
 	</form>
 
-	<div class="nbuf-template-info" style="background: #f9f9f9; padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
+	<div class="nbuf-template-info" style="padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
 		<h3><?php esc_html_e( 'CSS Class Reference', 'nobloat-user-foundry' ); ?></h3>
 		<ul>
 			<li><code>.nbuf-login-wrapper</code> - Main form wrapper</li>

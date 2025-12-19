@@ -18,6 +18,10 @@ $nbuf_users_column_location = NBUF_Options::get( 'nbuf_users_column_location', f
 
 /* WordPress Toolbar */
 $nbuf_admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'show_admin' );
+
+/* Admin Access */
+$nbuf_restrict_admin_access = NBUF_Options::get( 'nbuf_restrict_admin_access', false );
+$nbuf_admin_redirect_url    = NBUF_Options::get( 'nbuf_admin_redirect_url', '' );
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -80,6 +84,33 @@ $nbuf_admin_bar_visibility = NBUF_Options::get( 'nbuf_admin_bar_visibility', 'sh
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'Control the visibility of the WordPress toolbar when users are logged in and viewing the frontend of the site.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+
+	<h2><?php esc_html_e( 'Admin Dashboard Access', 'nobloat-user-foundry' ); ?></h2>
+	<!-- Declare checkbox for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrict_admin_access">
+	<table class="form-table">
+		<tr>
+			<th><?php esc_html_e( 'Restrict Admin Access', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_restrict_admin_access" value="1" <?php checked( $nbuf_restrict_admin_access, true ); ?>>
+					<?php esc_html_e( 'Only allow administrators to access wp-admin', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, non-administrator users who navigate to /wp-admin will be redirected. AJAX requests are still allowed for frontend functionality.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Redirect URL', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="url" name="nbuf_admin_redirect_url" value="<?php echo esc_attr( $nbuf_admin_redirect_url ); ?>" class="regular-text" placeholder="<?php esc_attr_e( 'Leave empty for Account page', 'nobloat-user-foundry' ); ?>">
+				<p class="description">
+					<?php esc_html_e( 'Where to redirect non-admin users. Leave empty to redirect to the Account page (or home if not configured).', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

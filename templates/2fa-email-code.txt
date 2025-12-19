@@ -18,8 +18,5 @@ If you did not attempt to log in, please ignore this email and consider changing
 
 ---
 
-Need Help?
-Contact us at {admin_email}
-
 This is an automated security email from {site_name}
 {site_url}

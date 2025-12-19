@@ -51,6 +51,13 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="registration-protection">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_honeypot">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_time_check">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_js_token">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_interaction">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_antibot_pow">
 
 	<h2><?php esc_html_e( 'Registration Anti-Bot Protection', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">

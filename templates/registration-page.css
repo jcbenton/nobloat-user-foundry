@@ -399,11 +399,14 @@ textarea.nbuf-registration-input {
     text-decoration: underline;
 }
 
-/* Button variant for "Log In Now" */
+/* Button variant for "Login Now" */
 .nbuf-registration-success-login .nbuf-button {
     display: inline-block;
-    width: auto;
-    padding: var(--nbuf-space-md) var(--nbuf-space-2xl);
+    width: 100%;
+    max-width: 200px;
+    padding: 12px 24px;
+    min-height: 44px;
+    font-size: 16px;
     background: var(--nbuf-primary);
     color: var(--nbuf-surface);
     text-decoration: none;

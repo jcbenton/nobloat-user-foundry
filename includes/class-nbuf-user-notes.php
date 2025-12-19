@@ -397,7 +397,7 @@ class NBUF_User_Notes {
 		?>
 		<h2><?php esc_html_e( 'Notes', 'nobloat-user-foundry' ); ?></h2>
 		<div class="nbuf-notes-section-content">
-			<p class="description" style="margin-bottom: 15px;">
+			<p class="description nbuf-description-spaced">
 				<?php esc_html_e( 'Administrative notes about this user. Only visible to admins.', 'nobloat-user-foundry' ); ?>
 			</p>
 
@@ -436,9 +436,9 @@ class NBUF_User_Notes {
 
 			<!-- Add Note Form -->
 			<div class="nbuf-add-note-form">
-				<h3 style="font-size: 14px; margin-bottom: 10px;"><?php esc_html_e( 'Add Note', 'nobloat-user-foundry' ); ?></h3>
+				<h3 class="nbuf-form-heading"><?php esc_html_e( 'Add Note', 'nobloat-user-foundry' ); ?></h3>
 				<textarea id="nbuf-new-profile-note" rows="4" class="large-text" placeholder="<?php esc_attr_e( 'Enter note...', 'nobloat-user-foundry' ); ?>"></textarea>
-				<p style="margin-top: 10px;">
+				<p class="nbuf-form-actions">
 					<button type="button" id="nbuf-add-profile-note-btn" class="button button-primary">
 						<?php esc_html_e( 'Add Note', 'nobloat-user-foundry' ); ?>
 					</button>

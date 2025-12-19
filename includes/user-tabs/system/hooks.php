@@ -57,6 +57,7 @@ $nbuf_custom   = sanitize_text_field( $nbuf_settings['hooks_custom'] ?? '' );
 		<tr>
 			<th><?php esc_html_e( 'Email Change Re-verification', 'nobloat-user-foundry' ); ?></th>
 			<td>
+				<input type="hidden" name="nbuf_settings[reverify_on_email_change]" value="0">
 				<label>
 					<input type="checkbox" name="nbuf_settings[reverify_on_email_change]" value="1" <?php checked( ! empty( $nbuf_settings['reverify_on_email_change'] ), true ); ?>>
 					<?php esc_html_e( 'Require re-verification when a user changes their email address', 'nobloat-user-foundry' ); ?>
@@ -69,6 +70,7 @@ $nbuf_custom   = sanitize_text_field( $nbuf_settings['hooks_custom'] ?? '' );
 		<tr>
 			<th><?php esc_html_e( 'Custom Hook', 'nobloat-user-foundry' ); ?></th>
 			<td>
+				<input type="hidden" name="nbuf_settings[custom_hook_enabled]" value="0">
 				<label>
 					<input type="checkbox" name="nbuf_settings[custom_hook_enabled]" value="1" <?php checked( ! empty( $nbuf_settings['custom_hook_enabled'] ), true ); ?>>
 					<?php esc_html_e( 'Enable custom hook listener', 'nobloat-user-foundry' ); ?>

@@ -43,6 +43,25 @@ $nbuf_password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_perio
 	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
 	?>
+	<!-- Declare checkboxes on this form for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_login_limiting">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_requirements_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_uppercase">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_lowercase">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_numbers">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_special">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_registration">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_profile_change">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_reset">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_force_weak_change">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_backup_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_device_trust">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_lockout">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_disable">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_require_verification">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_require_approval">
 
 	<h2><?php esc_html_e( 'Login Protection', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">

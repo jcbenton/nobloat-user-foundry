@@ -71,14 +71,14 @@ class NBUF_Shortcodes {
 
 		// Only show detailed message to admins.
 		if ( current_user_can( 'manage_options' ) ) {
-			return '<div class="nbuf-message nbuf-message-error" style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px; margin: 20px auto; max-width: 500px; text-align: center; font-size: 16px;">'
+			return '<div class="nbuf-message nbuf-message-error">'
 				. '<strong>' . esc_html__( 'NoBloat User Foundry', 'nobloat-user-foundry' ) . ':</strong> '
 				. esc_html__( 'The user management system is currently disabled. Enable it under NoBloat Foundry → User Settings → System → Status.', 'nobloat-user-foundry' )
 				. '</div>';
 		}
 
 		// Non-admins see a clear message explaining the situation.
-		return '<div class="nbuf-message nbuf-message-error" style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px; margin: 20px auto; max-width: 500px; text-align: center; font-size: 16px;">'
+		return '<div class="nbuf-message nbuf-message-error">'
 			. esc_html__( 'The NoBloat User Management system is not enabled. Please contact the site administrator.', 'nobloat-user-foundry' )
 			. '</div>';
 	}
@@ -145,7 +145,7 @@ class NBUF_Shortcodes {
 			$html = NBUF_Verifier::render_for_shortcode();
 		} else {
 			/* No token: show instructions */
-			$html  = '<div class="nobloat-verify-wrapper" style="max-width:600px;margin:80px auto;text-align:center;">';
+			$html  = '<div class="nobloat-verify-wrapper">';
 			$html .= '<h2>' . esc_html__( 'Email Verification', 'nobloat-user-foundry' ) . '</h2>';
 			$html .= '<p>' . esc_html__( 'Follow the verification link sent to your email to complete verification.', 'nobloat-user-foundry' ) . '</p>';
 			$html .= '</div>';
@@ -917,12 +917,14 @@ class NBUF_Shortcodes {
 
 			if ( 'too_many_attempts' === $error_code ) {
 				$login_status = 'blocked';
-			} elseif ( 'nbuf_unverified' === $error_code ) {
+			} elseif ( 'nbuf_unverified' === $error_code || 'email_not_verified' === $error_code ) {
 				$login_status = 'unverified';
-			} elseif ( 'nbuf_disabled' === $error_code ) {
+			} elseif ( 'nbuf_disabled' === $error_code || 'user_disabled' === $error_code ) {
 				$login_status = 'disabled';
-			} elseif ( 'nbuf_expired' === $error_code ) {
+			} elseif ( 'nbuf_expired' === $error_code || 'account_expired' === $error_code ) {
 				$login_status = 'expired';
+			} elseif ( 'awaiting_approval' === $error_code ) {
+				$login_status = 'pending';
 			}
 
 			wp_safe_redirect( add_query_arg( 'login', $login_status, $current_url ) );
@@ -962,7 +964,7 @@ class NBUF_Shortcodes {
 		/* Check if registration is enabled */
 		$enable_registration = NBUF_Options::get( 'nbuf_enable_registration', true );
 		if ( ! $enable_registration ) {
-			return '<div class="nbuf-info-message">' . esc_html__( 'User registration is currently disabled.', 'nobloat-user-foundry' ) . '</div>';
+			return '<div class="nbuf-message nbuf-message-info">' . esc_html__( 'User registration is currently disabled.', 'nobloat-user-foundry' ) . '</div>';
 		}
 
 		/* If user is already logged in, redirect to account page */
@@ -1026,7 +1028,7 @@ class NBUF_Shortcodes {
 						<p>' . esc_html__( 'Your account has been created. You can now log in with your credentials.', 'nobloat-user-foundry' ) . '</p>
 					</div>
 					<p class="nbuf-registration-success-login">
-						<a href="' . esc_url( $login_url ) . '" class="nbuf-button">' . esc_html__( 'Log In Now', 'nobloat-user-foundry' ) . '</a>
+						<a href="' . esc_url( $login_url ) . '" class="nbuf-button">' . esc_html__( 'Login Now', 'nobloat-user-foundry' ) . '</a>
 					</p>
 				</div>';
 			}
@@ -1556,17 +1558,17 @@ class NBUF_Shortcodes {
 
 			$info_message = '';
 			if ( ! $allow_user_revert ) {
-				$info_message = '<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">' . esc_html__( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ) . '</div>';
+				$info_message = '<div class="nbuf-message nbuf-message-info nbuf-section-spacing">' . esc_html__( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ) . '</div>';
 			}
 
 			$version_history_html = '<div class="nbuf-account-section nbuf-vh-account">' . $info_message . NBUF_Version_History::render_viewer( $user_id, 'account', $allow_user_revert ) . '</div>';
 
-			/* Enqueue version history assets */
-			wp_enqueue_style(
+			/* Enqueue version history CSS via CSS Manager */
+			NBUF_CSS_Manager::enqueue_css(
 				'nbuf-version-history',
-				plugin_dir_url( __DIR__ ) . 'assets/css/admin/version-history.css',
-				array(),
-				'1.4.0'
+				'version-history',
+				'nbuf_version_history_custom_css',
+				'nbuf_css_write_failed_version_history'
 			);
 			wp_enqueue_script(
 				'nbuf-version-history',
@@ -1681,7 +1683,7 @@ class NBUF_Shortcodes {
 			$verification_notice = '';
 			if ( $verify_email_change ) {
 				$verification_notice = '
-					<p class="description" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-bottom: 20px;">
+					<p class="description nbuf-description-warning nbuf-section-spacing">
 						<strong>' . esc_html__( 'Verification Required:', 'nobloat-user-foundry' ) . '</strong> ' .
 						esc_html__( 'A verification link will be sent to your new email address. The change will not take effect until you click the link to confirm.', 'nobloat-user-foundry' ) . '
 					</p>';
@@ -1693,28 +1695,28 @@ class NBUF_Shortcodes {
 		$email_tab_content = '
 			<div class="nbuf-tab-content" data-tab="email">
 				<div class="nbuf-account-section">
-					<h3 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #1a202c;">' . esc_html__( 'Change Email Address', 'nobloat-user-foundry' ) . '</h3>
-					<p class="nbuf-method-description" style="margin: 0 0 25px 0; font-size: 15px; line-height: 1.6; color: #4a5568;">' . esc_html__( 'Update your account email address. This email is used for account notifications and password recovery.', 'nobloat-user-foundry' ) . '</p>
+					<h3>' . esc_html__( 'Change Email Address', 'nobloat-user-foundry' ) . '</h3>
+					<p class="nbuf-method-description">' . esc_html__( 'Update your account email address. This email is used for account notifications and password recovery.', 'nobloat-user-foundry' ) . '</p>
 					' . $verification_notice . '
-					<div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 25px;">
+					<div class="nbuf-content-box">
 						<form method="post" action="' . esc_url( self::get_current_page_url() ) . '" class="nbuf-account-form nbuf-email-change-form">
 							' . $nonce_field_email . '
 							<input type="hidden" name="nbuf_account_action" value="change_email">
 							<input type="hidden" name="nbuf_active_tab" value="email">
-							<div class="nbuf-form-group" style="margin-bottom: 20px;">
-								<label for="current_email" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html__( 'Current Email', 'nobloat-user-foundry' ) . '</label>
-								<input type="email" id="current_email" class="nbuf-form-input" value="' . esc_attr( $current_user->user_email ) . '" disabled style="width: 100%; max-width: 400px; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #e9ecef; color: #6c757d;">
+							<div class="nbuf-form-group">
+								<label for="current_email" class="nbuf-form-label">' . esc_html__( 'Current Email', 'nobloat-user-foundry' ) . '</label>
+								<input type="email" id="current_email" class="nbuf-form-input nbuf-form-input-disabled" value="' . esc_attr( $current_user->user_email ) . '" disabled>
 							</div>
-							<div class="nbuf-form-group" style="margin-bottom: 20px;">
-								<label for="new_email" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html__( 'New Email Address', 'nobloat-user-foundry' ) . '</label>
-								<input type="email" id="new_email" name="new_email" class="nbuf-form-input" required style="width: 100%; max-width: 400px; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+							<div class="nbuf-form-group">
+								<label for="new_email" class="nbuf-form-label">' . esc_html__( 'New Email Address', 'nobloat-user-foundry' ) . '</label>
+								<input type="email" id="new_email" name="new_email" class="nbuf-form-input" required>
 							</div>
-							<div class="nbuf-form-group" style="margin-bottom: 25px;">
-								<label for="email_confirm_password" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html__( 'Confirm Your Password', 'nobloat-user-foundry' ) . '</label>
-								<input type="password" id="email_confirm_password" name="email_confirm_password" class="nbuf-form-input" required style="width: 100%; max-width: 400px; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
-								<div class="nbuf-form-help" style="margin-top: 8px; font-size: 14px; color: #6c757d;">' . esc_html__( 'Enter your current password to confirm this change.', 'nobloat-user-foundry' ) . '</div>
+							<div class="nbuf-form-group">
+								<label for="email_confirm_password" class="nbuf-form-label">' . esc_html__( 'Confirm Your Password', 'nobloat-user-foundry' ) . '</label>
+								<input type="password" id="email_confirm_password" name="email_confirm_password" class="nbuf-form-input" required>
+								<div class="nbuf-form-help">' . esc_html__( 'Enter your current password to confirm this change.', 'nobloat-user-foundry' ) . '</div>
 							</div>
-							<button type="submit" class="nbuf-button nbuf-button-primary" style="padding: 12px 24px; font-size: 15px;">' . esc_html__( 'Update Email', 'nobloat-user-foundry' ) . '</button>
+							<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Update Email', 'nobloat-user-foundry' ) . '</button>
 						</form>
 					</div>
 				</div>
@@ -1831,33 +1833,33 @@ class NBUF_Shortcodes {
 		$description_label = ! empty( $custom_labels['description'] ) ? $custom_labels['description'] : $default_labels['description'];
 
 		$field_items[] = array(
-			'html'       => '<div class="nbuf-form-group" style="margin-bottom: 20px;">
-				<label for="first_name" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $first_name_label ) . '</label>
-				<input type="text" id="first_name" name="first_name" class="nbuf-form-input" value="' . esc_attr( $first_name ) . '" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+			'html'       => '<div class="nbuf-form-group">
+				<label for="first_name" class="nbuf-form-label">' . esc_html( $first_name_label ) . '</label>
+				<input type="text" id="first_name" name="first_name" class="nbuf-form-input nbuf-form-input-full" value="' . esc_attr( $first_name ) . '">
 			</div>',
 			'full_width' => false,
 		);
 
 		$field_items[] = array(
-			'html'       => '<div class="nbuf-form-group" style="margin-bottom: 20px;">
-				<label for="last_name" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $last_name_label ) . '</label>
-				<input type="text" id="last_name" name="last_name" class="nbuf-form-input" value="' . esc_attr( $last_name ) . '" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+			'html'       => '<div class="nbuf-form-group">
+				<label for="last_name" class="nbuf-form-label">' . esc_html( $last_name_label ) . '</label>
+				<input type="text" id="last_name" name="last_name" class="nbuf-form-input nbuf-form-input-full" value="' . esc_attr( $last_name ) . '">
 			</div>',
 			'full_width' => false,
 		);
 
 		$field_items[] = array(
-			'html'       => '<div class="nbuf-form-group" style="margin-bottom: 20px;">
-				<label for="display_name" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $display_name_label ) . '</label>
-				<input type="text" id="display_name" name="display_name" class="nbuf-form-input" value="' . esc_attr( $user->display_name ) . '" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+			'html'       => '<div class="nbuf-form-group">
+				<label for="display_name" class="nbuf-form-label">' . esc_html( $display_name_label ) . '</label>
+				<input type="text" id="display_name" name="display_name" class="nbuf-form-input nbuf-form-input-full" value="' . esc_attr( $user->display_name ) . '">
 			</div>',
 			'full_width' => false,
 		);
 
 		$field_items[] = array(
-			'html'       => '<div class="nbuf-form-group" style="margin-bottom: 20px;">
-				<label for="user_url" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $user_url_label ) . '</label>
-				<input type="url" id="user_url" name="user_url" class="nbuf-form-input" value="' . esc_attr( $user->user_url ) . '" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+			'html'       => '<div class="nbuf-form-group">
+				<label for="user_url" class="nbuf-form-label">' . esc_html( $user_url_label ) . '</label>
+				<input type="url" id="user_url" name="user_url" class="nbuf-form-input nbuf-form-input-full" value="' . esc_attr( $user->user_url ) . '">
 			</div>',
 			'full_width' => false,
 		);
@@ -1865,9 +1867,9 @@ class NBUF_Shortcodes {
 		/* Only show description/biography field if enabled in settings */
 		if ( $show_description ) {
 			$field_items[] = array(
-				'html'       => '<div class="nbuf-form-group nbuf-form-group-full" style="margin-bottom: 20px;">
-					<label for="description" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $description_label ) . '</label>
-					<textarea id="description" name="description" class="nbuf-form-input nbuf-form-textarea" rows="4" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff; min-height: 100px; resize: vertical;">' . esc_textarea( $description ) . '</textarea>
+				'html'       => '<div class="nbuf-form-group nbuf-form-group-full">
+					<label for="description" class="nbuf-form-label">' . esc_html( $description_label ) . '</label>
+					<textarea id="description" name="description" class="nbuf-form-input nbuf-form-textarea" rows="4">' . esc_textarea( $description ) . '</textarea>
 				</div>',
 				'full_width' => true,
 			);
@@ -1882,14 +1884,14 @@ class NBUF_Shortcodes {
 			$is_full_width = in_array( $field_key, $full_width_fields, true );
 
 			if ( $is_full_width ) {
-				$field_html = '<div class="nbuf-form-group nbuf-form-group-full" style="margin-bottom: 20px;">
-					<label for="' . esc_attr( $field_key ) . '" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $label ) . '</label>
-					<textarea id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-form-textarea" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff; min-height: 100px; resize: vertical;">' . esc_textarea( $value ) . '</textarea>
+				$field_html = '<div class="nbuf-form-group nbuf-form-group-full">
+					<label for="' . esc_attr( $field_key ) . '" class="nbuf-form-label">' . esc_html( $label ) . '</label>
+					<textarea id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-form-textarea">' . esc_textarea( $value ) . '</textarea>
 				</div>';
 			} else {
-				$field_html = '<div class="nbuf-form-group" style="margin-bottom: 20px;">
-					<label for="' . esc_attr( $field_key ) . '" class="nbuf-form-label" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #495057;">' . esc_html( $label ) . '</label>
-					<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input" value="' . esc_attr( $value ) . '" style="width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+				$field_html = '<div class="nbuf-form-group">
+					<label for="' . esc_attr( $field_key ) . '" class="nbuf-form-label">' . esc_html( $label ) . '</label>
+					<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-form-input-full" value="' . esc_attr( $value ) . '">
 				</div>';
 			}
 
@@ -2599,6 +2601,10 @@ Best regards,
 			ob_end_clean();
 		}
 
+		/* Set HTTP 200 OK status (WordPress may have set 404 for virtual URL) */
+		status_header( 200 );
+		nocache_headers();
+
 		/* Verify the file is a valid ZIP before sending */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fread, WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Reading ZIP signature to verify file integrity.
 		$fp = fopen( $export_file, 'rb' );
@@ -2806,7 +2812,7 @@ Best regards,
 		$totp_available = in_array( $totp_method, array( 'optional_all', 'required_all', 'required_admin', 'user_configurable', 'required' ), true );
 
 		if ( ! $totp_available ) {
-			return '<p style="text-align: center; margin: 80px auto;">' . esc_html__( 'Authenticator app 2FA is not enabled on this site.', 'nobloat-user-foundry' ) . '</p>';
+			return '<p class="nbuf-centered-message">' . esc_html__( 'Authenticator app 2FA is not enabled on this site.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
 		/* Handle TOTP setup form submission */
@@ -3013,19 +3019,19 @@ Best regards,
 					<p class="nbuf-setup-subtitle"><?php esc_html_e( 'Your account is now protected with two-factor authentication.', 'nobloat-user-foundry' ); ?></p>
 				</div>
 
-				<div class="nbuf-success" style="margin: 20px 0; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
-					<p style="margin: 0;"><strong><?php esc_html_e( 'Success!', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Your authenticator app has been configured.', 'nobloat-user-foundry' ); ?></p>
+				<div class="nbuf-2fa-setup-success">
+					<p><strong><?php esc_html_e( 'Success!', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Your authenticator app has been configured.', 'nobloat-user-foundry' ); ?></p>
 				</div>
 
 				<?php if ( ! empty( $backup_codes ) ) : ?>
-				<div class="nbuf-backup-codes-section" style="margin: 30px 0; padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
-					<h3 style="margin-top: 0;"><?php esc_html_e( 'Save Your Backup Codes', 'nobloat-user-foundry' ); ?></h3>
+				<div class="nbuf-backup-codes-section">
+					<h3><?php esc_html_e( 'Save Your Backup Codes', 'nobloat-user-foundry' ); ?></h3>
 					<p><?php esc_html_e( 'These codes can be used to access your account if you lose your authenticator device. Each code can only be used once.', 'nobloat-user-foundry' ); ?></p>
-					<p style="color: #856404;"><strong><?php esc_html_e( 'Important: Save these codes in a secure location. You will not see them again!', 'nobloat-user-foundry' ); ?></strong></p>
+					<p class="nbuf-important"><strong><?php esc_html_e( 'Important: Save these codes in a secure location. You will not see them again!', 'nobloat-user-foundry' ); ?></strong></p>
 
-					<div class="nbuf-backup-codes-list" style="background: #fff; padding: 15px; border-radius: 4px; margin: 15px 0; font-family: monospace;">
+					<div class="nbuf-backup-codes-list">
 						<?php foreach ( $backup_codes as $bc ) : ?>
-							<div style="padding: 5px 0; border-bottom: 1px solid #eee;"><?php echo esc_html( $bc ); ?></div>
+							<div class="nbuf-backup-code"><?php echo esc_html( $bc ); ?></div>
 						<?php endforeach; ?>
 					</div>
 
@@ -3035,7 +3041,7 @@ Best regards,
 				</div>
 				<?php endif; ?>
 
-				<p style="margin-top: 20px;">
+				<p class="nbuf-margin-top">
 					<a href="<?php echo esc_url( $account_url ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a>
 				</p>
 			</div>
@@ -3076,8 +3082,8 @@ Best regards,
 		$nonce_field = ob_get_clean();
 
 		/* Build error message HTML */
-		$error_html = '<div class="nbuf-error" style="margin: 15px 0; padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; color: #721c24;">';
-		$error_html .= '<p style="margin: 0;"><strong>' . esc_html__( 'Error:', 'nobloat-user-foundry' ) . '</strong> ' . esc_html( $error_message ) . '</p>';
+		$error_html = '<div class="nbuf-error">';
+		$error_html .= '<p><strong>' . esc_html__( 'Error:', 'nobloat-user-foundry' ) . '</strong> ' . esc_html( $error_message ) . '</p>';
 		$error_html .= '</div>';
 
 		/* Replace placeholders */
@@ -3387,368 +3393,100 @@ Best regards,
 			}
 		}
 
-		/* Start output buffer */
-		ob_start();
-
-		/* Inline CSS - minimal, theme-neutral styling */
-		?>
-		<style>
-		/* NoBloat User Foundry - Profile Page */
-		.nbuf-profile-page {
-			max-width: 900px;
-			margin: 0 auto;
-			background: #fff;
+		/* Build cover photo HTML */
+		if ( $allow_cover && ! empty( $cover_photo ) ) {
+			$cover_photo_html = '<div class="nbuf-profile-cover" style="background-image: url(\'' . esc_url( $cover_photo ) . '\');">'
+				. '<div class="nbuf-profile-cover-overlay"></div>'
+				. '</div>';
+		} else {
+			$cover_photo_html = '<div class="nbuf-profile-cover nbuf-profile-cover-default">'
+				. '<div class="nbuf-profile-cover-overlay"></div>'
+				. '</div>';
 		}
 
-		/* Header with cover photo */
-		.nbuf-profile-header {
-			position: relative;
-			margin-bottom: 80px;
-		}
+		/* Build profile photo URL (handle data URIs vs regular URLs) */
+		$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
 
-		.nbuf-profile-cover {
-			height: 250px;
-			background-size: cover;
-			background-position: center;
-			background-repeat: no-repeat;
-			position: relative;
-		}
+		/* Build joined text */
+		/* translators: %s: User registration date */
+		$joined_text = sprintf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
 
-		.nbuf-profile-cover-default {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		}
+		/* Build profile fields HTML */
+		$profile_fields_html = '';
+		if ( ! empty( $display_fields ) ) {
+			$full_width_fields    = array( 'user_url', 'description', 'website', 'bio' );
+			$profile_fields_html .= '<div class="nbuf-profile-fields">';
+			$profile_fields_html .= '<h2 class="nbuf-profile-fields-title">' . esc_html__( 'Profile Information', 'nobloat-user-foundry' ) . '</h2>';
+			$profile_fields_html .= '<div class="nbuf-profile-fields-grid">';
 
-		.nbuf-profile-cover-overlay {
-			position: absolute;
-			inset: 0;
-			background: rgba(0, 0, 0, 0.05);
-		}
+			foreach ( $display_fields as $key => $field_data ) {
+				$field_class = 'nbuf-profile-field';
+				if ( in_array( $key, $full_width_fields, true ) ) {
+					$field_class .= ' nbuf-profile-field-full';
+				}
 
-		/* Avatar positioning - overlaps cover photo */
-		.nbuf-profile-avatar-wrap {
-			position: absolute;
-			bottom: -60px;
-			left: 50%;
-			transform: translateX(-50%);
-			width: 120px;
-			height: 120px;
-			border-radius: 50%;
-			border: 4px solid #fff;
-			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-			overflow: hidden;
-			background: #fff;
-		}
-
-		.nbuf-profile-avatar {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-			display: block;
-		}
-
-		/* Content area */
-		.nbuf-profile-content {
-			padding: 0 20px 30px;
-		}
-
-		.nbuf-profile-info {
-			text-align: center;
-			margin-bottom: 30px;
-		}
-
-		.nbuf-profile-name {
-			font-size: 1.75rem;
-			font-weight: 600;
-			margin: 0 0 5px 0;
-			line-height: 1.2;
-		}
-
-		.nbuf-profile-username {
-			font-size: 0.95rem;
-			color: #666;
-			margin: 0 0 20px 0;
-		}
-
-		.nbuf-profile-meta {
-			display: flex;
-			justify-content: center;
-			gap: 15px;
-			flex-wrap: wrap;
-			margin-top: 15px;
-			padding-top: 15px;
-			border-top: 1px solid #e5e5e5;
-		}
-
-		.nbuf-profile-meta-item {
-			display: flex;
-			align-items: center;
-			gap: 5px;
-			color: #666;
-			font-size: 0.9rem;
-		}
-
-		.nbuf-icon {
-			opacity: 0.7;
-		}
-
-		/* Profile fields section */
-		.nbuf-profile-fields {
-			margin-top: 30px;
-			background: #f9f9f9;
-			border-radius: 6px;
-			padding: 25px;
-		}
-
-		.nbuf-profile-fields-title {
-			font-size: 1.1rem;
-			font-weight: 600;
-			margin: 0 0 20px 0;
-			padding-bottom: 10px;
-			border-bottom: 2px solid #e5e5e5;
-		}
-
-		.nbuf-profile-fields-grid {
-			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 20px 30px;
-		}
-
-		.nbuf-profile-field-full {
-			grid-column: 1 / -1;
-		}
-
-		.nbuf-profile-field {
-			display: grid;
-			grid-template-columns: 140px 1fr;
-			gap: 12px;
-			align-items: start;
-		}
-
-		.nbuf-profile-field-label {
-			font-weight: 600;
-			color: #444;
-			font-size: 0.9rem;
-		}
-
-		.nbuf-profile-field-value {
-			color: #333;
-			word-wrap: break-word;
-			overflow-wrap: break-word;
-		}
-
-		.nbuf-profile-field-value a {
-			color: #0073aa;
-			text-decoration: none;
-		}
-
-		.nbuf-profile-field-value a:hover {
-			text-decoration: underline;
-		}
-
-		/* Actions */
-		.nbuf-profile-actions {
-			text-align: center;
-			margin-top: 25px;
-		}
-
-		.nbuf-button {
-			display: inline-block;
-			padding: 10px 20px;
-			border-radius: 4px;
-			text-decoration: none;
-			font-weight: 600;
-			transition: background 0.2s;
-			border: none;
-			cursor: pointer;
-			font-size: 0.95rem;
-		}
-
-		.nbuf-button-primary {
-			background: #0073aa;
-			color: #fff;
-		}
-
-		.nbuf-button-primary:hover {
-			background: #005a87;
-			color: #fff;
-		}
-
-		/* Responsive Design */
-		@media (max-width: 768px) {
-			.nbuf-profile-cover {
-				height: 180px;
-			}
-
-			.nbuf-profile-avatar-wrap {
-				width: 100px;
-				height: 100px;
-				bottom: -50px;
-			}
-
-			.nbuf-profile-header {
-				margin-bottom: 65px;
-			}
-
-			.nbuf-profile-name {
-				font-size: 1.5rem;
-			}
-
-			.nbuf-profile-fields-grid {
-				grid-template-columns: 1fr;
-			}
-
-			.nbuf-profile-field {
-				grid-template-columns: 1fr;
-				gap: 6px;
-			}
-
-			.nbuf-profile-field-label {
-				font-size: 0.85rem;
-			}
-
-			.nbuf-profile-fields {
-				padding: 20px;
-			}
-		}
-
-		@media (max-width: 480px) {
-			.nbuf-profile-cover {
-				height: 140px;
-			}
-
-			.nbuf-profile-avatar-wrap {
-				width: 90px;
-				height: 90px;
-				bottom: -45px;
-			}
-
-			.nbuf-profile-header {
-				margin-bottom: 55px;
-			}
-
-			.nbuf-profile-name {
-				font-size: 1.3rem;
-			}
-
-			.nbuf-profile-fields {
-				padding: 15px;
-			}
-
-			.nbuf-profile-meta {
-				flex-direction: column;
-				gap: 8px;
-			}
-		}
-		</style>
-
-		<div class="nbuf-profile-page">
-			<!-- Profile Header with Cover Photo -->
-			<div class="nbuf-profile-header">
-		<?php if ( $allow_cover && ! empty( $cover_photo ) ) : ?>
-					<div class="nbuf-profile-cover" style="background-image: url('<?php echo esc_url( $cover_photo ); ?>');">
-						<div class="nbuf-profile-cover-overlay"></div>
-					</div>
-				<?php else : ?>
-					<div class="nbuf-profile-cover nbuf-profile-cover-default">
-						<div class="nbuf-profile-cover-overlay"></div>
-					</div>
-				<?php endif; ?>
-
-				<div class="nbuf-profile-avatar-wrap">
-					<?php
-					/* Data URIs (SVG avatars) need esc_attr, regular URLs use esc_url */
-					$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
-					?>
-					<img src="<?php echo $photo_src; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped above based on type. ?>" alt="<?php echo esc_attr( $display_name ); ?>" class="nbuf-profile-avatar" width="150" height="150" loading="lazy">
-				</div>
-			</div>
-
-			<!-- Profile Info -->
-			<div class="nbuf-profile-content">
-				<div class="nbuf-profile-info">
-					<h1 class="nbuf-profile-name"><?php echo esc_html( $display_name ); ?></h1>
-					<p class="nbuf-profile-username">@<?php echo esc_html( $user->user_login ); ?></p>
-
-					<div class="nbuf-profile-meta">
-						<span class="nbuf-profile-meta-item">
-							<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-								<path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
-							</svg>
-			<?php
-			/* translators: %s: User registration date */
-			printf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
-			?>
-						</span>
-					</div>
-				</div>
-
-		<?php if ( ! empty( $display_fields ) ) : ?>
-				<div class="nbuf-profile-fields">
-					<h2 class="nbuf-profile-fields-title"><?php esc_html_e( 'Profile Information', 'nobloat-user-foundry' ); ?></h2>
-					<div class="nbuf-profile-fields-grid">
-			<?php
-					$full_width_fields = array( 'user_url', 'description', 'website', 'bio' );
-					foreach ( $display_fields as $key => $field_data ) :
-						$field_class = 'nbuf-profile-field';
-						if ( in_array( $key, $full_width_fields, true ) ) {
-							$field_class .= ' nbuf-profile-field-full';
-						}
-					?>
-						<div class="<?php echo esc_attr( $field_class ); ?>">
-							<div class="nbuf-profile-field-label"><?php echo esc_html( $field_data['label'] ); ?></div>
-							<div class="nbuf-profile-field-value">
-				<?php
 				$field_type  = isset( $field_data['type'] ) ? $field_data['type'] : 'text';
 				$field_value = $field_data['value'];
 
+				/* Format field value based on type */
 				if ( 'url' === $field_type && ! empty( $field_value ) ) {
-					/* Display as clickable link */
-					echo '<a href="' . esc_url( $field_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $field_value ) . '</a>';
+					$formatted_value = '<a href="' . esc_url( $field_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $field_value ) . '</a>';
 				} elseif ( 'email' === $field_type && ! empty( $field_value ) ) {
-					/* Display as mailto link */
-					echo '<a href="mailto:' . esc_attr( $field_value ) . '">' . esc_html( $field_value ) . '</a>';
+					$formatted_value = '<a href="mailto:' . esc_attr( $field_value ) . '">' . esc_html( $field_value ) . '</a>';
 				} elseif ( 'textarea' === $field_type && ! empty( $field_value ) ) {
-					/* Display as formatted text with paragraphs */
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_kses_post() handles escaping.
-					echo wpautop( wp_kses_post( $field_value ) );
+					$formatted_value = wpautop( wp_kses_post( $field_value ) );
 				} else {
-					/* Display as plain text */
-					echo esc_html( $field_value );
+					$formatted_value = esc_html( $field_value );
 				}
-				?>
-							</div>
-						</div>
-			<?php endforeach; ?>
-					</div>
-				</div>
-		<?php endif; ?>
 
-		<?php
+				$profile_fields_html .= '<div class="' . esc_attr( $field_class ) . '">';
+				$profile_fields_html .= '<div class="nbuf-profile-field-label">' . esc_html( $field_data['label'] ) . '</div>';
+				$profile_fields_html .= '<div class="nbuf-profile-field-value">' . $formatted_value . '</div>';
+				$profile_fields_html .= '</div>';
+			}
+
+			$profile_fields_html .= '</div></div>';
+		}
+
+		/* Build custom content via action hook */
+		ob_start();
 		/**
 		 * Hook for adding custom content to profile page
 		 *
 		 * @param WP_User $user User object.
-		 * @param array   $user_data User data from custom table.
+		 * @param object  $user_data User data from custom table.
 		 */
 		do_action( 'nbuf_public_profile_content', $user, $user_data );
-		?>
+		$custom_content = ob_get_clean();
 
-		<?php if ( is_user_logged_in() && get_current_user_id() === $user->ID ) : ?>
-					<div class="nbuf-profile-actions">
-			<?php
+		/* Build edit profile button (only for own profile) */
+		$edit_profile_button = '';
+		if ( is_user_logged_in() && get_current_user_id() === $user->ID ) {
 			$account_page_id = NBUF_Options::get( 'nbuf_page_account' );
-			if ( $account_page_id ) :
-				?>
-							<a href="<?php echo esc_url( get_permalink( $account_page_id ) ); ?>" class="nbuf-button nbuf-button-primary">
-				<?php esc_html_e( 'Edit Profile', 'nobloat-user-foundry' ); ?>
-							</a>
-			<?php endif; ?>
-					</div>
-		<?php endif; ?>
-			</div>
-		</div>
-		<?php
-		return ob_get_clean();
+			if ( $account_page_id ) {
+				$edit_profile_button = '<div class="nbuf-profile-actions">'
+					. '<a href="' . esc_url( get_permalink( $account_page_id ) ) . '" class="nbuf-button nbuf-button-primary">'
+					. esc_html__( 'Edit Profile', 'nobloat-user-foundry' )
+					. '</a></div>';
+			}
+		}
+
+		/* Load and render template */
+		$template = NBUF_Template_Manager::load_template( 'public-profile-html' );
+
+		/* Replace placeholders */
+		$replacements = array(
+			'{cover_photo_html}'    => $cover_photo_html,
+			'{profile_photo}'       => $photo_src,
+			'{display_name}'        => esc_html( $display_name ),
+			'{username}'            => esc_html( $user->user_login ),
+			'{joined_text}'         => $joined_text,
+			'{profile_fields_html}' => $profile_fields_html,
+			'{custom_content}'      => $custom_content,
+			'{edit_profile_button}' => $edit_profile_button,
+		);
+
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}
 
 	/**

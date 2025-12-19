@@ -12,9 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Get current settings */
-$nbuf_settings = NBUF_Options::get( 'nbuf_settings', array() );
-$nbuf_hooks    = (array) ( $nbuf_settings['hooks'] ?? array() );
+/* WooCommerce verification setting */
+$nbuf_wc_require_verification = NBUF_Options::get( 'nbuf_wc_require_verification', false );
 
 /* WooCommerce expiration settings */
 $nbuf_wc_prevent_active_subs   = NBUF_Options::get( 'nbuf_wc_prevent_active_subs', false );
@@ -27,7 +26,11 @@ $nbuf_wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days',
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<?php NBUF_Settings::settings_nonce_field(); ?>
 		<input type="hidden" name="nbuf_active_tab" value="integration">
-	<input type="hidden" name="nbuf_active_subtab" value="woocommerce">
+		<input type="hidden" name="nbuf_active_subtab" value="woocommerce">
+		<!-- Declare checkboxes on this form for proper unchecked handling -->
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_wc_require_verification">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_wc_prevent_active_subs">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_wc_prevent_recent_orders">
 
 		<h2><?php esc_html_e( 'Email Verification Integration', 'nobloat-user-foundry' ); ?></h2>
 		<table class="form-table">
@@ -35,11 +38,11 @@ $nbuf_wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days',
 				<th><?php esc_html_e( 'WooCommerce Customer Registration', 'nobloat-user-foundry' ); ?></th>
 				<td>
 					<label>
-						<input type="checkbox" name="nbuf_settings[hooks][]" value="woocommerce_created_customer" <?php checked( in_array( 'woocommerce_created_customer', $nbuf_hooks, true ) ); ?>>
+						<input type="checkbox" name="nbuf_wc_require_verification" value="1" <?php checked( $nbuf_wc_require_verification, true ); ?>>
 						<?php esc_html_e( 'Require email verification for WooCommerce customers', 'nobloat-user-foundry' ); ?>
 					</label>
 					<p class="description">
-						<?php esc_html_e( 'When enabled, customers who register during WooCommerce checkout will need to verify their email address. Hooks into woocommerce_created_customer action.', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'When enabled, customers who register during WooCommerce checkout will need to verify their email address.', 'nobloat-user-foundry' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -87,17 +90,15 @@ $nbuf_wc_recent_order_days     = NBUF_Options::get( 'nbuf_wc_recent_order_days',
 			</tr>
 		</table>
 
-		<?php submit_button( __( 'Save WooCommerce Settings', 'nobloat-user-foundry' ) ); ?>
+		<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 	</form>
-
-	<!-- Helper Information -->
-	<div class="nbuf-wc-info" style="background: #f9f9f9; padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
-		<h3><?php esc_html_e( 'WooCommerce Integration Notes', 'nobloat-user-foundry' ); ?></h3>
-		<ul>
-			<li><?php esc_html_e( 'Email verification: Works with standard WooCommerce checkout and account registration forms.', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Active subscriptions: Requires WooCommerce Subscriptions plugin to be installed and active.', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Recent orders: Checks all WooCommerce orders regardless of status (completed, processing, etc.).', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Expiration must be enabled on the Expiration tab for these settings to have any effect.', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-	</div>
 </div>
+<?php
+/*
+ * DOCUMENTATION NOTE (for AI doc generator):
+ * WooCommerce Integration documentation should cover:
+ * - Email verification works with standard WooCommerce checkout and account registration forms
+ * - Active subscriptions protection requires WooCommerce Subscriptions plugin
+ * - Recent orders check includes all order statuses (completed, processing, etc.)
+ * - Expiration settings must be enabled on the Expiration tab for these protections to work
+ */

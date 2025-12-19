@@ -81,7 +81,7 @@ class NBUF_Audit_Log_Page {
 			<hr class="wp-header-end">
 
 			<!-- Settings Link -->
-			<div class="notice notice-info" style="margin-top: 20px;">
+			<div class="notice notice-info nbuf-notice-margin">
 				<p>
 		<?php
 		printf(
@@ -108,9 +108,9 @@ class NBUF_Audit_Log_Page {
 		<?php endif; ?>
 
 			<!-- Statistics -->
-			<div class="nbuf-stats-box" style="background: #fff; border: 1px solid #ccd0d4; padding: 15px; margin: 20px 0; border-radius: 4px;">
-				<h3 style="margin-top: 0;"><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<table class="widefat" style="max-width: 600px;">
+			<div class="nbuf-stats-box nbuf-admin-card">
+				<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
+				<table class="widefat nbuf-stats-table">
 					<tbody>
 						<tr>
 							<td><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>

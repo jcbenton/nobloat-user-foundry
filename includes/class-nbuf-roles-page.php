@@ -124,7 +124,7 @@ class NBUF_Roles_Page {
 									<a href="#" class="nbuf-adopt-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Adopt', 'nobloat-user-foundry' ); ?></a> |
 									<a href="#" class="nbuf-delete-orphan-role" data-role="<?php echo esc_attr( $role_key ); ?>" data-name="<?php echo esc_attr( $role_data['name'] ); ?>"><?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?></a>
 								<?php elseif ( $is_native ) : ?>
-									<span style="color: #888;"><?php esc_html_e( 'Native WordPress role', 'nobloat-user-foundry' ); ?></span>
+									<span class="nbuf-muted"><?php esc_html_e( 'Native WordPress role', 'nobloat-user-foundry' ); ?></span>
 								<?php endif; ?>
 							</div>
 						</td>
@@ -137,7 +137,7 @@ class NBUF_Roles_Page {
 							<?php elseif ( $is_custom ) : ?>
 								<span class="role-badge"><?php esc_html_e( 'Custom', 'nobloat-user-foundry' ); ?></span>
 							<?php elseif ( $is_orphaned ) : ?>
-								<span class="role-badge" style="background: #dba617; color: #fff;"><?php esc_html_e( 'Orphaned', 'nobloat-user-foundry' ); ?></span>
+								<span class="role-badge nbuf-role-badge-orphaned"><?php esc_html_e( 'Orphaned', 'nobloat-user-foundry' ); ?></span>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $priority ); ?></td>
@@ -288,7 +288,7 @@ class NBUF_Roles_Page {
 		$all_roles = wp_roles()->get_names();
 		?>
 
-		<form id="nbuf-role-editor-form" method="post" style="max-width: 1200px;">
+		<form id="nbuf-role-editor-form" method="post" class="nbuf-role-editor-form">
 			<input type="hidden" name="action" value="nbuf_save_role">
 			<input type="hidden" name="nonce" value="<?php echo esc_attr( wp_create_nonce( 'nbuf_roles_nonce' ) ); ?>">
 		<?php if ( $is_edit ) : ?>

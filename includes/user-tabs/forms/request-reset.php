@@ -57,7 +57,7 @@ if ( empty( $nbuf_request_reset_form ) ) {
 		<?php submit_button( __( 'Save Request Reset Form Template', 'nobloat-user-foundry' ) ); ?>
 	</form>
 
-	<div class="nbuf-template-info" style="background: #f9f9f9; padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
+	<div class="nbuf-template-info" style="padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
 		<h3><?php esc_html_e( 'CSS Class Reference', 'nobloat-user-foundry' ); ?></h3>
 		<ul>
 			<li><code>.nbuf-request-reset-wrapper</code> - Main form wrapper</li>

@@ -47,6 +47,8 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === 
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="login-limits">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_login_limiting">
 
 	<h2><?php esc_html_e( 'Login Protection', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">

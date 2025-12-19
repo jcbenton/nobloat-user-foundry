@@ -23,30 +23,8 @@ if ( isset( $_POST['nbuf_save_css_settings'] ) && check_admin_referer( 'nbuf_css
 	NBUF_Options::update( 'nbuf_css_use_minified', $nbuf_css_use_minified, true, 'settings' );
 	NBUF_Options::update( 'nbuf_css_combine_files', $nbuf_css_combine_files, true, 'settings' );
 
-	/* If combine files is enabled, regenerate the combined file */
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$nbuf_login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
-		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
-		$nbuf_account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
-
-		/* Load defaults if empty */
-		if ( empty( $nbuf_reset_css ) ) {
-			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
-		}
-		if ( empty( $nbuf_login_css ) ) {
-			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
-		}
-		if ( empty( $nbuf_registration_css ) ) {
-			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
-		}
-		if ( empty( $nbuf_account_css ) ) {
-			$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
-		}
-
-		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
-	}
+	/* Regenerate the combined file (checks combine setting internally) */
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'CSS settings saved.', 'nobloat-user-foundry' ) . '</p></div>';
 }

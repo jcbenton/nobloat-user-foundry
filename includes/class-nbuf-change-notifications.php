@@ -48,7 +48,6 @@ class NBUF_Change_Notifications {
 
 		/* Hook into profile updates */
 		add_action( 'profile_update', array( $this, 'track_profile_update' ), 10, 2 );
-		add_action( 'user_register', array( $this, 'track_user_registration' ), 10, 1 );
 
 		/* Hook into user meta updates */
 		add_action( 'update_user_meta', array( $this, 'track_meta_update' ), 10, 4 );
@@ -201,33 +200,6 @@ class NBUF_Change_Notifications {
 		if ( ! empty( $changes ) ) {
 			$this->queue_notification( $user_id, $changes );
 		}
-	}
-
-	/**
-	 * Track user registration
-	 *
-	 * @param int $user_id User ID.
-	 */
-	public function track_user_registration( $user_id ) {
-		$notify_new_users = NBUF_Options::get( 'nbuf_notify_new_registrations', false );
-
-		if ( ! $notify_new_users ) {
-			return;
-		}
-
-		$user = get_userdata( $user_id );
-		if ( ! $user ) {
-			return;
-		}
-
-		$changes = array(
-			'new_user' => array(
-				'old' => '',
-				'new' => sprintf( 'New user registered: %s (%s)', $user->user_login, $user->user_email ),
-			),
-		);
-
-		$this->queue_notification( $user_id, $changes );
 	}
 
 	/**

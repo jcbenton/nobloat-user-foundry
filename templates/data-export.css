@@ -1,0 +1,353 @@
+/**
+ * NoBloat User Foundry - Data Export (GDPR) Default CSS
+ *
+ * This is the default styling for the GDPR data export page.
+ * Edit in Backend > Appearance > CSS Styles > Data Export.
+ *
+ * @package NoBloat_User_Foundry
+ */
+
+/* ==========================================================
+   Initial Hidden States
+   ========================================================== */
+.nbuf-export-modal-wrapper,
+#nbuf-password-error {
+	display: none;
+}
+
+/* ==========================================================
+   Main Container
+   ========================================================== */
+.nbuf-gdpr-export-container {
+	max-width: 800px;
+	margin: 30px auto;
+	padding: 25px;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	background: #f9f9f9;
+}
+
+/* ==========================================================
+   Header
+   ========================================================== */
+.nbuf-gdpr-export-container h2 {
+	margin-top: 0;
+	color: #0073aa;
+	border-bottom: 2px solid #0073aa;
+	padding-bottom: 10px;
+	font-size: 1.5rem;
+}
+
+/* ==========================================================
+   Content Section
+   ========================================================== */
+.nbuf-export-content {
+	background: #fff;
+	padding: 20px;
+	border-radius: 3px;
+	margin-bottom: 20px;
+}
+
+.nbuf-export-content p {
+	line-height: 1.6;
+	color: #50575e;
+}
+
+.nbuf-export-content h3 {
+	margin-top: 20px;
+	margin-bottom: 10px;
+	color: #1d2327;
+	font-size: 1.1rem;
+}
+
+/* ==========================================================
+   Includes List
+   ========================================================== */
+.nbuf-export-includes {
+	list-style: disc;
+	margin-left: 25px;
+	color: #50575e;
+}
+
+.nbuf-export-includes li {
+	margin-bottom: 5px;
+}
+
+/* ==========================================================
+   Export Info
+   ========================================================== */
+.nbuf-export-info {
+	margin: 20px 0;
+	padding: 15px;
+	background: #f0f0f0;
+	border-radius: 3px;
+}
+
+.nbuf-export-info p {
+	margin: 0 0 8px 0;
+}
+
+.nbuf-export-info p:last-child {
+	margin-bottom: 0;
+}
+
+.nbuf-export-info strong {
+	color: #1d2327;
+}
+
+/* ==========================================================
+   Export Button Area
+   ========================================================== */
+.nbuf-export-actions {
+	text-align: center;
+	margin: 25px 0;
+}
+
+.nbuf-export-button {
+	display: inline-block;
+	padding: 12px 30px;
+	background: #0073aa;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.nbuf-export-button:hover {
+	background: #005a87;
+	color: #fff;
+}
+
+.nbuf-export-button:disabled {
+	background: #a0a5aa;
+	cursor: not-allowed;
+}
+
+/* ==========================================================
+   Messages Area
+   ========================================================== */
+#nbuf-export-messages {
+	margin-top: 15px;
+}
+
+.nbuf-export-notice {
+	padding: 12px 15px;
+	border-left: 4px solid;
+	margin: 15px 0;
+	border-radius: 0 3px 3px 0;
+}
+
+.nbuf-export-notice.success {
+	background: #d4edda;
+	border-color: #28a745;
+	color: #155724;
+}
+
+.nbuf-export-notice.error {
+	background: #f8d7da;
+	border-color: #dc3545;
+	color: #721c24;
+}
+
+.nbuf-export-notice.info {
+	background: #d1ecf1;
+	border-color: #17a2b8;
+	color: #0c5460;
+}
+
+.nbuf-export-notice.warning {
+	background: #fff3cd;
+	border-color: #ffc107;
+	color: #856404;
+}
+
+/* ==========================================================
+   Spinner
+   ========================================================== */
+.nbuf-export-spinner {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 2px solid #f3f3f3;
+	border-top: 2px solid #0073aa;
+	border-radius: 50%;
+	animation: nbuf-spin 1s linear infinite;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+@keyframes nbuf-spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================
+   Export History Section
+   ========================================================== */
+.nbuf-export-history {
+	background: #f0f0f0;
+	padding: 15px;
+	border-left: 4px solid #0073aa;
+	font-size: 0.9em;
+}
+
+.nbuf-export-history h4 {
+	margin-top: 0;
+	margin-bottom: 12px;
+	color: #1d2327;
+}
+
+.nbuf-export-history-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #fff;
+}
+
+.nbuf-export-history-table th,
+.nbuf-export-history-table td {
+	padding: 10px 12px;
+	text-align: left;
+	border: 1px solid #e5e5e5;
+}
+
+.nbuf-export-history-table th {
+	background: #f9f9f9;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-export-history-table tbody tr:hover {
+	background: #f9f9f9;
+}
+
+.nbuf-export-history-empty {
+	color: #646970;
+	font-style: italic;
+}
+
+/* ==========================================================
+   Password Confirmation Modal
+   ========================================================== */
+.nbuf-export-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.nbuf-export-modal {
+	background: #fff;
+	padding: 30px;
+	border-radius: 5px;
+	max-width: 400px;
+	width: 90%;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nbuf-export-modal h3 {
+	margin-top: 0;
+	color: #0073aa;
+	font-size: 1.2rem;
+}
+
+.nbuf-export-modal p {
+	color: #50575e;
+	line-height: 1.5;
+}
+
+.nbuf-export-modal label {
+	display: block;
+	margin-bottom: 5px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-export-modal input[type="password"] {
+	width: 100%;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	font-size: 1rem;
+}
+
+.nbuf-export-modal input[type="password"]:focus {
+	border-color: #0073aa;
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}
+
+#nbuf-password-error {
+	color: #d63301;
+	margin-bottom: 15px;
+	font-size: 0.9em;
+}
+
+.nbuf-export-modal-actions {
+	text-align: right;
+	margin-top: 20px;
+}
+
+.nbuf-export-modal-actions .button {
+	margin-left: 10px;
+}
+
+/* ==========================================================
+   Responsive Design
+   ========================================================== */
+@media (max-width: 768px) {
+	.nbuf-gdpr-export-container {
+		margin: 20px 10px;
+		padding: 20px;
+	}
+
+	.nbuf-export-content {
+		padding: 15px;
+	}
+
+	.nbuf-export-history-table {
+		font-size: 0.85em;
+	}
+
+	.nbuf-export-history-table th,
+	.nbuf-export-history-table td {
+		padding: 8px;
+	}
+}
+
+@media (max-width: 480px) {
+	.nbuf-gdpr-export-container {
+		padding: 15px;
+	}
+
+	.nbuf-gdpr-export-container h2 {
+		font-size: 1.3rem;
+	}
+
+	.nbuf-export-button {
+		width: 100%;
+		padding: 12px 20px;
+	}
+
+	.nbuf-export-modal {
+		padding: 20px;
+	}
+
+	.nbuf-export-modal-actions {
+		text-align: center;
+	}
+
+	.nbuf-export-modal-actions .button {
+		display: block;
+		width: 100%;
+		margin: 10px 0 0 0;
+	}
+}

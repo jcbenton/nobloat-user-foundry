@@ -112,6 +112,9 @@ class NBUF_Universal_Router {
 		self::$current_view    = $parsed['view'];
 		self::$current_subview = $parsed['subview'];
 
+		/* Override any 404 status WordPress may have set for virtual URL */
+		status_header( 200 );
+
 		/*
 		 * Process form submissions BEFORE rendering.
 		 * Form handlers may redirect, so they must run first.
@@ -466,9 +469,45 @@ class NBUF_Universal_Router {
 	 */
 	private static function render_login() {
 		if ( is_user_logged_in() ) {
-			return self::render_already_logged_in();
+			wp_safe_redirect( self::get_login_redirect_url() );
+			exit;
 		}
 		return NBUF_Shortcodes::sc_login_form( array() );
+	}
+
+	/**
+	 * Get the redirect URL for logged-in users based on settings.
+	 *
+	 * @since  1.5.0
+	 * @return string Redirect URL.
+	 */
+	private static function get_login_redirect_url() {
+		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'account' );
+
+		switch ( $login_redirect_setting ) {
+			case 'account':
+				return self::get_url( 'account' );
+
+			case 'admin':
+				return admin_url();
+
+			case 'home':
+				return home_url( '/' );
+
+			case 'custom':
+				$custom_url = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
+				if ( $custom_url ) {
+					/* Handle both absolute URLs and relative paths */
+					if ( strpos( $custom_url, 'http' ) === 0 ) {
+						return $custom_url;
+					}
+					return home_url( $custom_url );
+				}
+				return self::get_url( 'account' );
+
+			default:
+				return home_url( '/' );
+		}
 	}
 
 	/**

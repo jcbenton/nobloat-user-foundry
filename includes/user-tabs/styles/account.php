@@ -26,25 +26,7 @@ if ( isset( $_POST['nbuf_save_account_css'] ) && check_admin_referer( 'nbuf_acco
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed_account' );
 
 	/* Rebuild combined file if enabled */
-	$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_reset_css        = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$nbuf_login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
-		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
-
-		if ( empty( $nbuf_reset_css ) ) {
-			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
-		}
-		if ( empty( $nbuf_login_css ) ) {
-			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
-		}
-		if ( empty( $nbuf_registration_css ) ) {
-			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
-		}
-
-		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
-	}
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Account page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -98,15 +80,7 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 					data-template="account-page"
 					data-target="account_page_css"
 				>
-					<?php esc_html_e( 'Reset CSS to Default', 'nobloat-user-foundry' ); ?>
-				</button>
-				<button
-					type="button"
-					class="button nbuf-reset-template-btn"
-					data-template="account-page"
-					style="margin-left: 10px;"
-				>
-					<?php esc_html_e( 'Reset HTML Template to Default', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
 				</button>
 			</p>
 		</div>
@@ -121,13 +95,18 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 			<li><code>.nbuf-account-tabs</code> - Tab navigation</li>
 			<li><code>.nbuf-tab-button</code> - Tab buttons</li>
 			<li><code>.nbuf-tab-content</code> - Tab content areas</li>
+			<li><code>.nbuf-subtabs</code> - Sub-tab navigation</li>
+			<li><code>.nbuf-subtab-button</code> - Sub-tab buttons</li>
 			<li><code>.nbuf-account-section</code> - Content sections</li>
 			<li><code>.nbuf-account-form</code> - Form element</li>
-			<li><code>.nbuf-account-label</code> - Form labels</li>
-			<li><code>.nbuf-account-input</code> - Input fields</li>
-			<li><code>.nbuf-account-button</code> - Submit button</li>
-			<li><code>.nbuf-account-error</code> - Error messages</li>
-			<li><code>.nbuf-account-success</code> - Success messages</li>
+			<li><code>.nbuf-form-group</code> - Input group wrapper</li>
+			<li><code>.nbuf-form-label</code>, <code>.nbuf-account-label</code> - Form labels</li>
+			<li><code>.nbuf-form-input</code>, <code>.nbuf-account-input</code> - Input fields</li>
+			<li><code>.nbuf-button</code>, <code>.nbuf-account-button</code> - Submit button</li>
+			<li><code>.nbuf-message-error</code>, <code>.nbuf-account-error</code> - Error messages</li>
+			<li><code>.nbuf-message-success</code>, <code>.nbuf-account-success</code> - Success messages</li>
+			<li><code>.nbuf-info-grid</code> - Info display grid</li>
+			<li><code>.nbuf-info-label</code>, <code>.nbuf-info-value</code> - Info items</li>
 		</ul>
 	</div>
 </div>

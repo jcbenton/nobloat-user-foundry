@@ -30,6 +30,11 @@ if ( ! is_array( $nbuf_post_types ) ) {
 	$nbuf_post_types = array( 'post', 'page' );
 }
 
+/* Ensure taxonomies_list is an array */
+if ( ! is_array( $nbuf_taxonomies_list ) ) {
+	$nbuf_taxonomies_list = array( 'category', 'post_tag' );
+}
+
 /* Get all public post types */
 $nbuf_all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 
@@ -40,6 +45,18 @@ $nbuf_all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		<?php NBUF_Settings::settings_nonce_field(); ?>
 		<input type="hidden" name="nbuf_active_tab" value="integration">
 		<input type="hidden" name="nbuf_active_subtab" value="restrictions">
+		<!-- Declare checkboxes on this form for proper unchecked handling -->
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrictions_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrictions_menu_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrictions_content_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrict_content_shortcode_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrict_widgets_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrict_taxonomies_enabled">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrict_taxonomies_filter_queries">
+		<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_restrictions_hide_from_queries">
+		<!-- Declare array fields for proper empty handling -->
+		<input type="hidden" name="nbuf_form_arrays[]" value="nbuf_restrictions_post_types">
+		<input type="hidden" name="nbuf_form_arrays[]" value="nbuf_restrict_taxonomies_list">
 
 		<h2><?php esc_html_e( 'Access Restrictions', 'nobloat-user-foundry' ); ?></h2>
 		<p class="description">
@@ -280,52 +297,24 @@ $nbuf_all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			</tr>
 		</table>
 
-		<?php submit_button( __( 'Save Restrictions Settings', 'nobloat-user-foundry' ) ); ?>
+		<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 	</form>
 
-	<!-- Helper Information -->
-	<div class="nbuf-restrictions-info" style="background: #f9f9f9; padding: 1.5rem; border-radius: 4px; margin-top: 2rem;">
-		<h3><?php esc_html_e( 'How to Use Access Restrictions', 'nobloat-user-foundry' ); ?></h3>
-
-		<h4><?php esc_html_e( 'Menu Item Restrictions', 'nobloat-user-foundry' ); ?></h4>
-		<ol>
-			<li><?php esc_html_e( 'Go to Appearance → Menus', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Select a menu item to edit', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Configure "Access Restriction" settings', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Save the menu', 'nobloat-user-foundry' ); ?></li>
-		</ol>
-
-		<h4><?php esc_html_e( 'Post/Page Restrictions', 'nobloat-user-foundry' ); ?></h4>
-		<ol>
-			<li><?php esc_html_e( 'Edit any post or page', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Look for "Access Restriction" metabox in the sidebar', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Choose who can access the content', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Choose what happens when access is denied (message, redirect, or 404)', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Publish or update the post/page', 'nobloat-user-foundry' ); ?></li>
-		</ol>
-
-		<h4><?php esc_html_e( 'Visibility Options', 'nobloat-user-foundry' ); ?></h4>
-		<ul>
-			<li><strong><?php esc_html_e( 'Everyone:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'No restrictions (default)', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Logged In Users:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Only visible to users who are logged in', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Logged Out Users:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Only visible to visitors who are not logged in', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Specific Roles:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Only visible to users with selected roles', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-
-		<h4><?php esc_html_e( 'Restriction Actions (Content Only)', 'nobloat-user-foundry' ); ?></h4>
-		<ul>
-			<li><strong><?php esc_html_e( 'Show Message:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Display a custom message instead of the content', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Redirect to URL:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Redirect users to a specific page (e.g., login page)', 'nobloat-user-foundry' ); ?></li>
-			<li><strong><?php esc_html_e( 'Show 404 Page:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Make the content appear as if it doesn\'t exist', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-
-		<h4><?php esc_html_e( 'Performance Tips', 'nobloat-user-foundry' ); ?></h4>
-		<ul>
-			<li><?php esc_html_e( 'Keep "Hide from Archives" disabled unless absolutely necessary', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Restrictions are loaded efficiently with single database queries', 'nobloat-user-foundry' ); ?></li>
-			<li><?php esc_html_e( 'Menu restrictions automatically hide child items when parent is restricted', 'nobloat-user-foundry' ); ?></li>
-		</ul>
-	</div>
+	<?php
+	/*
+	 * DOCUMENTATION NOTE (for AI doc generator):
+	 * Access Restrictions documentation should cover:
+	 * - Menu item restrictions: Configure in Appearance → Menus
+	 * - Post/page restrictions: Access Restriction metabox in editor sidebar
+	 * - Visibility options: Everyone, Logged In, Logged Out, Specific Roles
+	 * - Restriction actions: Show Message, Redirect to URL, Show 404 Page
+	 * - Widget restrictions: Configure in Appearance → Widgets
+	 * - Taxonomy restrictions: Configure when editing terms
+	 * - Shortcode [nbuf_restrict] with attributes: logged_in, role, verified, expired, message
+	 * - Performance tips: Hide from Archives impacts performance, use sparingly
+	 * - Menu restrictions automatically cascade to child items
+	 */
+	?>
 
 	<?php if ( class_exists( 'UM' ) ) : ?>
 		<!-- Ultimate Member Migration Notice -->

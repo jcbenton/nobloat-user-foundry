@@ -26,25 +26,7 @@ if ( isset( $_POST['nbuf_save_register_css'] ) && check_admin_referer( 'nbuf_reg
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_registration_css, 'registration-page', 'nbuf_css_write_failed_registration' );
 
 	/* Rebuild combined file if enabled */
-	$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_reset_css   = NBUF_Options::get( 'nbuf_reset_page_css' );
-		$nbuf_login_css   = NBUF_Options::get( 'nbuf_login_page_css' );
-		$nbuf_account_css = NBUF_Options::get( 'nbuf_account_page_css' );
-
-		if ( empty( $nbuf_reset_css ) ) {
-			$nbuf_reset_css = NBUF_CSS_Manager::load_default_css( 'reset-page' );
-		}
-		if ( empty( $nbuf_login_css ) ) {
-			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
-		}
-		if ( empty( $nbuf_account_css ) ) {
-			$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
-		}
-
-		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
-	}
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Registration page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -110,12 +92,17 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 		<h3><?php esc_html_e( 'CSS Class Reference', 'nobloat-user-foundry' ); ?></h3>
 		<ul>
 			<li><code>.nbuf-registration-wrapper</code> - Main container</li>
+			<li><code>.nbuf-registration-header</code> - Header section</li>
+			<li><code>.nbuf-registration-title</code> - Page title</li>
 			<li><code>.nbuf-registration-form</code> - Form element</li>
-			<li><code>.nbuf-registration-label</code> - Form labels</li>
-			<li><code>.nbuf-registration-input</code> - Input fields</li>
-			<li><code>.nbuf-registration-button</code> - Submit button</li>
-			<li><code>.nbuf-registration-error</code> - Error messages</li>
-			<li><code>.nbuf-registration-success</code> - Success messages</li>
+			<li><code>.nbuf-form-group</code> - Input group wrapper</li>
+			<li><code>.nbuf-form-label</code>, <code>.nbuf-registration-label</code> - Form labels</li>
+			<li><code>.nbuf-form-input</code>, <code>.nbuf-registration-input</code> - Input fields</li>
+			<li><code>.nbuf-form-help</code> - Help text below inputs</li>
+			<li><code>.nbuf-submit-button</code>, <code>.nbuf-registration-button</code> - Submit button</li>
+			<li><code>.nbuf-message-error</code>, <code>.nbuf-registration-error</code> - Error messages</li>
+			<li><code>.nbuf-message-success</code>, <code>.nbuf-registration-success</code> - Success messages</li>
+			<li><code>.nbuf-registration-footer</code> - Footer with links</li>
 			<li><code>.nbuf-registration-container</code> - Container when policy panel is shown</li>
 			<li><code>.nbuf-policy-panel</code> - Policy panel container</li>
 		</ul>

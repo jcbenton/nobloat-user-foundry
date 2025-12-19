@@ -278,52 +278,5 @@ $nbuf_wp_roles = wp_roles()->get_names();
 		</tr>
 	</table>
 
-	<?php submit_button( __( 'Save Directory Settings', 'nobloat-user-foundry' ) ); ?>
+	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
-
-<hr style="margin: 40px 0;">
-
-<h2><?php esc_html_e( 'Shortcode Reference', 'nobloat-user-foundry' ); ?></h2>
-<p class="description">
-	<?php esc_html_e( 'Use the following shortcode to display the member directory on any page:', 'nobloat-user-foundry' ); ?>
-</p>
-
-<table style="margin-top: 15px; border-collapse: collapse; max-width: 800px;">
-	<thead>
-		<tr>
-			<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Shortcode', 'nobloat-user-foundry' ); ?></th>
-			<th style="text-align: left; padding: 8px 10px; border-bottom: 1px solid #c3c4c7;"><?php esc_html_e( 'Description', 'nobloat-user-foundry' ); ?></th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Basic member directory with default settings', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members view="list"]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Display in list view instead of grid', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members per_page="30"]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Show 30 members per page', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members roles="subscriber,contributor"]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Limit to specific roles', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members show_search="no"]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Hide the search box', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-		<tr>
-			<td style="padding: 8px 10px;"><code>[nbuf_members orderby="user_registered" order="DESC"]</code></td>
-			<td style="padding: 8px 10px;"><?php esc_html_e( 'Sort by registration date, newest first', 'nobloat-user-foundry' ); ?></td>
-		</tr>
-	</tbody>
-</table>
-
-<p class="description" style="margin-top: 15px;">
-	<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
-	<?php esc_html_e( 'The member directory is also available at the /members/ URL when using the Universal Page system.', 'nobloat-user-foundry' ); ?>
-</p>

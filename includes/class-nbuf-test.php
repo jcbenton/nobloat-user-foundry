@@ -195,10 +195,13 @@ class NBUF_Test {
 		$test_code = wp_rand( 100000, 999999 );
 
 		$replacements = array(
-			'{site_name}'    => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-			'{display_name}' => 'Test User',
-			'{code}'         => $test_code,
-			'{user_email}'   => $recipient,
+			'{site_name}'          => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'{site_url}'           => home_url(),
+			'{display_name}'       => 'Test User',
+			'{verification_code}'  => $test_code,
+			'{code}'               => $test_code,
+			'{expiration_minutes}' => '10',
+			'{user_email}'         => $recipient,
 		);
 
 		$message = strtr( $template, $replacements );
@@ -477,6 +480,3 @@ class NBUF_Test {
 		}
 	}
 }
-
-// Initialize.
-NBUF_Test::init();

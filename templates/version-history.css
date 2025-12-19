@@ -1,0 +1,482 @@
+/**
+ * NoBloat User Foundry - Version History Default CSS
+ *
+ * This is the default styling for the version history viewer.
+ * Edit in Backend > Appearance > CSS Styles > Version History.
+ *
+ * @package NoBloat_User_Foundry
+ */
+
+/* ==========================================================
+   Initial Hidden States
+   ========================================================== */
+.nbuf-vh-timeline,
+.nbuf-vh-pagination,
+.nbuf-vh-empty,
+.nbuf-vh-diff-modal,
+.nbuf-vh-diff-result {
+	display: none;
+}
+
+/* ==========================================================
+   Main Container
+   ========================================================== */
+.nbuf-version-history-viewer {
+	max-width: 900px;
+	margin: 0 auto;
+}
+
+/* ==========================================================
+   Header
+   ========================================================== */
+.nbuf-vh-header {
+	margin-bottom: 25px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid #e5e5e5;
+}
+
+.nbuf-vh-header h3 {
+	margin: 0 0 8px 0;
+	font-size: 1.3rem;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-vh-header .description {
+	margin: 0;
+	color: #646970;
+}
+
+/* ==========================================================
+   Loading State
+   ========================================================== */
+.nbuf-vh-loading {
+	text-align: center;
+	padding: 40px 20px;
+}
+
+.nbuf-vh-loading .spinner {
+	float: none;
+	margin: 0 auto 10px;
+}
+
+.nbuf-vh-loading p {
+	color: #646970;
+	margin: 0;
+}
+
+/* ==========================================================
+   Empty State
+   ========================================================== */
+.nbuf-vh-empty {
+	text-align: center;
+	padding: 40px 20px;
+	background: #f9f9f9;
+	border: 1px dashed #ddd;
+	border-radius: 4px;
+}
+
+.nbuf-vh-empty p:first-child {
+	font-size: 16px;
+	color: #666;
+	margin: 0 0 8px 0;
+}
+
+.nbuf-vh-empty .description {
+	color: #888;
+	margin: 0;
+}
+
+/* ==========================================================
+   Timeline
+   ========================================================== */
+.nbuf-vh-timeline {
+	position: relative;
+}
+
+/* Timeline vertical line */
+.nbuf-vh-timeline::before {
+	content: '';
+	position: absolute;
+	left: 20px;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: #e5e5e5;
+}
+
+/* ==========================================================
+   Timeline Item
+   ========================================================== */
+.nbuf-vh-item {
+	position: relative;
+	display: flex;
+	gap: 20px;
+	padding: 20px 0;
+	margin-left: 10px;
+}
+
+.nbuf-vh-item:not(:last-child) {
+	border-bottom: 1px solid #f0f0f0;
+}
+
+/* Item Icon */
+.nbuf-vh-item-icon {
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	background: #fff;
+	border: 2px solid #0073aa;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1;
+}
+
+.nbuf-vh-item-icon .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	color: #0073aa;
+}
+
+/* Item Content */
+.nbuf-vh-item-content {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Item Header */
+.nbuf-vh-item-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.nbuf-vh-item-meta {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.nbuf-vh-item-date {
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-vh-item-time {
+	color: #646970;
+	font-size: 0.9em;
+}
+
+/* Change Type Badge */
+.nbuf-vh-item-type {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.nbuf-vh-type-create {
+	background: #d4edda;
+	color: #155724;
+}
+
+.nbuf-vh-type-update {
+	background: #cce5ff;
+	color: #004085;
+}
+
+.nbuf-vh-type-delete {
+	background: #f8d7da;
+	color: #721c24;
+}
+
+.nbuf-vh-type-revert {
+	background: #fff3cd;
+	color: #856404;
+}
+
+.nbuf-vh-type-admin {
+	background: #e2e3e5;
+	color: #383d41;
+}
+
+/* Item User */
+.nbuf-vh-item-user {
+	font-size: 0.9em;
+	color: #646970;
+}
+
+/* Item Details */
+.nbuf-vh-item-details {
+	margin-bottom: 12px;
+}
+
+.nbuf-vh-item-fields,
+.nbuf-vh-item-ip {
+	margin: 0 0 5px 0;
+	font-size: 0.9em;
+	color: #50575e;
+}
+
+.nbuf-vh-item-fields strong,
+.nbuf-vh-item-ip strong {
+	color: #1d2327;
+}
+
+/* Item Actions */
+.nbuf-vh-item-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.nbuf-vh-item-actions .button {
+	font-size: 12px;
+}
+
+/* ==========================================================
+   Pagination
+   ========================================================== */
+.nbuf-vh-pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 15px;
+	margin-top: 25px;
+	padding-top: 20px;
+	border-top: 1px solid #e5e5e5;
+}
+
+.nbuf-vh-page-info {
+	color: #646970;
+	font-size: 0.9em;
+}
+
+/* ==========================================================
+   Diff Modal
+   ========================================================== */
+.nbuf-vh-diff-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 100000;
+}
+
+.nbuf-vh-diff-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.nbuf-vh-diff-content {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 90%;
+	max-width: 800px;
+	max-height: 80vh;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	display: flex;
+	flex-direction: column;
+}
+
+.nbuf-vh-diff-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 15px 20px;
+	border-bottom: 1px solid #e5e5e5;
+	background: #f9f9f9;
+	border-radius: 8px 8px 0 0;
+}
+
+.nbuf-vh-diff-header h3 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: #1d2327;
+}
+
+.nbuf-vh-diff-body {
+	padding: 20px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.nbuf-vh-diff-loading {
+	text-align: center;
+	padding: 40px 20px;
+}
+
+/* Diff Header Info */
+.nbuf-vh-diff-header-info {
+	display: flex;
+	gap: 30px;
+	margin-bottom: 20px;
+	padding: 15px;
+	background: #f9f9f9;
+	border-radius: 4px;
+}
+
+.nbuf-vh-diff-version {
+	font-size: 0.9em;
+}
+
+.nbuf-vh-diff-version strong {
+	display: block;
+	margin-bottom: 3px;
+	color: #1d2327;
+}
+
+/* Snapshot Header */
+.nbuf-vh-snapshot-header {
+	margin-bottom: 20px;
+	padding: 15px;
+	background: #f9f9f9;
+	border-radius: 4px;
+}
+
+.nbuf-vh-snapshot-header p {
+	margin: 0 0 5px 0;
+	font-size: 0.9em;
+}
+
+.nbuf-vh-snapshot-header p:last-child {
+	margin-bottom: 0;
+}
+
+/* ==========================================================
+   Diff Table
+   ========================================================== */
+.nbuf-vh-diff-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+.nbuf-vh-diff-table th,
+.nbuf-vh-diff-table td {
+	padding: 10px 12px;
+	text-align: left;
+	border: 1px solid #e5e5e5;
+	vertical-align: top;
+}
+
+.nbuf-vh-diff-table th {
+	background: #f0f0f0;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-vh-diff-table tbody tr:nth-child(even) {
+	background: #f9f9f9;
+}
+
+/* Diff Status Colors */
+.nbuf-vh-diff-added td {
+	background: #d4edda !important;
+}
+
+.nbuf-vh-diff-removed td {
+	background: #f8d7da !important;
+}
+
+.nbuf-vh-diff-changed td {
+	background: #fff3cd !important;
+}
+
+/* Snapshot Table */
+.nbuf-vh-snapshot-table th:first-child,
+.nbuf-vh-snapshot-table td:first-child {
+	width: 30%;
+	font-weight: 600;
+}
+
+/* ==========================================================
+   Info Message
+   ========================================================== */
+.nbuf-vh-info-message {
+	margin-bottom: 20px;
+	padding: 12px 15px;
+	background: #d1ecf1;
+	border-left: 4px solid #17a2b8;
+	border-radius: 0 4px 4px 0;
+	color: #0c5460;
+}
+
+/* ==========================================================
+   Responsive Design
+   ========================================================== */
+@media (max-width: 768px) {
+	.nbuf-vh-timeline::before {
+		left: 15px;
+	}
+
+	.nbuf-vh-item {
+		gap: 15px;
+		margin-left: 5px;
+	}
+
+	.nbuf-vh-item-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.nbuf-vh-diff-content {
+		width: 95%;
+		max-height: 90vh;
+	}
+
+	.nbuf-vh-diff-header-info {
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.nbuf-vh-diff-table {
+		font-size: 0.8em;
+	}
+
+	.nbuf-vh-diff-table th,
+	.nbuf-vh-diff-table td {
+		padding: 8px;
+	}
+}
+
+@media (max-width: 480px) {
+	.nbuf-vh-item-meta {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 5px;
+	}
+
+	.nbuf-vh-item-actions {
+		flex-direction: column;
+	}
+
+	.nbuf-vh-item-actions .button {
+		width: 100%;
+		text-align: center;
+	}
+
+	.nbuf-vh-pagination {
+		flex-direction: column;
+		gap: 10px;
+	}
+}

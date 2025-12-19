@@ -31,6 +31,11 @@ $nbuf_notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="2fa-settings">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_device_trust">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_lockout">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_disable">
 
 	<h2><?php esc_html_e( 'General 2FA Options', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">

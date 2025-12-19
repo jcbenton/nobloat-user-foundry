@@ -1,13 +1,3 @@
-<!DOCTYPE html>
-<html {language_attributes}>
-<head>
-	<meta charset="{charset}">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{display_name} - {site_name}</title>
-	{wp_head}
-</head>
-<body class="{body_class}">
-
 <div class="nbuf-profile-page">
 	<!-- Profile Header with Cover Photo -->
 	<div class="nbuf-profile-header">
@@ -29,17 +19,15 @@
 					<svg class="nbuf-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 						<path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1.5c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
 					</svg>
-					{joined_date}
+					{joined_text}
 				</span>
 			</div>
 		</div>
 
 		{profile_fields_html}
 
+		{custom_content}
+
 		{edit_profile_button}
 	</div>
 </div>
-
-{wp_footer}
-</body>
-</html>

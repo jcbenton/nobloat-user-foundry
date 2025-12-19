@@ -16,7 +16,7 @@ $nbuf_reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 /* Default values if not set */
 $nbuf_username_method = $nbuf_reg_settings['username_method'] ?? 'auto_random';
-$nbuf_login_method    = $nbuf_reg_settings['login_method'] ?? 'email_only';
+$nbuf_login_method    = $nbuf_reg_settings['login_method'] ?? 'email_or_username';
 
 /* Feature toggles (moved from General tab) */
 $nbuf_enable_registration       = NBUF_Options::get( 'nbuf_enable_registration', true );
@@ -27,6 +27,10 @@ $nbuf_notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registra
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="nbuf-registration-form">
 	<?php NBUF_Settings::settings_nonce_field(); ?>
 	<input type="hidden" name="nbuf_active_tab" value="registration">
+	<!-- Declare checkboxes on this form for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_registration">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_require_verification">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_admin_registration">
 
 	<h2><?php esc_html_e( 'Registration Status', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">

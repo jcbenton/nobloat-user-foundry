@@ -739,6 +739,7 @@ class NBUF_Version_History {
 		/* Delete versions older than retention period */
 		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$retention_days} days" ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE changed_at < %s',
@@ -747,7 +748,17 @@ class NBUF_Version_History {
 			)
 		);
 
-		return $deleted;
+		/* Also clean up orphan records for deleted users */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$orphans_deleted = $wpdb->query(
+			$wpdb->prepare(
+				'DELETE pv FROM %i pv LEFT JOIN %i u ON pv.user_id = u.ID WHERE u.ID IS NULL',
+				$table_name,
+				$wpdb->users
+			)
+		);
+
+		return $deleted + $orphans_deleted;
 	}
 
 	/**
@@ -939,12 +950,12 @@ class NBUF_Version_History {
 		$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
 		$can_revert        = $allow_user_revert;
 
-		/* Enqueue version history CSS */
-		wp_enqueue_style(
+		/* Enqueue version history CSS via CSS Manager */
+		NBUF_CSS_Manager::enqueue_css(
 			'nbuf-version-history',
-			plugin_dir_url( __DIR__ ) . 'assets/css/admin/version-history.css',
-			array(),
-			'1.4.0'
+			'version-history',
+			'nbuf_version_history_custom_css',
+			'nbuf_css_write_failed_version_history'
 		);
 
 		/* Enqueue version history JS */
@@ -981,7 +992,7 @@ class NBUF_Version_History {
 		<div class="nbuf-account-section nbuf-vh-account">
 
 		<?php if ( ! $allow_user_revert ) : ?>
-				<div class="nbuf-message nbuf-message-info" style="margin-bottom: 20px;">
+				<div class="nbuf-message nbuf-message-info nbuf-message-spaced">
 			<?php esc_html_e( 'View your profile change history below. Only administrators can restore previous versions.', 'nobloat-user-foundry' ); ?>
 				</div>
 		<?php endif; ?>
@@ -1018,8 +1029,8 @@ class NBUF_Version_History {
 		$allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
 		$can_revert        = current_user_can( 'manage_options' ) || ( $allow_user_revert && $user_id === $current_user_id );
 
-		/* Load HTML template */
-		$template = NBUF_Template_Manager::load_default_file( 'version-history-viewer-html' );
+		/* Load HTML template (checks DB first, falls back to default file) */
+		$template = NBUF_Template_Manager::load_template( 'version-history-viewer-html' );
 
 		/* Build replacements */
 		$replacements = array(

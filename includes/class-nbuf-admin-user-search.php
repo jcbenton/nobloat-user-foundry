@@ -86,8 +86,8 @@ class NBUF_Admin_User_Search {
 			$new_columns['email'] = $columns['email'];
 		}
 
-		/* Verified (custom) */
-		$new_columns['nbuf_verification'] = __( 'Verified', 'nobloat-user-foundry' );
+		/* Status (custom) - shows disabled/expired/unverified/verified */
+		$new_columns['nbuf_status'] = __( 'Status', 'nobloat-user-foundry' );
 
 		/* Role */
 		if ( isset( $columns['role'] ) ) {
@@ -122,19 +122,51 @@ class NBUF_Admin_User_Search {
 	 */
 	public static function render_custom_column( $output, $column_name, $user_id ) {
 		switch ( $column_name ) {
-			case 'nbuf_verification':
-				$is_verified = NBUF_User_Data::is_verified( $user_id );
-				if ( $is_verified ) {
-					$output = '<span class="nbuf-status-badge nbuf-verified" title="' . esc_attr__( 'Email verified', 'nobloat-user-foundry' ) . '">' .
+			case 'nbuf_status':
+				$user = get_userdata( $user_id );
+
+				/* Admins are always shown as Active */
+				if ( $user && user_can( $user, 'manage_options' ) ) {
+					$output = '<span class="nbuf-status-badge nbuf-active" title="' . esc_attr__( 'Administrator account', 'nobloat-user-foundry' ) . '">' .
 						'<span class="dashicons dashicons-yes-alt"></span> ' .
-						esc_html__( 'Verified', 'nobloat-user-foundry' ) .
+						esc_html__( 'Active', 'nobloat-user-foundry' ) .
 						'</span>';
-				} else {
-					$output = '<span class="nbuf-status-badge nbuf-unverified" title="' . esc_attr__( 'Email not verified', 'nobloat-user-foundry' ) . '">' .
-					'<span class="dashicons dashicons-warning"></span> ' .
-					esc_html__( 'Unverified', 'nobloat-user-foundry' ) .
-					'</span>';
+					break;
 				}
+
+				/* Check statuses in priority order: disabled > expired > unverified > verified */
+				$is_disabled = NBUF_User_Data::is_disabled( $user_id );
+				if ( $is_disabled ) {
+					$output = '<span class="nbuf-status-badge nbuf-disabled" title="' . esc_attr__( 'Account disabled', 'nobloat-user-foundry' ) . '">' .
+						'<span class="dashicons dashicons-dismiss"></span> ' .
+						esc_html__( 'Disabled', 'nobloat-user-foundry' ) .
+						'</span>';
+					break;
+				}
+
+				$is_expired = NBUF_User_Data::is_expired( $user_id );
+				if ( $is_expired ) {
+					$output = '<span class="nbuf-status-badge nbuf-expired" title="' . esc_attr__( 'Account expired', 'nobloat-user-foundry' ) . '">' .
+						'<span class="dashicons dashicons-clock"></span> ' .
+						esc_html__( 'Expired', 'nobloat-user-foundry' ) .
+						'</span>';
+					break;
+				}
+
+				$is_verified = NBUF_User_Data::is_verified( $user_id );
+				if ( ! $is_verified ) {
+					$output = '<span class="nbuf-status-badge nbuf-unverified" title="' . esc_attr__( 'Email not verified', 'nobloat-user-foundry' ) . '">' .
+						'<span class="dashicons dashicons-warning"></span> ' .
+						esc_html__( 'Unverified', 'nobloat-user-foundry' ) .
+						'</span>';
+					break;
+				}
+
+				/* All good - verified and active */
+				$output = '<span class="nbuf-status-badge nbuf-verified" title="' . esc_attr__( 'Account active and verified', 'nobloat-user-foundry' ) . '">' .
+					'<span class="dashicons dashicons-yes-alt"></span> ' .
+					esc_html__( 'Verified', 'nobloat-user-foundry' ) .
+					'</span>';
 				break;
 
 			case 'nbuf_company':
@@ -181,7 +213,7 @@ class NBUF_Admin_User_Search {
 	 */
 	public static function make_columns_sortable( $columns ) {
 		/* Always sortable */
-		$columns['nbuf_verification'] = 'nbuf_verification';
+		$columns['nbuf_status'] = 'nbuf_status';
 
 		/* Optional columns - only add if enabled */
 		if ( NBUF_Options::get( 'nbuf_users_column_company', false ) ) {
@@ -528,7 +560,7 @@ class NBUF_Admin_User_Search {
 		<script type="text/javascript">
 		jQuery(document).ready(function($) {
 			/* Add export button next to Add New button */
-			var exportButton = $('<a href="#" class="page-title-action nbuf-export-csv" style="margin-left: 10px;">' +
+			var exportButton = $('<a href="#" class="page-title-action nbuf-export-csv nbuf-export-btn">' +
 				'<?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>' +
 				'</a>');
 

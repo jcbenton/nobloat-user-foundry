@@ -213,7 +213,7 @@ class NBUF_User_Notes_Page {
 					<p class="description">
 		<?php esc_html_e( 'Search by username, email, or display name (minimum 2 characters).', 'nobloat-user-foundry' ); ?>
 					</p>
-					<div style="position: relative;">
+					<div class="nbuf-relative">
 						<input type="text" id="nbuf-user-search-input" placeholder="<?php esc_attr_e( 'Search for a user...', 'nobloat-user-foundry' ); ?>" autocomplete="off">
 					</div>
 				</div>

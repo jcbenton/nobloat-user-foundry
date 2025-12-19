@@ -79,32 +79,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tr>
 			<td><strong><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent when a new user registers and needs to verify their email address.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=verification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=verification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Welcome Email', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent to welcome new users after successful registration.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=welcome' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=welcome' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Expiration Warning', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent to users when their account is approaching expiration.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=expiration' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=expiration' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent when a user needs a verification code for two-factor authentication.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=2fa' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=2fa' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent when a user requests a password reset link.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=password-reset' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=password-reset' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent to the site admin when a new user registers.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=templates&subtab=admin-notification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=admin-notification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Profile Change Notification', 'nobloat-user-foundry' ); ?></strong></td>

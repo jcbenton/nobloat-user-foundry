@@ -128,6 +128,17 @@ class NBUF_Appearance {
 					'reset'         => __( 'Password Reset', 'nobloat-user-foundry' ),
 					'account'       => __( 'Account Page', 'nobloat-user-foundry' ),
 					'2fa'           => __( '2FA Verify', 'nobloat-user-foundry' ),
+					'2fa-setup'     => __( '2FA Setup', 'nobloat-user-foundry' ),
+					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
+				),
+			),
+			'pages'      => array(
+				'label'   => __( 'Page Templates', 'nobloat-user-foundry' ),
+				'subtabs' => array(
+					'public-profile'    => __( 'Public Profile', 'nobloat-user-foundry' ),
+					'member-directory'  => __( 'Member Directory', 'nobloat-user-foundry' ),
+					'data-export'       => __( 'Data Export', 'nobloat-user-foundry' ),
+					'version-history'   => __( 'Version History', 'nobloat-user-foundry' ),
 				),
 			),
 			'styles'     => array(
@@ -140,6 +151,8 @@ class NBUF_Appearance {
 					'2fa'              => __( '2FA', 'nobloat-user-foundry' ),
 					'profiles'         => __( 'Profiles', 'nobloat-user-foundry' ),
 					'member-directory' => __( 'Member Directory', 'nobloat-user-foundry' ),
+					'version-history'  => __( 'Version History', 'nobloat-user-foundry' ),
+					'data-export'      => __( 'Data Export', 'nobloat-user-foundry' ),
 					'settings'         => __( 'Settings', 'nobloat-user-foundry' ),
 				),
 			),
@@ -294,6 +307,15 @@ class NBUF_Appearance {
 				'reset'         => 'forms/reset.php',
 				'account'       => 'forms/account.php',
 				'2fa'           => 'forms/2fa.php',
+				'2fa-setup'     => 'forms/2fa-setup.php',
+				'backup-codes'  => 'forms/backup-codes.php',
+			),
+			/* Page Templates */
+			'pages' => array(
+				'public-profile'   => 'pages/public-profile.php',
+				'member-directory' => 'pages/member-directory.php',
+				'data-export'      => 'pages/data-export.php',
+				'version-history'  => 'pages/version-history.php',
 			),
 			/* CSS Styles */
 			'styles' => array(
@@ -304,6 +326,8 @@ class NBUF_Appearance {
 				'2fa'              => 'styles/2fa.php',
 				'profiles'         => 'styles/profiles.php',
 				'member-directory' => 'styles/member-directory.php',
+				'version-history'  => 'styles/version-history.php',
+				'data-export'      => 'styles/data-export.php',
 				'settings'         => 'styles/settings.php',
 			),
 		);

@@ -286,9 +286,7 @@ class NBUF_Registration {
 			NBUF_User_Data::set_requires_approval( $user_id, true );
 		}
 
-		/* Trigger WordPress registration action for plugin compatibility */
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Firing WordPress core hook for compatibility with other plugins.
-		do_action( 'user_register', $user_id );
+		/* Note: wp_create_user() already triggers 'user_register' action, no need to fire it again */
 
 		return $user_id;
 	}

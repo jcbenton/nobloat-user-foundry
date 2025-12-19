@@ -25,6 +25,9 @@ if ( isset( $_POST['nbuf_save_2fa_css'] ) && check_admin_referer( 'nbuf_2fa_css_
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa' );
 
+	/* Rebuild combined file if enabled */
+	NBUF_CSS_Manager::rebuild_combined_css();
+
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '2FA page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 	} else {
@@ -90,7 +93,6 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 		<ul>
 			<li><code>.nbuf-2fa-verify-wrapper</code> - Verification form container</li>
 			<li><code>.nbuf-2fa-header</code> - Header section</li>
-			<li><code>.nbuf-2fa-subtitle</code> - Subtitle text</li>
 			<li><code>.nbuf-2fa-instructions</code> - Instructions text</li>
 			<li><code>.nbuf-2fa-verify-form</code> - Form element</li>
 			<li><code>.nbuf-form-group</code> - Input group wrapper</li>
@@ -99,11 +101,15 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 			<li><code>.nbuf-button-primary</code> - Primary button style</li>
 			<li><code>.nbuf-2fa-help</code> - Help section with links</li>
 			<li><code>.nbuf-2fa-setup-page</code> - Setup page container</li>
+			<li><code>.nbuf-2fa-setup-wrapper</code> - TOTP setup form wrapper</li>
+			<li><code>.nbuf-setup-grid</code> - Two-column setup layout</li>
+			<li><code>.nbuf-setup-subtitle</code> - Subtitle text</li>
 			<li><code>.nbuf-2fa-options</code> - Options grid</li>
 			<li><code>.nbuf-2fa-option-card</code> - Option card</li>
 			<li><code>.nbuf-2fa-qr-code</code> - QR code section</li>
 			<li><code>.nbuf-2fa-secret</code> - TOTP secret display</li>
 			<li><code>.nbuf-2fa-backup-codes</code> - Backup codes section</li>
+			<li><code>.nbuf-status-active</code>, <code>.nbuf-status-inactive</code> - Status badges</li>
 			<li><code>.nbuf-error</code> - Error message</li>
 			<li><code>.nbuf-success</code> - Success message</li>
 		</ul>

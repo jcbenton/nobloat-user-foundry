@@ -19,7 +19,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 /* Handle form submission */
-if ( isset( $_POST['submit'] ) && check_admin_referer( 'nbuf_gdpr_notices_settings' ) ) {
+if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_notices' === $_POST['nbuf_form_id'] && check_admin_referer( 'nbuf_gdpr_notices_settings' ) ) {
 	/* Policy Display Settings */
 	$nbuf_policy_login_enabled = isset( $_POST['nbuf_policy_login_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_login_enabled', $nbuf_policy_login_enabled, true, 'gdpr' );
@@ -68,6 +68,7 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 
 <form method="post" action="">
 	<?php wp_nonce_field( 'nbuf_gdpr_notices_settings' ); ?>
+	<input type="hidden" name="nbuf_form_id" value="gdpr_notices">
 	<input type="hidden" name="nbuf_active_tab" value="gdpr">
 	<input type="hidden" name="nbuf_active_subtab" value="notices">
 
@@ -88,7 +89,6 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 			<tr>
 				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Login Form', 'nobloat-user-foundry' ); ?></strong>
-					<code style="font-size: 11px; margin-left: 5px;">[nbuf_login_form]</code>
 				</td>
 				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_login_enabled" value="1" <?php checked( $nbuf_policy_login_enabled, 1 ); ?>>
@@ -103,7 +103,6 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 			<tr>
 				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Registration Form', 'nobloat-user-foundry' ); ?></strong>
-					<code style="font-size: 11px; margin-left: 5px;">[nbuf_registration_form]</code>
 				</td>
 				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_registration_enabled" value="1" <?php checked( $nbuf_policy_registration_enabled, 1 ); ?>>
@@ -118,7 +117,6 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 			<tr>
 				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Verification Page', 'nobloat-user-foundry' ); ?></strong>
-					<code style="font-size: 11px; margin-left: 5px;">[nbuf_verify_page]</code>
 				</td>
 				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_verify_enabled" value="1" <?php checked( $nbuf_policy_verify_enabled, 1 ); ?>>
@@ -133,7 +131,6 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 			<tr>
 				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Request Password Reset', 'nobloat-user-foundry' ); ?></strong>
-					<code style="font-size: 11px; margin-left: 5px;">[nbuf_request_reset_form]</code>
 				</td>
 				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_request_reset_enabled" value="1" <?php checked( $nbuf_policy_request_reset_enabled, 1 ); ?>>
@@ -148,7 +145,6 @@ $nbuf_policy_account_tab_enabled    = NBUF_Options::get( 'nbuf_policy_account_ta
 			<tr>
 				<td style="padding: 8px 10px;">
 					<strong><?php esc_html_e( 'Password Reset Form', 'nobloat-user-foundry' ); ?></strong>
-					<code style="font-size: 11px; margin-left: 5px;">[nbuf_reset_form]</code>
 				</td>
 				<td style="text-align: center; padding: 8px 10px;">
 					<input type="checkbox" name="nbuf_policy_reset_enabled" value="1" <?php checked( $nbuf_policy_reset_enabled, 1 ); ?>>

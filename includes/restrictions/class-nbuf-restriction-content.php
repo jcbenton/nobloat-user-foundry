@@ -24,6 +24,11 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 
 	/**
 	 * Initialize content restrictions
+	 *
+	 * Registers hooks for content filtering, redirect handling, and optional
+	 * query filtering to hide restricted content from listings.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function init() {
 		/* Content filtering (high priority to run late) */
@@ -42,8 +47,14 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Filter post/page content based on restrictions
 	 *
+	 * Checks if current user has access to view the content. If access is denied,
+	 * replaces content with a restriction message based on the configured action.
+	 * Only filters content on singular post/page views.
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param  string $content Post content.
-	 * @return string Filtered content.
+	 * @return string Filtered content or restriction message.
 	 */
 	public static function filter_content( $content ) {
 		/* Only filter singular posts/pages */
@@ -121,6 +132,12 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 
 	/**
 	 * Handle redirect and 404 actions
+	 *
+	 * Intercepts template loading for restricted content when the restriction
+	 * action is set to 'redirect' or '404'. Logs access denial and performs
+	 * the appropriate action.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function handle_redirect() {
 		/* Only on singular posts/pages */
@@ -220,6 +237,12 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Exclude restricted posts from queries (optional feature)
 	 *
+	 * When enabled, prevents restricted content from appearing in archives,
+	 * search results, and other query listings. Only affects main queries
+	 * on the frontend.
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param WP_Query $query WordPress query object.
 	 */
 	public static function exclude_from_queries( $query ) {
@@ -251,8 +274,13 @@ class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
 	/**
 	 * Get list of post IDs to exclude from queries
 	 *
+	 * Queries the restrictions table to find posts the current user cannot access.
+	 * Results are cached for 5 minutes to improve performance.
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param  string $post_type Post type to check.
-	 * @return array Array of post IDs to exclude.
+	 * @return array Array of post IDs to exclude from queries.
 	 */
 	private static function get_excluded_post_ids( $post_type ) {
 		/* Try to get from cache */

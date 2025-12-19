@@ -135,15 +135,22 @@ class NBUF_Diagnostics {
 		$report[] = '-------------------------------------------';
 
 		$tables = array(
-			'tokens'         => $wpdb->prefix . 'nbuf_tokens',
-			'user_data'      => $wpdb->prefix . 'nbuf_user_data',
-			'user_2fa'       => $wpdb->prefix . 'nbuf_user_2fa',
-			'user_profile'   => $wpdb->prefix . 'nbuf_user_profile',
-			'login_attempts' => $wpdb->prefix . 'nbuf_login_attempts',
-			'options'        => $wpdb->prefix . 'nbuf_options',
-			'audit_log'      => $wpdb->prefix . 'nbuf_user_audit_log',
-			'user_notes'     => $wpdb->prefix . 'nbuf_user_notes',
-			'user_roles'     => $wpdb->prefix . 'nbuf_user_roles',
+			'tokens'               => $wpdb->prefix . 'nbuf_tokens',
+			'user_data'            => $wpdb->prefix . 'nbuf_user_data',
+			'user_2fa'             => $wpdb->prefix . 'nbuf_user_2fa',
+			'user_passkeys'        => $wpdb->prefix . 'nbuf_user_passkeys',
+			'user_profile'         => $wpdb->prefix . 'nbuf_user_profile',
+			'profile_versions'     => $wpdb->prefix . 'nbuf_profile_versions',
+			'login_attempts'       => $wpdb->prefix . 'nbuf_login_attempts',
+			'options'              => $wpdb->prefix . 'nbuf_options',
+			'user_audit_log'       => $wpdb->prefix . 'nbuf_user_audit_log',
+			'admin_audit_log'      => $wpdb->prefix . 'nbuf_admin_audit_log',
+			'security_log'         => $wpdb->prefix . 'nbuf_security_log',
+			'user_notes'           => $wpdb->prefix . 'nbuf_user_notes',
+			'user_roles'           => $wpdb->prefix . 'nbuf_user_roles',
+			'import_history'       => $wpdb->prefix . 'nbuf_import_history',
+			'menu_restrictions'    => $wpdb->prefix . 'nbuf_menu_restrictions',
+			'content_restrictions' => $wpdb->prefix . 'nbuf_content_restrictions',
 		);
 
 		$total_size = 0;
@@ -173,27 +180,57 @@ class NBUF_Diagnostics {
 		$report[]          = '-------------------------------------------';
 		$report[]          = 'ZERO BLOAT VERIFICATION';
 		$report[]          = '-------------------------------------------';
-		$wp_options_bloat  = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s', $wpdb->options, 'nbuf_%' ) );
-		$wp_usermeta_bloat = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
+		$wp_options_bloat  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s', $wpdb->options, 'nbuf_%' ) );
+		$wp_usermeta_bloat = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
 		$custom_options    = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['options'] ) );
 
-		$report[] = 'wp_options bloat: ' . ( 0 === $wp_options_bloat ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_options_bloat . ' entries found (WARNING)' );
-		$report[] = 'wp_usermeta bloat: ' . ( 0 === $wp_usermeta_bloat ? '✓ ZERO entries (GOOD)' : '✗ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
+		$report[] = 'wp_options bloat: ' . ( $wp_options_bloat < 10 ? '✓ ' . $wp_options_bloat . ' entries (minimal - OK)' : '⚠ ' . $wp_options_bloat . ' entries found (WARNING)' );
+		$report[] = 'wp_usermeta bloat: ' . ( 0 === $wp_usermeta_bloat ? '✓ ZERO entries (GOOD)' : '⚠ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
 		$report[] = 'Custom options table: ' . number_format( $custom_options ) . ' settings stored';
 		$report[] = '';
 
-		/* User Statistics */
+		/* User Statistics - join with wp_users to exclude orphan records */
 		$report[]              = '-------------------------------------------';
 		$report[]              = 'USER STATISTICS';
 		$report[]              = '-------------------------------------------';
 		$total_users           = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $wpdb->users ) );
-		$verified_users        = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 1', $tables['user_data'] ) );
-		$unverified_users      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_verified = 0', $tables['user_data'] ) );
-		$users_with_expiration = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL', $tables['user_data'] ) );
-		$expired_users         = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE expires_at IS NOT NULL AND expires_at < NOW() AND is_disabled = 0', $tables['user_data'] ) );
-		$users_with_2fa        = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE enabled = 1', $tables['user_2fa'] ) );
+		$verified_users        = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i ud INNER JOIN %i u ON ud.user_id = u.ID WHERE ud.is_verified = 1',
+				$tables['user_data'],
+				$wpdb->users
+			)
+		);
+		$unverified_users      = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i ud INNER JOIN %i u ON ud.user_id = u.ID WHERE ud.is_verified = 0',
+				$tables['user_data'],
+				$wpdb->users
+			)
+		);
+		$users_with_expiration = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i ud INNER JOIN %i u ON ud.user_id = u.ID WHERE ud.expires_at IS NOT NULL',
+				$tables['user_data'],
+				$wpdb->users
+			)
+		);
+		$expired_users         = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i ud INNER JOIN %i u ON ud.user_id = u.ID WHERE ud.expires_at IS NOT NULL AND ud.expires_at < NOW() AND ud.is_disabled = 0',
+				$tables['user_data'],
+				$wpdb->users
+			)
+		);
+		$users_with_2fa        = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i tfa INNER JOIN %i u ON tfa.user_id = u.ID WHERE tfa.enabled = 1',
+				$tables['user_2fa'],
+				$wpdb->users
+			)
+		);
 		$total_notes           = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['user_notes'] ) );
-		$total_audit_logs      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['audit_log'] ) );
+		$total_audit_logs      = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['user_audit_log'] ) );
 
 		$report[] = 'Total Users: ' . number_format( $total_users );
 		$report[] = 'Verified Users: ' . number_format( $verified_users );

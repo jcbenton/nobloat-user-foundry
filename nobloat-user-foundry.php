@@ -570,25 +570,10 @@ add_action(
 	}
 );
 
-/**
- * Display admin notice for missing email templates
+/*
+ * Email template notice removed - system falls back to disk files when DB is empty.
+ * No warning needed since default templates are always available in /templates/.
  */
-add_action(
-	'admin_notices',
-	function () {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return;
-		}
-
-		$html_template = NBUF_Options::get( 'nbuf_email_template_html' );
-		$text_template = NBUF_Options::get( 'nbuf_email_template_text' );
-
-		/* Warn if email templates are missing */
-		if ( empty( trim( $html_template ) ) || empty( trim( $text_template ) ) ) {
-			echo wp_kses_post( '<div class="notice notice-warning"><p><strong>NoBloat User Foundry:</strong> Default email templates are missing or empty. Please configure them under <em>NoBloat Foundry → User Settings</em>.</p></div>' );
-		}
-	}
-);
 
 /**
  * Add settings link to plugins page

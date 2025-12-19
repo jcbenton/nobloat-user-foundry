@@ -413,6 +413,36 @@ textarea.nbuf-updated {
     color: #b32d2e;
 }
 
+/* User status badges for the Status column */
+.nbuf-status-badge.nbuf-verified,
+.nbuf-status-badge.nbuf-active {
+    background: #d7f0d7;
+    color: #007017;
+}
+
+.nbuf-status-badge.nbuf-unverified {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.nbuf-status-badge.nbuf-disabled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.nbuf-status-badge.nbuf-expired {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.nbuf-status-badge .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
 /* ==========================================================
    Multi-Role - Hide Default Role Wrap
    ========================================================== */
@@ -467,4 +497,321 @@ textarea.nbuf-updated {
 
 .nbuf-log-stat-detail div {
     margin: 5px 0;
+}
+
+/* ==========================================================
+   User Edit Page - NoBloat Options
+   ========================================================== */
+
+.nbuf-user-id-code {
+    font-size: 14px;
+    padding: 4px 8px;
+    background: #f0f0f1;
+    border-radius: 3px;
+}
+
+.nbuf-description-spaced {
+    margin-top: 5px;
+}
+
+.nbuf-expiration-wrapper {
+    margin-top: 10px;
+}
+
+.nbuf-date-input {
+    width: 150px;
+}
+
+.nbuf-time-input {
+    width: 100px;
+}
+
+.nbuf-expired-warning {
+    margin-top: 10px;
+    color: #c0392b;
+    font-weight: bold;
+}
+
+/* Expiration column colors */
+.nbuf-expiration-date {
+    color: #333;
+}
+
+.nbuf-expiration-date.nbuf-expired {
+    color: #c0392b;
+}
+
+.nbuf-expiration-time {
+    color: #666;
+}
+
+.nbuf-expired-label {
+    color: #c0392b;
+    font-weight: bold;
+}
+
+/* 2FA icon sizing */
+.nbuf-2fa-icon {
+    font-size: 18px;
+}
+
+/* Status colors for text */
+.nbuf-status-enabled {
+    color: #46b450;
+}
+
+.nbuf-status-disabled {
+    color: #999;
+}
+
+.nbuf-status-danger {
+    color: #c0392b;
+}
+
+.nbuf-status-warning {
+    color: #d63638;
+    font-weight: 600;
+}
+
+/* Admin action buttons spacing */
+.nbuf-admin-action {
+    margin-bottom: 10px;
+}
+
+/* Security list styling */
+.nbuf-security-list {
+    margin: 0;
+}
+
+/* Message display containers */
+.nbuf-ajax-message {
+    margin-top: 10px;
+    display: none;
+}
+
+.nbuf-ajax-success {
+    color: #00a32a;
+}
+
+.nbuf-ajax-error {
+    color: #d63638;
+}
+
+/* Passkeys table */
+.nbuf-passkeys-table {
+    max-width: 600px;
+}
+
+.nbuf-passkey-icon {
+    vertical-align: middle;
+}
+
+/* Bulk action form */
+.nbuf-bulk-form {
+    margin-top: 10px;
+}
+
+.nbuf-bulk-input {
+    width: 250px;
+}
+
+.nbuf-bulk-submit {
+    margin-top: 10px;
+}
+
+/* Monospace list for import results */
+.nbuf-import-results {
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+/* Profile link colors */
+.nbuf-profile-link-verified {
+    color: #0a0;
+}
+
+.nbuf-profile-link-unverified {
+    color: #c00;
+}
+
+/* Action link colors */
+.nbuf-action-approve {
+    color: #0a0;
+}
+
+.nbuf-action-reject {
+    color: #c00;
+}
+
+/* ==========================================================
+   Admin Page Cards & Layout
+   ========================================================== */
+.nbuf-admin-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.nbuf-admin-card h3 {
+    margin-top: 0;
+}
+
+.nbuf-page-description {
+    margin-bottom: 20px;
+}
+
+/* Statistics grid with auto-fit columns */
+.nbuf-stats-grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.nbuf-stat-value-large {
+    font-size: 28px;
+    font-weight: 600;
+    color: #0073aa;
+}
+
+.nbuf-stat-label-small {
+    color: #666;
+    font-size: 13px;
+}
+
+.nbuf-stats-footer {
+    margin: 15px 0 0 0;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    color: #666;
+    font-size: 13px;
+}
+
+/* Form selector row */
+.nbuf-selector-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nbuf-label-bold {
+    font-weight: 600;
+}
+
+.nbuf-clear-selection {
+    margin: 10px 0 0 0;
+}
+
+/* Security Log Page */
+.nbuf-notice-margin {
+    margin-top: 20px;
+}
+
+.nbuf-stats-section {
+    padding: 15px 0;
+    margin: 20px 0;
+}
+
+.nbuf-stats-section h3 {
+    margin-top: 0;
+}
+
+.nbuf-stats-table {
+    max-width: 600px;
+    border-collapse: collapse;
+}
+
+.nbuf-stats-table td {
+    padding: 4px 0;
+}
+
+.nbuf-stats-table td:first-child {
+    padding-right: 12px;
+}
+
+/* List Table Styles */
+.nbuf-occurrence-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #f0f0f1;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.nbuf-muted {
+    color: #999;
+}
+
+.nbuf-date-filter {
+    line-height: 2;
+}
+
+.nbuf-status-failure-text {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+/* Form styling */
+.nbuf-description-spaced {
+    margin-bottom: 15px;
+}
+
+.nbuf-form-heading {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.nbuf-form-actions {
+    margin-top: 10px;
+}
+
+/* Roles Page */
+.nbuf-role-badge-orphaned {
+    background: #dba617;
+    color: #fff;
+}
+
+.nbuf-role-editor-form {
+    max-width: 1200px;
+}
+
+/* Notice lists */
+.nbuf-notice-list {
+    list-style: disc;
+    margin-left: 20px;
+}
+
+/* Checkbox label blocks */
+.nbuf-checkbox-label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Export status container */
+.nbuf-export-status {
+    margin-top: 10px;
+}
+
+/* Export button */
+.nbuf-export-btn {
+    margin-left: 10px;
+}
+
+/* Relative positioning wrapper */
+.nbuf-relative {
+    position: relative;
+}
+
+/* Description italic */
+.nbuf-description-italic {
+    font-style: italic;
+    color: #646970;
+}
+
+/* Message spacing */
+.nbuf-message-spaced {
+    margin-bottom: 20px;
 }

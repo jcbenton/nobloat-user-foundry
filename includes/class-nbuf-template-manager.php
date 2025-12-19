@@ -34,17 +34,25 @@ class NBUF_Template_Manager {
 	 * @var array
 	 */
 	private static $template_map = array(
-		// Email templates.
+		// Email templates - option names must match UI form field names.
+		'html'                      => 'nbuf_email_template_html',
+		'text'                      => 'nbuf_email_template_text',
 		'email-verification-html'   => 'nbuf_email_template_html',
 		'email-verification-text'   => 'nbuf_email_template_text',
+		'welcome-html'              => 'nbuf_welcome_email_html',
+		'welcome-text'              => 'nbuf_welcome_email_text',
 		'welcome-email-html'        => 'nbuf_welcome_email_html',
 		'welcome-email-text'        => 'nbuf_welcome_email_text',
-		'expiration-warning-html'   => 'nbuf_expiration_warning_html',
-		'expiration-warning-text'   => 'nbuf_expiration_warning_text',
-		'2fa-email-code-html'       => 'nbuf_2fa_email_code_html',
-		'2fa-email-code-text'       => 'nbuf_2fa_email_code_text',
-		'password-reset-html'       => 'nbuf_password_reset_html',
-		'password-reset-text'       => 'nbuf_password_reset_text',
+		'expiration-warning-html'   => 'nbuf_expiration_warning_email_html',
+		'expiration-warning-text'   => 'nbuf_expiration_warning_email_text',
+		'expiration-notice-html'    => 'nbuf_expiration_notice_email_html',
+		'expiration-notice-text'    => 'nbuf_expiration_notice_email_text',
+		'2fa-html'                  => 'nbuf_2fa_email_html',
+		'2fa-text'                  => 'nbuf_2fa_email_text',
+		'2fa-email-code-html'       => 'nbuf_2fa_email_html',
+		'2fa-email-code-text'       => 'nbuf_2fa_email_text',
+		'password-reset-html'       => 'nbuf_password_reset_email_html',
+		'password-reset-text'       => 'nbuf_password_reset_email_text',
 		'admin-new-user-html'       => 'nbuf_admin_new_user_html',
 		'admin-new-user-text'       => 'nbuf_admin_new_user_text',
 		'security-alert-email-html' => 'nbuf_security_alert_email_html',
@@ -64,6 +72,13 @@ class NBUF_Template_Manager {
 		// Policy templates.
 		'policy-privacy-html'       => 'nbuf_policy_privacy_html',
 		'policy-terms-html'         => 'nbuf_policy_terms_html',
+
+		// Page templates.
+		'public-profile-html'         => 'nbuf_public_profile_template',
+		'member-directory-html'       => 'nbuf_member_directory_template',
+		'member-directory-list-html'  => 'nbuf_member_directory_list_template',
+		'account-data-export-html'    => 'nbuf_account_data_export_template',
+		'version-history-viewer-html' => 'nbuf_version_history_viewer_template',
 	);
 
 	/**
@@ -168,7 +183,8 @@ class NBUF_Template_Manager {
 	 * SANITIZE TEMPLATE.
 	 *
 	 * Sanitize template content based on type.
-	 * HTML templates: allow forms + safe HTML
+	 * Email templates: preserve full HTML (admin-only editing)
+	 * Form templates: allow forms + safe HTML
 	 * Text templates: sanitize_textarea_field.
 	 *
 	 * @param  string $content       Template content.
@@ -181,7 +197,24 @@ class NBUF_Template_Manager {
 			return sanitize_textarea_field( $content );
 		}
 
-		// HTML templates - allow forms and safe HTML.
+		// Email templates need full HTML preserved (DOCTYPE, html, head, body, inline styles).
+		// These are only editable by admins with manage_options capability.
+		$is_email_template = (
+			strpos( $template_name, 'email' ) !== false ||
+			strpos( $template_name, 'welcome' ) !== false ||
+			strpos( $template_name, 'expiration' ) !== false ||
+			strpos( $template_name, 'password-reset' ) !== false ||
+			strpos( $template_name, 'admin-new-user' ) !== false ||
+			strpos( $template_name, '2fa-email' ) !== false ||
+			strpos( $template_name, 'security-alert' ) !== false
+		);
+
+		if ( $is_email_template ) {
+			// Email templates: use permissive kses that preserves email HTML structure.
+			return self::sanitize_email_template( $content );
+		}
+
+		// Form/page templates - allow forms and safe HTML.
 		$allowed_html = array(
 			'form'     => array(
 				'method' => true,
@@ -206,11 +239,13 @@ class NBUF_Template_Manager {
 				'autocomplete' => true,
 			),
 			'button'   => array(
-				'type'  => true,
-				'class' => true,
-				'id'    => true,
-				'name'  => true,
-				'value' => true,
+				'type'        => true,
+				'class'       => true,
+				'id'          => true,
+				'name'        => true,
+				'value'       => true,
+				'data-tab'    => true,
+				'data-subtab' => true,
 			),
 			'select'   => array(
 				'name'     => true,
@@ -238,9 +273,11 @@ class NBUF_Template_Manager {
 				'class' => true,
 			),
 			'div'      => array(
-				'class' => true,
-				'id'    => true,
-				'style' => true,
+				'class'       => true,
+				'id'          => true,
+				'style'       => true,
+				'data-tab'    => true,
+				'data-subtab' => true,
 			),
 			'span'     => array(
 				'class' => true,
@@ -315,6 +352,142 @@ class NBUF_Template_Manager {
 		);
 
 		return wp_kses( $content, $allowed_html );
+	}
+
+	/**
+	 * SANITIZE EMAIL TEMPLATE.
+	 *
+	 * Permissive sanitization for email templates that preserves
+	 * full HTML structure including DOCTYPE, inline styles, and
+	 * table-based layouts required for email clients.
+	 *
+	 * Only admins with manage_options can edit these templates.
+	 *
+	 * @param  string $content Email template content.
+	 * @return string Sanitized content with HTML structure preserved.
+	 */
+	private static function sanitize_email_template( $content ) {
+		// Common style attribute for all elements.
+		$style_attr = array( 'style' => true );
+
+		$allowed_html = array(
+			// Document structure.
+			'html'       => array( 'lang' => true ),
+			'head'       => array(),
+			'body'       => $style_attr,
+			'meta'       => array(
+				'charset'    => true,
+				'name'       => true,
+				'content'    => true,
+				'http-equiv' => true,
+			),
+			'title'      => array(),
+			'style'      => array( 'type' => true ),
+
+			// Table layout (essential for email).
+			'table'      => array(
+				'width'       => true,
+				'cellpadding' => true,
+				'cellspacing' => true,
+				'border'      => true,
+				'role'        => true,
+				'align'       => true,
+				'bgcolor'     => true,
+				'style'       => true,
+				'class'       => true,
+			),
+			'tr'         => array(
+				'style'   => true,
+				'class'   => true,
+				'bgcolor' => true,
+				'align'   => true,
+				'valign'  => true,
+			),
+			'td'         => array(
+				'width'   => true,
+				'height'  => true,
+				'colspan' => true,
+				'rowspan' => true,
+				'align'   => true,
+				'valign'  => true,
+				'bgcolor' => true,
+				'style'   => true,
+				'class'   => true,
+			),
+			'th'         => array(
+				'width'   => true,
+				'colspan' => true,
+				'rowspan' => true,
+				'align'   => true,
+				'valign'  => true,
+				'style'   => true,
+				'class'   => true,
+			),
+			'thead'      => $style_attr,
+			'tbody'      => $style_attr,
+
+			// Text elements.
+			'p'          => $style_attr + array( 'class' => true ),
+			'h1'         => $style_attr + array( 'class' => true ),
+			'h2'         => $style_attr + array( 'class' => true ),
+			'h3'         => $style_attr + array( 'class' => true ),
+			'h4'         => $style_attr + array( 'class' => true ),
+			'span'       => $style_attr + array( 'class' => true ),
+			'div'        => $style_attr + array( 'class' => true, 'id' => true ),
+			'strong'     => $style_attr,
+			'b'          => $style_attr,
+			'em'         => $style_attr,
+			'i'          => $style_attr,
+			'u'          => $style_attr,
+			'br'         => array(),
+			'hr'         => $style_attr,
+
+			// Links and images.
+			'a'          => array(
+				'href'   => true,
+				'style'  => true,
+				'class'  => true,
+				'target' => true,
+				'rel'    => true,
+				'title'  => true,
+			),
+			'img'        => array(
+				'src'    => true,
+				'alt'    => true,
+				'width'  => true,
+				'height' => true,
+				'style'  => true,
+				'class'  => true,
+				'border' => true,
+			),
+
+			// Lists.
+			'ul'         => $style_attr + array( 'class' => true ),
+			'ol'         => $style_attr + array( 'class' => true ),
+			'li'         => $style_attr + array( 'class' => true ),
+
+			// Other common elements.
+			'blockquote' => $style_attr,
+			'pre'        => $style_attr,
+			'code'       => $style_attr,
+			'center'     => array(),
+		);
+
+		// Use wp_kses but preserve DOCTYPE by handling it separately.
+		$has_doctype = ( stripos( $content, '<!DOCTYPE' ) !== false );
+		$doctype     = '';
+
+		if ( $has_doctype ) {
+			// Extract and preserve DOCTYPE.
+			if ( preg_match( '/<!DOCTYPE[^>]*>/i', $content, $matches ) ) {
+				$doctype = $matches[0] . "\n";
+				$content = preg_replace( '/<!DOCTYPE[^>]*>/i', '', $content, 1 );
+			}
+		}
+
+		$sanitized = wp_kses( $content, $allowed_html );
+
+		return $has_doctype ? $doctype . $sanitized : $sanitized;
 	}
 
 	/**
@@ -464,6 +637,13 @@ class NBUF_Template_Manager {
 			// Policy templates.
 			'policy-privacy-html'       => '{site_name}, {site_url}',
 			'policy-terms-html'         => '{site_name}, {site_url}',
+
+			// Page templates.
+			'public-profile-html'         => '{display_name}, {username}, {profile_photo}, {cover_photo_html}, {joined_text}, {profile_fields_html}, {custom_content}, {edit_profile_button}',
+			'member-directory-html'       => '{directory_controls}, {members_content}, {pagination}',
+			'member-directory-list-html'  => '{directory_controls}, {members_content}, {pagination}',
+			'account-data-export-html'    => '{section_title}, {gdpr_description}, {export_includes_title}, {export_includes_list}, {format_label}, {format_value}, {estimated_size_label}, {estimated_size}, {export_button}, {cancel_button}, {history_title}, {export_history}, {modal_title}, {modal_description}, {password_label}, {confirm_button}',
+			'version-history-viewer-html' => '{header_title}, {header_description}, {context}, {user_id}, {page_info}, {prev_button}, {next_button}, {empty_title}, {empty_description}, {close_button}, {compare_button}, {revert_button}, {view_snapshot_button}, {diff_modal_title}, {comparing_text}, {loading_text}, {fields_changed_label}, {ip_address_label}',
 		);
 
 		return isset( $placeholders[ $template_name ] ) ? $placeholders[ $template_name ] : '';

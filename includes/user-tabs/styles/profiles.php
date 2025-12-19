@@ -24,6 +24,9 @@ if ( isset( $_POST['nbuf_reset_profile_css'] ) && check_admin_referer( 'nbuf_pro
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'profile', 'nbuf_css_write_failed_profile' );
 
+	/* Rebuild combined file if enabled */
+	NBUF_CSS_Manager::rebuild_combined_css();
+
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile styles reset to default.', 'nobloat-user-foundry' ) . '</p></div>';
 	} else {
@@ -44,6 +47,9 @@ if ( isset( $_POST['nbuf_save_profile_css'] ) && check_admin_referer( 'nbuf_prof
 
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_profile_css, 'profile', 'nbuf_css_write_failed_profile' );
+
+	/* Rebuild combined file if enabled */
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -90,19 +96,19 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 				spellcheck="false"
 			><?php echo esc_textarea( $nbuf_profile_css ); ?></textarea>
 
-			<p class="nbuf-button-row">
-				<?php submit_button( __( 'Save Profile Styles', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_profile_css', false ); ?>
-
+			<p>
 				<button
-					type="submit"
-					name="nbuf_reset_profile_css"
-					class="button"
-					onclick="return confirm('<?php echo esc_js( __( 'Reset profile CSS to the default? Your custom styles will be lost.', 'nobloat-user-foundry' ) ); ?>');"
+					type="button"
+					class="button nbuf-reset-style-btn"
+					data-template="profile"
+					data-target="profile_custom_css"
 				>
 					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
 				</button>
 			</p>
 		</div>
+
+		<?php submit_button( __( 'Save Profile Styles', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_profile_css' ); ?>
 	</form>
 
 	<div class="nbuf-style-info">
@@ -113,14 +119,16 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 			<li><code>.nbuf-profile-page</code> - Main profile wrapper</li>
 			<li><code>.nbuf-profile-header</code> - Header section with cover photo</li>
 			<li><code>.nbuf-profile-cover</code> - Cover photo container</li>
+			<li><code>.nbuf-profile-cover-default</code> - Default cover gradient</li>
 			<li><code>.nbuf-profile-avatar-wrap</code> - Avatar wrapper</li>
 			<li><code>.nbuf-profile-avatar</code> - Avatar image</li>
+			<li><code>.nbuf-profile-content</code> - Main content area</li>
 			<li><code>.nbuf-profile-info</code> - User info section</li>
 			<li><code>.nbuf-profile-name</code> - User display name</li>
 			<li><code>.nbuf-profile-username</code> - Username</li>
 			<li><code>.nbuf-profile-bio</code> - Bio/description</li>
-			<li><code>.nbuf-profile-meta</code> - Meta information (joined date, etc.)</li>
-			<li><code>.nbuf-profile-content</code> - Main content area</li>
+			<li><code>.nbuf-profile-meta</code> - Meta information container</li>
+			<li><code>.nbuf-profile-meta-item</code> - Individual meta item</li>
 			<li><code>.nbuf-profile-actions</code> - Action buttons</li>
 		</ul>
 
@@ -130,30 +138,15 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 			<li><code>.nbuf-profile-fields-title</code> - Fields section title</li>
 			<li><code>.nbuf-profile-fields-grid</code> - Fields grid layout</li>
 			<li><code>.nbuf-profile-field</code> - Individual field wrapper</li>
+			<li><code>.nbuf-profile-field-wide</code> - Full-width field</li>
 			<li><code>.nbuf-profile-field-label</code> - Field label</li>
 			<li><code>.nbuf-profile-field-value</code> - Field value</li>
 		</ul>
 
-		<h4><?php esc_html_e( 'Avatar Classes:', 'nobloat-user-foundry' ); ?></h4>
+		<h4><?php esc_html_e( 'Button Classes:', 'nobloat-user-foundry' ); ?></h4>
 		<ul>
-			<li><code>.nbuf-avatar</code> - Avatar image (replaces WordPress default)</li>
-			<li><code>.nbuf-svg-avatar</code> - SVG initials avatar</li>
-			<li><code>.nbuf-avatar-small</code> - Small size (32px)</li>
-			<li><code>.nbuf-avatar-medium</code> - Medium size (64px)</li>
-			<li><code>.nbuf-avatar-large</code> - Large size (96px)</li>
-			<li><code>.nbuf-avatar-xl</code> - Extra large size (150px)</li>
+			<li><code>.nbuf-button</code> - Base button style</li>
+			<li><code>.nbuf-button-primary</code> - Primary button style</li>
 		</ul>
 	</div>
 </div>
-
-<style>
-.nbuf-button-row {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	margin-top: 10px;
-}
-.nbuf-button-row .button {
-	margin: 0 !important;
-}
-</style>

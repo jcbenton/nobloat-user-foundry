@@ -26,7 +26,13 @@ class NBUF_Hooks {
 	 */
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register_hooks' ) );
-		add_filter( 'authenticate', array( __CLASS__, 'enforce_verification_before_login' ), 10, 3 );
+
+		/*
+		 * IMPORTANT: Priority 25 runs AFTER WordPress validates password (priority 20)
+		 * but BEFORE 2FA interception (priority 30). At priority 10, $user would be null
+		 * and verification checks would be skipped entirely.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'enforce_verification_before_login' ), 25, 3 );
 		add_filter( 'retrieve_password_message', array( __CLASS__, 'rewrite_password_reset_link' ), 10, 4 );
 		add_filter( 'wp_new_user_notification_email', array( __CLASS__, 'customize_welcome_email' ), 10, 3 );
 		add_action( 'user_register', array( __CLASS__, 'maybe_notify_admin_registration' ), 20, 1 );
@@ -39,6 +45,9 @@ class NBUF_Hooks {
 
 		/* Admin bar visibility control */
 		add_filter( 'show_admin_bar', array( __CLASS__, 'control_admin_bar_visibility' ) );
+
+		/* Admin dashboard access restriction */
+		add_action( 'admin_init', array( __CLASS__, 'restrict_admin_access' ) );
 	}
 
 	/**
@@ -71,6 +80,12 @@ class NBUF_Hooks {
 		/* Always include user_register as the base hook - this is required for the plugin's own registration */
 		if ( ! in_array( 'user_register', $hooks, true ) ) {
 			$hooks[] = 'user_register';
+		}
+
+		/* Add WooCommerce customer verification if enabled (standalone option) */
+		$wc_verification = NBUF_Options::get( 'nbuf_wc_require_verification', false );
+		if ( $wc_verification && ! in_array( 'woocommerce_created_customer', $hooks, true ) ) {
+			$hooks[] = 'woocommerce_created_customer';
 		}
 
 		foreach ( $hooks as $hook_name ) {
@@ -774,6 +789,57 @@ class NBUF_Hooks {
 			default:
 				return $show;
 		}
+	}
+
+	/**
+	 * Restrict admin dashboard access to administrators only.
+	 *
+	 * Redirects non-admin users who try to access wp-admin.
+	 * AJAX requests are allowed for frontend functionality.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function restrict_admin_access() {
+		/* Check if restriction is enabled */
+		$restrict_enabled = NBUF_Options::get( 'nbuf_restrict_admin_access', false );
+		if ( ! $restrict_enabled ) {
+			return;
+		}
+
+		/* Allow administrators */
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		/* Allow AJAX requests (needed for frontend functionality) */
+		if ( wp_doing_ajax() ) {
+			return;
+		}
+
+		/* Allow admin-post.php (used for form submissions) */
+		global $pagenow;
+		if ( 'admin-post.php' === $pagenow ) {
+			return;
+		}
+
+		/* Get redirect URL */
+		$redirect_url = NBUF_Options::get( 'nbuf_admin_redirect_url', '' );
+
+		if ( empty( $redirect_url ) ) {
+			/* Try account page first */
+			if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_account_url' ) ) {
+				$redirect_url = NBUF_Shortcodes::get_account_url();
+			}
+
+			/* Fall back to home */
+			if ( empty( $redirect_url ) ) {
+				$redirect_url = home_url();
+			}
+		}
+
+		/* Redirect non-admin users */
+		wp_safe_redirect( $redirect_url );
+		exit;
 	}
 }
 

@@ -12,26 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handle reset to default request
- */
-if ( isset( $_POST['nbuf_reset_member_directory_css'] ) && check_admin_referer( 'nbuf_member_directory_css_save', 'nbuf_member_directory_css_nonce' ) ) {
-	/* Load default from template */
-	$nbuf_default_css = NBUF_CSS_Manager::load_default_css( 'member-directory' );
-
-	/* Save default to database */
-	NBUF_Options::update( 'nbuf_member_directory_custom_css', $nbuf_default_css, false, 'css' );
-
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'member-directory', 'nbuf_css_write_failed_member_directory' );
-
-	if ( $nbuf_success ) {
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Member directory styles reset to default.', 'nobloat-user-foundry' ) . '</p></div>';
-	} else {
-		echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Member directory styles reset to default in database, but could not write to disk. Check file permissions.', 'nobloat-user-foundry' ) . '</p></div>';
-	}
-}
-
-/**
  * Handle member directory styles form submission
  */
 if ( isset( $_POST['nbuf_save_member_directory_css'] ) && check_admin_referer( 'nbuf_member_directory_css_save', 'nbuf_member_directory_css_nonce' ) ) {
@@ -44,6 +24,9 @@ if ( isset( $_POST['nbuf_save_member_directory_css'] ) && check_admin_referer( '
 
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_member_directory_css, 'member-directory', 'nbuf_css_write_failed_member_directory' );
+
+	/* Rebuild combined file if enabled */
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Member directory styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -90,19 +73,19 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 				spellcheck="false"
 			><?php echo esc_textarea( $nbuf_member_directory_css ); ?></textarea>
 
-			<p class="nbuf-button-row">
-				<?php submit_button( __( 'Save Member Directory Styles', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_member_directory_css', false ); ?>
-
+			<p>
 				<button
-					type="submit"
-					name="nbuf_reset_member_directory_css"
-					class="button"
-					onclick="return confirm('<?php echo esc_js( __( 'Reset member directory CSS to the default? Your custom styles will be lost.', 'nobloat-user-foundry' ) ); ?>');"
+					type="button"
+					class="button nbuf-reset-style-btn"
+					data-template="member-directory"
+					data-target="member_directory_custom_css"
 				>
 					<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
 				</button>
 			</p>
 		</div>
+
+		<?php submit_button( __( 'Save Member Directory Styles', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_member_directory_css' ); ?>
 	</form>
 
 	<div class="nbuf-style-info">
@@ -228,15 +211,6 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 </div>
 
 <style>
-.nbuf-button-row {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	margin-top: 10px;
-}
-.nbuf-button-row .button {
-	margin: 0 !important;
-}
 .nbuf-style-info pre.code {
 	background: #f5f5f5;
 	padding: 15px;

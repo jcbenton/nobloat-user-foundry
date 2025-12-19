@@ -152,34 +152,34 @@ class NBUF_Version_History_Page {
 
 			<hr class="wp-header-end">
 
-			<p class="description" style="margin-bottom: 20px;">
+			<p class="description nbuf-page-description">
 		<?php esc_html_e( 'View complete profile change history for any user. Track all modifications, compare versions, and restore previous states.', 'nobloat-user-foundry' ); ?>
 			</p>
 
 			<!-- Statistics Dashboard -->
-			<div class="nbuf-stats-box" style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin: 20px 0; border-radius: 4px;">
-				<h3 style="margin-top: 0;"><?php esc_html_e( 'System Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+			<div class="nbuf-stats-box nbuf-admin-card">
+				<h3><?php esc_html_e( 'System Statistics', 'nobloat-user-foundry' ); ?></h3>
+				<div class="nbuf-stats-grid-auto">
 					<div>
-						<div style="font-size: 28px; font-weight: 600; color: #0073aa;"><?php echo esc_html( number_format( $stats['total_versions'] ) ); ?></div>
-						<div style="color: #666; font-size: 13px;"><?php esc_html_e( 'Total Versions', 'nobloat-user-foundry' ); ?></div>
+						<div class="nbuf-stat-value-large"><?php echo esc_html( number_format( $stats['total_versions'] ) ); ?></div>
+						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Total Versions', 'nobloat-user-foundry' ); ?></div>
 					</div>
 					<div>
-						<div style="font-size: 28px; font-weight: 600; color: #0073aa;"><?php echo esc_html( number_format( $stats['total_users'] ) ); ?></div>
-						<div style="color: #666; font-size: 13px;"><?php esc_html_e( 'Users Tracked', 'nobloat-user-foundry' ); ?></div>
+						<div class="nbuf-stat-value-large"><?php echo esc_html( number_format( $stats['total_users'] ) ); ?></div>
+						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Users Tracked', 'nobloat-user-foundry' ); ?></div>
 					</div>
 					<div>
-						<div style="font-size: 28px; font-weight: 600; color: #0073aa;"><?php echo esc_html( $stats['database_size'] ); ?></div>
-						<div style="color: #666; font-size: 13px;"><?php esc_html_e( 'Database Size', 'nobloat-user-foundry' ); ?></div>
+						<div class="nbuf-stat-value-large"><?php echo esc_html( $stats['database_size'] ); ?></div>
+						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Database Size', 'nobloat-user-foundry' ); ?></div>
 					</div>
 					<div>
-						<div style="font-size: 28px; font-weight: 600; color: #0073aa;"><?php echo esc_html( $stats['retention_days'] ); ?> <?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></div>
-						<div style="color: #666; font-size: 13px;"><?php esc_html_e( 'Retention Period', 'nobloat-user-foundry' ); ?></div>
+						<div class="nbuf-stat-value-large"><?php echo esc_html( $stats['retention_days'] ); ?> <?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></div>
+						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Retention Period', 'nobloat-user-foundry' ); ?></div>
 					</div>
 				</div>
 
 		<?php if ( ! empty( $stats['last_cleanup'] ) ) : ?>
-					<p style="margin: 15px 0 0 0; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px;">
+					<p class="nbuf-stats-footer">
 						<strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong>
 			<?php echo esc_html( $stats['last_cleanup'] ); ?>
 			<?php if ( $stats['last_cleanup_count'] > 0 ) : ?>
@@ -191,13 +191,13 @@ class NBUF_Version_History_Page {
 			</div>
 
 			<!-- User Selector -->
-			<div class="nbuf-user-selector" style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin: 20px 0; border-radius: 4px;">
-				<h3 style="margin-top: 0;"><?php esc_html_e( 'Select User', 'nobloat-user-foundry' ); ?></h3>
+			<div class="nbuf-user-selector nbuf-admin-card">
+				<h3><?php esc_html_e( 'Select User', 'nobloat-user-foundry' ); ?></h3>
 				<form method="get" action="">
 					<input type="hidden" name="page" value="nobloat-foundry-version-history">
 
-					<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-						<label for="user_id" style="font-weight: 600;">
+					<div class="nbuf-selector-row">
+						<label for="user_id" class="nbuf-label-bold">
 		<?php esc_html_e( 'User:', 'nobloat-user-foundry' ); ?>
 						</label>
 
@@ -217,7 +217,7 @@ class NBUF_Version_History_Page {
 					</div>
 
 		<?php if ( $selected_user_id > 0 ) : ?>
-						<p style="margin: 10px 0 0 0;">
+						<p class="nbuf-clear-selection">
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-version-history' ) ); ?>" class="button">
 			<?php esc_html_e( 'Clear Selection', 'nobloat-user-foundry' ); ?>
 							</a>
@@ -232,7 +232,7 @@ class NBUF_Version_History_Page {
 			$user = get_userdata( $selected_user_id );
 			if ( $user ) :
 				?>
-					<div class="nbuf-vh-admin-page" style="background: #fff; border: 1px solid #ccd0d4; padding: 20px; border-radius: 4px;">
+					<div class="nbuf-vh-admin-page nbuf-admin-card">
 				<?php
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- NBUF_Version_History::render_viewer() returns escaped HTML.
 				echo NBUF_Version_History::render_viewer( $selected_user_id, 'admin', true );
@@ -265,16 +265,28 @@ class NBUF_Version_History_Page {
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
 
 		/*
-		* Total versions.
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
-		$total_versions = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+		 * Total versions (only for existing users).
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
+		$total_versions = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i pv INNER JOIN %i u ON pv.user_id = u.ID',
+				$table_name,
+				$wpdb->users
+			)
+		);
 
 		/*
-		* Total users with versions.
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
-		$total_users = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(DISTINCT user_id) FROM %i', $table_name ) );
+		 * Total users with versions (only existing users).
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Stats query.
+		$total_users = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(DISTINCT pv.user_id) FROM %i pv INNER JOIN %i u ON pv.user_id = u.ID',
+				$table_name,
+				$wpdb->users
+			)
+		);
 
 		/*
 		* Database size.

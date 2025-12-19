@@ -25,6 +25,8 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Check if current user has access based on visibility settings
 	 *
+	 * @since 1.0.0
+	 *
 	 * @param  string $visibility    Visibility setting: 'everyone', 'logged_in', 'logged_out', 'role_based'.
 	 * @param  array  $allowed_roles Array of allowed role slugs (only used if visibility = 'role_based').
 	 * @param  int    $user_id       Optional user ID (defaults to current user).
@@ -80,6 +82,11 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Sanitize visibility value
 	 *
+	 * Ensures visibility value is one of the allowed options.
+	 * Defaults to 'everyone' if invalid value provided.
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param  string $visibility Raw visibility value.
 	 * @return string Sanitized visibility value.
 	 */
@@ -94,8 +101,13 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Sanitize allowed roles array
 	 *
+	 * Validates role names against WordPress registered roles.
+	 * Filters out any invalid or non-existent role names.
+	 *
+	 * @since 1.0.0
+	 *
 	 * @param  array $roles Raw roles array.
-	 * @return array Sanitized roles array.
+	 * @return array Sanitized roles array containing only valid WordPress roles.
 	 */
 	protected static function sanitize_roles( $roles ) {
 		if ( ! is_array( $roles ) ) {
@@ -121,7 +133,11 @@ abstract class Abstract_NBUF_Restriction {
 	/**
 	 * Get current timestamp for database
 	 *
-	 * @return string MySQL formatted datetime
+	 * Returns current time in GMT/UTC for consistent database storage.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string MySQL formatted datetime in GMT.
 	 */
 	protected static function get_current_timestamp() {
 		return current_time( 'mysql', true );
@@ -129,7 +145,11 @@ abstract class Abstract_NBUF_Restriction {
 
 	/**
 	 * Initialize the restriction type
-	 * Must be implemented by child classes
+	 *
+	 * Must be implemented by child classes to register hooks and filters
+	 * specific to each restriction type (menu, content, taxonomy, etc.).
+	 *
+	 * @since 1.0.0
 	 */
 	abstract public static function init();
 }

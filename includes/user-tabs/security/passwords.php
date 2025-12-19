@@ -47,6 +47,19 @@ $nbuf_password_expiration_warning_days = NBUF_Options::get( 'nbuf_password_expir
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="security">
 	<input type="hidden" name="nbuf_active_subtab" value="passwords">
+	<!-- Declare checkboxes so unchecked state is saved -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_requirements_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_uppercase">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_lowercase">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_numbers">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_require_special">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_registration">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_profile_change">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_enforce_reset">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_force_weak_change">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_expiration_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_password_expiration_admin_bypass">
 
 	<h2><?php esc_html_e( 'Password Strength Requirements', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">

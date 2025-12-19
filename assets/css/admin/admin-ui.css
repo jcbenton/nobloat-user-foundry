@@ -147,7 +147,13 @@
 	border-bottom: 1px solid var(--nbuf-border);
 }
 
-.nbuf-diag-section,
+.nbuf-diag-section {
+	background: transparent;
+	border: none;
+	padding: var(--nbuf-spacing-lg) 0;
+	margin-bottom: var(--nbuf-spacing-lg);
+}
+
 .nbuf-migration-card {
 	background: #fff;
 	border: 1px solid var(--nbuf-border-dark);
@@ -188,7 +194,7 @@
 }
 
 .nbuf-style-info {
-	background: var(--nbuf-gray-50);
+	background: transparent;
 	padding: 1.5rem;
 	border-radius: var(--nbuf-radius);
 	margin-top: 2rem;
@@ -230,7 +236,13 @@
 	padding: 8px 10px;
 }
 
-.nbuf-diag-table th,
+.nbuf-diag-table th {
+	text-align: left;
+	padding: var(--nbuf-spacing-sm);
+	background: transparent;
+	font-weight: 600;
+}
+
 .nbuf-mapping-table th {
 	text-align: left;
 	padding: var(--nbuf-spacing-sm);

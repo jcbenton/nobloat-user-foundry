@@ -165,8 +165,8 @@ class NBUF_Verifier {
 		}
 
 		/* Add "Go to Login" button */
-		$html .= '<p class="nobloat-verify-next" style="text-align:center;margin-top:20px;">'
-			. '<a class="nobloat-verify-login-btn" href="' . esc_url( $login_url ) . '" style="display:inline-block;padding:12px 24px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:500;">'
+		$html .= '<p class="nobloat-verify-next">'
+			. '<a class="nobloat-verify-login-btn" href="' . esc_url( $login_url ) . '">'
 			. esc_html__( 'Go to Login', 'nobloat-user-foundry' )
 			. '</a></p>';
 
@@ -192,11 +192,10 @@ class NBUF_Verifier {
 
 		$color = $success ? '#2d8a34' : '#c0392b';
 
-		// Minimal inline styles to avoid dependency on theme CSS.
-		// Admin can override via theme CSS if desired.
-		$out  = '<div class="nobloat-verify-wrapper" style="max-width:640px;margin:64px auto 32px auto;text-align:center;">';
-		$out .= '<h1 class="nobloat-verify-title" style="margin:0 0 10px 0;color:' . esc_attr( $color ) . ';">' . esc_html( $title ) . '</h1>';
-		$out .= '<p class="nobloat-verify-message" style="margin:0 0 8px 0;">' . esc_html( $message ) . '</p>';
+		// Using CSS classes from security-account.css; color is dynamic for success/failure
+		$out  = '<div class="nobloat-verify-wrapper">';
+		$out .= '<h1 class="nobloat-verify-title" style="color:' . esc_attr( $color ) . ';">' . esc_html( $title ) . '</h1>';
+		$out .= '<p class="nobloat-verify-message">' . esc_html( $message ) . '</p>';
 		$out .= '</div>';
 		return $out;
 	}

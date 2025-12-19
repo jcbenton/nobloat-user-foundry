@@ -25,6 +25,8 @@ class NBUF_Cron {
 	 * Activate cron.
 	 *
 	 * Called on plugin activation. Schedules the cleanup event.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function activate() {
 		if ( ! wp_next_scheduled( 'nbuf_cleanup_cron' ) ) {
@@ -51,6 +53,8 @@ class NBUF_Cron {
 	 * Deactivate cron.
 	 *
 	 * Called on plugin deactivation. Removes scheduled events.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function deactivate() {
 		wp_clear_scheduled_hook( 'nbuf_cleanup_cron' );
@@ -65,6 +69,8 @@ class NBUF_Cron {
 	 * Register cron hooks.
 	 *
 	 * Links the cron hook to the cleanup routine.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function register() {
 		add_action( 'nbuf_cleanup_cron', array( __CLASS__, 'run_cleanup' ) );
@@ -79,6 +85,8 @@ class NBUF_Cron {
 	 * Run cleanup.
 	 *
 	 * Executes daily to remove expired and used tokens.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function run_cleanup() {
 		NBUF_Database::cleanup_expired();
@@ -89,6 +97,8 @@ class NBUF_Cron {
 	 * Run audit log cleanup.
 	 *
 	 * Executes daily to remove old audit log entries based on retention settings.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function run_audit_log_cleanup() {
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
@@ -101,6 +111,8 @@ class NBUF_Cron {
 	 *
 	 * Executes daily to remove old version history entries based on retention settings.
 	 * Only runs if auto-cleanup is enabled in settings.
+	 *
+	 * @since 1.0.0
 	 */
 	public static function run_version_history_cleanup() {
 		/* Check if auto-cleanup is enabled */
@@ -140,6 +152,9 @@ class NBUF_Cron {
 	 *
 	 * Only cleans transients prefixed with 'nbuf_' to avoid interfering
 	 * with other plugins or WordPress core.
+	 *
+	 * @since 1.0.0
+	 * @return int Number of transients deleted.
 	 */
 	public static function run_transient_cleanup() {
 		global $wpdb;

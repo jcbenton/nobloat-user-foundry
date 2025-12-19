@@ -26,25 +26,7 @@ if ( isset( $_POST['nbuf_save_reset_css'] ) && check_admin_referer( 'nbuf_reset_
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_reset_css, 'reset-page', 'nbuf_css_write_failed_reset' );
 
 	/* Rebuild combined file if enabled */
-	$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_login_css        = NBUF_Options::get( 'nbuf_login_page_css' );
-		$nbuf_registration_css = NBUF_Options::get( 'nbuf_registration_page_css' );
-		$nbuf_account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
-
-		if ( empty( $nbuf_login_css ) ) {
-			$nbuf_login_css = NBUF_CSS_Manager::load_default_css( 'login-page' );
-		}
-		if ( empty( $nbuf_registration_css ) ) {
-			$nbuf_registration_css = NBUF_CSS_Manager::load_default_css( 'registration-page' );
-		}
-		if ( empty( $nbuf_account_css ) ) {
-			$nbuf_account_css = NBUF_CSS_Manager::load_default_css( 'account-page' );
-		}
-
-		$nbuf_combined_css = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
-	}
+	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Reset page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -112,12 +94,14 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 			<li><code>.nbuf-reset-wrapper</code> - Main container (password reset form)</li>
 			<li><code>.nbuf-request-reset-wrapper</code> - Main container (request reset form)</li>
 			<li><code>.nbuf-reset-title</code> - Page title</li>
-			<li><code>.nbuf-reset-form</code> - Form element</li>
-			<li><code>.nbuf-reset-label</code> - Form labels</li>
-			<li><code>.nbuf-reset-input</code> - Input fields</li>
-			<li><code>.nbuf-reset-button</code> - Submit button</li>
-			<li><code>.nbuf-reset-error</code> - Error messages</li>
-			<li><code>.nbuf-reset-notice</code> - Success messages</li>
+			<li><code>.nbuf-reset-form</code>, <code>.nbuf-request-reset-form</code> - Form elements</li>
+			<li><code>.nbuf-form-label</code>, <code>.nbuf-reset-label</code> - Form labels</li>
+			<li><code>.nbuf-form-input</code>, <code>.nbuf-reset-input</code> - Input fields</li>
+			<li><code>.nbuf-reset-button</code>, <code>.nbuf-request-reset-button</code> - Submit buttons</li>
+			<li><code>.nbuf-message-error</code>, <code>.nbuf-reset-error</code> - Error messages</li>
+			<li><code>.nbuf-message-success</code>, <code>.nbuf-reset-success</code> - Success messages</li>
+			<li><code>.nbuf-request-reset-description</code> - Description text</li>
+			<li><code>.nbuf-request-reset-links</code> - Links below form</li>
 			<li><code>.nbuf-reset-container</code> - Container when policy panel is shown</li>
 			<li><code>.nbuf-policy-panel</code> - Policy panel container</li>
 		</ul>

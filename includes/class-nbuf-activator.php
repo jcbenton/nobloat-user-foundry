@@ -63,6 +63,9 @@ class NBUF_Activator {
 			/* Update user_profile table for account merging (add tertiary_email column) */
 			NBUF_Database::update_user_profile_table_for_account_merging();
 
+			/* Update user_data table for last login tracking */
+			NBUF_Database::update_user_data_table_for_last_login();
+
 			/* Create profile versions table for version history */
 			NBUF_Database::create_profile_versions_table();
 

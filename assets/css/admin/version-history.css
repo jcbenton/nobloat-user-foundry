@@ -8,6 +8,17 @@
  */
 
 /* ==========================================================================
+   Initial Hidden States - JavaScript controls visibility
+   ========================================================================== */
+
+.nbuf-vh-timeline,
+.nbuf-vh-pagination,
+.nbuf-vh-empty,
+.nbuf-vh-diff-result {
+	display: none;
+}
+
+/* ==========================================================================
    Version History Viewer Container
    ========================================================================== */
 
@@ -197,15 +208,21 @@
    ========================================================================== */
 
 .nbuf-vh-diff-modal {
+	display: none; /* Hidden by default, shown via JavaScript */
 	position: fixed;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
 	z-index: 100000;
-	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+/* When modal is shown via jQuery .show(), use flex layout */
+.nbuf-vh-diff-modal[style*="display: block"],
+.nbuf-vh-diff-modal[style*="display:block"] {
+	display: flex !important;
 }
 
 .nbuf-vh-diff-overlay {

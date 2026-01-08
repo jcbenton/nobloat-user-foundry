@@ -31,10 +31,11 @@ class NBUF_Migration_UM_Restrictions {
 		global $wpdb;
 
 		$results = array(
-			'total'    => 0,
-			'migrated' => 0,
-			'skipped'  => 0,
-			'errors'   => array(),
+			'total'         => 0,
+			'migrated'      => 0,
+			'skipped'       => 0,
+			'errors'        => array(),
+			'menu_migrated' => 0,
 		);
 
 		/* Check if Ultimate Member is active */
@@ -43,45 +44,40 @@ class NBUF_Migration_UM_Restrictions {
 			return $results;
 		}
 
-		/* Get all posts with UM restrictions */
-		$um_meta_keys = array(
-			'_um_accessible',           // Main restriction setting.
-			'_um_access_roles',         // Role-based access.
-			'_um_noaccess_action',      // What happens when access denied.
-			'_um_restrict_by_custom_message', // Custom message option.
-			'_um_restrict_custom_message',    // Custom message content.
-			'_um_access_redirect',      // Redirect option.
-			'_um_access_redirect_url',  // Redirect URL.
-		);
-
-		/* Find all posts with UM restriction meta */
-		$placeholders = implode( ',', array_fill( 0, count( $um_meta_keys ), '%s' ) );
-
-     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-     // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN clause with variable placeholders
+		/*
+		 * UM stores restrictions in a serialized array under 'um_content_restriction' meta key.
+		 * Find all posts with this meta key (including nav_menu_item for menu restrictions).
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$posts = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT DISTINCT p.ID, p.post_type, p.post_title
-				FROM {$wpdb->posts} p
-				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-				WHERE pm.meta_key IN ($placeholders)
-				AND p.post_status = 'publish'",
-				...$um_meta_keys
-			)
+			"SELECT DISTINCT p.ID, p.post_type, p.post_title
+			FROM {$wpdb->posts} p
+			INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+			WHERE pm.meta_key = 'um_content_restriction'
+			AND (p.post_status = 'publish' OR p.post_type = 'nav_menu_item')"
 		);
-     // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$results['total'] = count( $posts );
 
+		$content_table = $wpdb->prefix . 'nbuf_content_restrictions';
+		$menu_table    = $wpdb->prefix . 'nbuf_menu_restrictions';
+
 		foreach ( $posts as $post ) {
 			try {
-				/* Get all UM meta for this post */
-				$um_accessible = get_post_meta( $post->ID, '_um_accessible', true );
+				/* Get UM restriction data (serialized array) */
+				$um_restriction = get_post_meta( $post->ID, 'um_content_restriction', true );
+
+				/* Parse the serialized data */
+				if ( empty( $um_restriction ) || ! is_array( $um_restriction ) ) {
+					++$results['skipped'];
+					continue;
+				}
+
+				/* Get accessible value from the array */
+				$um_accessible = isset( $um_restriction['_um_accessible'] ) ? $um_restriction['_um_accessible'] : 0;
 
 				/* If no restriction (accessible = 0 or empty), skip */
-				if ( empty( $um_accessible ) || '0' === $um_accessible ) {
+				if ( empty( $um_accessible ) || 0 === $um_accessible || '0' === $um_accessible ) {
 					++$results['skipped'];
 					continue;
 				}
@@ -89,12 +85,30 @@ class NBUF_Migration_UM_Restrictions {
 				/* Map UM data to NBUF format */
 				$nbuf_restriction = self::map_um_to_nbuf( $post->ID );
 
-				/* Insert into NBUF table */
-				$table = $wpdb->prefix . 'nbuf_content_restrictions';
+				/* Handle menu items separately - they go to nbuf_menu_restrictions */
+				if ( 'nav_menu_item' === $post->post_type ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$wpdb->replace(
+						$menu_table,
+						array(
+							'menu_item_id' => $post->ID,
+							'visibility'   => $nbuf_restriction['visibility'],
+							'allowed_roles' => wp_json_encode( $nbuf_restriction['allowed_roles'] ),
+							'created_at'   => current_time( 'mysql' ),
+							'updated_at'   => current_time( 'mysql' ),
+						),
+						array( '%d', '%s', '%s', '%s', '%s' )
+					);
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					++$results['menu_migrated'];
+					++$results['migrated'];
+					continue;
+				}
+
+				/* Regular content restrictions */
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->replace(
-					$table,
+					$content_table,
 					array(
 						'content_id'         => $post->ID,
 						'content_type'       => $post->post_type,
@@ -128,9 +142,10 @@ class NBUF_Migration_UM_Restrictions {
 				'restrictions',
 				'um_restrictions_migrated',
 				sprintf(
-				/* translators: %d: Number of restrictions migrated */
-					__( 'Migrated %d content restrictions from Ultimate Member', 'nobloat-user-foundry' ),
-					$results['migrated']
+				/* translators: 1: Number of content restrictions, 2: Number of menu restrictions */
+					__( 'Migrated %1$d content restrictions and %2$d menu restrictions from Ultimate Member', 'nobloat-user-foundry' ),
+					$results['migrated'] - $results['menu_migrated'],
+					$results['menu_migrated']
 				),
 				$results
 			);
@@ -141,6 +156,8 @@ class NBUF_Migration_UM_Restrictions {
 
 	/**
 	 * Map Ultimate Member restriction data to NBUF format
+	 *
+	 * UM stores all restriction data in a serialized array under 'um_content_restriction' meta key.
 	 *
 	 * @param  int $post_id Post ID.
 	 * @return array NBUF restriction data.
@@ -154,29 +171,37 @@ class NBUF_Migration_UM_Restrictions {
 			'redirect_url'       => '',
 		);
 
-		/* Get UM meta */
-		$accessible             = get_post_meta( $post_id, '_um_accessible', true );
-		$access_roles           = get_post_meta( $post_id, '_um_access_roles', true );
-		$noaccess_action        = get_post_meta( $post_id, '_um_noaccess_action', true );
-		$custom_message_enabled = get_post_meta( $post_id, '_um_restrict_by_custom_message', true );
-		$custom_message         = get_post_meta( $post_id, '_um_restrict_custom_message', true );
-		$redirect_enabled       = get_post_meta( $post_id, '_um_access_redirect', true );
-		$redirect_url           = get_post_meta( $post_id, '_um_access_redirect_url', true );
+		/* Get UM restriction data (serialized array) */
+		$um_data = get_post_meta( $post_id, 'um_content_restriction', true );
+
+		if ( empty( $um_data ) || ! is_array( $um_data ) ) {
+			return $nbuf;
+		}
+
+		/* Extract values from the serialized array */
+		$accessible             = isset( $um_data['_um_accessible'] ) ? $um_data['_um_accessible'] : 0;
+		$access_roles           = isset( $um_data['_um_access_roles'] ) ? $um_data['_um_access_roles'] : array();
+		$custom_message_enabled = isset( $um_data['_um_restrict_by_custom_message'] ) ? $um_data['_um_restrict_by_custom_message'] : 0;
+		$custom_message         = isset( $um_data['_um_restrict_custom_message'] ) ? $um_data['_um_restrict_custom_message'] : '';
+		$redirect_enabled       = isset( $um_data['_um_access_redirect'] ) ? $um_data['_um_access_redirect'] : 0;
+		$redirect_url           = isset( $um_data['_um_access_redirect_url'] ) ? $um_data['_um_access_redirect_url'] : '';
 
 		/*
-		Map accessible field
-		* UM values: 0 = everyone, 1 = logged out, 2 = logged in
-		*/
+		 * Map accessible field
+		 * UM values: 0 = everyone, 1 = logged out, 2 = logged in
+		 */
 		switch ( $accessible ) {
+			case 1:
 			case '1':
 				$nbuf['visibility'] = 'logged_out';
 				break;
 
+			case 2:
 			case '2':
 				/* Check if role-based */
 				if ( ! empty( $access_roles ) && is_array( $access_roles ) ) {
 					$nbuf['visibility'] = 'role_based';
-					/* UM stores roles as array keys with value 1 */
+					/* UM stores roles as array keys with value '1' */
 					$nbuf['allowed_roles'] = array_keys( array_filter( $access_roles ) );
 				} else {
 					$nbuf['visibility'] = 'logged_in';
@@ -193,7 +218,7 @@ class NBUF_Migration_UM_Restrictions {
 		 * UM values: 0 = show message, 1 = redirect
 		 * SECURITY: Validate redirect URLs are internal only to prevent open redirect vulnerabilities
 		 */
-		if ( '1' === $redirect_enabled && ! empty( $redirect_url ) ) {
+		if ( ( 1 === $redirect_enabled || '1' === $redirect_enabled ) && ! empty( $redirect_url ) ) {
 			/* Validate redirect URL is internal only - prevents open redirect attacks */
 			$validated_url = wp_validate_redirect( $redirect_url, false );
 
@@ -211,7 +236,7 @@ class NBUF_Migration_UM_Restrictions {
 				/* Fall back to message instead */
 				$nbuf['restriction_action'] = 'message';
 			}
-		} elseif ( '1' === $custom_message_enabled && ! empty( $custom_message ) ) {
+		} elseif ( ( 1 === $custom_message_enabled || '1' === $custom_message_enabled ) && ! empty( $custom_message ) ) {
 			$nbuf['restriction_action'] = 'message';
 			$nbuf['custom_message']     = wp_kses_post( $custom_message );
 		} else {
@@ -231,49 +256,61 @@ class NBUF_Migration_UM_Restrictions {
 	public static function get_migration_preview( $limit = 10 ) {
 		global $wpdb;
 
-		$um_meta_keys = array(
-			'_um_accessible',
-			'_um_access_roles',
-			'_um_noaccess_action',
-		);
-
-		$placeholders = implode( ',', array_fill( 0, count( $um_meta_keys ), '%s' ) );
-
-     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-     // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/*
+		 * UM stores restrictions in 'um_content_restriction' meta key as serialized array.
+		 * Include nav_menu_item for menu restrictions.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$posts = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT p.ID, p.post_title, p.post_type
 				FROM {$wpdb->posts} p
 				INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-				WHERE pm.meta_key IN ($placeholders)
-				AND p.post_status = 'publish'
+				WHERE pm.meta_key = 'um_content_restriction'
+				AND (p.post_status = 'publish' OR p.post_type = 'nav_menu_item')
 				LIMIT %d",
-				array_merge( $um_meta_keys, array( $limit ) )
+				$limit
 			)
 		);
 
 		$preview = array();
 
 		foreach ( $posts as $post ) {
-			/* Get UM data */
-			$accessible = get_post_meta( $post->ID, '_um_accessible', true );
+			/* Get UM restriction data */
+			$um_data = get_post_meta( $post->ID, 'um_content_restriction', true );
+
+			if ( empty( $um_data ) || ! is_array( $um_data ) ) {
+				continue;
+			}
+
+			$accessible = isset( $um_data['_um_accessible'] ) ? $um_data['_um_accessible'] : 0;
 
 			/* Skip unrestricted */
-			if ( empty( $accessible ) || '0' === $accessible ) {
+			if ( empty( $accessible ) || 0 === $accessible || '0' === $accessible ) {
 				continue;
 			}
 
 			/* Map to NBUF */
 			$nbuf_data = self::map_um_to_nbuf( $post->ID );
 
+			/* For menu items, get a better title */
+			$display_title = $post->post_title;
+			if ( 'nav_menu_item' === $post->post_type ) {
+				$menu_item_title = get_post_meta( $post->ID, '_menu_item_title', true );
+				if ( ! empty( $menu_item_title ) ) {
+					$display_title = $menu_item_title;
+				} elseif ( empty( $display_title ) ) {
+					$display_title = __( '(Menu Item)', 'nobloat-user-foundry' );
+				}
+			}
+
 			$preview[] = array(
 				'id'        => $post->ID,
-				'title'     => $post->post_title,
+				'title'     => $display_title,
 				'type'      => $post->post_type,
 				'um_data'   => array(
 					'accessible' => $accessible,
-					'roles'      => get_post_meta( $post->ID, '_um_access_roles', true ),
+					'roles'      => isset( $um_data['_um_access_roles'] ) ? $um_data['_um_access_roles'] : array(),
 				),
 				'nbuf_data' => $nbuf_data,
 			);
@@ -290,12 +327,16 @@ class NBUF_Migration_UM_Restrictions {
 	public static function get_restriction_count() {
 		global $wpdb;
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/*
+		 * Count posts with um_content_restriction meta.
+		 * We can't easily filter by _um_accessible value since it's serialized,
+		 * so we count all posts with this meta (slight overcount is acceptable for preview).
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = $wpdb->get_var(
 			"SELECT COUNT(DISTINCT post_id)
 			FROM {$wpdb->postmeta}
-			WHERE meta_key = '_um_accessible'
-			AND meta_value IN ('1', '2')"
+			WHERE meta_key = 'um_content_restriction'"
 		);
 
 		return absint( $count );

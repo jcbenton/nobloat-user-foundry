@@ -576,6 +576,153 @@ class NBUF_Role_Manager {
 			);
 		}
 	}
+
+	/**
+	 * Adopt all orphaned roles into NoBloat management
+	 *
+	 * Finds all WordPress roles that are not native and not already
+	 * managed by NoBloat, and imports them into the database.
+	 *
+	 * @return array Results with counts and adopted roles list.
+	 */
+	public static function adopt_all_orphaned_roles() {
+		global $wpdb;
+
+		$native_roles  = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		$custom_roles  = self::get_all_roles();
+		$wp_roles      = wp_roles();
+		$table         = $wpdb->prefix . 'nbuf_user_roles';
+
+		$results = array(
+			'total'    => 0,
+			'adopted'  => 0,
+			'skipped'  => 0,
+			'errors'   => array(),
+			'roles'    => array(),
+		);
+
+		foreach ( $wp_roles->roles as $role_key => $role_data ) {
+			/* Skip native WordPress roles */
+			if ( in_array( $role_key, $native_roles, true ) ) {
+				continue;
+			}
+
+			/* Skip roles already managed by NoBloat */
+			if ( isset( $custom_roles[ $role_key ] ) ) {
+				continue;
+			}
+
+			++$results['total'];
+
+			/* Get the WordPress role object */
+			$wp_role = get_role( $role_key );
+			if ( ! $wp_role ) {
+				$results['errors'][] = sprintf(
+					/* translators: %s: Role key */
+					__( 'Role "%s" not found in WordPress.', 'nobloat-user-foundry' ),
+					$role_key
+				);
+				continue;
+			}
+
+			/* Insert into NBUF database */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+			$inserted = $wpdb->insert(
+				$table,
+				array(
+					'role_key'     => $role_key,
+					'role_name'    => $role_data['name'],
+					'capabilities' => wp_json_encode( $wp_role->capabilities ),
+					'parent_role'  => null,
+					'priority'     => 0,
+					'created_at'   => current_time( 'mysql' ),
+					'updated_at'   => current_time( 'mysql' ),
+				)
+			);
+
+			if ( false === $inserted ) {
+				$results['errors'][] = sprintf(
+					/* translators: %s: Role key */
+					__( 'Failed to adopt role "%s". Database error.', 'nobloat-user-foundry' ),
+					$role_key
+				);
+				continue;
+			}
+
+			++$results['adopted'];
+			$results['roles'][] = array(
+				'role_key'  => $role_key,
+				'role_name' => $role_data['name'],
+			);
+		}
+
+		/* Clear caches if any roles were adopted */
+		if ( $results['adopted'] > 0 ) {
+			self::clear_cache();
+
+			/* Log to audit */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					get_current_user_id(),
+					'roles',
+					'roles_adopted',
+					sprintf(
+						/* translators: %d: Number of roles adopted */
+						__( 'Adopted %d orphaned roles during migration', 'nobloat-user-foundry' ),
+						$results['adopted']
+					),
+					$results
+				);
+			}
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Get count of orphaned roles (not native and not in NBUF database)
+	 *
+	 * @return int Number of orphaned roles.
+	 */
+	public static function get_orphaned_role_count() {
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		$custom_roles = self::get_all_roles();
+		$wp_roles     = wp_roles();
+		$count        = 0;
+
+		foreach ( $wp_roles->roles as $role_key => $role_data ) {
+			if ( ! in_array( $role_key, $native_roles, true ) && ! isset( $custom_roles[ $role_key ] ) ) {
+				++$count;
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Get list of orphaned roles for preview
+	 *
+	 * @return array List of orphaned roles with their details.
+	 */
+	public static function get_orphaned_roles_preview() {
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		$custom_roles = self::get_all_roles();
+		$wp_roles     = wp_roles();
+		$orphaned     = array();
+
+		foreach ( $wp_roles->roles as $role_key => $role_data ) {
+			if ( ! in_array( $role_key, $native_roles, true ) && ! isset( $custom_roles[ $role_key ] ) ) {
+				$orphaned[] = array(
+					'role_key'   => $role_key,
+					'role_name'  => $role_data['name'],
+					'user_count' => self::get_user_count( $role_key ),
+					'cap_count'  => count( $role_data['capabilities'] ),
+				);
+			}
+		}
+
+		return $orphaned;
+	}
 }
 
 // Initialize Role Manager.

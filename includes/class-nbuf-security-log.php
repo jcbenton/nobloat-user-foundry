@@ -155,13 +155,14 @@ class NBUF_Security_Log {
 		);
 
 		if ( ! $first_seen_exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration.
 			$wpdb->query(
 				$wpdb->prepare(
 					'ALTER TABLE %i ADD COLUMN first_seen DATETIME DEFAULT NULL AFTER timestamp',
 					$table_name
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
 		/* Check and add occurrence_count column if missing */
@@ -175,13 +176,14 @@ class NBUF_Security_Log {
 		);
 
 		if ( ! $occurrence_count_exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration.
 			$wpdb->query(
 				$wpdb->prepare(
 					'ALTER TABLE %i ADD COLUMN occurrence_count INT UNSIGNED DEFAULT 1 AFTER first_seen',
 					$table_name
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
 		/* Add index for event_type + ip_address lookups if missing */
@@ -195,13 +197,14 @@ class NBUF_Security_Log {
 		);
 
 		if ( ! $index_exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema migration.
 			$wpdb->query(
 				$wpdb->prepare(
 					'ALTER TABLE %i ADD INDEX idx_event_ip (event_type, ip_address)',
 					$table_name
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
 		/* Set first_seen = timestamp for existing records where first_seen is NULL */
@@ -663,17 +666,8 @@ class NBUF_Security_Log {
 			$safe_event_type
 		);
 
-		/* Set content type */
-		$content_type_callback = function () {
-			return 'text/html';
-		};
-		add_filter( 'wp_mail_content_type', $content_type_callback );
-
-		/* Send email */
-		$result = wp_mail( $recipient, $subject, $email_body );
-
-		/* Remove filter */
-		remove_filter( 'wp_mail_content_type', $content_type_callback );
+		/* Send email using central sender */
+		$result = NBUF_Email::send( $recipient, $subject, $email_body, 'html' );
 
 		if ( ! $result ) {
 			return new WP_Error( 'email_failed', __( 'Failed to send security alert email.', 'nobloat-user-foundry' ) );

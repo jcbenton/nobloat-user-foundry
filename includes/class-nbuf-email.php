@@ -22,6 +22,58 @@ class NBUF_Email {
 
 
 	/**
+	 * Send email with custom sender settings.
+	 *
+	 * Central method that applies configured sender address and name
+	 * before sending via wp_mail. Uses settings from System > Email tab.
+	 *
+	 * @param  string $to          Recipient email address.
+	 * @param  string $subject     Email subject.
+	 * @param  string $message     Email body.
+	 * @param  string $content_type Optional. 'html' or 'text'. Default 'text'.
+	 * @return bool True on success, false on failure.
+	 */
+	public static function send( $to, $subject, $message, $content_type = 'text' ) {
+		/* Get sender settings with WordPress defaults as fallback */
+		$sender_address = NBUF_Options::get( 'nbuf_email_sender_address', '' );
+		$sender_name    = NBUF_Options::get( 'nbuf_email_sender_name', '' );
+
+		/* Fall back to WordPress defaults if not set */
+		if ( empty( $sender_address ) ) {
+			$sender_address = get_option( 'admin_email' );
+		}
+		if ( empty( $sender_name ) ) {
+			$sender_name = get_bloginfo( 'name' );
+		}
+
+		/* Create filter callbacks */
+		$from_callback = function () use ( $sender_address ) {
+			return $sender_address;
+		};
+		$name_callback = function () use ( $sender_name ) {
+			return $sender_name;
+		};
+		$content_type_callback = function () use ( $content_type ) {
+			return 'html' === $content_type ? 'text/html' : 'text/plain';
+		};
+
+		/* Apply filters */
+		add_filter( 'wp_mail_from', $from_callback );
+		add_filter( 'wp_mail_from_name', $name_callback );
+		add_filter( 'wp_mail_content_type', $content_type_callback );
+
+		/* Send email */
+		$sent = wp_mail( $to, $subject, $message );
+
+		/* Remove filters to prevent affecting other emails */
+		remove_filter( 'wp_mail_from', $from_callback );
+		remove_filter( 'wp_mail_from_name', $name_callback );
+		remove_filter( 'wp_mail_content_type', $content_type_callback );
+
+		return $sent;
+	}
+
+	/**
 	 * Send verification email.
 	 *
 	 * Builds and sends the verification email message.
@@ -80,17 +132,8 @@ class NBUF_Email {
 		? sanitize_text_field( $settings['email_subject'] )
 		: __( 'Verify your email address', 'nobloat-user-foundry' );
 
-		// Set content type via filter instead of headers array.
-		$content_type_callback = function () use ( $mode ) {
-			return 'html' === $mode ? 'text/html' : 'text/plain';
-		};
-		add_filter( 'wp_mail_content_type', $content_type_callback );
-
-		// Send email.
-		$sent = wp_mail( $user_email, $subject, $message );
-
-		// Remove filter to prevent affecting other emails.
-		remove_filter( 'wp_mail_content_type', $content_type_callback );
+		// Send email using central method with sender settings.
+		$sent = self::send( $user_email, $subject, $message, $mode );
 
 		/*
 		* CRITICAL: Always log email failures in production
@@ -160,7 +203,7 @@ Thank you!',
 			wp_login_url()
 		);
 
-		$sent = wp_mail( $user_email, $subject, $message );
+		$sent = self::send( $user_email, $subject, $message );
 
 		if ( ! $sent ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical production logging for email failures.
@@ -215,7 +258,7 @@ Thank you!',
 
 		$message = implode( "\n", $message_parts );
 
-		$sent = wp_mail( $user_email, $subject, $message );
+		$sent = self::send( $user_email, $subject, $message );
 
 		if ( ! $sent ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical production logging for email failures.

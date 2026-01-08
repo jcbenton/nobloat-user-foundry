@@ -1135,6 +1135,7 @@ class NBUF_Passkeys {
 	 */
 	public static function ajax_auth_options() {
 		/* No nonce check for this endpoint - it's pre-login */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$username = isset( $_POST['username'] ) ? sanitize_text_field( wp_unslash( $_POST['username'] ) ) : '';
 
 		$options = self::generate_authentication_options( $username );
@@ -1152,7 +1153,7 @@ class NBUF_Passkeys {
 	 * @since 1.5.0
 	 */
 	public static function ajax_authenticate() {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON contains base64url data that must not be modified
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON contains base64url data that must not be modified; pre-login endpoint.
 		$response = isset( $_POST['response'] ) ? json_decode( wp_unslash( $_POST['response'] ), true ) : null;
 
 		if ( ! $response ) {
@@ -1241,6 +1242,7 @@ class NBUF_Passkeys {
 		wp_set_auth_cookie( $user_id, true );
 
 		/* Get redirect URL */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$redirect_url = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
 		if ( empty( $redirect_url ) ) {
 			$redirect_url = admin_url();
@@ -1263,6 +1265,7 @@ class NBUF_Passkeys {
 	 */
 	public static function ajax_check_user_passkeys() {
 		/* No nonce check for this endpoint - it's pre-login */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey check endpoint.
 		$login = isset( $_POST['login'] ) ? sanitize_text_field( wp_unslash( $_POST['login'] ) ) : '';
 
 		if ( empty( $login ) ) {

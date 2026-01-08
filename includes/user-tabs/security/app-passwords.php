@@ -15,22 +15,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 $nbuf_app_passwords_enabled = NBUF_Options::get( 'nbuf_app_passwords_enabled', false );
 
 /* Statistics - count users with application passwords */
-$users_with_app_passwords = 0;
-$total_app_passwords      = 0;
+$nbuf_users_with_app_passwords = 0;
+$nbuf_total_app_passwords      = 0;
 global $wpdb;
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$users_with_app_passwords = (int) $wpdb->get_var(
+$nbuf_users_with_app_passwords = (int) $wpdb->get_var(
 	"SELECT COUNT(DISTINCT user_id) FROM {$wpdb->usermeta} WHERE meta_key = '_application_passwords' AND meta_value != 'a:0:{}' AND meta_value != ''"
 );
-if ( $users_with_app_passwords > 0 ) {
+if ( $nbuf_users_with_app_passwords > 0 ) {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$all_passwords = $wpdb->get_col(
+	$nbuf_all_passwords = $wpdb->get_col(
 		"SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = '_application_passwords' AND meta_value != 'a:0:{}' AND meta_value != ''"
 	);
-	foreach ( $all_passwords as $serialized ) {
-		$passwords = maybe_unserialize( $serialized );
-		if ( is_array( $passwords ) ) {
-			$total_app_passwords += count( $passwords );
+	foreach ( $nbuf_all_passwords as $nbuf_serialized ) {
+		$nbuf_passwords = maybe_unserialize( $nbuf_serialized );
+		if ( is_array( $nbuf_passwords ) ) {
+			$nbuf_total_app_passwords += count( $nbuf_passwords );
 		}
 	}
 }
@@ -93,15 +93,15 @@ if ( $users_with_app_passwords > 0 ) {
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
 
-<?php if ( $users_with_app_passwords > 0 ) : ?>
+<?php if ( $nbuf_users_with_app_passwords > 0 ) : ?>
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
 	printf(
 		/* translators: 1: total app passwords count, 2: users with app passwords count */
 		esc_html__( '%1$d application passwords created by %2$d users.', 'nobloat-user-foundry' ),
-		(int) $total_app_passwords,
-		(int) $users_with_app_passwords
+		(int) $nbuf_total_app_passwords,
+		(int) $nbuf_users_with_app_passwords
 	);
 	?>
 </p>

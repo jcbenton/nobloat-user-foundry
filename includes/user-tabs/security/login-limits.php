@@ -21,21 +21,22 @@ $nbuf_trusted_proxies        = NBUF_Options::get( 'nbuf_login_trusted_proxies', 
 $nbuf_trusted_proxies_str = is_array( $nbuf_trusted_proxies ) ? implode( ', ', $nbuf_trusted_proxies ) : '';
 
 /* Statistics - count currently blocked IPs */
-$blocked_ips_count = 0;
+$nbuf_blocked_ips_count = 0;
 global $wpdb;
-$table_name = $wpdb->prefix . 'nbuf_login_attempts';
-if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-	$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$nbuf_login_lockout_duration} minutes" ) );
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$blocked_ips_count = (int) $wpdb->get_var(
+$nbuf_table_name = $wpdb->prefix . 'nbuf_login_attempts';
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom login attempts table statistics.
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) ) === $nbuf_table_name ) {
+	$nbuf_cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$nbuf_login_lockout_duration} minutes" ) );
+	$nbuf_blocked_ips_count = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*) FROM (SELECT ip_address FROM %i WHERE attempt_time > %s GROUP BY ip_address HAVING COUNT(*) >= %d) AS blocked",
-			$table_name,
-			$cutoff_time,
+			$nbuf_table_name,
+			$nbuf_cutoff_time,
 			$nbuf_login_max_attempts
 		)
 	);
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -107,11 +108,11 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === 
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
-	if ( $blocked_ips_count > 0 ) {
+	if ( $nbuf_blocked_ips_count > 0 ) {
 		printf(
 			/* translators: %d: number of blocked IPs */
-			esc_html( _n( '%d IP address is currently blocked.', '%d IP addresses are currently blocked.', $blocked_ips_count, 'nobloat-user-foundry' ) ),
-			(int) $blocked_ips_count
+			esc_html( _n( '%d IP address is currently blocked.', '%d IP addresses are currently blocked.', $nbuf_blocked_ips_count, 'nobloat-user-foundry' ) ),
+			(int) $nbuf_blocked_ips_count
 		);
 	} else {
 		esc_html_e( 'No IP addresses are currently blocked.', 'nobloat-user-foundry' );

@@ -207,6 +207,15 @@ class NBUF_Registration {
 			}
 		}
 
+		/*
+		 * Mark that plugin registration is handling verification directly.
+		 * This prevents the user_register hook from sending a duplicate email.
+		 * The hook fires INSIDE wp_create_user(), before we can mark_verification_sent().
+		 */
+		if ( class_exists( 'NBUF_Hooks' ) ) {
+			NBUF_Hooks::set_direct_registration( true );
+		}
+
 		/* Create WordPress user */
 		$user_id = wp_create_user( $username, $data['password'], $data['email'] );
 
@@ -287,6 +296,11 @@ class NBUF_Registration {
 		}
 
 		/* Note: wp_create_user() already triggers 'user_register' action, no need to fire it again */
+
+		/* Reset direct registration flag */
+		if ( class_exists( 'NBUF_Hooks' ) ) {
+			NBUF_Hooks::set_direct_registration( false );
+		}
 
 		return $user_id;
 	}

@@ -1251,9 +1251,7 @@ class NBUF_GDPR_Export {
 			get_bloginfo( 'name' )
 		);
 
-		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
-
-		return wp_mail( $user->user_email, $subject, $message, $headers );
+		return NBUF_Email::send( $user->user_email, $subject, $message, 'html' );
 	}
 
 	/**

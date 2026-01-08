@@ -792,7 +792,7 @@ class NBUF_Bulk_Import {
 			wp_login_url()
 		);
 
-		wp_mail( $user->user_email, $subject, $message );
+		NBUF_Email::send( $user->user_email, $subject, $message );
 	}
 
 	/**

@@ -976,3 +976,303 @@ body.nbuf-page .nbuf-2fa-verify-wrapper a {
         letter-spacing: 0.2em;
     }
 }
+
+/* ==========================================================
+   2FA SETUP SUCCESS / BACKUP CODES CONFIRMATION PAGE
+   ----------------------------------------------------------
+   Styles for the confirmation page shown after successfully
+   setting up authenticator app 2FA.
+   ========================================================== */
+
+/* Success Message Box */
+.nbuf-2fa-setup-success {
+    background: var(--nbuf-success-bg);
+    border: 1px solid var(--nbuf-success-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-lg) var(--nbuf-space-xl);
+    margin-bottom: var(--nbuf-space-2xl);
+}
+
+.nbuf-2fa-setup-success p {
+    margin: 0;
+    color: var(--nbuf-success);
+    font-size: var(--nbuf-font-size-base);
+    line-height: 1.5;
+}
+
+.nbuf-2fa-setup-success strong {
+    font-weight: 700;
+}
+
+/* Backup Codes Section */
+.nbuf-backup-codes-section {
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-xl);
+}
+
+.nbuf-backup-codes-section h3 {
+    margin: 0 0 var(--nbuf-space-md) 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--nbuf-text-primary);
+}
+
+.nbuf-backup-codes-section .nbuf-backup-codes-description {
+    margin: 0 0 var(--nbuf-space-md) 0;
+    font-size: var(--nbuf-font-size-sm);
+    color: var(--nbuf-text-secondary);
+    line-height: 1.6;
+}
+
+.nbuf-backup-codes-section .nbuf-important {
+    background: var(--nbuf-warning-bg);
+    border: 1px solid var(--nbuf-warning-border);
+    border-radius: var(--nbuf-radius-sm);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    margin: 0 0 var(--nbuf-space-xl) 0;
+    font-size: var(--nbuf-font-size-sm);
+    color: var(--nbuf-warning);
+    line-height: 1.5;
+}
+
+/* Backup Codes Grid */
+.nbuf-backup-codes-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--nbuf-space-sm);
+    margin-bottom: var(--nbuf-space-xl);
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    padding: var(--nbuf-space-lg);
+}
+
+.nbuf-backup-codes-list .nbuf-backup-code {
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-sm);
+    padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+    text-align: center;
+    color: var(--nbuf-text-primary);
+    user-select: all;
+}
+
+/* Button Actions Container */
+.nbuf-backup-codes-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--nbuf-space-lg);
+    margin-top: var(--nbuf-space-lg);
+}
+
+.nbuf-backup-codes-actions .nbuf-button {
+    min-width: 140px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-xl);
+    font-size: var(--nbuf-font-size-sm);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Mobile Responsive for Backup Codes Page */
+@media (max-width: 600px) {
+    .nbuf-backup-codes-section {
+        padding: var(--nbuf-space-lg);
+    }
+
+    .nbuf-backup-codes-section h3 {
+        font-size: 1.125rem;
+    }
+
+    .nbuf-backup-codes-list {
+        grid-template-columns: 1fr;
+        padding: var(--nbuf-space-md);
+    }
+
+    .nbuf-backup-codes-list .nbuf-backup-code {
+        font-size: 0.9375rem;
+        padding: var(--nbuf-space-md);
+    }
+
+    .nbuf-backup-codes-actions {
+        flex-direction: column;
+        gap: var(--nbuf-space-md);
+    }
+
+    .nbuf-backup-codes-actions .nbuf-button {
+        width: 100%;
+        min-width: unset;
+    }
+}
+
+/* ==========================================================
+   2FA BACKUP CODE VERIFICATION FORM
+   ----------------------------------------------------------
+   Styles for the backup code verification page shown when
+   users click "Use a backup code instead" during 2FA login.
+   ========================================================== */
+
+.nbuf-2fa-backup-verify-wrapper {
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--nbuf-surface, #fff);
+    border: 1px solid var(--nbuf-border, #ddd);
+    border-radius: var(--nbuf-radius-md, 8px);
+    box-shadow: var(--nbuf-shadow-md, 0 2px 4px rgba(0, 0, 0, 0.05));
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--nbuf-text-primary, #333);
+    font-weight: 600;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-instructions {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 14px;
+    color: var(--nbuf-text-secondary, #666);
+    text-align: center;
+}
+
+/* Backup code input - uppercase monospace for readability */
+.nbuf-2fa-backup-verify-wrapper .nbuf-backup-code-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #888;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 1.125rem;
+    letter-spacing: 0.1em;
+    text-align: center;
+    text-transform: uppercase;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-backup-code-input:focus {
+    border-color: #0073aa;
+    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.2);
+    outline: none;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-backup-code-input::placeholder {
+    text-transform: none;
+    letter-spacing: normal;
+    color: #999;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-backup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-form-group label {
+    font-weight: 600;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-field-description {
+    margin: 0.25rem 0 0 0;
+    font-size: 13px;
+    color: var(--nbuf-text-secondary, #666);
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-form-actions {
+    margin-top: 0.5rem;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background: #0073aa;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    text-align: center;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-button:hover {
+    background: #005177;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-button:focus-visible {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+/* Help section with link back to regular 2FA */
+.nbuf-2fa-backup-verify-wrapper .nbuf-2fa-help {
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--nbuf-border, #ddd);
+    text-align: center;
+    font-size: 14px;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-regular-verify-link {
+    color: var(--nbuf-primary, #0073aa);
+    text-decoration: none;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-regular-verify-link:hover {
+    text-decoration: underline;
+}
+
+/* Error/Success messages */
+.nbuf-2fa-backup-verify-wrapper .nbuf-error {
+    color: var(--nbuf-error, #721c24);
+    background: var(--nbuf-error-bg, #f8d7da);
+    border: 1px solid var(--nbuf-error-border, #f5c6cb);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.nbuf-2fa-backup-verify-wrapper .nbuf-success {
+    color: var(--nbuf-success, #155724);
+    background: var(--nbuf-success-bg, #d4edda);
+    border: 1px solid var(--nbuf-success-border, #c3e6cb);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .nbuf-2fa-backup-verify-wrapper {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .nbuf-2fa-backup-verify-wrapper .nbuf-backup-code-input {
+        font-size: 1rem;
+        letter-spacing: 0.05em;
+    }
+}

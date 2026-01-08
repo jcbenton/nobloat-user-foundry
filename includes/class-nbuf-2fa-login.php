@@ -233,20 +233,27 @@ class NBUF_2FA_Login {
 		/* Get method from transient (includes auto-required method) */
 		$method = isset( $pending_data['method'] ) ? $pending_data['method'] : NBUF_2FA::get_user_method( $user_id );
 
-		/* Get submitted code */
+		/* Get submitted code and code type */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification above.
 		$code = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification above.
+		$code_type = isset( $_POST['code_type'] ) ? sanitize_text_field( wp_unslash( $_POST['code_type'] ) ) : 'auto';
 
 		if ( empty( $code ) ) {
 			/* Redirect back with error for empty code */
-			$current_url = self::get_2fa_page_url();
-			wp_safe_redirect( add_query_arg( 'error', 'invalid', $current_url ) );
+			$current_url   = self::get_2fa_page_url();
+			$redirect_args = array( 'error' => 'invalid' );
+
+			/* Preserve backup mode if that's what was used */
+			if ( 'backup' === $code_type ) {
+				$redirect_args['backup'] = '1';
+			}
+
+			wp_safe_redirect( add_query_arg( $redirect_args, $current_url ) );
 			exit;
 		}
 
 		$verified = false;
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification above.
-		$code_type = isset( $_POST['code_type'] ) ? sanitize_text_field( wp_unslash( $_POST['code_type'] ) ) : 'auto';
 
 		/* Try backup code first if explicitly selected */
 		if ( 'backup' === $code_type ) {
@@ -296,7 +303,14 @@ class NBUF_2FA_Login {
 
 			/* Redirect to 2FA page with specific error */
 			$current_url = self::get_2fa_page_url();
-			wp_safe_redirect( add_query_arg( 'error', $error_code, $current_url ) );
+			$redirect_args = array( 'error' => $error_code );
+
+			/* Preserve backup mode if that's what was used */
+			if ( 'backup' === $code_type ) {
+				$redirect_args['backup'] = '1';
+			}
+
+			wp_safe_redirect( add_query_arg( $redirect_args, $current_url ) );
 			exit;
 		}
 
@@ -552,6 +566,15 @@ class NBUF_2FA_Login {
 
 		$user_id = absint( $pending_data['user_id'] );
 
+		/* Check if user wants to use backup code */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only mode parameter
+		$backup_mode = isset( $_GET['backup'] ) && '1' === $_GET['backup'];
+
+		/* If backup mode is requested, show backup code form */
+		if ( $backup_mode ) {
+			return self::get_backup_verification_form( $user_id );
+		}
+
 		/* Get method from transient (includes auto-required method) */
 		$method = isset( $pending_data['method'] ) ? $pending_data['method'] : NBUF_2FA::get_user_method( $user_id );
 
@@ -622,7 +645,8 @@ class NBUF_2FA_Login {
 		if ( NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
 			$backup_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
 			if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-				$backup_code_link = '<a href="#" id="nbuf-toggle-backup" class="nbuf-backup-link">' . esc_html__( 'Use a backup code instead', 'nobloat-user-foundry' ) . '</a>';
+				$backup_url       = add_query_arg( 'backup', '1', self::get_2fa_page_url() );
+				$backup_code_link = '<a href="' . esc_url( $backup_url ) . '" class="nbuf-backup-link">' . esc_html__( 'Use a backup code instead', 'nobloat-user-foundry' ) . '</a>';
 			}
 		}
 
@@ -650,26 +674,124 @@ class NBUF_2FA_Login {
 
 		$html = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 
-		/* Add backup code form if user has backup codes */
-		if ( ! empty( $backup_code_link ) ) {
-			$backup_form  = '<div id="nbuf-backup-form">';
-			$backup_form .= '<form method="post" class="nbuf-2fa-verify-form">';
-			/* Use unique ID to avoid duplicate ID warning - nonce value is same for validation */
-			$backup_form .= '<input type="hidden" id="nbuf_2fa_nonce_backup" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_verify' ) ) . '">';
-			$backup_form .= '<input type="hidden" name="nbuf_2fa_verify" value="1">';
-			$backup_form .= '<input type="hidden" name="code_type" value="backup">';
-			$backup_form .= '<div class="nbuf-form-group">';
-			$backup_form .= '<label for="nbuf_backup_code">' . esc_html__( 'Backup Code', 'nobloat-user-foundry' ) . '</label>';
-			$backup_form .= '<input type="text" name="code" id="nbuf_backup_code" class="nbuf-2fa-input" ';
-			$backup_form .= 'placeholder="Enter backup code" maxlength="64" autocomplete="off" required>';
-			$backup_form .= '</div>';
-			$backup_form .= '<button type="submit" class="nbuf-2fa-button nbuf-button-primary">' . esc_html__( 'Verify Backup Code', 'nobloat-user-foundry' ) . '</button>';
-			$backup_form .= '</form>';
-			$backup_form .= '</div>';
-			$backup_form .= '<script>document.getElementById("nbuf-toggle-backup").addEventListener("click",function(e){e.preventDefault();var f=document.getElementById("nbuf-backup-form");f.style.display=f.style.display==="none"?"block":"none";this.textContent=f.style.display==="none"?"' . esc_js( __( 'Use a backup code instead', 'nobloat-user-foundry' ) ) . '":"' . esc_js( __( 'Use regular verification', 'nobloat-user-foundry' ) ) . '";});</script>';
+		return $html;
+	}
 
-			/* Insert before closing wrapper div */
-			$html = str_replace( '</div>' . "\n" . '</div>', $backup_form . '</div>' . "\n" . '</div>', $html );
+	/**
+	 * Get backup code verification form HTML
+	 *
+	 * Returns the HTML for the backup code verification form.
+	 * Uses template from Templates tab for customization.
+	 *
+	 * @param int $user_id User ID.
+	 * @return string HTML output.
+	 */
+	private static function get_backup_verification_form( int $user_id ): string {
+		/* Check if user has backup codes */
+		if ( ! NBUF_Options::get( 'nbuf_2fa_backup_enabled', true ) ) {
+			return '<p class="nbuf-centered-message">' . esc_html__( 'Backup codes are not enabled.', 'nobloat-user-foundry' ) . '</p>';
+		}
+
+		$backup_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
+		if ( ! is_array( $backup_codes ) || empty( $backup_codes ) ) {
+			return '<p class="nbuf-centered-message">' . esc_html__( 'You do not have any backup codes available.', 'nobloat-user-foundry' ) . '</p>';
+		}
+
+		/* Load template */
+		$template = NBUF_Template_Manager::load_template( '2fa-backup-verify' );
+
+		/* Fallback template if loading fails */
+		if ( empty( $template ) ) {
+			$template = '<div class="nbuf-2fa-verify-wrapper nbuf-2fa-backup-verify-wrapper">
+				<div class="nbuf-2fa-header"><h2>' . esc_html__( 'Use Backup Code', 'nobloat-user-foundry' ) . '</h2></div>
+				{error_message}
+				<div class="nbuf-2fa-instructions">' . esc_html__( 'Enter one of your backup codes to verify your identity.', 'nobloat-user-foundry' ) . '</div>
+				<form method="post" class="nbuf-2fa-verify-form">
+					{nonce_field}
+					<input type="hidden" name="nbuf_2fa_verify" value="1">
+					<input type="hidden" name="code_type" value="backup">
+					<div class="nbuf-form-group">
+						<label for="nbuf_backup_code">' . esc_html__( 'Backup Code', 'nobloat-user-foundry' ) . '</label>
+						<input type="text" name="code" id="nbuf_backup_code" class="nbuf-2fa-input nbuf-backup-code-input" placeholder="' . esc_attr__( 'Enter backup code', 'nobloat-user-foundry' ) . '" maxlength="64" autocomplete="off" required autofocus>
+					</div>
+					{device_trust_checkbox}
+					<div class="nbuf-form-actions">
+						<button type="submit" class="nbuf-2fa-button nbuf-button-primary">' . esc_html__( 'Verify Backup Code', 'nobloat-user-foundry' ) . '</button>
+					</div>
+				</form>
+				<div class="nbuf-2fa-help">{regular_verify_link}</div>
+			</div>';
+		}
+
+		/* Check for error from URL parameter or REQUEST_URI */
+		$error_message = '';
+		$error_param   = '';
+
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only error message display
+		if ( isset( $_GET['error'] ) ) {
+			$error_param = sanitize_text_field( wp_unslash( $_GET['error'] ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		} else {
+			/* Fallback: parse error from REQUEST_URI if $_GET is empty */
+			$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+			if ( strpos( $request_uri, 'error=' ) !== false ) {
+				$query_string = wp_parse_url( $request_uri, PHP_URL_QUERY );
+				if ( $query_string ) {
+					parse_str( $query_string, $query_params );
+					if ( isset( $query_params['error'] ) ) {
+						$error_param = sanitize_text_field( $query_params['error'] );
+					}
+				}
+			}
+		}
+
+		if ( ! empty( $error_param ) ) {
+			$error_text = __( 'Invalid backup code. Please try again.', 'nobloat-user-foundry' );
+
+			if ( 'locked' === $error_param ) {
+				$error_text = __( 'Too many failed attempts. Please try again later.', 'nobloat-user-foundry' );
+			}
+
+			$error_message = '<div class="nbuf-error">' . esc_html( $error_text ) . '</div>';
+		}
+
+		/* Build device trust checkbox */
+		$device_trust_checkbox = '';
+		if ( NBUF_Options::get( 'nbuf_2fa_device_trust', true ) ) {
+			$device_trust_checkbox = '<div class="nbuf-form-group nbuf-checkbox-group">' .
+				'<label><input type="checkbox" name="trust_device" value="1"> ' .
+				esc_html__( 'Trust this device for 30 days', 'nobloat-user-foundry' ) . '</label>' .
+				'</div>';
+		}
+
+		/* Build link back to regular verification */
+		$regular_verify_url  = self::get_2fa_page_url();
+		$regular_verify_link = '<a href="' . esc_url( $regular_verify_url ) . '" class="nbuf-regular-verify-link">' . esc_html__( 'Use regular verification instead', 'nobloat-user-foundry' ) . '</a>';
+
+		/* Replace placeholders */
+		$replacements = array(
+			'{action_url}'            => '',
+			'{nonce_field}'           => wp_nonce_field( 'nbuf_2fa_verify', 'nbuf_2fa_nonce', true, false ),
+			'{error_message}'         => $error_message,
+			'{success_message}'       => '',
+			'{device_trust_checkbox}' => $device_trust_checkbox,
+			'{regular_verify_link}'   => $regular_verify_link,
+			'{help_text}'             => '',
+		);
+
+		$html = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+
+		/*
+		 * If error message exists but template doesn't have placeholder,
+		 * inject it after the header div.
+		 */
+		if ( ! empty( $error_message ) && strpos( $html, 'nbuf-error' ) === false ) {
+			$html = preg_replace(
+				'/(<div class="nbuf-2fa-header">.*?<\/div>)/s',
+				'$1' . "\n" . $error_message,
+				$html,
+				1
+			);
 		}
 
 		return $html;

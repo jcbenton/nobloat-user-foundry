@@ -156,7 +156,8 @@ class NBUF_Field_Mapper {
 			'sanitize_email'                => 'sanitize_email',
 			'sanitize_url'                  => 'esc_url_raw',
 			'um_account_status_to_verified' => null, /* Custom handler below */
-			'um_last_login_to_audit'        => null, /* Custom handler below */
+			'um_last_login_to_audit'        => null, /* Custom handler below (legacy) */
+			'um_timestamp_to_datetime'      => null, /* Custom handler below */
 		);
 
 		/* Check if transformation is whitelisted */
@@ -190,7 +191,8 @@ class NBUF_Field_Mapper {
 				return ( 'approved' === $value ) ? 1 : 0;
 
 			case 'um_last_login_to_audit':
-				/* Convert timestamp to datetime */
+			case 'um_timestamp_to_datetime':
+				/* Convert Unix timestamp to MySQL datetime */
 				return ! empty( $value ) ? gmdate( 'Y-m-d H:i:s', $value ) : null;
 
 			default:

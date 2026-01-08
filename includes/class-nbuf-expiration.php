@@ -206,14 +206,9 @@ class NBUF_Expiration {
 		// Prepare email.
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account will expire soon', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
-		$headers = array();
 
-		if ( $use_html ) {
-			$headers[] = 'Content-Type: text/html; charset=UTF-8';
-		}
-
-		// Send email.
-		return wp_mail( $user->user_email, $subject, $message, $headers );
+		// Send email using central sender.
+		return NBUF_Email::send( $user->user_email, $subject, $message, $use_html ? 'html' : 'text' );
 	}
 
 	/**

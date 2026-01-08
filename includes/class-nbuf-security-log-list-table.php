@@ -106,10 +106,12 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 		/* Build tooltip with first seen if different from last seen */
 		$tooltip_parts = array();
+		/* translators: %s: UTC timestamp */
 		$tooltip_parts[] = sprintf( __( 'UTC: %s', 'nobloat-user-foundry' ), $item->timestamp );
 
 		if ( ! empty( $item->first_seen ) && $item->first_seen !== $item->timestamp ) {
 			$first_seen_local = NBUF_Options::format_local_time( $item->first_seen );
+			/* translators: %s: first seen timestamp */
 			$tooltip_parts[] = sprintf( __( 'First seen: %s', 'nobloat-user-foundry' ), $first_seen_local );
 		}
 

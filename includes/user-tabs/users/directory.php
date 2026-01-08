@@ -160,10 +160,10 @@ $nbuf_wp_roles = wp_roles()->get_names();
 			<th><?php esc_html_e( 'Visible in Member Cards', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<fieldset>
-					<?php foreach ( $nbuf_available_visible_fields as $field_key => $field_label ) : ?>
+					<?php foreach ( $nbuf_available_visible_fields as $nbuf_field_key => $nbuf_field_label ) : ?>
 						<label style="display: block; margin-bottom: 5px;">
-							<input type="checkbox" name="nbuf_directory_visible_fields[]" value="<?php echo esc_attr( $field_key ); ?>" <?php checked( in_array( $field_key, $nbuf_visible_fields, true ) ); ?>>
-							<?php echo esc_html( $field_label ); ?>
+							<input type="checkbox" name="nbuf_directory_visible_fields[]" value="<?php echo esc_attr( $nbuf_field_key ); ?>" <?php checked( in_array( $nbuf_field_key, $nbuf_visible_fields, true ) ); ?>>
+							<?php echo esc_html( $nbuf_field_label ); ?>
 						</label>
 					<?php endforeach; ?>
 				</fieldset>
@@ -178,10 +178,10 @@ $nbuf_wp_roles = wp_roles()->get_names();
 			<th><?php esc_html_e( 'Searchable Fields', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<fieldset>
-					<?php foreach ( $nbuf_available_search_fields as $field_key => $field_label ) : ?>
+					<?php foreach ( $nbuf_available_search_fields as $nbuf_field_key => $nbuf_field_label ) : ?>
 						<label style="display: block; margin-bottom: 5px;">
-							<input type="checkbox" name="nbuf_directory_searchable_fields[]" value="<?php echo esc_attr( $field_key ); ?>" <?php checked( in_array( $field_key, $nbuf_searchable_fields, true ) ); ?>>
-							<?php echo esc_html( $field_label ); ?>
+							<input type="checkbox" name="nbuf_directory_searchable_fields[]" value="<?php echo esc_attr( $nbuf_field_key ); ?>" <?php checked( in_array( $nbuf_field_key, $nbuf_searchable_fields, true ) ); ?>>
+							<?php echo esc_html( $nbuf_field_label ); ?>
 						</label>
 					<?php endforeach; ?>
 				</fieldset>
@@ -264,10 +264,10 @@ $nbuf_wp_roles = wp_roles()->get_names();
 			<th><?php esc_html_e( 'Include Roles', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<fieldset>
-					<?php foreach ( $nbuf_wp_roles as $role_slug => $role_name ) : ?>
+					<?php foreach ( $nbuf_wp_roles as $nbuf_role_slug => $nbuf_role_name ) : ?>
 						<label style="display: block; margin-bottom: 5px;">
-							<input type="checkbox" name="nbuf_directory_roles[]" value="<?php echo esc_attr( $role_slug ); ?>" <?php checked( in_array( $role_slug, $nbuf_directory_roles, true ) ); ?>>
-							<?php echo esc_html( translate_user_role( $role_name ) ); ?>
+							<input type="checkbox" name="nbuf_directory_roles[]" value="<?php echo esc_attr( $nbuf_role_slug ); ?>" <?php checked( in_array( $nbuf_role_slug, $nbuf_directory_roles, true ) ); ?>>
+							<?php echo esc_html( translate_user_role( $nbuf_role_name ) ); ?>
 						</label>
 					<?php endforeach; ?>
 				</fieldset>

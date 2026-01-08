@@ -67,11 +67,11 @@ jQuery(document).ready(function($) {
 					displayMigrationTypes(response.data);
 					$('#nbuf-migration-options').slideDown();
 				} else {
-					alert(response.data.message || 'NBUF_Migration.i18n['Error loading plugin data.']');
+					alert(response.data.message || NBUF_Migration.i18n.error_loading);
 				}
 			},
 			error: function() {
-				alert('NBUF_Migration.i18n['Error loading plugin data. Please try again.']');
+				alert(NBUF_Migration.i18n.error_loading);
 			},
 			complete: function() {
 				$('#nbuf-migration-loader').slideUp();
@@ -81,37 +81,30 @@ jQuery(document).ready(function($) {
 
 	/* Display plugin status */
 	function displayPluginStatus(data) {
-		let html = '<h3>NBUF_Migration.i18n['Source Plugin Status']</h3>';
+		let html = '<h3>' + NBUF_Migration.i18n.source_plugin_status + '</h3>';
 		html += '<div class="nbuf-status-grid">';
 
 		html += '<div class="nbuf-status-item">';
-		html += '<strong>NBUF_Migration.i18n['Plugin Status']</strong>';
-		html += '<div class="value">' + (data.is_active ? '✓ Active' : '○ Inactive') + '</div>';
+		html += '<strong>' + NBUF_Migration.i18n.plugin_status + '</strong>';
+		html += '<div class="value">' + (data.is_active ? '✓ ' + NBUF_Migration.i18n.active : '○ ' + NBUF_Migration.i18n.inactive) + '</div>';
 		html += '</div>';
 
 		html += '<div class="nbuf-status-item">';
-		html += '<strong>NBUF_Migration.i18n['Users with Data']</strong>';
+		html += '<strong>' + NBUF_Migration.i18n.users_with_data + '</strong>';
 		html += '<div class="value">' + data.user_count.toLocaleString() + '</div>';
 		html += '</div>';
 
 		if (data.profile_fields_count) {
 			html += '<div class="nbuf-status-item">';
-			html += '<strong>NBUF_Migration.i18n['Profile Fields']</strong>';
+			html += '<strong>' + NBUF_Migration.i18n.profile_fields + '</strong>';
 			html += '<div class="value">' + data.profile_fields_count + '</div>';
 			html += '</div>';
 		}
 
 		if (data.restrictions_count) {
 			html += '<div class="nbuf-status-item">';
-			html += '<strong>NBUF_Migration.i18n['Content Restrictions']</strong>';
+			html += '<strong>' + NBUF_Migration.i18n.content_restrictions + '</strong>';
 			html += '<div class="value">' + data.restrictions_count + '</div>';
-			html += '</div>';
-		}
-
-		if (data.roles_count) {
-			html += '<div class="nbuf-status-item">';
-			html += '<strong>NBUF_Migration.i18n['Custom Roles']</strong>';
-			html += '<div class="value">' + data.roles_count + '</div>';
 			html += '</div>';
 		}
 
@@ -129,8 +122,8 @@ jQuery(document).ready(function($) {
 			html += '<label>';
 			html += '<input type="checkbox" class="nbuf-migration-type" value="profile_data" checked>';
 			html += '<div class="checkbox-label">';
-			html += '<strong>NBUF_Migration.i18n['Profile Data']</strong>';
-			html += '<p class="description">NBUF_Migration.i18n['Migrate user profile fields (phone, company, address, social media, etc.)']</p>';
+			html += '<strong>' + NBUF_Migration.i18n.profile_data + '</strong>';
+			html += '<p class="description">' + NBUF_Migration.i18n.profile_data_desc + '</p>';
 			html += '</div>';
 			html += '</label>';
 
@@ -138,8 +131,8 @@ jQuery(document).ready(function($) {
 			html += '<label style="margin-left: 30px;">';
 			html += '<input type="checkbox" id="nbuf-copy-photos" value="1" checked>';
 			html += '<div class="checkbox-label">';
-			html += '<strong>Copy Profile & Cover Photos</strong>';
-			html += '<p class="description">Copy user photos to NoBloat directory with WebP conversion (if enabled in Media settings)</p>';
+			html += '<strong>' + NBUF_Migration.i18n.copy_photos + '</strong>';
+			html += '<p class="description">' + NBUF_Migration.i18n.copy_photos_desc + '</p>';
 			html += '</div>';
 			html += '</label>';
 		}
@@ -148,20 +141,28 @@ jQuery(document).ready(function($) {
 			html += '<label>';
 			html += '<input type="checkbox" class="nbuf-migration-type" value="restrictions">';
 			html += '<div class="checkbox-label">';
-			html += '<strong>NBUF_Migration.i18n['Content Restrictions']</strong>';
-			html += '<p class="description">NBUF_Migration.i18n['Migrate post/page access restrictions and visibility settings']</p>';
+			html += '<strong>' + NBUF_Migration.i18n.content_restrictions + '</strong>';
+			html += '<p class="description">' + NBUF_Migration.i18n.restrictions_desc + '</p>';
 			html += '</div>';
 			html += '</label>';
 		}
 
-		if (supports.includes('roles')) {
+		/* Adopt orphaned roles - show if any orphaned roles exist */
+		if (data.orphaned_roles_count > 0) {
 			html += '<label>';
-			html += '<input type="checkbox" class="nbuf-migration-type" value="roles">';
+			html += '<input type="checkbox" class="nbuf-migration-type" value="adopt_roles" checked>';
 			html += '<div class="checkbox-label">';
-			html += '<strong>NBUF_Migration.i18n['Custom User Roles']</strong>';
-			html += '<p class="description">NBUF_Migration.i18n['Migrate custom roles with their capabilities and settings']</p>';
+			html += '<strong>' + NBUF_Migration.i18n.adopt_roles + '</strong>';
+			html += '<p class="description">' + NBUF_Migration.i18n.adopt_roles_desc.replace('%d', data.orphaned_roles_count) + '</p>';
 			html += '</div>';
 			html += '</label>';
+		} else {
+			/* No orphaned roles - show info message */
+			html += '<div class="nbuf-roles-info" style="margin-top: 10px; padding: 10px; background: #f0f6fc; border-left: 4px solid #72aee6;">';
+			html += '<span class="dashicons dashicons-info" style="color: #72aee6;"></span> ';
+			html += '<strong>' + NBUF_Migration.i18n.user_roles + ':</strong> ';
+			html += NBUF_Migration.i18n.roles_retained;
+			html += '</div>';
 		}
 
 		html += '</div>';
@@ -172,6 +173,9 @@ jQuery(document).ready(function($) {
 		$('.nbuf-migration-type:checked').each(function() {
 			loadMigrationData($(this).val());
 		});
+
+		/* Enable migrate button if any types are checked by default */
+		updateMigrateButton();
 	}
 
 	/* Handle migration type checkbox changes */
@@ -187,8 +191,6 @@ jQuery(document).ready(function($) {
 				$('#nbuf-field-mapping-section').slideUp();
 			} else if (type === 'restrictions') {
 				$('#nbuf-restrictions-mapping-section').slideUp();
-			} else if (type === 'roles') {
-				$('#nbuf-roles-mapping-section').slideUp();
 			}
 		}
 
@@ -201,8 +203,6 @@ jQuery(document).ready(function($) {
 			loadFieldMappings();
 		} else if (type === 'restrictions') {
 			loadRestrictionsPreview();
-		} else if (type === 'roles') {
-			loadRolesPreview();
 		}
 	}
 
@@ -229,20 +229,20 @@ jQuery(document).ready(function($) {
 	function displayFieldMappings(mappings) {
 		let html = '<table class="nbuf-mapping-table">';
 		html += '<thead><tr>';
-		html += '<th>NBUF_Migration.i18n['Source Field']</th>';
-		html += '<th>NBUF_Migration.i18n['Sample Value']</th>';
-		html += '<th>NBUF_Migration.i18n['Map To']</th>';
-		html += '<th>NBUF_Migration.i18n['Status']</th>';
+		html += '<th>' + NBUF_Migration.i18n.source_field + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.sample_value + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.map_to + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.status + '</th>';
 		html += '</tr></thead><tbody>';
 
 		for (const [sourceField, data] of Object.entries(mappings)) {
 			html += '<tr>';
-			html += '<td><code>' + sourceField + '</code></td>';
-			html += '<td>' + (data.sample || '<em>NBUF_Migration.i18n['No data']</em>') + '</td>';
+			html += '<td><code>' + escapeHtml(sourceField) + '</code></td>';
+			html += '<td>' + (data.sample ? escapeHtml(data.sample) : '<em>' + NBUF_Migration.i18n.no_data + '</em>') + '</td>';
 			html += '<td>' + buildTargetSelect(sourceField, data.target) + '</td>';
 
 			const status = data.auto_mapped ? 'auto' : (data.target ? 'manual' : 'unmapped');
-			const statusText = status === 'auto' ? '✓ Auto' : (status === 'manual' ? '✎ Manual' : '○ Skip');
+			const statusText = status === 'auto' ? '✓ ' + NBUF_Migration.i18n.auto : (status === 'manual' ? '✎ ' + NBUF_Migration.i18n.manual : '○ ' + NBUF_Migration.i18n.skip);
 			html += '<td><span class="nbuf-mapping-status ' + status + '">' + statusText + '</span></td>';
 			html += '</tr>';
 
@@ -268,11 +268,11 @@ jQuery(document).ready(function($) {
 			'Personal': ['bio', 'website', 'nationality', 'languages', 'emergency_contact']
 		};
 
-		let html = '<select class="nbuf-target-field" data-source="' + sourceField + '">';
-		html += '<option value="">NBUF_Migration.i18n['-- Skip this field --']</option>';
+		let html = '<select class="nbuf-target-field" data-source="' + escapeHtml(sourceField) + '">';
+		html += '<option value="">' + NBUF_Migration.i18n.skip_field + '</option>';
 
 		for (const [category, fields] of Object.entries(targetFields)) {
-			html += '<optgroup label="' + category + '">';
+			html += '<optgroup label="' + escapeHtml(category) + '">';
 			fields.forEach(field => {
 				const selected = (field === selectedTarget) ? ' selected' : '';
 				html += '<option value="' + field + '"' + selected + '>' + formatFieldName(field) + '</option>';
@@ -331,84 +331,33 @@ jQuery(document).ready(function($) {
 	/* Display restrictions preview */
 	function displayRestrictionsPreview(restrictions) {
 		if (restrictions.length === 0) {
-			$('#nbuf-restrictions-preview').html('<p><em>NBUF_Migration.i18n['No content restrictions found.']</em></p>');
+			$('#nbuf-restrictions-preview').html('<p><em>' + NBUF_Migration.i18n.no_restrictions + '</em></p>');
 			return;
 		}
 
-		let html = '<p>NBUF_Migration.i18n['The following content restrictions will be migrated:']</p>';
+		let html = '<p>' + NBUF_Migration.i18n.restrictions_will_migrate + '</p>';
 		html += '<table class="wp-list-table widefat fixed striped">';
 		html += '<thead><tr>';
-		html += '<th>NBUF_Migration.i18n['Content']</th>';
-		html += '<th>NBUF_Migration.i18n['Type']</th>';
-		html += '<th>NBUF_Migration.i18n['Restriction']</th>';
+		html += '<th>' + NBUF_Migration.i18n.content + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.type + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.restriction + '</th>';
 		html += '</tr></thead><tbody>';
 
 		restrictions.slice(0, 10).forEach(function(item) {
 			html += '<tr>';
-			html += '<td>' + item.title + '</td>';
-			html += '<td>' + item.post_type + '</td>';
-			html += '<td>' + item.restriction_summary + '</td>';
+			html += '<td>' + escapeHtml(item.title) + '</td>';
+			html += '<td>' + escapeHtml(item.post_type) + '</td>';
+			html += '<td>' + escapeHtml(item.restriction_summary) + '</td>';
 			html += '</tr>';
 		});
 
 		html += '</tbody></table>';
 
 		if (restrictions.length > 10) {
-			html += '<p class="description">NBUF_Migration.i18n['Showing first 10 of'] ' + restrictions.length + ' NBUF_Migration.i18n['restrictions']</p>';
+			html += '<p class="description">' + NBUF_Migration.i18n.showing_first_10.replace('%d', restrictions.length) + '</p>';
 		}
 
 		$('#nbuf-restrictions-preview').html(html);
-	}
-
-	/* Load roles preview */
-	function loadRolesPreview() {
-		$.ajax({
-			url: ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'nbuf_get_roles_preview',
-				nonce: nonce,
-				plugin_slug: selectedPlugin
-			},
-			success: function(response) {
-				if (response.success) {
-					displayRolesPreview(response.data.roles);
-					$('#nbuf-roles-mapping-section').slideDown();
-				}
-			}
-		});
-	}
-
-	/* Display roles preview */
-	function displayRolesPreview(roles) {
-		if (roles.length === 0) {
-			$('#nbuf-roles-preview').html('<p><em>NBUF_Migration.i18n['No custom roles found.']</em></p>');
-			return;
-		}
-
-		let html = '<p>NBUF_Migration.i18n['The following custom roles will be migrated:']</p>';
-		html += '<table class="wp-list-table widefat fixed striped">';
-		html += '<thead><tr>';
-		html += '<th>NBUF_Migration.i18n['Role Name']</th>';
-		html += '<th>NBUF_Migration.i18n['Role Key']</th>';
-		html += '<th>NBUF_Migration.i18n['Capabilities']</th>';
-		html += '<th>NBUF_Migration.i18n['Users']</th>';
-		html += '<th>NBUF_Migration.i18n['Priority']</th>';
-		html += '</tr></thead><tbody>';
-
-		roles.forEach(function(role) {
-			html += '<tr>';
-			html += '<td><strong>' + role.role_name + '</strong></td>';
-			html += '<td><code>' + role.role_key + '</code></td>';
-			html += '<td>' + role.capabilities + '</td>';
-			html += '<td>' + role.users + '</td>';
-			html += '<td>' + role.priority + '</td>';
-			html += '</tr>';
-		});
-
-		html += '</tbody></table>';
-
-		$('#nbuf-roles-preview').html(html);
 	}
 
 	/* Update migrate button state */
@@ -419,7 +368,7 @@ jQuery(document).ready(function($) {
 
 	/* Start migration */
 	$('#nbuf-start-migration-btn').on('click', function() {
-		if (!confirm('NBUF_Migration.i18n['Are you sure you want to start the migration? This will update data in your database.']')) {
+		if (!confirm(NBUF_Migration.i18n.confirm_migration)) {
 			return;
 		}
 
@@ -498,15 +447,15 @@ jQuery(document).ready(function($) {
 	/* Display migration results */
 	function displayResults(results) {
 		let html = '<div class="notice notice-success inline"><p>';
-		html += '<strong>NBUF_Migration.i18n['Migration Complete!']</strong><br><br>';
+		html += '<strong>' + NBUF_Migration.i18n.migration_complete + '</strong><br><br>';
 
 		for (const [type, data] of Object.entries(results)) {
 			html += '<strong>' + formatFieldName(type) + ':</strong><br>';
-			html += '• NBUF_Migration.i18n['Total:'] ' + data.total + '<br>';
-			html += '• NBUF_Migration.i18n['Migrated:'] ' + data.migrated + '<br>';
-			html += '• NBUF_Migration.i18n['Skipped:'] ' + data.skipped + '<br>';
+			html += '• ' + NBUF_Migration.i18n.total + ': ' + data.total + '<br>';
+			html += '• ' + NBUF_Migration.i18n.migrated + ': ' + data.migrated + '<br>';
+			html += '• ' + NBUF_Migration.i18n.skipped + ': ' + data.skipped + '<br>';
 			if (data.errors && data.errors.length > 0) {
-				html += '• ' + NBUF_Migration.i18n['errors'] + ' ' + data.errors.length + '<br>';
+				html += '• ' + NBUF_Migration.i18n.errors + ': ' + data.errors.length + '<br>';
 			}
 			html += '<br>';
 		}

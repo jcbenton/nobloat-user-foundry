@@ -51,7 +51,7 @@
     --nbuf-font-size-base: 1rem;     /* 16px */
     --nbuf-font-size-lg: 1.125rem;   /* 18px */
     --nbuf-font-size-xl: 1.375rem;   /* 22px */
-    --nbuf-font-size-2xl: 1.6rem;    /* 25.6px */
+    --nbuf-font-size-2xl: 1.75rem;   /* 28px - matches registration page */
 
     /* Border Radius */
     --nbuf-radius-sm: 4px;
@@ -482,4 +482,53 @@ body.nbuf-reset-page {
         width: 100%;
         max-width: 480px;
     }
+}
+
+/* ==========================================================
+   VERIFICATION PAGE
+   ----------------------------------------------------------
+   Styles for the email verification results page.
+   ========================================================== */
+
+.nobloat-verify-wrapper {
+    max-width: 600px;
+    margin: 60px auto;
+    padding: var(--nbuf-space-2xl);
+    text-align: center;
+}
+
+.nobloat-verify-title {
+    margin: 0 0 16px 0;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.nobloat-verify-message {
+    margin: 0 0 24px 0;
+    font-size: 18px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.nobloat-verify-next {
+    text-align: center;
+    margin-top: var(--nbuf-space-xl);
+}
+
+.nobloat-verify-login-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    min-height: 44px;
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+    text-decoration: none;
+    border-radius: var(--nbuf-radius-md);
+    font-weight: 600;
+    font-size: 16px;
+    transition: background-color var(--nbuf-transition-base);
+}
+
+.nobloat-verify-login-btn:hover {
+    background: var(--nbuf-primary-hover);
+    color: var(--nbuf-surface);
 }

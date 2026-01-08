@@ -241,6 +241,36 @@ class NBUF_User_Data {
 	}
 
 	/**
+	 * Update user's last login timestamp.
+	 *
+	 * Called on successful login to track when user last accessed the site.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success, false on failure.
+	 */
+	public static function update_last_login( int $user_id ): bool {
+		return self::update(
+			$user_id,
+			array(
+				'last_login_at' => current_time( 'mysql', true ),
+			)
+		);
+	}
+
+	/**
+	 * Get user's last login timestamp.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return string|null  Last login datetime or null if never logged in.
+	 */
+	public static function get_last_login( int $user_id ): ?string {
+		$data = self::get( $user_id );
+		return $data ? $data->last_login_at : null;
+	}
+
+	/**
 	 * Check if user requires admin approval.
 	 *
 	 * @since  1.0.0

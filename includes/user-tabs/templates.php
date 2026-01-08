@@ -36,6 +36,7 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 		'2fa-verify',
 		'2fa-setup-totp',
 		'2fa-backup-codes',
+		'2fa-backup-verify',
 	);
 
 	// Save all templates.
@@ -71,6 +72,7 @@ $nbuf_templates_data = array(
 	'2fa_verify'              => NBUF_Template_Manager::load_template( '2fa-verify' ),
 	'2fa_setup_totp'          => NBUF_Template_Manager::load_template( '2fa-setup-totp' ),
 	'2fa_backup_codes'        => NBUF_Template_Manager::load_template( '2fa-backup-codes' ),
+	'2fa_backup_verify'       => NBUF_Template_Manager::load_template( '2fa-backup-verify' ),
 );
 ?>
 
@@ -450,6 +452,35 @@ $nbuf_templates_data = array(
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
 						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-backup-codes' ) );
 						?>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- 2FA Backup Code Verification -->
+		<div class="nbuf-accordion">
+			<button type="button" class="nbuf-accordion-header">
+				<span class="nbuf-accordion-title">
+					<?php esc_html_e( '2FA Backup Code Verification Form', 'nobloat-user-foundry' ); ?>
+				</span>
+				<span class="nbuf-accordion-icon">▼</span>
+			</button>
+			<div class="nbuf-accordion-content">
+				<p class="description" style="margin: 1.5rem; margin-bottom: 0;">
+					<?php esc_html_e( 'Form displayed when users choose to verify with a backup code instead of their authenticator app or email code.', 'nobloat-user-foundry' ); ?>
+				</p>
+				<div class="nbuf-template-section">
+					<textarea name="2fa_backup_verify" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['2fa_backup_verify'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-backup-verify' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="2fa-backup-verify">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
 					</p>
 				</div>
 			</div>

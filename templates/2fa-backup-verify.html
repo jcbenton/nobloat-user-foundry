@@ -1,0 +1,43 @@
+<div class="nbuf-2fa-verify-wrapper nbuf-2fa-backup-verify-wrapper">
+	<div class="nbuf-2fa-header">
+		<h2>Use Backup Code</h2>
+	</div>
+
+	{error_message}
+	{success_message}
+
+	<div class="nbuf-2fa-instructions">
+		Enter one of your backup codes to verify your identity. Each backup code can only be used once.
+	</div>
+
+	<form method="post" class="nbuf-2fa-verify-form nbuf-2fa-backup-form" action="{action_url}">
+		{nonce_field}
+		<input type="hidden" name="nbuf_2fa_verify" value="1">
+		<input type="hidden" name="code_type" value="backup">
+
+		<div class="nbuf-form-group">
+			<label for="nbuf_backup_code">Backup Code</label>
+			<input type="text"
+				   name="code"
+				   id="nbuf_backup_code"
+				   class="nbuf-2fa-input nbuf-backup-code-input"
+				   placeholder="Enter backup code"
+				   maxlength="64"
+				   autocomplete="off"
+				   required
+				   autofocus>
+			<p class="nbuf-field-description">Enter the alphanumeric backup code exactly as shown</p>
+		</div>
+
+		{device_trust_checkbox}
+
+		<div class="nbuf-form-actions">
+			<button type="submit" class="nbuf-2fa-button nbuf-button-primary">Verify Backup Code</button>
+		</div>
+	</form>
+
+	<div class="nbuf-2fa-help">
+		{regular_verify_link}
+		{help_text}
+	</div>
+</div>

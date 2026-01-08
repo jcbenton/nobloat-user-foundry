@@ -1,463 +1,430 @@
 /**
- * Account Merger - Admin UI
+ * Merge Accounts - Admin UI
  *
- * Handles the interactive account merging workflow for WordPress users.
- * Supports account selection, conflict resolution, and merge execution.
+ * Handles the two-account merge workflow with user search,
+ * selection, field comparison, and merge execution.
  *
  * @package NoBloat_User_Foundry
- * @since   1.5.0
+ * @since   1.6.0
  */
 
 (function ($) {
 	'use strict';
 
 	/**
-	 * Account Merger Object
+	 * Merge Accounts Controller
 	 */
 	const NBUF_MergeAccounts = {
 
-		/* State variables */
-		selectedAccounts: [],
-		primaryAccount: null,
-		accountData: {},
+		/* Selected account data */
+		sourceUser: null,
+		targetUser: null,
+
+		/* Search timeout for debouncing */
+		searchTimeout: null,
 
 		/**
-		 * Initialize the merge accounts UI
+		 * Initialize
 		 */
 		init: function () {
-			/* Only run if merge form exists */
-			if ( ! $( '#nbuf-merge-form' ).length) {
+			if (!$('.nbuf-merge-accounts').length) {
 				return;
 			}
 
 			this.bindEvents();
-			this.checkPreselected();
 		},
 
 		/**
 		 * Bind event handlers
 		 */
 		bindEvents: function () {
-			$( '#nbuf-load-accounts' ).on( 'click', this.loadAccounts.bind( this ) );
-			$( '#nbuf-confirm-merge' ).on( 'change', this.toggleMergeButton.bind( this ) );
-			$( '#nbuf-cancel-merge' ).on( 'click', this.cancelMerge.bind( this ) );
-			$( document ).on( 'click', '.nbuf-conflict-option', this.selectConflictOption );
-			$( '#nbuf-merge-form' ).on( 'submit', this.handleFormSubmit.bind( this ) );
+			const self = this;
+
+			/* Search input handlers with debouncing */
+			$('#nbuf-source-search').on('input', function () {
+				self.handleSearch($(this), 'source');
+			});
+
+			$('#nbuf-target-search').on('input', function () {
+				self.handleSearch($(this), 'target');
+			});
+
+			/* Close dropdowns when clicking outside */
+			$(document).on('click', function (e) {
+				if (!$(e.target).closest('.nbuf-user-search').length) {
+					$('.nbuf-search-results').hide();
+				}
+			});
+
+			/* Remove selection handlers */
+			$(document).on('click', '.remove-selection', function (e) {
+				e.preventDefault();
+				const type = $(this).data('type');
+				self.clearSelection(type);
+			});
+
+			/* Confirmation checkbox */
+			$('#nbuf-confirm-merge').on('change', function () {
+				$('#nbuf-execute-merge').prop('disabled', !$(this).is(':checked'));
+			});
+
+			/* Cancel button */
+			$('#nbuf-cancel-merge').on('click', function (e) {
+				e.preventDefault();
+				if (confirm(NBUF_Merge.i18n.confirm_cancel)) {
+					location.reload();
+				}
+			});
+
+			/* Form submission */
+			$('#nbuf-merge-form').on('submit', function (e) {
+				return self.handleSubmit(e);
+			});
 		},
 
 		/**
-		 * Check if accounts were preselected via bulk action
+		 * Handle search input with debouncing
+		 *
+		 * @param {jQuery} $input Input element
+		 * @param {string} type   'source' or 'target'
 		 */
-		checkPreselected: function () {
-			if (NBUF_Merge.preselected && NBUF_Merge.preselected.length > 0) {
-				const self = this;
-				setTimeout(
-					function () {
-						self.loadAccounts();
-					},
-					500
-				);
+		handleSearch: function ($input, type) {
+			const self = this;
+			const query = $input.val().trim();
+			const $results = $('#nbuf-' + type + '-results');
+
+			/* Clear previous timeout */
+			if (self.searchTimeout) {
+				clearTimeout(self.searchTimeout);
 			}
-		},
 
-		/**
-		 * Load selected accounts via AJAX
-		 */
-		loadAccounts: function () {
-			const self            = this;
-			self.selectedAccounts = $( '#nbuf-merge-accounts' ).val();
-
-			if ( ! self.selectedAccounts || self.selectedAccounts.length < 2) {
-				alert( NBUF_Merge.i18n.minimum_users );
+			/* Minimum characters check */
+			if (query.length < 2) {
+				$results.hide().empty();
 				return;
 			}
 
 			/* Show loading state */
-			$( '#nbuf-load-accounts' ).prop( 'disabled', true ).text( NBUF_Merge.i18n.loading );
+			$results.html('<div class="nbuf-search-loading">' + NBUF_Merge.i18n.searching + '</div>').show();
 
-			/* Load account data via AJAX */
-			$.post(
-				NBUF_Merge.ajaxurl,
-				{
-					action: 'nbuf_load_merge_accounts',
-					nonce: NBUF_Merge.nonce,
-					accounts: self.selectedAccounts
-				},
-				function (response) {
-					$( '#nbuf-load-accounts' ).prop( 'disabled', false ).html(
-						'<span class="dashicons dashicons-arrow-right-alt" style="vertical-align: middle;"></span> ' +
-						NBUF_Merge.i18n.load_accounts
-					);
+			/* Debounce search */
+			self.searchTimeout = setTimeout(function () {
+				self.performSearch(query, type);
+			}, 300);
+		},
 
-					if (response.success) {
-						self.accountData = response.data;
-						self.showPrimarySelector();
+		/**
+		 * Perform AJAX user search
+		 *
+		 * @param {string} query Search query
+		 * @param {string} type  'source' or 'target'
+		 */
+		performSearch: function (query, type) {
+			const self = this;
+			const $results = $('#nbuf-' + type + '-results');
+
+			$.post(NBUF_Merge.ajaxurl, {
+				action: 'nbuf_search_users',
+				nonce: NBUF_Merge.nonce,
+				search: query
+			}, function (response) {
+				if (response.success && response.data.users.length > 0) {
+					self.displaySearchResults(response.data.users, type);
+				} else {
+					$results.html('<div class="nbuf-search-no-results">' + NBUF_Merge.i18n.no_results + '</div>');
+				}
+			}).fail(function () {
+				$results.html('<div class="nbuf-search-error">' + NBUF_Merge.i18n.error + '</div>');
+			});
+		},
+
+		/**
+		 * Display search results
+		 *
+		 * @param {Array}  users Array of user objects
+		 * @param {string} type  'source' or 'target'
+		 */
+		displaySearchResults: function (users, type) {
+			const self = this;
+			const $results = $('#nbuf-' + type + '-results');
+			const otherUser = (type === 'source') ? self.targetUser : self.sourceUser;
+
+			let html = '';
+			users.forEach(function (user) {
+				/* Skip if this user is already selected as the other account */
+				if (otherUser && otherUser.id === user.id) {
+					return;
+				}
+
+				html += '<div class="nbuf-search-result" data-user-id="' + user.id + '" data-type="' + type + '">';
+				html += '<img src="' + self.escapeHtml(user.avatar) + '" alt="" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-right:10px;">';
+				html += '<span class="user-name">' + self.escapeHtml(user.display_name) + '</span>';
+				html += '<span class="user-email"> &lt;' + self.escapeHtml(user.user_email) + '&gt;</span>';
+				html += '<div class="user-meta">@' + self.escapeHtml(user.user_login) + ' &bull; ' + self.escapeHtml(user.roles) + '</div>';
+				html += '</div>';
+			});
+
+			if (html === '') {
+				html = '<div class="nbuf-search-no-results">' + NBUF_Merge.i18n.no_results + '</div>';
+			}
+
+			$results.html(html).show();
+
+			/* Bind click handlers to results */
+			$results.find('.nbuf-search-result').on('click', function () {
+				const userId = $(this).data('user-id');
+				const resultType = $(this).data('type');
+				self.selectUser(userId, resultType);
+			});
+		},
+
+		/**
+		 * Select a user account
+		 *
+		 * @param {number} userId User ID
+		 * @param {string} type   'source' or 'target'
+		 */
+		selectUser: function (userId, type) {
+			const self = this;
+			const $results = $('#nbuf-' + type + '-results');
+			const $selected = $('#nbuf-' + type + '-selected');
+			const $search = $('#nbuf-' + type + '-search');
+			const $hiddenId = $('#nbuf-' + type + '-id');
+
+			/* Hide results */
+			$results.hide();
+
+			/* Show loading in selected area */
+			$selected.html('<p>' + NBUF_Merge.i18n.loading + '</p>').show();
+
+			/* Get full user details */
+			$.post(NBUF_Merge.ajaxurl, {
+				action: 'nbuf_get_user_details',
+				nonce: NBUF_Merge.nonce,
+				user_id: userId
+			}, function (response) {
+				if (response.success) {
+					/* Store user data */
+					if (type === 'source') {
+						self.sourceUser = response.data;
 					} else {
-						alert( response.data.message || NBUF_Merge.i18n.error_loading );
+						self.targetUser = response.data;
 					}
+
+					/* Update hidden field */
+					$hiddenId.val(userId);
+
+					/* Display selected user */
+					self.displaySelectedUser(response.data, type);
+
+					/* Clear and disable search input */
+					$search.val('').prop('disabled', true);
+
+					/* Check if both users are selected */
+					self.checkBothSelected();
+				} else {
+					$selected.html('<p class="error">' + NBUF_Merge.i18n.error + '</p>');
 				}
-			).fail(
-				function () {
-					$( '#nbuf-load-accounts' ).prop( 'disabled', false ).html(
-						'<span class="dashicons dashicons-arrow-right-alt" style="vertical-align: middle;"></span> ' +
-						NBUF_Merge.i18n.load_accounts
-					);
-					alert( NBUF_Merge.i18n.error_loading );
-				}
-			);
+			}).fail(function () {
+				$selected.html('<p class="error">' + NBUF_Merge.i18n.error + '</p>');
+			});
 		},
 
 		/**
-		 * Show primary account selector
+		 * Display selected user card
+		 *
+		 * @param {Object} user User data
+		 * @param {string} type 'source' or 'target'
 		 */
-		showPrimarySelector: function () {
+		displaySelectedUser: function (user, type) {
 			const self = this;
-			let html   = '';
+			const $selected = $('#nbuf-' + type + '-selected');
 
-			$.each(
-				self.accountData.accounts,
-				function (userId, user) {
-					html += '<div class="nbuf-conflict-option" data-user-id="' + userId + '">';
-					html += '<h4>' + self.escapeHtml( user.display_name ) + '</h4>';
-					html += '<p><strong>' + NBUF_Merge.i18n.email + ':</strong> ' + self.escapeHtml( user.user_email ) + '<br>';
-					html += '<strong>' + NBUF_Merge.i18n.username + ':</strong> ' + self.escapeHtml( user.user_login ) + '<br>';
-					html += '<strong>' + NBUF_Merge.i18n.user_id + ':</strong> ' + userId + '<br>';
-					html += '<strong>' + NBUF_Merge.i18n.posts + ':</strong> ' + user.post_count + ' | ';
-					html += '<strong>' + NBUF_Merge.i18n.comments + ':</strong> ' + user.comment_count + '</p>';
-					html += '</div>';
-				}
-			);
+			let html = '<a href="#" class="remove-selection" data-type="' + type + '">' + NBUF_Merge.i18n.remove + '</a>';
+			html += '<div class="user-avatar"><img src="' + self.escapeHtml(user.avatar) + '" alt="" style="width:64px;height:64px;border-radius:50%;"></div>';
+			html += '<div class="user-info">';
+			html += '<div class="user-name">' + self.escapeHtml(user.display_name) + '</div>';
+			html += '<div class="user-details">';
+			html += '<strong>@' + self.escapeHtml(user.user_login) + '</strong><br>';
+			html += self.escapeHtml(user.user_email) + '<br>';
+			html += NBUF_Merge.i18n.posts + ': ' + user.post_count + ' &bull; ' + NBUF_Merge.i18n.comments + ': ' + user.comment_count + '<br>';
+			html += 'Role: ' + self.escapeHtml(user.roles) + '<br>';
+			html += 'Registered: ' + self.escapeHtml(user.registered);
+			html += '</div></div>';
 
-			$( '#nbuf-primary-options' ).html( html );
-			$( '#nbuf-primary-selector' ).slideDown();
-
-			/* Handle primary selection */
-			$( '#nbuf-primary-options .nbuf-conflict-option' ).on(
-				'click',
-				function () {
-					$( '#nbuf-primary-options .nbuf-conflict-option' ).removeClass( 'selected' );
-					$( this ).addClass( 'selected' );
-					self.primaryAccount = $( this ).data( 'user-id' );
-					self.showEmailConsolidation();
-				}
-			);
+			$selected.html(html).show();
 		},
 
 		/**
-		 * Show email consolidation preview
+		 * Clear user selection
+		 *
+		 * @param {string} type 'source' or 'target'
 		 */
-		showEmailConsolidation: function () {
-			const self         = this;
-			const emails       = [];
-			const primaryEmail = self.accountData.accounts[self.primaryAccount].user_email;
-
-			emails.push(
-				'<strong>' + NBUF_Merge.i18n.primary_email + ':</strong> ' +
-				self.escapeHtml( primaryEmail ) +
-				' <span class="dashicons dashicons-yes" style="color: #00a32a;"></span>'
-			);
-
-			const secondaryEmails = [];
-			$.each(
-				self.accountData.accounts,
-				function (userId, user) {
-					if (userId != self.primaryAccount && user.user_email !== primaryEmail) {
-						secondaryEmails.push( user.user_email );
-					}
-				}
-			);
-
-			if (secondaryEmails.length > 0) {
-				emails.push(
-					'<strong>' + NBUF_Merge.i18n.secondary_email + ':</strong> ' +
-					self.escapeHtml( secondaryEmails[0] || NBUF_Merge.i18n.none )
-				);
-			}
-			if (secondaryEmails.length > 1) {
-				emails.push(
-					'<strong>' + NBUF_Merge.i18n.tertiary_email + ':</strong> ' +
-					self.escapeHtml( secondaryEmails[1] || NBUF_Merge.i18n.none )
-				);
-			}
-			if (secondaryEmails.length > 2) {
-				emails.push(
-					'<p class="description" style="color: #d63638;">' +
-					NBUF_Merge.i18n.email_limit_warning + '</p>'
-				);
-			}
-
-			$( '#nbuf-email-preview' ).html( '<p>' + emails.join( '<br>' ) + '</p>' );
-			$( '#nbuf-email-consolidation' ).slideDown();
-
-			setTimeout(
-				function () {
-					self.showConflictResolution();
-				},
-				1000
-			);
-		},
-
-		/**
-		 * Show conflict resolution UI
-		 */
-		showConflictResolution: function () {
+		clearSelection: function (type) {
 			const self = this;
+			const $selected = $('#nbuf-' + type + '-selected');
+			const $search = $('#nbuf-' + type + '-search');
+			const $hiddenId = $('#nbuf-' + type + '-id');
 
-			if ( ! self.accountData.conflicts || self.accountData.conflicts.length === 0) {
-				$( '#nbuf-conflicts-container' ).html( '<p>' + NBUF_Merge.i18n.no_conflicts + '</p>' );
+			/* Clear stored data */
+			if (type === 'source') {
+				self.sourceUser = null;
 			} else {
-				let html = '<p>' + NBUF_Merge.i18n.conflict_instruction + '</p>';
-
-				$.each(
-					self.accountData.conflicts,
-					function (index, conflict) {
-						if (conflict.type === 'photo') {
-							html += self.renderPhotoConflict( conflict );
-						} else if (conflict.type === 'role') {
-							html += self.renderRoleConflict( conflict );
-						} else {
-							// Standard profile field conflict.
-							html += '<div class="nbuf-conflict-item">';
-							html += '<h4>' + self.escapeHtml( conflict.label ) + '</h4>';
-							html += '<div class="nbuf-conflict-options">';
-
-							$.each(
-								conflict.values,
-								function (userId, value) {
-									if (value) {
-										const userName   = self.accountData.accounts[userId].display_name;
-										const isSelected = (userId == self.primaryAccount) ? ' selected' : '';
-										html            += '<div class="nbuf-conflict-option' + isSelected + '" data-field="' +
-										self.escapeHtml( conflict.field ) + '" data-value="' + self.escapeHtml( value ) + '">';
-										html            += '<strong>' + self.escapeHtml( userName ) + ':</strong><br>' + self.escapeHtml( value );
-										html            += '</div>';
-									}
-								}
-							);
-
-							html += '</div></div>';
-						}
-					}
-				);
-
-				$( '#nbuf-conflicts-container' ).html( html );
+				self.targetUser = null;
 			}
 
-			$( '#nbuf-conflict-resolution' ).slideDown();
-			$( '#nbuf-merge-options' ).slideDown();
-			$( '#nbuf-merge-execute' ).slideDown();
+			/* Reset UI */
+			$selected.hide().empty();
+			$search.prop('disabled', false).val('').focus();
+			$hiddenId.val('');
+
+			/* Hide merge options panel */
+			$('#nbuf-merge-options-panel').hide();
 		},
 
 		/**
-		 * Render photo conflict UI with image previews
-		 *
-		 * @param {Object} conflict Photo conflict data
-		 * @return {string} HTML for photo conflict
+		 * Check if both users are selected and show merge options
 		 */
-		renderPhotoConflict: function (conflict) {
+		checkBothSelected: function () {
 			const self = this;
-			let html   = '<div class="nbuf-conflict-item nbuf-photo-conflict">';
-			html      += '<h4>' + self.escapeHtml( conflict.label ) + '</h4>';
-			html      += '<div class="nbuf-conflict-options nbuf-photo-options">';
 
-			$.each(
-				conflict.values,
-				function (userId, photoData) {
-					if (photoData && photoData.url) {
-						/* SECURITY: Validate photo URL to prevent XSS */
-						const safeUrl = self.validateUrl( photoData.url );
-						if ( ! safeUrl) {
-							console.warn( 'NBUF Security: Skipping photo with invalid URL for user ' + userId );
-							return; /* Skip this photo. */
-						}
-
-						const userName   = self.accountData.accounts[userId].display_name;
-						const isSelected = (userId == self.primaryAccount) ? ' selected' : '';
-						html            += '<div class="nbuf-conflict-option nbuf-photo-option' + isSelected + '" ' +
-						'data-field="' + self.escapeHtml( conflict.field ) + '" ' +
-						'data-user-id="' + userId + '">';
-						html            += '<img src="' + safeUrl + '" ' +
-						'alt="' + self.escapeHtml( userName ) + '" ' +
-						'style="max-width: 150px; max-height: 150px; display: block; margin: 0 auto 10px;">';
-						html            += '<strong>' + self.escapeHtml( userName ) + '</strong>';
-						html            += '</div>';
-					}
+			if (self.sourceUser && self.targetUser) {
+				/* Validate they're different */
+				if (self.sourceUser.id === self.targetUser.id) {
+					alert(NBUF_Merge.i18n.same_account);
+					self.clearSelection('source');
+					return;
 				}
-			);
 
-			// Add "Delete All" option.
-			html += '<div class="nbuf-conflict-option nbuf-photo-option" ' +
-				'data-field="' + self.escapeHtml( conflict.field ) + '" ' +
-				'data-user-id="delete_all" ' +
-				'style="border: 2px dashed #d63638;">';
-			html += '<span class="dashicons dashicons-trash" style="font-size: 48px; color: #d63638; margin: 20px auto; display: block;"></span>';
-			html += '<strong style="color: #d63638;">Delete All Photos</strong>';
-			html += '<p style="font-size: 12px; margin-top: 5px;">Remove all photos during merge</p>';
-			html += '</div>';
+				/* Update form hidden fields */
+				$('#nbuf-form-source').val(self.sourceUser.id);
+				$('#nbuf-form-target').val(self.targetUser.id);
 
-			html += '</div></div>';
-			return html;
+				/* Update content counts */
+				$('#nbuf-source-post-count').text('(' + self.sourceUser.post_count + ')');
+				$('#nbuf-source-comment-count').text('(' + self.sourceUser.comment_count + ')');
+
+				/* Populate field comparison tables */
+				self.populateFieldTables();
+
+				/* Show merge options panel */
+				$('#nbuf-merge-options-panel').slideDown();
+			}
 		},
 
 		/**
-		 * Render role conflict UI
-		 *
-		 * @param {Object} conflict Role conflict data
-		 * @return {string} HTML for role conflict
+		 * Populate field comparison tables
 		 */
-		renderRoleConflict: function (conflict) {
+		populateFieldTables: function () {
 			const self = this;
-			let html   = '<div class="nbuf-conflict-item nbuf-role-conflict">';
-			html      += '<h4>' + self.escapeHtml( conflict.label ) + '</h4>';
-			html      += '<p class="description" style="color: #d63638; font-weight: 600;">Warning: Changing user roles affects permissions and access levels. Review carefully before proceeding.</p>';
-			html      += '<div class="nbuf-conflict-options">';
 
-			$.each(
-				conflict.values,
-				function (userId, roles) {
-					if (roles && roles.length > 0) {
-						const userName   = self.accountData.accounts[userId].display_name;
-						const isSelected = (userId == self.primaryAccount) ? ' selected' : '';
+			/* WordPress fields */
+			const wpFields = [
+				{ key: 'display_name', label: NBUF_Merge.i18n.display_name },
+				{ key: 'first_name', label: NBUF_Merge.i18n.first_name },
+				{ key: 'last_name', label: NBUF_Merge.i18n.last_name },
+				{ key: 'nickname', label: NBUF_Merge.i18n.nickname },
+				{ key: 'description', label: NBUF_Merge.i18n.description },
+				{ key: 'user_url', label: NBUF_Merge.i18n.user_url }
+			];
 
-						// Convert role slugs to readable names.
-						const roleLabels = [];
-						roles.forEach(
-							function (roleSlug) {
-								if (conflict.names && conflict.names[roleSlug]) {
-									roleLabels.push( conflict.names[roleSlug] );
-								} else {
-									roleLabels.push( roleSlug );
-								}
-							}
-						);
+			let wpHtml = '';
+			wpFields.forEach(function (field) {
+				const sourceVal = self.sourceUser.wp_fields[field.key] || '';
+				const targetVal = self.targetUser.wp_fields[field.key] || '';
 
-						html += '<div class="nbuf-conflict-option nbuf-role-option' + isSelected + '" ' +
-							'data-field="' + self.escapeHtml( conflict.field ) + '" ' +
-							'data-user-id="' + userId + '" ' +
-							'data-roles="' + self.escapeHtml( roles.join( ',' ) ) + '">';
-						html += '<strong>' + self.escapeHtml( userName ) + ':</strong><br>';
-						html += '<span class="nbuf-role-badges">';
-						roleLabels.forEach(
-							function (roleName) {
-								html += '<span class="nbuf-role-badge" style="display: inline-block; background: #2271b1; color: #fff; padding: 3px 8px; border-radius: 3px; font-size: 12px; margin: 2px;">' + self.escapeHtml( roleName ) + '</span> ';
-							}
-						);
-						html += '</span>';
-						html += '</div>';
-					}
+				wpHtml += '<tr>';
+				wpHtml += '<td><strong>' + self.escapeHtml(field.label) + '</strong></td>';
+				wpHtml += '<td class="' + (sourceVal ? '' : 'field-empty') + '">' + (sourceVal ? self.escapeHtml(sourceVal) : NBUF_Merge.i18n.empty) + '</td>';
+				wpHtml += '<td class="' + (targetVal ? '' : 'field-empty') + '">' + (targetVal ? self.escapeHtml(targetVal) : NBUF_Merge.i18n.empty) + '</td>';
+				wpHtml += '<td>';
+				wpHtml += '<select name="nbuf_field_' + field.key + '" style="width:100%;">';
+				wpHtml += '<option value="target"' + (targetVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.target + '</option>';
+				wpHtml += '<option value="source"' + (!targetVal && sourceVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.source + '</option>';
+				wpHtml += '</select>';
+				wpHtml += '</td>';
+				wpHtml += '</tr>';
+			});
+
+			$('#nbuf-wp-fields-table tbody').html(wpHtml);
+
+			/* Extended fields */
+			const extendedFields = [
+				{ key: 'phone', label: 'Phone Number' },
+				{ key: 'mobile_phone', label: 'Mobile Phone' },
+				{ key: 'work_phone', label: 'Work Phone' },
+				{ key: 'address', label: 'Address' },
+				{ key: 'city', label: 'City' },
+				{ key: 'state', label: 'State' },
+				{ key: 'postal_code', label: 'Postal Code' },
+				{ key: 'country', label: 'Country' },
+				{ key: 'company', label: 'Company' },
+				{ key: 'job_title', label: 'Job Title' },
+				{ key: 'secondary_email', label: 'Secondary Email' }
+			];
+
+			let extHtml = '';
+			let hasExtendedData = false;
+
+			extendedFields.forEach(function (field) {
+				const sourceVal = self.sourceUser.extended_fields[field.key] || '';
+				const targetVal = self.targetUser.extended_fields[field.key] || '';
+
+				/* Only show if at least one account has data */
+				if (sourceVal || targetVal) {
+					hasExtendedData = true;
+
+					extHtml += '<tr>';
+					extHtml += '<td><strong>' + self.escapeHtml(field.label) + '</strong></td>';
+					extHtml += '<td class="' + (sourceVal ? '' : 'field-empty') + '">' + (sourceVal ? self.escapeHtml(sourceVal) : NBUF_Merge.i18n.empty) + '</td>';
+					extHtml += '<td class="' + (targetVal ? '' : 'field-empty') + '">' + (targetVal ? self.escapeHtml(targetVal) : NBUF_Merge.i18n.empty) + '</td>';
+					extHtml += '<td>';
+					extHtml += '<select name="nbuf_field_' + field.key + '" style="width:100%;">';
+					extHtml += '<option value="target"' + (targetVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.target + '</option>';
+					extHtml += '<option value="source"' + (!targetVal && sourceVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.source + '</option>';
+					extHtml += '</select>';
+					extHtml += '</td>';
+					extHtml += '</tr>';
 				}
-			);
+			});
 
-			html += '</div></div>';
-			return html;
-		},
-
-		/**
-		 * Handle conflict option selection
-		 */
-		selectConflictOption: function () {
-			$( this ).siblings( '.nbuf-conflict-option' ).removeClass( 'selected' );
-			$( this ).addClass( 'selected' );
-		},
-
-		/**
-		 * Toggle merge button based on confirmation checkbox
-		 */
-		toggleMergeButton: function () {
-			$( '#nbuf-execute-merge' ).prop( 'disabled', ! $( '#nbuf-confirm-merge' ).is( ':checked' ) );
-		},
-
-		/**
-		 * Cancel merge process
-		 */
-		cancelMerge: function (e) {
-			e.preventDefault();
-			if (confirm( NBUF_Merge.i18n.confirm_cancel )) {
-				location.reload();
+			if (hasExtendedData) {
+				$('#nbuf-extended-fields-table tbody').html(extHtml);
+				$('#nbuf-extended-fields-section').show();
+			} else {
+				$('#nbuf-extended-fields-section').hide();
 			}
 		},
 
 		/**
 		 * Handle form submission
-		 * Collects all conflict selections and adds them as hidden fields
+		 *
+		 * @param {Event} e Submit event
+		 * @return {boolean} Whether to proceed with submission
 		 */
-		handleFormSubmit: function (e) {
+		handleSubmit: function (e) {
 			const self = this;
 
-			/* Check for delete_all photo selections and confirm */
-			let hasDeleteAll    = false;
-			let deleteAllFields = [];
-
-			$( '.nbuf-conflict-option.selected' ).each(
-				function () {
-					const value = $( this ).data( 'user-id' );
-					if (value === 'delete_all') {
-						hasDeleteAll = true;
-						const field  = $( this ).data( 'field' );
-						/* Convert field name to readable format */
-						const fieldLabel = field.replace( '_', ' ' ).replace(
-							/\b\w/g,
-							function (l) {
-								return l.toUpperCase();
-							}
-						);
-						deleteAllFields.push( fieldLabel );
-					}
-				}
-			);
-
-			if (hasDeleteAll) {
-				const fieldsText     = deleteAllFields.join( ', ' );
-				const confirmMessage = 'WARNING: You selected "Delete All" for: ' + fieldsText + '.\n\n' +
-					'This will PERMANENTLY DELETE all photos from all accounts being merged. ' +
-					'This action CANNOT BE UNDONE.\n\n' +
-					'Are you absolutely sure you want to continue?';
-
-				if ( ! confirm( confirmMessage )) {
-					return false; /* Cancel form submission */
-				}
+			/* Validate both users selected */
+			if (!self.sourceUser || !self.targetUser) {
+				alert('Please select both source and target accounts.');
+				e.preventDefault();
+				return false;
 			}
 
-			/* Remove any existing conflict fields */
-			$( 'input[name^="nbuf_conflict_"]' ).remove();
+			/* Validate confirmation checked */
+			if (!$('#nbuf-confirm-merge').is(':checked')) {
+				alert('Please confirm that you understand this action cannot be undone.');
+				e.preventDefault();
+				return false;
+			}
 
-			/* Add primary account selection */
-			$( '<input>' ).attr(
-				{
-					type: 'hidden',
-					name: 'nbuf_primary_account',
-					value: self.primaryAccount
-				}
-			).appendTo( '#nbuf-merge-form' );
-
-			/* Collect all selected conflict options */
-			$( '.nbuf-conflict-option.selected' ).each(
-				function () {
-					const field = $( this ).data( 'field' );
-					let value;
-
-					/* Handle photo conflicts */
-					if ($( this ).hasClass( 'nbuf-photo-option' )) {
-						value = $( this ).data( 'user-id' );
-					} /* Handle role conflicts */ else if ($( this ).hasClass( 'nbuf-role-option' )) {
-						value = $( this ).data( 'user-id' );
-					} /* Handle standard profile field conflicts */ else {
-						value = $( this ).data( 'value' );
-					}
-
-					if (field && value) {
-						$( '<input>' ).attr(
-							{
-								type: 'hidden',
-								name: 'nbuf_conflict_' + field,
-								value: value
-							}
-						).appendTo( '#nbuf-merge-form' );
-					}
-				}
+			/* Disable submit button to prevent double submission */
+			$('#nbuf-execute-merge').prop('disabled', true).html(
+				'<span class="dashicons dashicons-update spin" style="vertical-align: middle;"></span> ' +
+				'Merging Accounts...'
 			);
 
-			/* Allow form to submit */
 			return true;
 		},
 
@@ -468,6 +435,9 @@
 		 * @return {string} Escaped text
 		 */
 		escapeHtml: function (text) {
+			if (text === null || text === undefined) {
+				return '';
+			}
 			const map = {
 				'&': '&amp;',
 				'<': '&lt;',
@@ -475,64 +445,17 @@
 				'"': '&quot;',
 				"'": '&#039;'
 			};
-			return String( text ).replace(
-				/[&<>"']/g,
-				function (m) {
-					return map[m];
-				}
-			);
-		},
-
-		/**
-		 * Validate and sanitize URL for safe insertion
-		 *
-		 * Prevents XSS attacks via JavaScript data URIs and other protocol handlers.
-		 * Only allows HTTP, HTTPS, and SVG data URIs (for generated avatars).
-		 *
-		 * @param {string} url URL to validate
-		 * @return {string} Safe URL or empty string if invalid
-		 */
-		validateUrl: function (url) {
-			if ( ! url) {
-				return '';
-			}
-
-			/* Convert to string and trim */
-			url = String( url ).trim();
-
-			/* Only allow http, https, and WordPress SVG data URIs */
-			const allowedProtocols = /^(https?:|data:image\/svg\+xml;base64,)/i;
-
-			if ( ! allowedProtocols.test( url )) {
-				console.warn( 'NBUF Security: Blocked potentially malicious URL protocol:', url.substring( 0, 50 ) );
-				return '';
-			}
-
-			/* For data URIs, ensure it's only SVG (generated avatars) */
-			if (url.startsWith( 'data:' )) {
-				if ( ! url.startsWith( 'data:image/svg+xml;base64,' )) {
-					console.warn( 'NBUF Security: Blocked non-SVG data URI:', url.substring( 0, 50 ) );
-					return '';
-				}
-				/* Validate base64 portion is reasonable length (SVG avatars are ~500-1000 chars) */
-				if (url.length > 5000) {
-					console.warn( 'NBUF Security: Blocked suspiciously large data URI' );
-					return '';
-				}
-			}
-
-			/* Escape HTML entities in URL */
-			return this.escapeHtml( url );
+			return String(text).replace(/[&<>"']/g, function (m) {
+				return map[m];
+			});
 		}
 	};
 
 	/**
 	 * Initialize on document ready
 	 */
-	$( document ).ready(
-		function () {
-			NBUF_MergeAccounts.init();
-		}
-	);
+	$(document).ready(function () {
+		NBUF_MergeAccounts.init();
+	});
 
-})( jQuery );
+})(jQuery);

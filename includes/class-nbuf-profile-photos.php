@@ -1162,10 +1162,6 @@ class NBUF_Profile_Photos {
 			</div>
 
 			<div class="nbuf-photo-options">
-				<p class="description nbuf-section-spacing">
-					<?php esc_html_e( 'Choose how your profile photo is displayed:', 'nobloat-user-foundry' ); ?>
-				</p>
-
 				<?php if ( $profiles_enabled ) : ?>
 					<div class="nbuf-photo-option">
 						<div class="nbuf-photo-actions">

@@ -26,7 +26,133 @@ class NBUF_Account_Merger {
 	 */
 	public static function init() {
 		add_action( 'wp_ajax_nbuf_load_merge_accounts', array( __CLASS__, 'ajax_load_accounts' ) );
+		add_action( 'wp_ajax_nbuf_search_users', array( __CLASS__, 'ajax_search_users' ) );
+		add_action( 'wp_ajax_nbuf_get_user_details', array( __CLASS__, 'ajax_get_user_details' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_merge_submission' ) );
+	}
+
+	/**
+	 * AJAX handler to search for users
+	 */
+	public static function ajax_search_users() {
+		check_ajax_referer( 'nbuf_merge_accounts', 'nonce' );
+
+		if ( ! current_user_can( 'delete_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'nobloat-user-foundry' ) ) );
+		}
+
+		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+
+		if ( strlen( $search ) < 2 ) {
+			wp_send_json_error( array( 'message' => __( 'Search term too short', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Search users by login, email, or display name */
+		$users = get_users(
+			array(
+				'search'         => '*' . $search . '*',
+				'search_columns' => array( 'user_login', 'user_email', 'display_name', 'user_nicename' ),
+				'number'         => 10,
+				'orderby'        => 'display_name',
+				'order'          => 'ASC',
+			)
+		);
+
+		$results = array();
+		foreach ( $users as $user ) {
+			$results[] = array(
+				'id'           => $user->ID,
+				'display_name' => $user->display_name,
+				'user_login'   => $user->user_login,
+				'user_email'   => $user->user_email,
+				'avatar'       => get_avatar_url( $user->ID, array( 'size' => 32 ) ),
+				'roles'        => implode( ', ', $user->roles ),
+			);
+		}
+
+		wp_send_json_success( array( 'users' => $results ) );
+	}
+
+	/**
+	 * AJAX handler to get full user details for merge comparison
+	 */
+	public static function ajax_get_user_details() {
+		check_ajax_referer( 'nbuf_merge_accounts', 'nonce' );
+
+		if ( ! current_user_can( 'delete_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'nobloat-user-foundry' ) ) );
+		}
+
+		$user_id = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ) : 0;
+
+		if ( ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID', 'nobloat-user-foundry' ) ) );
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			wp_send_json_error( array( 'message' => __( 'User not found', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get profile photo URL */
+		$profile_photo_url = get_avatar_url( $user_id, array( 'size' => 64 ) );
+		if ( class_exists( 'NBUF_Profile_Photos' ) ) {
+			$custom_photo = NBUF_Profile_Photos::get_profile_photo( $user_id, 64 );
+			if ( $custom_photo ) {
+				$profile_photo_url = $custom_photo;
+			}
+		}
+
+		/* WordPress core fields */
+		$wp_fields = array(
+			'display_name' => $user->display_name,
+			'first_name'   => $user->first_name,
+			'last_name'    => $user->last_name,
+			'nickname'     => $user->nickname,
+			'description'  => $user->description,
+			'user_url'     => $user->user_url,
+		);
+
+		/* NoBloat extended fields */
+		$extended_fields = array();
+		$profile_fields  = array(
+			'phone'           => __( 'Phone Number', 'nobloat-user-foundry' ),
+			'mobile_phone'    => __( 'Mobile Phone', 'nobloat-user-foundry' ),
+			'work_phone'      => __( 'Work Phone', 'nobloat-user-foundry' ),
+			'address'         => __( 'Address', 'nobloat-user-foundry' ),
+			'city'            => __( 'City', 'nobloat-user-foundry' ),
+			'state'           => __( 'State', 'nobloat-user-foundry' ),
+			'postal_code'     => __( 'Postal Code', 'nobloat-user-foundry' ),
+			'country'         => __( 'Country', 'nobloat-user-foundry' ),
+			'company'         => __( 'Company', 'nobloat-user-foundry' ),
+			'job_title'       => __( 'Job Title', 'nobloat-user-foundry' ),
+			'secondary_email' => __( 'Secondary Email', 'nobloat-user-foundry' ),
+		);
+
+		foreach ( $profile_fields as $field => $label ) {
+			$value                    = NBUF_Profile_Data::get_field( $user_id, $field );
+			$extended_fields[ $field ] = $value ? $value : '';
+		}
+
+		/* Content counts */
+		$post_count    = count_user_posts( $user_id );
+		$comment_count = self::get_user_comment_count( $user_id );
+
+		wp_send_json_success(
+			array(
+				'id'              => $user_id,
+				'user_login'      => $user->user_login,
+				'user_email'      => $user->user_email,
+				'display_name'    => $user->display_name,
+				'avatar'          => $profile_photo_url,
+				'roles'           => implode( ', ', array_map( 'ucfirst', $user->roles ) ),
+				'registered'      => gmdate( 'M j, Y', strtotime( $user->user_registered ) ),
+				'wp_fields'       => $wp_fields,
+				'extended_fields' => $extended_fields,
+				'post_count'      => $post_count,
+				'comment_count'   => $comment_count,
+			)
+		);
 	}
 
 	/**
@@ -123,7 +249,7 @@ class NBUF_Account_Merger {
 			$unique_values = array();
 
 			foreach ( $account_ids as $user_id ) {
-				$value = NBUF_User_Data::get_profile_field( $user_id, $field );
+				$value = NBUF_Profile_Data::get_field( $user_id, $field );
 				if ( ! empty( $value ) ) {
 					$values[ $user_id ] = $value;
 					$unique_values[]    = $value;
@@ -288,24 +414,35 @@ class NBUF_Account_Merger {
 			wp_die( esc_html__( 'Insufficient permissions', 'nobloat-user-foundry' ) );
 		}
 
-		/* Get merge parameters */
-		$account_ids      = isset( $_POST['nbuf_merge_accounts'] ) ? array_map( 'intval', (array) $_POST['nbuf_merge_accounts'] ) : array();
-		$primary_id       = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
-		$merge_posts      = isset( $_POST['nbuf_merge_posts'] );
-		$merge_comments   = isset( $_POST['nbuf_merge_comments'] );
-		$merge_meta       = isset( $_POST['nbuf_merge_meta'] );
-		$secondary_action = isset( $_POST['nbuf_secondary_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_secondary_action'] ) ) : 'delete';
-		$notify_user      = isset( $_POST['nbuf_notify_user'] );
+		/* Get merge parameters - support both old multi-account and new source/target formats */
+		$source_id = isset( $_POST['nbuf_source_account'] ) ? intval( $_POST['nbuf_source_account'] ) : 0;
+		$target_id = isset( $_POST['nbuf_target_account'] ) ? intval( $_POST['nbuf_target_account'] ) : 0;
 
-		/* Collect conflict resolution selections */
-		$conflict_selections = array();
+		/* New source/target workflow */
+		if ( $source_id && $target_id ) {
+			$account_ids = array( $target_id, $source_id );
+			$primary_id  = $target_id;
+		} else {
+			/* Legacy multi-account workflow */
+			$account_ids = isset( $_POST['nbuf_merge_accounts'] ) ? array_map( 'intval', (array) $_POST['nbuf_merge_accounts'] ) : array();
+			$primary_id  = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
+		}
 
-		/* Collect all conflict resolution fields from POST data */
+		$merge_posts         = isset( $_POST['nbuf_merge_posts'] );
+		$merge_comments      = isset( $_POST['nbuf_merge_comments'] );
+		$merge_meta          = isset( $_POST['nbuf_merge_meta'] );
+		$consolidate_emails  = isset( $_POST['nbuf_consolidate_emails'] );
+		$notify_user         = isset( $_POST['nbuf_notify_user'] );
+
+		/* Collect field choices - which account's values to keep */
+		$field_choices = array();
+
+		/* Collect all field choice selections from POST data */
 		foreach ( $_POST as $key => $value ) {
-			/* Look for conflict selection fields (format: nbuf_conflict_{field}) */
-			if ( 0 === strpos( $key, 'nbuf_conflict_' ) ) {
-				$field                         = str_replace( 'nbuf_conflict_', '', $key );
-				$conflict_selections[ $field ] = sanitize_text_field( wp_unslash( $value ) );
+			/* Look for field choice fields (format: nbuf_field_{field}) */
+			if ( 0 === strpos( $key, 'nbuf_field_' ) ) {
+				$field                 = str_replace( 'nbuf_field_', '', $key );
+				$field_choices[ $field ] = sanitize_text_field( wp_unslash( $value ) );
 			}
 		}
 
@@ -314,17 +451,24 @@ class NBUF_Account_Merger {
 			wp_die( esc_html__( 'Invalid merge parameters', 'nobloat-user-foundry' ) );
 		}
 
+		/* Validate source and target are different */
+		if ( $source_id && $target_id && $source_id === $target_id ) {
+			wp_die( esc_html__( 'Source and target accounts must be different', 'nobloat-user-foundry' ) );
+		}
+
 		/* Execute merge */
 		$result = self::execute_merge(
 			array(
 				'primary_id'          => $primary_id,
+				'source_id'           => $source_id,
 				'account_ids'         => $account_ids,
 				'merge_posts'         => $merge_posts,
 				'merge_comments'      => $merge_comments,
 				'merge_meta'          => $merge_meta,
-				'secondary_action'    => $secondary_action,
+				'consolidate_emails'  => $consolidate_emails,
+				'secondary_action'    => 'delete',
 				'notify_user'         => $notify_user,
-				'conflict_selections' => $conflict_selections,
+				'field_choices'       => $field_choices,
 			)
 		);
 
@@ -367,12 +511,15 @@ class NBUF_Account_Merger {
 	public static function execute_merge( $args ) {
 		$defaults = array(
 			'primary_id'          => 0,
+			'source_id'           => 0,
 			'account_ids'         => array(),
 			'merge_posts'         => true,
 			'merge_comments'      => true,
 			'merge_meta'          => true,
+			'consolidate_emails'  => true,
 			'secondary_action'    => 'delete',
 			'notify_user'         => false,
+			'field_choices'       => array(),
 			'conflict_selections' => array(),
 		);
 
@@ -422,8 +569,15 @@ class NBUF_Account_Merger {
 		$copied_files = array();
 
 		try {
-			/* Consolidate emails */
-			self::consolidate_emails( $args['primary_id'], $secondary_ids );
+			/* Apply field choices from new UI (which account's values to keep) */
+			if ( ! empty( $args['field_choices'] ) && $args['source_id'] ) {
+				self::apply_field_choices( $args['primary_id'], $args['source_id'], $args['field_choices'] );
+			}
+
+			/* Consolidate emails (store source email as secondary) */
+			if ( $args['consolidate_emails'] ) {
+				self::consolidate_emails( $args['primary_id'], $secondary_ids );
+			}
 
 			/* Merge posts */
 			if ( $args['merge_posts'] ) {
@@ -440,7 +594,7 @@ class NBUF_Account_Merger {
 				self::merge_user_meta( $args['primary_id'], $secondary_ids );
 			}
 
-			/* Handle photo conflicts - track copied files */
+			/* Handle photo conflicts - track copied files (legacy workflow) */
 			if ( ! empty( $args['conflict_selections'] ) ) {
 				self::handle_photo_conflicts( $args['primary_id'], $secondary_ids, $args['conflict_selections'], $copied_files );
 				self::handle_role_conflicts( $args['primary_id'], $args['conflict_selections'] );
@@ -580,11 +734,112 @@ class NBUF_Account_Merger {
 
 		/* Validate and store in secondary and tertiary email fields */
 		if ( isset( $secondary_emails[0] ) && is_email( $secondary_emails[0] ) ) {
-			NBUF_User_Data::update_profile_field( $primary_id, 'secondary_email', $secondary_emails[0] );
+			NBUF_Profile_Data::update( $primary_id, array( 'secondary_email' => $secondary_emails[0] ) );
 		}
 
 		if ( isset( $secondary_emails[1] ) && is_email( $secondary_emails[1] ) ) {
-			NBUF_User_Data::update_profile_field( $primary_id, 'tertiary_email', $secondary_emails[1] );
+			NBUF_Profile_Data::update( $primary_id, array( 'tertiary_email' => $secondary_emails[1] ) );
+		}
+	}
+
+	/**
+	 * Apply field choices from new merge UI
+	 *
+	 * Applies the selected field values to the target (primary) account based on admin's choices.
+	 *
+	 * @param int   $target_id     Target user ID (account being kept).
+	 * @param int   $source_id     Source user ID (account being merged).
+	 * @param array $field_choices Array of field => 'source' or 'target'.
+	 */
+	private static function apply_field_choices( $target_id, $source_id, $field_choices ) {
+		$target_user = get_userdata( $target_id );
+		$source_user = get_userdata( $source_id );
+
+		if ( ! $target_user || ! $source_user ) {
+			return;
+		}
+
+		/* WordPress core fields that can be updated */
+		$wp_fields = array( 'display_name', 'first_name', 'last_name', 'nickname', 'description', 'user_url' );
+
+		/* Extended NoBloat fields */
+		$extended_fields = array( 'phone', 'mobile_phone', 'work_phone', 'address', 'city', 'state', 'postal_code', 'country', 'company', 'job_title', 'secondary_email' );
+
+		/* Process each field choice */
+		foreach ( $field_choices as $field => $choice ) {
+			/* Skip if choice is 'target' - no change needed */
+			if ( 'target' === $choice ) {
+				continue;
+			}
+
+			/* Only process if choice is 'source' */
+			if ( 'source' !== $choice ) {
+				continue;
+			}
+
+			/* Handle WordPress core fields */
+			if ( in_array( $field, $wp_fields, true ) ) {
+				$source_value = '';
+				switch ( $field ) {
+					case 'display_name':
+						$source_value = $source_user->display_name;
+						break;
+					case 'first_name':
+						$source_value = $source_user->first_name;
+						break;
+					case 'last_name':
+						$source_value = $source_user->last_name;
+						break;
+					case 'nickname':
+						$source_value = $source_user->nickname;
+						break;
+					case 'description':
+						$source_value = $source_user->description;
+						break;
+					case 'user_url':
+						$source_value = $source_user->user_url;
+						break;
+				}
+
+				/* Update target user with source value */
+				if ( '' !== $source_value || 'description' === $field || 'user_url' === $field ) {
+					wp_update_user(
+						array(
+							'ID'   => $target_id,
+							$field => $source_value,
+						)
+					);
+				}
+			}
+
+			/* Handle extended NoBloat fields */
+			if ( in_array( $field, $extended_fields, true ) ) {
+				$source_value = NBUF_Profile_Data::get_field( $source_id, $field );
+				if ( $source_value ) {
+					NBUF_Profile_Data::update( $target_id, array( $field => $source_value ) );
+				}
+			}
+		}
+
+		/* Log field choices applied */
+		if ( class_exists( 'NBUF_Audit_Log' ) ) {
+			$source_chosen = array_keys( array_filter( $field_choices, function( $v ) { return 'source' === $v; } ) );
+			if ( ! empty( $source_chosen ) ) {
+				NBUF_Audit_Log::log(
+					$target_id,
+					'account_merge_fields',
+					'success',
+					sprintf(
+						/* translators: %s: Comma-separated list of field names */
+						__( 'Applied source account values for fields: %s', 'nobloat-user-foundry' ),
+						implode( ', ', $source_chosen )
+					),
+					array(
+						'source_id'      => $source_id,
+						'fields_applied' => $source_chosen,
+					)
+				);
+			}
 		}
 	}
 
@@ -728,7 +983,7 @@ If you did not request this merge or have questions, please contact the site adm
 		$all_emails = array_unique( $all_emails );
 
 		foreach ( $all_emails as $email ) {
-			wp_mail( $email, $subject, $message );
+			NBUF_Email::send( $email, $subject, $message );
 		}
 	}
 

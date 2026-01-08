@@ -114,6 +114,10 @@ class NBUF_Settings {
 			'nbuf_restrict_admin_access'          => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_admin_redirect_url'             => 'esc_url_raw',
 
+			/* Email Sender Settings */
+			'nbuf_email_sender_address'           => 'sanitize_email',
+			'nbuf_email_sender_name'              => 'sanitize_text_field',
+
 			/* Logout settings */
 			'nbuf_logout_behavior'                => function ( $value ) {
 				return in_array( $value, array( 'immediate', 'confirm' ), true ) ? $value : 'immediate';
@@ -918,6 +922,11 @@ class NBUF_Settings {
 	 * - Hides the native WordPress Users menu
 	 */
 	public static function add_users_submenu() {
+		/* Only modify menus if User Management System is enabled */
+		if ( ! NBUF_Options::get( 'nbuf_user_manager_enabled', false ) ) {
+			return;
+		}
+
 		global $menu, $submenu;
 
 		/* Add "All Users" submenu under User Foundry */
@@ -956,6 +965,11 @@ class NBUF_Settings {
 	 * - Custom Users top-level menu highlights on all user pages
 	 */
 	public static function highlight_users_menu() {
+		/* Only output menu JS if User Management System is enabled */
+		if ( ! NBUF_Options::get( 'nbuf_user_manager_enabled', false ) ) {
+			return;
+		}
+
 		global $pagenow;
 
 		/* Always output script to fix the menu link href */
@@ -1428,6 +1442,7 @@ class NBUF_Settings {
 				'subtabs' => array(
 					'status'    => __( 'Status', 'nobloat-user-foundry' ),
 					'general'   => __( 'General', 'nobloat-user-foundry' ),
+					'email'     => __( 'Email', 'nobloat-user-foundry' ),
 					'pages'     => __( 'Pages', 'nobloat-user-foundry' ),
 					'hooks'     => __( 'Hooks', 'nobloat-user-foundry' ),
 					'redirects' => __( 'Redirects', 'nobloat-user-foundry' ),
@@ -1905,7 +1920,7 @@ class NBUF_Settings {
 						'name'        => 'Ultimate Member',
 						'plugin_file' => 'ultimate-member/ultimate-member.php',
 						'class'       => 'NBUF_Migration_Ultimate_Member',
-						'supports'    => array( 'profile_data', 'restrictions', 'roles' ),
+						'supports'    => array( 'profile_data', 'restrictions' ),
 					),
 					'buddypress'      => array(
 						'name'        => 'BuddyPress',
@@ -1921,51 +1936,68 @@ class NBUF_Settings {
 					'NBUF_Migration',
 					array(
 						'ajax_url'     => admin_url( 'admin-ajax.php' ),
-						'nonce'        => wp_create_nonce( 'nbuf_migration' ),
+						'nonce'        => wp_create_nonce( 'nbuf_migration_nonce' ),
 						'plugins_data' => $available_plugins,
 						'i18n'         => array(
-							'plugin_status'         => __( 'Plugin Status', 'nobloat-user-foundry' ),
-							'source_plugin_status'  => __( 'Source Plugin Status', 'nobloat-user-foundry' ),
-							'error_loading_data'    => __( 'Error loading plugin data.', 'nobloat-user-foundry' ),
-							'error_loading'         => __( 'Error loading plugin data. Please try again.', 'nobloat-user-foundry' ),
-							'users_with_data'       => __( 'Users with Data', 'nobloat-user-foundry' ),
-							'users'                 => __( 'Users', 'nobloat-user-foundry' ),
-							'no_data'               => __( 'No data', 'nobloat-user-foundry' ),
-							'profile_fields'        => __( 'Profile Fields', 'nobloat-user-foundry' ),
-							'source_field'          => __( 'Source Field', 'nobloat-user-foundry' ),
-							'type'                  => __( 'Type', 'nobloat-user-foundry' ),
-							'sample_value'          => __( 'Sample Value', 'nobloat-user-foundry' ),
-							'priority'              => __( 'Priority', 'nobloat-user-foundry' ),
-							'map_to'                => __( 'Map To', 'nobloat-user-foundry' ),
-							'skip_field'            => __( '-- Skip this field --', 'nobloat-user-foundry' ),
-							'showing_first'         => __( 'Showing first 10 of', 'nobloat-user-foundry' ),
-							'custom_roles'          => __( 'Custom User Roles', 'nobloat-user-foundry' ),
-							'role_key'              => __( 'Role Key', 'nobloat-user-foundry' ),
-							'role_name'             => __( 'Role Name', 'nobloat-user-foundry' ),
-							'capabilities'          => __( 'Capabilities', 'nobloat-user-foundry' ),
-							'no_custom_roles'       => __( 'No custom roles found.', 'nobloat-user-foundry' ),
-							'roles_migrated'        => __( 'The following custom roles will be migrated:', 'nobloat-user-foundry' ),
-							'content_restrictions'  => __( 'Content Restrictions', 'nobloat-user-foundry' ),
-							'content'               => __( 'Content', 'nobloat-user-foundry' ),
-							'restriction'           => __( 'Restriction', 'nobloat-user-foundry' ),
-							'status'                => __( 'Status', 'nobloat-user-foundry' ),
-							'no_restrictions'       => __( 'No content restrictions found.', 'nobloat-user-foundry' ),
-							'restrictions_migrated' => __( 'The following content restrictions will be migrated:', 'nobloat-user-foundry' ),
-							'profile_data'          => __( 'Profile Data', 'nobloat-user-foundry' ),
-							'migrate_profile'       => __( 'Migrate user profile fields (phone, company, address, social media, etc.)', 'nobloat-user-foundry' ),
-							'custom_user_roles'     => __( 'Custom Roles', 'nobloat-user-foundry' ),
-							'migrate_roles'         => __( 'Migrate custom roles with their capabilities and settings', 'nobloat-user-foundry' ),
-							'restrictions'          => __( 'restrictions', 'nobloat-user-foundry' ),
-							'migrate_restrictions'  => __( 'Migrate post/page access restrictions and visibility settings', 'nobloat-user-foundry' ),
-							'confirm_migration'     => __( 'Are you sure you want to start the migration? This will update data in your database.', 'nobloat-user-foundry' ),
-							'total'                 => __( 'Total:', 'nobloat-user-foundry' ),
-							'migrated'              => __( 'Migrated:', 'nobloat-user-foundry' ),
-							'skipped'               => __( 'Skipped:', 'nobloat-user-foundry' ),
-							'errors'                => __( 'errors', 'nobloat-user-foundry' ),
-							'migration_complete'    => __( 'Migration Complete!', 'nobloat-user-foundry' ),
-							'complete'              => __( 'Complete', 'nobloat-user-foundry' ),
-							'migration_failed'      => __( 'Migration failed.', 'nobloat-user-foundry' ),
-							'migration_error'       => __( 'Migration failed. Please try again.', 'nobloat-user-foundry' ),
+							/* Status labels */
+							'plugin_status'           => __( 'Plugin Status', 'nobloat-user-foundry' ),
+							'source_plugin_status'    => __( 'Source Plugin Status', 'nobloat-user-foundry' ),
+							'active'                  => __( 'Active', 'nobloat-user-foundry' ),
+							'inactive'                => __( 'Inactive', 'nobloat-user-foundry' ),
+							'status'                  => __( 'Status', 'nobloat-user-foundry' ),
+							'auto'                    => __( 'Auto', 'nobloat-user-foundry' ),
+							'manual'                  => __( 'Manual', 'nobloat-user-foundry' ),
+							'skip'                    => __( 'Skip', 'nobloat-user-foundry' ),
+
+							/* Error messages */
+							'error_loading_data'      => __( 'Error loading plugin data.', 'nobloat-user-foundry' ),
+							'error_loading'           => __( 'Error loading plugin data. Please try again.', 'nobloat-user-foundry' ),
+							'migration_failed'        => __( 'Migration failed.', 'nobloat-user-foundry' ),
+							'migration_error'         => __( 'Migration failed. Please try again.', 'nobloat-user-foundry' ),
+
+							/* Plugin data labels */
+							'users_with_data'         => __( 'Users with Data', 'nobloat-user-foundry' ),
+							'users'                   => __( 'Users', 'nobloat-user-foundry' ),
+							'no_data'                 => __( 'No data', 'nobloat-user-foundry' ),
+							'profile_fields'          => __( 'Profile Fields', 'nobloat-user-foundry' ),
+
+							/* Field mapping labels */
+							'source_field'            => __( 'Source Field', 'nobloat-user-foundry' ),
+							'type'                    => __( 'Type', 'nobloat-user-foundry' ),
+							'sample_value'            => __( 'Sample Value', 'nobloat-user-foundry' ),
+							'priority'                => __( 'Priority', 'nobloat-user-foundry' ),
+							'map_to'                  => __( 'Map To', 'nobloat-user-foundry' ),
+							'skip_field'              => __( '-- Skip this field --', 'nobloat-user-foundry' ),
+
+							/* Migration type labels */
+							'profile_data'            => __( 'Profile Data', 'nobloat-user-foundry' ),
+							'profile_data_desc'       => __( 'Migrate user profile fields (phone, company, address, social media, etc.)', 'nobloat-user-foundry' ),
+							'copy_photos'             => __( 'Copy Profile & Cover Photos', 'nobloat-user-foundry' ),
+							'copy_photos_desc'        => __( 'Copy user photos to NoBloat directory with WebP conversion (if enabled in Media settings)', 'nobloat-user-foundry' ),
+							'content_restrictions'    => __( 'Content Restrictions', 'nobloat-user-foundry' ),
+							'restrictions_desc'       => __( 'Migrate post/page access restrictions and visibility settings', 'nobloat-user-foundry' ),
+							'adopt_roles'             => __( 'Adopt Custom Roles', 'nobloat-user-foundry' ),
+							/* translators: %d: number of orphaned roles */
+							'adopt_roles_desc'        => __( 'Import %d custom role(s) into NoBloat for management (user assignments are preserved)', 'nobloat-user-foundry' ),
+							'user_roles'              => __( 'User Roles', 'nobloat-user-foundry' ),
+							'roles_retained'          => __( 'All user roles and assignments are automatically retained. No custom roles to adopt.', 'nobloat-user-foundry' ),
+
+							/* Restrictions preview */
+							'content'                 => __( 'Content', 'nobloat-user-foundry' ),
+							'restriction'             => __( 'Restriction', 'nobloat-user-foundry' ),
+							'no_restrictions'         => __( 'No content restrictions found.', 'nobloat-user-foundry' ),
+							'restrictions_will_migrate' => __( 'The following content restrictions will be migrated:', 'nobloat-user-foundry' ),
+							/* translators: %d: total number of restrictions */
+							'showing_first_10'        => __( 'Showing first 10 of %d restrictions', 'nobloat-user-foundry' ),
+
+							/* Migration execution */
+							'confirm_migration'       => __( 'Are you sure you want to start the migration? This will update data in your database.', 'nobloat-user-foundry' ),
+							'migration_complete'      => __( 'Migration Complete!', 'nobloat-user-foundry' ),
+							'complete'                => __( 'Complete', 'nobloat-user-foundry' ),
+							'total'                   => __( 'Total', 'nobloat-user-foundry' ),
+							'migrated'                => __( 'Migrated', 'nobloat-user-foundry' ),
+							'skipped'                 => __( 'Skipped', 'nobloat-user-foundry' ),
+							'errors'                  => __( 'Errors', 'nobloat-user-foundry' ),
 						),
 					)
 				);

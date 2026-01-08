@@ -17,7 +17,7 @@ $nbuf_base_slug   = NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry
 $nbuf_default_view = NBUF_Options::get( 'nbuf_universal_default_view', 'account' );
 
 /* Default view options */
-$default_view_options = array(
+$nbuf_default_view_options = array(
 	'account'  => __( 'Account Dashboard', 'nobloat-user-foundry' ),
 	'login'    => __( 'Login Form', 'nobloat-user-foundry' ),
 	'register' => __( 'Registration Form', 'nobloat-user-foundry' ),
@@ -25,7 +25,7 @@ $default_view_options = array(
 );
 
 /* All available URLs */
-$available_urls = array(
+$nbuf_available_urls = array(
 	'login'           => __( 'Login', 'nobloat-user-foundry' ),
 	'register'        => __( 'Registration', 'nobloat-user-foundry' ),
 	'account'         => __( 'Account Dashboard', 'nobloat-user-foundry' ),
@@ -75,9 +75,9 @@ $available_urls = array(
 			<th><?php esc_html_e( 'Default View', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_universal_default_view">
-					<?php foreach ( $default_view_options as $value => $label ) : ?>
-						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $nbuf_default_view, $value ); ?>>
-							<?php echo esc_html( $label ); ?>
+					<?php foreach ( $nbuf_default_view_options as $nbuf_option_value => $nbuf_option_label ) : ?>
+						<option value="<?php echo esc_attr( $nbuf_option_value ); ?>" <?php selected( $nbuf_default_view, $nbuf_option_value ); ?>>
+							<?php echo esc_html( $nbuf_option_label ); ?>
 						</option>
 					<?php endforeach; ?>
 				</select>
@@ -113,16 +113,16 @@ $available_urls = array(
 		</tr>
 	</thead>
 	<tbody>
-		<?php foreach ( $available_urls as $path => $label ) : ?>
-			<?php $full_url = home_url( '/' . $nbuf_base_slug . '/' . $path . '/' ); ?>
+		<?php foreach ( $nbuf_available_urls as $nbuf_path => $nbuf_path_label ) : ?>
+			<?php $nbuf_full_url = home_url( '/' . $nbuf_base_slug . '/' . $nbuf_path . '/' ); ?>
 			<tr>
-				<td style="padding: 8px 10px;"><strong><?php echo esc_html( $label ); ?></strong></td>
+				<td style="padding: 8px 10px;"><strong><?php echo esc_html( $nbuf_path_label ); ?></strong></td>
 				<td style="padding: 8px 10px;">
-					<code style="font-size: 12px;"><?php echo esc_html( $full_url ); ?></code>
+					<code style="font-size: 12px;"><?php echo esc_html( $nbuf_full_url ); ?></code>
 				</td>
 				<td style="padding: 8px 10px;">
-					<?php if ( strpos( $path, '{user}' ) === false ) : ?>
-						<button type="button" class="button button-small nbuf-copy-url" data-url="<?php echo esc_attr( $full_url ); ?>">
+					<?php if ( strpos( $nbuf_path, '{user}' ) === false ) : ?>
+						<button type="button" class="button button-small nbuf-copy-url" data-url="<?php echo esc_attr( $nbuf_full_url ); ?>">
 							<?php esc_html_e( 'Copy URL', 'nobloat-user-foundry' ); ?>
 						</button>
 					<?php endif; ?>

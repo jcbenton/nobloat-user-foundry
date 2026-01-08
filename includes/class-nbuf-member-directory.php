@@ -238,12 +238,13 @@ class NBUF_Member_Directory {
 
 		/* Preserve existing query vars using whitelist approach for security */
 		$allowed_params = apply_filters( 'nbuf_directory_allowed_params', array( 'page_id', 'p', 'preview', 'preview_id', 'preview_nonce' ) );
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters preservation.
 		foreach ( $allowed_params as $param ) {
 			if ( isset( $_GET[ $param ] ) && ! is_array( $_GET[ $param ] ) ) {
 				$html .= '<input type="hidden" name="' . esc_attr( $param ) . '" value="' . esc_attr( sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) ) . '">';
 			}
 		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		/* Search */
 		if ( $show_search ) {
@@ -347,6 +348,7 @@ class NBUF_Member_Directory {
 		$html .= '<div class="nbuf-member-avatar-small">' . self::get_member_avatar( $member->ID, 48 ) . '</div>';
 		$html .= '<div class="nbuf-member-details">';
 		$html .= '<h4 class="nbuf-member-name">';
+		/* translators: %s: user display name */
 		$html .= '<a href="' . esc_url( NBUF_URL::get_profile( $username ) ) . '" aria-label="' . esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ) . '">';
 		$html .= esc_html( $member->display_name );
 		$html .= '</a></h4>';
@@ -470,6 +472,7 @@ class NBUF_Member_Directory {
 		        u.user_email,
 		        u.user_registered,
 		        ud.profile_privacy,
+		        ud.last_login_at,
 		        up.bio,
 		        up.city,
 		        up.state,
@@ -546,7 +549,7 @@ class NBUF_Member_Directory {
 		}
 
 		/* Order by */
-		$allowed_orderby = array( 'display_name', 'user_registered', 'city' );
+		$allowed_orderby = array( 'display_name', 'user_registered', 'city', 'last_login' );
 		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'display_name';
 		$order           = 'DESC' === strtoupper( $args['order'] ) ? 'DESC' : 'ASC';
 
@@ -556,6 +559,8 @@ class NBUF_Member_Directory {
 			$sql .= " ORDER BY u.user_registered {$order}";
 		} elseif ( 'city' === $orderby ) {
 			$sql .= " ORDER BY up.city {$order}, u.display_name ASC";
+		} elseif ( 'last_login' === $orderby ) {
+			$sql .= " ORDER BY ud.last_login_at {$order}";
 		}
 
 		/* Pagination */
@@ -630,6 +635,7 @@ class NBUF_Member_Directory {
 				$username = isset( $member->user_login ) ? $member->user_login : get_userdata( $member->ID )->user_login;
 				?>
 				<h3 class="nbuf-member-name">
+					<?php /* translators: %s: user display name */ ?>
 					<a href="<?php echo esc_url( NBUF_URL::get_profile( $username ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s\'s profile', 'nobloat-user-foundry' ), $member->display_name ) ); ?>">
 						<?php echo esc_html( $member->display_name ); ?>
 					</a>

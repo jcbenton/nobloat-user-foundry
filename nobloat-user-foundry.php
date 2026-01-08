@@ -313,6 +313,9 @@ add_action(
 						array( 'username' => $user_login )
 					);
 				}
+
+				/* Track last login timestamp (always, regardless of 2FA) */
+				NBUF_User_Data::update_last_login( $user->ID );
 			},
 			10,
 			2

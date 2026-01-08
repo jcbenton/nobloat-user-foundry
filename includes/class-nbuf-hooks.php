@@ -106,6 +106,37 @@ class NBUF_Hooks {
 	private static $verification_sent_to = array();
 
 	/**
+	 * Flag indicating plugin's registration is handling verification directly.
+	 *
+	 * When true, the user_register hook should not send verification email
+	 * because NBUF_Registration will send it after user creation completes.
+	 *
+	 * @var bool
+	 */
+	private static $direct_registration = false;
+
+	/**
+	 * Set direct registration flag.
+	 *
+	 * Called by NBUF_Registration before wp_create_user() to prevent
+	 * the user_register hook from sending a duplicate verification email.
+	 *
+	 * @param bool $value True if plugin registration is handling verification.
+	 */
+	public static function set_direct_registration( $value ) {
+		self::$direct_registration = (bool) $value;
+	}
+
+	/**
+	 * Check if direct registration is in progress.
+	 *
+	 * @return bool True if plugin registration is handling verification.
+	 */
+	public static function is_direct_registration() {
+		return self::$direct_registration;
+	}
+
+	/**
 	 * Mark that verification email was sent to a user.
 	 *
 	 * Called by NBUF_Registration to prevent duplicate emails from hook.
@@ -128,6 +159,15 @@ class NBUF_Hooks {
 	 */
 	public static function trigger_verification_email( $user_id ) {
 		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+			return;
+		}
+
+		/*
+		 * Skip if plugin registration is handling verification directly.
+		 * This prevents duplicate emails since the hook fires INSIDE wp_create_user()
+		 * before NBUF_Registration can send its email.
+		 */
+		if ( self::$direct_registration ) {
 			return;
 		}
 
@@ -478,17 +518,8 @@ class NBUF_Hooks {
 		/* Replace placeholders */
 		$message = strtr( $template, $replacements );
 
-		/* Set content type */
-		$content_type_callback = function () use ( $mode ) {
-			return 'html' === $mode ? 'text/html' : 'text/plain';
-		};
-		add_filter( 'wp_mail_content_type', $content_type_callback );
-
-		/* Send email */
-		wp_mail( $admin_email, $subject, $message );
-
-		/* Remove filter */
-		remove_filter( 'wp_mail_content_type', $content_type_callback );
+		/* Send email using central sender */
+		NBUF_Email::send( $admin_email, $subject, $message, $mode );
 	}
 
 	/**

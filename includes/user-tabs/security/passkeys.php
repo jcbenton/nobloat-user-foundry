@@ -19,11 +19,11 @@ $nbuf_passkeys_attestation       = NBUF_Options::get( 'nbuf_passkeys_attestation
 $nbuf_passkeys_timeout           = NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 );
 
 /* Statistics */
-$total_passkeys = 0;
-$users_with_passkeys = 0;
+$nbuf_total_passkeys = 0;
+$nbuf_users_with_passkeys = 0;
 if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
-	$total_passkeys      = NBUF_User_Passkeys_Data::get_total_count();
-	$users_with_passkeys = NBUF_User_Passkeys_Data::get_users_with_passkeys_count();
+	$nbuf_total_passkeys      = NBUF_User_Passkeys_Data::get_total_count();
+	$nbuf_users_with_passkeys = NBUF_User_Passkeys_Data::get_users_with_passkeys_count();
 }
 ?>
 
@@ -166,15 +166,15 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	<?php esc_html_e( 'Users with unsupported browsers will not see the passkey option and can continue using passwords.', 'nobloat-user-foundry' ); ?>
 </p>
 
-<?php if ( $total_passkeys > 0 ) : ?>
+<?php if ( $nbuf_total_passkeys > 0 ) : ?>
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
 	printf(
 		/* translators: 1: total passkeys count, 2: users with passkeys count */
 		esc_html__( '%1$d passkeys registered by %2$d users.', 'nobloat-user-foundry' ),
-		(int) $total_passkeys,
-		(int) $users_with_passkeys
+		(int) $nbuf_total_passkeys,
+		(int) $nbuf_users_with_passkeys
 	);
 	?>
 </p>

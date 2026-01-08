@@ -199,8 +199,16 @@ body.nbuf-page .nbuf-profile-meta-item {
 	border: 1px solid #e2e8f0;
 }
 
-/* Full-width fields (Website, Biography) */
-.nbuf-profile-field-wide {
+/* Full-width fields (Website, Biography) - span both columns */
+body.nbuf-page .nbuf-profile-page .nbuf-profile-fields .nbuf-profile-fields-grid .nbuf-profile-field.nbuf-profile-field-wide,
+body.nbuf-page .nbuf-profile-page .nbuf-profile-fields .nbuf-profile-fields-grid .nbuf-profile-field.nbuf-profile-field-full {
+	grid-column: 1 / -1 !important;
+}
+
+.nbuf-profile-field.nbuf-profile-field-wide,
+.nbuf-profile-fields-grid .nbuf-profile-field-wide,
+.nbuf-profile-field.nbuf-profile-field-full,
+.nbuf-profile-fields-grid .nbuf-profile-field-full {
 	grid-column: 1 / -1;
 }
 

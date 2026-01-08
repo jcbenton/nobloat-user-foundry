@@ -486,6 +486,30 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
     color: var(--nbuf-text);
 }
 
+/* Profile photo preview */
+.nbuf-current-photo {
+    margin-bottom: 20px;
+}
+
+/* Cover photo preview */
+.nbuf-current-cover {
+    margin-bottom: 20px;
+}
+
+.nbuf-cover-photo {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+/* Gravatar option section */
+.nbuf-photo-option-gravatar {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--nbuf-bg-alt, #f9f9f9);
+    border-radius: 4px;
+}
+
 /* Photo action buttons */
 .nbuf-photo-actions {
     display: flex;
@@ -504,6 +528,11 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
         width: 100%;
         text-align: center;
     }
+}
+
+/* Hidden file inputs (triggered by buttons) */
+.nbuf-file-input-hidden {
+    display: none;
 }
 
 /* ==========================================================

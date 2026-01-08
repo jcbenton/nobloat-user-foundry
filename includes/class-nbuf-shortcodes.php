@@ -517,20 +517,8 @@ class NBUF_Shortcodes {
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Password Reset', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		/* Set content type */
-		$content_type_callback = function () use ( $mode ) {
-			return 'html' === $mode ? 'text/html' : 'text/plain';
-		};
-		add_filter( 'wp_mail_content_type', $content_type_callback );
-
-		/*
-		Send email.
-		*/
-		/* SECURITY: Check if email sending succeeded */
-		$sent = wp_mail( $user->user_email, $subject, $message );
-
-		/* Remove filter */
-		remove_filter( 'wp_mail_content_type', $content_type_callback );
+		/* Send email using central sender */
+		$sent = NBUF_Email::send( $user->user_email, $subject, $message, $mode );
 
 		/*
 		* Log email failures for admin visibility.
@@ -672,10 +660,11 @@ class NBUF_Shortcodes {
 			}
 
 			/* Check for redirect_to parameter */
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just reading redirect URL, no data modification.
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Just reading redirect URL, no data modification.
 			if ( isset( $_GET['redirect_to'] ) && ! empty( $_GET['redirect_to'] ) ) {
 				$redirect_url = esc_url_raw( wp_unslash( $_GET['redirect_to'] ) );
 			}
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -2403,7 +2392,7 @@ Best regards,
 		);
 
 		/* Send to old email */
-		wp_mail( $old_email, $subject, $message );
+		NBUF_Email::send( $old_email, $subject, $message );
 	}
 
 	/**
@@ -2606,11 +2595,12 @@ Best regards,
 		nocache_headers();
 
 		/* Verify the file is a valid ZIP before sending */
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fread, WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Reading ZIP signature to verify file integrity.
+		// phpcs:disable WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fread, WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Reading ZIP signature to verify file integrity.
 		$fp = fopen( $export_file, 'rb' );
 		if ( $fp ) {
 			$signature = fread( $fp, 4 );
 			fclose( $fp );
+			// phpcs:enable WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fread, WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			/* Check for ZIP magic number (PK\x03\x04) */
 			if ( 'PK' !== substr( $signature, 0, 2 ) ) {
 				self::set_flash_message( $user_id, __( 'Export file generation failed. ZIP library may not be available.', 'nobloat-user-foundry' ), 'error' );
@@ -2869,7 +2859,7 @@ Best regards,
 							<p>
 							<?php
 							/* translators: %d: number of days remaining */
-							printf( esc_html__( 'You have %d day(s) remaining to complete setup.', 'nobloat-user-foundry' ), $days_left );
+							printf( esc_html__( 'You have %d day(s) remaining to complete setup.', 'nobloat-user-foundry' ), (int) $days_left );
 							?>
 							</p>
 						<?php endif; ?>
@@ -3026,7 +3016,7 @@ Best regards,
 				<?php if ( ! empty( $backup_codes ) ) : ?>
 				<div class="nbuf-backup-codes-section">
 					<h3><?php esc_html_e( 'Save Your Backup Codes', 'nobloat-user-foundry' ); ?></h3>
-					<p><?php esc_html_e( 'These codes can be used to access your account if you lose your authenticator device. Each code can only be used once.', 'nobloat-user-foundry' ); ?></p>
+					<p class="nbuf-backup-codes-description"><?php esc_html_e( 'These codes can be used to access your account if you lose your authenticator device. Each code can only be used once.', 'nobloat-user-foundry' ); ?></p>
 					<p class="nbuf-important"><strong><?php esc_html_e( 'Important: Save these codes in a secure location. You will not see them again!', 'nobloat-user-foundry' ); ?></strong></p>
 
 					<div class="nbuf-backup-codes-list">
@@ -3035,15 +3025,14 @@ Best regards,
 						<?php endforeach; ?>
 					</div>
 
-					<button type="button" class="nbuf-button nbuf-button-secondary" onclick="navigator.clipboard.writeText('<?php echo esc_js( implode( "\n", $backup_codes ) ); ?>').then(function() { alert('<?php echo esc_js( __( 'Backup codes copied to clipboard!', 'nobloat-user-foundry' ) ); ?>'); });">
-						<?php esc_html_e( 'Copy Codes', 'nobloat-user-foundry' ); ?>
-					</button>
+					<div class="nbuf-backup-codes-actions">
+						<button type="button" class="nbuf-button nbuf-button-secondary" onclick="navigator.clipboard.writeText('<?php echo esc_js( implode( "\n", $backup_codes ) ); ?>').then(function() { alert('<?php echo esc_js( __( 'Backup codes copied to clipboard!', 'nobloat-user-foundry' ) ); ?>'); });">
+							<?php esc_html_e( 'Copy Codes', 'nobloat-user-foundry' ); ?>
+						</button>
+						<a href="<?php echo esc_url( $account_url ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a>
+					</div>
 				</div>
 				<?php endif; ?>
-
-				<p class="nbuf-margin-top">
-					<a href="<?php echo esc_url( $account_url ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a>
-				</p>
 			</div>
 		</div>
 		<?php

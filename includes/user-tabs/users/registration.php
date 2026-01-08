@@ -23,8 +23,8 @@ $nbuf_require_verification      = NBUF_Options::get( 'nbuf_require_verification'
 $nbuf_notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
 
 /* Check WordPress registration setting for mismatch warning */
-$wp_users_can_register      = get_option( 'users_can_register' );
-$nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $wp_users_can_register ) || ( ! $nbuf_enable_registration && $wp_users_can_register );
+$nbuf_wp_users_can_register = get_option( 'users_can_register' );
+$nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $nbuf_wp_users_can_register ) || ( ! $nbuf_enable_registration && $nbuf_wp_users_can_register );
 
 ?>
 
@@ -52,7 +52,7 @@ $nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $wp_users_can_reg
 				<?php if ( $nbuf_registration_mismatch ) : ?>
 					<p class="description" style="color: #d63638; margin-top: 8px;">
 						<strong><?php esc_html_e( 'Warning:', 'nobloat-user-foundry' ); ?></strong>
-						<?php if ( $nbuf_enable_registration && ! $wp_users_can_register ) : ?>
+						<?php if ( $nbuf_enable_registration && ! $nbuf_wp_users_can_register ) : ?>
 							<?php esc_html_e( 'NoBloat registration is enabled, but WordPress "Anyone can register" is disabled. Save this page to sync the settings.', 'nobloat-user-foundry' ); ?>
 						<?php else : ?>
 							<?php esc_html_e( 'WordPress "Anyone can register" is enabled, but NoBloat registration is disabled. Save this page to sync the settings.', 'nobloat-user-foundry' ); ?>

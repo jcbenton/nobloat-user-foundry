@@ -63,7 +63,6 @@ class NBUF_Migration {
 		add_action( 'wp_ajax_nbuf_load_migration_plugin', array( __CLASS__, 'ajax_load_migration_plugin' ) );
 		add_action( 'wp_ajax_nbuf_get_field_mappings', array( __CLASS__, 'ajax_get_field_mappings' ) );
 		add_action( 'wp_ajax_nbuf_get_restrictions_preview', array( __CLASS__, 'ajax_get_restrictions_preview' ) );
-		add_action( 'wp_ajax_nbuf_get_roles_preview', array( __CLASS__, 'ajax_get_roles_preview' ) );
 		add_action( 'wp_ajax_nbuf_execute_migration', array( __CLASS__, 'ajax_execute_migration' ) );
 		add_action( 'wp_ajax_nbuf_execute_migration_batch', array( __CLASS__, 'ajax_execute_migration_batch' ) );
 	}
@@ -454,12 +453,17 @@ class NBUF_Migration {
 		}
 
 		$data = array(
-			'is_active'            => false,
-			'user_count'           => 0,
-			'profile_fields_count' => 0,
-			'restrictions_count'   => 0,
-			'roles_count'          => 0,
+			'is_active'             => false,
+			'user_count'            => 0,
+			'profile_fields_count'  => 0,
+			'restrictions_count'    => 0,
+			'orphaned_roles_count'  => 0,
 		);
+
+		/* Get orphaned roles count (available for all migrations) */
+		if ( class_exists( 'NBUF_Role_Manager' ) ) {
+			$data['orphaned_roles_count'] = NBUF_Role_Manager::get_orphaned_role_count();
+		}
 
 		/* For Ultimate Member */
 		if ( 'ultimate-member' === $plugin_slug ) {
@@ -483,11 +487,6 @@ class NBUF_Migration {
 			/* Count restrictions (if restrictions migration class exists) */
 			if ( class_exists( 'NBUF_Migration_UM_Restrictions' ) ) {
 				$data['restrictions_count'] = NBUF_Migration_UM_Restrictions::get_restriction_count();
-			}
-
-			/* Count custom roles (if roles migration class exists) */
-			if ( class_exists( 'NBUF_Migration_UM_Roles' ) ) {
-				$data['roles_count'] = NBUF_Migration_UM_Roles::get_role_count();
 			}
 		}
 
@@ -577,31 +576,21 @@ class NBUF_Migration {
 				wp_send_json_error( array( 'message' => __( 'BuddyPress migration class not found', 'nobloat-user-foundry' ) ) );
 			}
 
-			$preview = NBUF_Migration_BP_Profile::get_migration_preview( 1 );
+			/*
+			 * Use get_field_statistics() to get field definitions.
+			 * This shows all fields regardless of whether users have data.
+			 */
+			$stats = NBUF_Migration_BP_Profile::get_field_statistics();
 
-			if ( ! empty( $preview ) ) {
-				$first_user = $preview[0];
-
-				/* Add mapped fields */
-				if ( ! empty( $first_user['mapped_fields'] ) ) {
-					foreach ( $first_user['mapped_fields'] as $field ) {
-						$mappings[ $field['bp_name'] ] = array(
-							'target'      => $field['nbuf_field'],
-							'auto_mapped' => true,
-							'sample'      => wp_trim_words( $field['bp_value'], 5 ),
-						);
-					}
-				}
-
-				/* Add unmapped fields */
-				if ( ! empty( $first_user['unmapped_fields'] ) ) {
-					foreach ( $first_user['unmapped_fields'] as $field ) {
-						$mappings[ $field['bp_name'] ] = array(
-							'target'      => '',
-							'auto_mapped' => false,
-							'sample'      => wp_trim_words( $field['bp_value'], 5 ),
-						);
-					}
+			if ( ! empty( $stats['field_details'] ) ) {
+				foreach ( $stats['field_details'] as $field ) {
+					$mappings[ $field['bp_name'] ] = array(
+						'target'      => $field['is_mapped'] ? $field['nbuf_field'] : '',
+						'auto_mapped' => $field['is_mapped'],
+						/* translators: %d: number of users who have data for this field */
+						'sample'      => $field['usage'] > 0 ? sprintf( __( '%d users', 'nobloat-user-foundry' ), $field['usage'] ) : '',
+						'bp_type'     => $field['bp_type'],
+					);
 				}
 			}
 		}
@@ -659,39 +648,9 @@ class NBUF_Migration {
 	}
 
 	/**
-	 * AJAX: Get roles preview
-	 *
-	 * Returns preview of roles to be migrated
-	 */
-	public static function ajax_get_roles_preview() {
-		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
-		}
-
-		$plugin_slug = isset( $_POST['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_slug'] ) ) : '';
-
-		if ( empty( $plugin_slug ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid plugin slug', 'nobloat-user-foundry' ) ) );
-		}
-
-		$roles = array();
-
-		/* For Ultimate Member */
-		if ( 'ultimate-member' === $plugin_slug ) {
-			if ( class_exists( 'NBUF_Migration_UM_Roles' ) ) {
-				$roles = NBUF_Migration_UM_Roles::get_migration_preview( 20 );
-			}
-		}
-
-		wp_send_json_success( array( 'roles' => $roles ) );
-	}
-
-	/**
 	 * AJAX: Execute migration
 	 *
-	 * Executes selected migration types (profile_data, restrictions, roles)
+	 * Executes selected migration types (profile_data, restrictions)
 	 */
 	public static function ajax_execute_migration() {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
@@ -761,13 +720,6 @@ class NBUF_Migration {
 		if ( in_array( 'restrictions', $migration_types, true ) ) {
 			if ( 'ultimate-member' === $plugin_slug && class_exists( 'NBUF_Migration_UM_Restrictions' ) ) {
 				$results['restrictions'] = NBUF_Migration_UM_Restrictions::migrate_restrictions();
-			}
-		}
-
-		/* Execute roles migration */
-		if ( in_array( 'roles', $migration_types, true ) ) {
-			if ( 'ultimate-member' === $plugin_slug && class_exists( 'NBUF_Migration_UM_Roles' ) ) {
-				$results['roles'] = NBUF_Migration_UM_Roles::migrate_roles();
 			}
 		}
 
@@ -862,7 +814,7 @@ class NBUF_Migration {
 			$decoded              = json_decode( $migration_types_json, true );
 
 			if ( is_array( $decoded ) ) {
-				$allowed_types = array( 'profile_data', 'restrictions', 'roles' );
+				$allowed_types = array( 'profile_data', 'restrictions', 'adopt_roles' );
 
 				foreach ( $decoded as $type ) {
 					/* Ensure each type is a string and in allowed list */
@@ -937,6 +889,20 @@ class NBUF_Migration {
 
 					$results['profile_data'] = NBUF_Migration_BP_Profile::migrate_profile_data( $options );
 				}
+			}
+		}
+
+		/* Execute restrictions migration (only on first batch) */
+		if ( 0 === $batch_offset && in_array( 'restrictions', $migration_types, true ) ) {
+			if ( 'ultimate-member' === $plugin_slug && class_exists( 'NBUF_Migration_UM_Restrictions' ) ) {
+				$results['restrictions'] = NBUF_Migration_UM_Restrictions::migrate_restrictions();
+			}
+		}
+
+		/* Execute adopt roles (only on first batch) */
+		if ( 0 === $batch_offset && in_array( 'adopt_roles', $migration_types, true ) ) {
+			if ( class_exists( 'NBUF_Role_Manager' ) ) {
+				$results['adopt_roles'] = NBUF_Role_Manager::adopt_all_orphaned_roles();
 			}
 		}
 

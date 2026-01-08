@@ -16,20 +16,21 @@ $nbuf_backup_count   = NBUF_Options::get( 'nbuf_2fa_backup_count', 4 );
 $nbuf_backup_length  = NBUF_Options::get( 'nbuf_2fa_backup_length', 32 );
 
 /* Statistics - count users with backup codes */
-$users_with_backup_codes = 0;
+$nbuf_users_with_backup_codes = 0;
 global $wpdb;
-$table_name = $wpdb->prefix . 'nbuf_user_2fa';
-if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$users_with_backup_codes = (int) $wpdb->get_var(
+$nbuf_table_name = $wpdb->prefix . 'nbuf_user_2fa';
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom 2FA table statistics.
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) ) === $nbuf_table_name ) {
+	$nbuf_users_with_backup_codes = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			'SELECT COUNT(*) FROM %i WHERE backup_codes IS NOT NULL AND backup_codes != %s AND backup_codes != %s',
-			$table_name,
+			$nbuf_table_name,
 			'',
 			'[]'
 		)
 	);
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -84,14 +85,14 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === 
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
 
-<?php if ( $users_with_backup_codes > 0 ) : ?>
+<?php if ( $nbuf_users_with_backup_codes > 0 ) : ?>
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
 	printf(
 		/* translators: %d: number of users with backup codes */
-		esc_html( _n( '%d user has backup codes generated.', '%d users have backup codes generated.', $users_with_backup_codes, 'nobloat-user-foundry' ) ),
-		(int) $users_with_backup_codes
+		esc_html( _n( '%d user has backup codes generated.', '%d users have backup codes generated.', $nbuf_users_with_backup_codes, 'nobloat-user-foundry' ) ),
+		(int) $nbuf_users_with_backup_codes
 	);
 	?>
 </p>

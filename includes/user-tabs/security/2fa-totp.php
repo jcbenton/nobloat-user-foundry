@@ -18,9 +18,9 @@ $nbuf_totp_tolerance = NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
 $nbuf_totp_qr_size   = NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 );
 
 /* Statistics */
-$users_with_totp = 0;
+$nbuf_users_with_totp = 0;
 if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
-	$users_with_totp = NBUF_User_2FA_Data::get_count( 'totp' );
+	$nbuf_users_with_totp = NBUF_User_2FA_Data::get_count( 'totp' );
 }
 ?>
 
@@ -123,14 +123,14 @@ if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>
 
-<?php if ( $users_with_totp > 0 ) : ?>
+<?php if ( $nbuf_users_with_totp > 0 ) : ?>
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
 	printf(
 		/* translators: %d: number of users with authenticator enabled */
-		esc_html( _n( '%d user has an authenticator app configured.', '%d users have an authenticator app configured.', $users_with_totp, 'nobloat-user-foundry' ) ),
-		(int) $users_with_totp
+		esc_html( _n( '%d user has an authenticator app configured.', '%d users have an authenticator app configured.', $nbuf_users_with_totp, 'nobloat-user-foundry' ) ),
+		(int) $nbuf_users_with_totp
 	);
 	?>
 </p>

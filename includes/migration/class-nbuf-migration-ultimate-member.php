@@ -89,8 +89,8 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				'transform' => 'um_account_status_to_verified',
 			),
 			'_um_last_login'       => array(
-				'target'    => 'audit_log',
-				'transform' => 'um_last_login_to_audit',
+				'target'    => 'nbuf_user_data.last_login_at',
+				'transform' => 'um_timestamp_to_datetime',
 			),
 
 			/* Contact fields */
@@ -449,6 +449,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 						0,
 						'security',
 						'invalid_user_id_photo_migration',
+						__( 'Invalid user ID during photo migration', 'nobloat-user-foundry' ),
 						array( 'attempted_user_id' => $user_id )
 					);
 				}
@@ -483,6 +484,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 							$user_id_safe,
 							'security',
 							'path_traversal_attempt',
+							__( 'Path traversal attempt detected during photo migration', 'nobloat-user-foundry' ),
 							array(
 								'um_user_dir' => $um_user_dir,
 								'context'     => 'photo_migration_directory',
@@ -508,6 +510,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 								$user_id_safe,
 								'security',
 								'path_traversal_attempt',
+								__( 'Path traversal attempt detected during profile photo migration', 'nobloat-user-foundry' ),
 								array(
 									'filename'    => $profile_photo_filename,
 									'source_path' => $source_path,
@@ -546,6 +549,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 								$user_id_safe,
 								'security',
 								'path_traversal_attempt',
+								__( 'Path traversal attempt detected during cover photo migration', 'nobloat-user-foundry' ),
 								array(
 									'filename'    => $cover_photo_filename,
 									'source_path' => $source_path,
@@ -689,6 +693,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				$user_id,
 				'users',
 				'migration_imported',
+				__( 'User data imported from Ultimate Member', 'nobloat-user-foundry' ),
 				array(
 					'source_plugin' => 'Ultimate Member',
 					'verified'      => $is_verified,

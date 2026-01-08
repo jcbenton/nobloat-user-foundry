@@ -707,7 +707,12 @@
 	margin-bottom: 15px;
 }
 
+.nbuf-current-photo {
+	margin-bottom: 20px;
+}
+
 .nbuf-photo-option-gravatar {
+	margin-top: 20px;
 	padding: 15px;
 	background: #f9f9f9;
 	border-radius: 4px;
@@ -733,7 +738,7 @@
 }
 
 .nbuf-current-cover {
-	margin-bottom: 15px;
+	margin-bottom: 20px;
 }
 
 .nbuf-cover-photo {

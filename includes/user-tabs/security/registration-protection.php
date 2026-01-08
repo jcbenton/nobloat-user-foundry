@@ -12,33 +12,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$enabled          = NBUF_Options::get( 'nbuf_antibot_enabled', true );
-$honeypot_enabled = NBUF_Options::get( 'nbuf_antibot_honeypot', true );
-$time_check       = NBUF_Options::get( 'nbuf_antibot_time_check', true );
-$min_time         = NBUF_Options::get( 'nbuf_antibot_min_time', 3 );
-$js_token         = NBUF_Options::get( 'nbuf_antibot_js_token', true );
-$interaction      = NBUF_Options::get( 'nbuf_antibot_interaction', true );
-$min_interactions = NBUF_Options::get( 'nbuf_antibot_min_interactions', 3 );
-$pow_enabled      = NBUF_Options::get( 'nbuf_antibot_pow', true );
-$pow_difficulty   = NBUF_Options::get( 'nbuf_antibot_pow_difficulty', 'medium' );
+$nbuf_enabled          = NBUF_Options::get( 'nbuf_antibot_enabled', true );
+$nbuf_honeypot_enabled = NBUF_Options::get( 'nbuf_antibot_honeypot', true );
+$nbuf_time_check       = NBUF_Options::get( 'nbuf_antibot_time_check', true );
+$nbuf_min_time         = NBUF_Options::get( 'nbuf_antibot_min_time', 3 );
+$nbuf_js_token         = NBUF_Options::get( 'nbuf_antibot_js_token', true );
+$nbuf_interaction      = NBUF_Options::get( 'nbuf_antibot_interaction', true );
+$nbuf_min_interactions = NBUF_Options::get( 'nbuf_antibot_min_interactions', 3 );
+$nbuf_pow_enabled      = NBUF_Options::get( 'nbuf_antibot_pow', true );
+$nbuf_pow_difficulty   = NBUF_Options::get( 'nbuf_antibot_pow_difficulty', 'medium' );
 
 /* Statistics - count blocked attempts in last 30 days */
-$blocked_count = 0;
+$nbuf_blocked_count = 0;
 if ( class_exists( 'NBUF_Security_Log' ) ) {
 	global $wpdb;
-	$table_name = $wpdb->prefix . 'nbuf_security_log';
-	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$blocked_count = (int) $wpdb->get_var(
+	$nbuf_table_name = $wpdb->prefix . 'nbuf_security_log';
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom security log table statistics.
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) ) === $nbuf_table_name ) {
+		$nbuf_date_from = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
+		$nbuf_blocked_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COALESCE(SUM(occurrence_count), 0) FROM %i WHERE event_type = %s AND timestamp >= %s",
-				$table_name,
+				$nbuf_table_name,
 				'registration_bot_blocked',
-				$date_from
+				$nbuf_date_from
 			)
 		);
 	}
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 }
 ?>
 
@@ -69,7 +70,7 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'Enable Anti-Bot Protection', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_enabled" value="1" <?php checked( $enabled, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_enabled" value="1" <?php checked( $nbuf_enabled, true ); ?>>
 					<?php esc_html_e( 'Enable anti-bot protection for registration forms', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -87,7 +88,7 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'Dynamic Honeypot Fields', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_honeypot" value="1" <?php checked( $honeypot_enabled, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_honeypot" value="1" <?php checked( $nbuf_honeypot_enabled, true ); ?>>
 					<?php esc_html_e( 'Add invisible honeypot fields', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -101,11 +102,11 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'Minimum Time Check', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_time_check" value="1" <?php checked( $time_check, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_time_check" value="1" <?php checked( $nbuf_time_check, true ); ?>>
 					<?php esc_html_e( 'Require minimum time before submission', 'nobloat-user-foundry' ); ?>
 				</label>
 				<br><br>
-				<input type="number" name="nbuf_antibot_min_time" value="<?php echo esc_attr( $min_time ); ?>" min="1" max="30" class="small-text">
+				<input type="number" name="nbuf_antibot_min_time" value="<?php echo esc_attr( $nbuf_min_time ); ?>" min="1" max="30" class="small-text">
 				<span><?php esc_html_e( 'seconds minimum', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Reject forms submitted faster than this threshold. Real users need time to read and fill the form, while bots submit instantly. Default: 3 seconds.', 'nobloat-user-foundry' ); ?>
@@ -118,7 +119,7 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'JavaScript Token Validation', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_js_token" value="1" <?php checked( $js_token, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_js_token" value="1" <?php checked( $nbuf_js_token, true ); ?>>
 					<?php esc_html_e( 'Require JavaScript-generated token', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
@@ -132,11 +133,11 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'Interaction Detection', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_interaction" value="1" <?php checked( $interaction, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_interaction" value="1" <?php checked( $nbuf_interaction, true ); ?>>
 					<?php esc_html_e( 'Track mouse and keyboard interactions', 'nobloat-user-foundry' ); ?>
 				</label>
 				<br><br>
-				<input type="number" name="nbuf_antibot_min_interactions" value="<?php echo esc_attr( $min_interactions ); ?>" min="1" max="50" class="small-text">
+				<input type="number" name="nbuf_antibot_min_interactions" value="<?php echo esc_attr( $nbuf_min_interactions ); ?>" min="1" max="50" class="small-text">
 				<span><?php esc_html_e( 'minimum interactions required', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'Monitors for human-like behavior: mouse movements, clicks, key presses, and focus changes. Forms without sufficient interaction are rejected. Default: 3 interactions.', 'nobloat-user-foundry' ); ?>
@@ -149,19 +150,19 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 			<th><?php esc_html_e( 'Proof of Work Challenge', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<label>
-					<input type="checkbox" name="nbuf_antibot_pow" value="1" <?php checked( $pow_enabled, true ); ?>>
+					<input type="checkbox" name="nbuf_antibot_pow" value="1" <?php checked( $nbuf_pow_enabled, true ); ?>>
 					<?php esc_html_e( 'Require computational proof of work', 'nobloat-user-foundry' ); ?>
 				</label>
 				<br><br>
 				<label><?php esc_html_e( 'Difficulty:', 'nobloat-user-foundry' ); ?></label>
 				<select name="nbuf_antibot_pow_difficulty">
-					<option value="low" <?php selected( $pow_difficulty, 'low' ); ?>>
+					<option value="low" <?php selected( $nbuf_pow_difficulty, 'low' ); ?>>
 						<?php esc_html_e( 'Low (~10ms, ~256 iterations)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="medium" <?php selected( $pow_difficulty, 'medium' ); ?>>
+					<option value="medium" <?php selected( $nbuf_pow_difficulty, 'medium' ); ?>>
 						<?php esc_html_e( 'Medium (~50ms, ~4,096 iterations)', 'nobloat-user-foundry' ); ?>
 					</option>
-					<option value="high" <?php selected( $pow_difficulty, 'high' ); ?>>
+					<option value="high" <?php selected( $nbuf_pow_difficulty, 'high' ); ?>>
 						<?php esc_html_e( 'High (~200ms, ~65,536 iterations)', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
@@ -182,16 +183,16 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 <h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
 <p class="description">
 	<?php
-	if ( $blocked_count > 0 ) {
+	if ( $nbuf_blocked_count > 0 ) {
 		printf(
 			/* translators: %d: number of blocked attempts */
 			esc_html( _n(
 				'%d bot registration attempt blocked in the last 30 days.',
 				'%d bot registration attempts blocked in the last 30 days.',
-				$blocked_count,
+				$nbuf_blocked_count,
 				'nobloat-user-foundry'
 			) ),
-			(int) $blocked_count
+			(int) $nbuf_blocked_count
 		);
 	} else {
 		esc_html_e( 'No bot registration attempts blocked in the last 30 days.', 'nobloat-user-foundry' );

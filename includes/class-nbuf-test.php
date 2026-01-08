@@ -83,6 +83,9 @@ class NBUF_Test {
 			case 'security-alert':
 				$sent = self::send_test_security_alert( $recipient );
 				break;
+			case 'profile-change':
+				$sent = self::send_test_profile_change( $recipient );
+				break;
 		}
 
 		remove_filter( 'wp_mail_from', $from_callback );
@@ -298,24 +301,10 @@ class NBUF_Test {
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_security_alert( $recipient ) {
-		/* Use NBUF_Security_Log's test email if available */
-		if ( class_exists( 'NBUF_Security_Log' ) && method_exists( 'NBUF_Security_Log', 'send_test_email' ) ) {
-			/* Temporarily override the recipient */
-			add_filter(
-				'nbuf_security_alert_recipient',
-				function () use ( $recipient ) {
-					return $recipient;
-				}
-			);
+		$site_name    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$current_user = wp_get_current_user();
 
-			$result = NBUF_Security_Log::send_test_email();
-
-			return ! is_wp_error( $result );
-		}
-
-		/* Fallback: send a basic test security alert */
-		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		$subject   = sprintf(
+		$subject = sprintf(
 			/* translators: %s: site name */
 			__( '[%s] Test Security Alert', 'nobloat-user-foundry' ),
 			$site_name
@@ -330,6 +319,11 @@ class NBUF_Test {
 		$message .= __( '--- Sample Alert ---', 'nobloat-user-foundry' ) . "\n\n";
 		$message .= __( 'Event Type: Test Alert', 'nobloat-user-foundry' ) . "\n";
 		$message .= __( 'Severity: Critical', 'nobloat-user-foundry' ) . "\n";
+		$message .= sprintf(
+			/* translators: %s: username */
+			__( 'User: %s', 'nobloat-user-foundry' ),
+			$current_user->user_login
+		) . "\n";
 		$message .= __( 'IP Address: 127.0.0.1', 'nobloat-user-foundry' ) . "\n";
 		$message .= sprintf(
 			/* translators: %s: date/time */
@@ -337,6 +331,57 @@ class NBUF_Test {
 			current_time( 'F j, Y g:i a' )
 		) . "\n\n";
 		$message .= __( 'This is a test notification. No actual security event occurred.', 'nobloat-user-foundry' );
+
+		return wp_mail( $recipient, $subject, $message );
+	}
+
+	/**
+	 * Send test profile change notification email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_profile_change( $recipient ) {
+		$site_name    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$current_user = wp_get_current_user();
+
+		$subject = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] Test Profile Change Notification', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$message  = sprintf(
+			/* translators: %s: site name */
+			__( 'This is a test profile change notification from %s.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( 'If you received this email, your profile change notifications are configured correctly.', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= __( '--- Sample Notification ---', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: username */
+			__( 'User: %s', 'nobloat-user-foundry' ),
+			$current_user->user_login
+		) . "\n";
+		$message .= sprintf(
+			/* translators: %s: display name */
+			__( 'Display Name: %s', 'nobloat-user-foundry' ),
+			$current_user->display_name
+		) . "\n";
+		$message .= sprintf(
+			/* translators: %s: email */
+			__( 'Email: %s', 'nobloat-user-foundry' ),
+			$current_user->user_email
+		) . "\n\n";
+		$message .= __( 'Changes:', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( '• Display Name: "Old Name" → "New Name"', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( '• Email: "old@example.com" → "new@example.com"', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: date/time */
+			__( 'Changed at: %s', 'nobloat-user-foundry' ),
+			current_time( 'F j, Y g:i a' )
+		) . "\n\n";
+		$message .= __( 'This is a test notification. No actual profile change occurred.', 'nobloat-user-foundry' );
 
 		return wp_mail( $recipient, $subject, $message );
 	}

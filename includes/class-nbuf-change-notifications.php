@@ -301,7 +301,7 @@ class NBUF_Change_Notifications {
 
 		/* Send email */
 		foreach ( $recipients as $recipient ) {
-			wp_mail( $recipient, $subject, $message );
+			NBUF_Email::send( $recipient, $subject, $message );
 		}
 	}
 
@@ -458,7 +458,7 @@ class NBUF_Change_Notifications {
 
 		/* Send email */
 		foreach ( $recipients as $recipient ) {
-			wp_mail( $recipient, $subject, $message );
+			NBUF_Email::send( $recipient, $subject, $message );
 		}
 
 		/* Clear pending changes */

@@ -995,6 +995,32 @@ class NBUF_Database {
 	}
 
 	/**
+	 * Update user_data table for last login tracking.
+	 *
+	 * Adds last_login_at column to track when users last logged in.
+	 * Enables member directory sorting by last login and admin visibility.
+	 *
+	 * Safe to run multiple times (only adds column if it doesn't exist).
+	 */
+	public static function update_user_data_table_for_last_login() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_user_data';
+
+		/* Add last_login_at column after password_changed_at */
+		if ( ! self::column_exists( $table_name, 'last_login_at' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN last_login_at DATETIME DEFAULT NULL AFTER password_changed_at', $table_name ) );
+		}
+
+		/* Add index for sorting by last login */
+		$indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = 'idx_last_login'", $table_name ) );
+		if ( empty( $indexes ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_last_login (last_login_at)', $table_name ) );
+		}
+
+		return true;
+	}
+
+	/**
 	==========================================================
 	MIGRATE AUDIT LOG INDEXES
 	----------------------------------------------------------

@@ -328,8 +328,8 @@ If you did not request this code, please ignore this email.
 			get_bloginfo( 'name' )
 		);
 
-		/* Send email using wp_mail */
-		return wp_mail( $user->user_email, $subject, $message );
+		/* Send email using central sender */
+		return NBUF_Email::send( $user->user_email, $subject, $message );
 	}
 
 	/**

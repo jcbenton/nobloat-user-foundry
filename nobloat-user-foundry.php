@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Lightweight user management system for WordPress - email verification, account expiration, and user lifecycle management without the bloat.
- * Version: 1.4.0
+ * Version: 1.4.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: NoBloat
@@ -118,7 +118,7 @@ add_filter(
  * to run on existing tables (only makes changes if needed).
  */
 function nbuf_maybe_upgrade_database() {
-	$current_db_version = '1.5.0'; /* Update this when adding new tables */
+	$current_db_version = '1.4.1'; /* Update this when adding new tables - bumped for webhooks */
 	$stored_db_version  = get_option( 'nbuf_db_version', '0' );
 
 	if ( version_compare( $stored_db_version, $current_db_version, '<' ) ) {
@@ -142,6 +142,10 @@ function nbuf_maybe_upgrade_database() {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::create_table();
 			}
+
+			/* Create webhooks tables */
+			NBUF_Database::create_webhooks_table();
+			NBUF_Database::create_webhook_log_table();
 		}
 
 		/* Update stored version */
@@ -447,6 +451,12 @@ add_action(
 		$version_history_enabled = NBUF_Options::get( 'nbuf_version_history_enabled', true );
 		if ( $version_history_enabled ) {
 			new NBUF_Version_History();
+		}
+
+		// Initialize Webhooks (if enabled).
+		$webhooks_enabled = NBUF_Options::get( 'nbuf_webhooks_enabled', false );
+		if ( $webhooks_enabled ) {
+			NBUF_Webhooks::init();
 		}
 	},
 	5

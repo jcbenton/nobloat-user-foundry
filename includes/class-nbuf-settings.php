@@ -525,6 +525,9 @@ class NBUF_Settings {
 			'nbuf_restrict_taxonomies_filter_queries' => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_restrictions_post_types'           => array( __CLASS__, 'sanitize_post_type_array' ),
 			'nbuf_restrict_taxonomies_list'          => array( __CLASS__, 'sanitize_taxonomy_array' ),
+
+			/* Webhooks */
+			'nbuf_webhooks_enabled'                  => array( __CLASS__, 'sanitize_checkbox' ),
 		);
 	}
 
@@ -542,9 +545,33 @@ class NBUF_Settings {
 			wp_die( esc_html__( 'Unauthorized access.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Verify nonce */
-		if ( ! isset( $_POST['nbuf_settings_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_settings_nonce'] ) ), 'nbuf_save_settings' ) ) {
+		/* Verify nonce - check both POST and GET for webhook actions */
+		$nonce = '';
+		if ( isset( $_POST['nbuf_settings_nonce'] ) ) {
+			$nonce = sanitize_text_field( wp_unslash( $_POST['nbuf_settings_nonce'] ) );
+		} elseif ( isset( $_GET['nbuf_settings_nonce'] ) ) {
+			$nonce = sanitize_text_field( wp_unslash( $_GET['nbuf_settings_nonce'] ) );
+		}
+
+		if ( ! wp_verify_nonce( $nonce, 'nbuf_save_settings' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Handle webhook actions */
+		$webhook_action = '';
+		$webhook_id     = 0;
+
+		if ( isset( $_POST['nbuf_webhook_action'] ) ) {
+			$webhook_action = sanitize_text_field( wp_unslash( $_POST['nbuf_webhook_action'] ) );
+			$webhook_id     = isset( $_POST['nbuf_webhook_id'] ) ? absint( $_POST['nbuf_webhook_id'] ) : 0;
+		} elseif ( isset( $_GET['nbuf_webhook_action'] ) ) {
+			$webhook_action = sanitize_text_field( wp_unslash( $_GET['nbuf_webhook_action'] ) );
+			$webhook_id     = isset( $_GET['nbuf_webhook_id'] ) ? absint( $_GET['nbuf_webhook_id'] ) : 0;
+		}
+
+		if ( $webhook_action ) {
+			self::handle_webhook_action( $webhook_action, $webhook_id );
+			return;
 		}
 
 		$registry      = self::get_settings_registry();
@@ -651,6 +678,94 @@ class NBUF_Settings {
 	}
 
 	/**
+	 * Handle webhook CRUD actions.
+	 *
+	 * @param string $action     The webhook action (create, update, delete, test).
+	 * @param int    $webhook_id The webhook ID (for update/delete/test).
+	 */
+	private static function handle_webhook_action( $action, $webhook_id ) {
+		$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=webhooks' );
+
+		switch ( $action ) {
+			case 'create':
+				// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_settings_save.
+				$data = array(
+					'name'    => isset( $_POST['webhook_name'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_name'] ) ) : '',
+					'url'     => isset( $_POST['webhook_url'] ) ? esc_url_raw( wp_unslash( $_POST['webhook_url'] ) ) : '',
+					'secret'  => isset( $_POST['webhook_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_secret'] ) ) : '',
+					'events'  => isset( $_POST['webhook_events'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['webhook_events'] ) ) : array(),
+					'enabled' => ! empty( $_POST['webhook_enabled'] ),
+				);
+				// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+				if ( empty( $data['name'] ) || empty( $data['url'] ) ) {
+					set_transient( 'nbuf_webhook_error', __( 'Webhook name and URL are required.', 'nobloat-user-foundry' ), 30 );
+				} else {
+					$result = NBUF_Webhooks::create( $data );
+					if ( $result ) {
+						set_transient( 'nbuf_settings_saved', true, 30 );
+					} else {
+						set_transient( 'nbuf_webhook_error', __( 'Failed to create webhook.', 'nobloat-user-foundry' ), 30 );
+					}
+				}
+				break;
+
+			case 'update':
+				if ( ! $webhook_id ) {
+					break;
+				}
+
+				// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_settings_save.
+				$data = array(
+					'name'    => isset( $_POST['webhook_name'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_name'] ) ) : '',
+					'url'     => isset( $_POST['webhook_url'] ) ? esc_url_raw( wp_unslash( $_POST['webhook_url'] ) ) : '',
+					'secret'  => isset( $_POST['webhook_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_secret'] ) ) : '',
+					'events'  => isset( $_POST['webhook_events'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['webhook_events'] ) ) : array(),
+					'enabled' => ! empty( $_POST['webhook_enabled'] ),
+				);
+				// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+				$result = NBUF_Webhooks::update( $webhook_id, $data );
+				if ( $result ) {
+					set_transient( 'nbuf_settings_saved', true, 30 );
+				} else {
+					set_transient( 'nbuf_webhook_error', __( 'Failed to update webhook.', 'nobloat-user-foundry' ), 30 );
+				}
+				break;
+
+			case 'delete':
+				if ( ! $webhook_id ) {
+					break;
+				}
+
+				$result = NBUF_Webhooks::delete( $webhook_id );
+				if ( $result ) {
+					set_transient( 'nbuf_webhook_deleted', true, 30 );
+				} else {
+					set_transient( 'nbuf_webhook_error', __( 'Failed to delete webhook.', 'nobloat-user-foundry' ), 30 );
+				}
+				break;
+
+			case 'test':
+				if ( ! $webhook_id ) {
+					break;
+				}
+
+				$result = NBUF_Webhooks::test( $webhook_id );
+				if ( $result['success'] ) {
+					set_transient( 'nbuf_webhook_test_success', $result['message'], 30 );
+				} else {
+					set_transient( 'nbuf_webhook_error', $result['message'], 30 );
+				}
+				break;
+		}
+
+		$redirect_url = add_query_arg( 'settings-updated', 'true', $redirect_url );
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
 	 * Display settings saved notice.
 	 */
 	public static function display_settings_notices() {
@@ -667,6 +782,25 @@ class NBUF_Settings {
 		if ( isset( $_GET['settings-updated'] ) && 'true' === $_GET['settings-updated'] ) {
 			delete_transient( 'nbuf_settings_saved' );
 			echo '<div class="notice notice-success is-dismissible"><p><strong>' . esc_html__( 'Settings saved.', 'nobloat-user-foundry' ) . '</strong></p></div>';
+		}
+
+		/* Webhook-specific notices */
+		$webhook_error = get_transient( 'nbuf_webhook_error' );
+		if ( $webhook_error ) {
+			delete_transient( 'nbuf_webhook_error' );
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $webhook_error ) . '</p></div>';
+		}
+
+		$webhook_deleted = get_transient( 'nbuf_webhook_deleted' );
+		if ( $webhook_deleted ) {
+			delete_transient( 'nbuf_webhook_deleted' );
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Webhook deleted.', 'nobloat-user-foundry' ) . '</p></div>';
+		}
+
+		$webhook_test = get_transient( 'nbuf_webhook_test_success' );
+		if ( $webhook_test ) {
+			delete_transient( 'nbuf_webhook_test_success' );
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $webhook_test ) . '</p></div>';
 		}
 	}
 
@@ -1489,7 +1623,6 @@ class NBUF_Settings {
 				'subtabs' => array(
 					'woocommerce'  => __( 'WooCommerce', 'nobloat-user-foundry' ),
 					'restrictions' => __( 'Restrictions', 'nobloat-user-foundry' ),
-					'api'          => __( 'API', 'nobloat-user-foundry' ),
 					'webhooks'     => __( 'Webhooks', 'nobloat-user-foundry' ),
 				),
 			),

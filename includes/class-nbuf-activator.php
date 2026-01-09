@@ -69,6 +69,10 @@ class NBUF_Activator {
 			/* Create profile versions table for version history */
 			NBUF_Database::create_profile_versions_table();
 
+			/* Create webhooks tables */
+			NBUF_Database::create_webhooks_table();
+			NBUF_Database::create_webhook_log_table();
+
 			/* Migrate audit log indexes for existing installations (v1.4.0+) */
 			NBUF_Database::migrate_audit_log_indexes();
 		}
@@ -457,6 +461,9 @@ class NBUF_Activator {
 			NBUF_Options::update( 'nbuf_version_history_max_versions', 50, true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_ip_tracking', 'anonymized', true, 'version_history' );
 			NBUF_Options::update( 'nbuf_version_history_auto_cleanup', true, true, 'version_history' );
+
+			/* Webhooks defaults (disabled for new installs) */
+			NBUF_Options::update( 'nbuf_webhooks_enabled', false, true, 'integration' );
 
 			/* Universal Page Mode defaults (enabled for new installs) */
 			NBUF_Options::update( 'nbuf_universal_mode_enabled', true, true, 'settings' );

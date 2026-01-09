@@ -841,6 +841,14 @@ If you did not request this code, please ignore this email.
 		/* Clear forced timestamp */
 		NBUF_User_2FA_Data::set_forced_at( $user_id, null );
 
+		/**
+		 * Fires when 2FA is enabled for a user.
+		 *
+		 * @param int    $user_id User ID.
+		 * @param string $method  2FA method (totp, email, both).
+		 */
+		do_action( 'nbuf_2fa_enabled', $user_id, $method );
+
 		return true;
 	}
 
@@ -853,7 +861,18 @@ If you did not request this code, please ignore this email.
 	 * @return bool True on success.
 	 */
 	public static function disable_for_user( int $user_id ): bool {
-		return NBUF_User_2FA_Data::disable( $user_id );
+		$result = NBUF_User_2FA_Data::disable( $user_id );
+
+		if ( $result ) {
+			/**
+			 * Fires when 2FA is disabled for a user.
+			 *
+			 * @param int $user_id User ID.
+			 */
+			do_action( 'nbuf_2fa_disabled', $user_id );
+		}
+
+		return $result;
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

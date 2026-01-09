@@ -164,13 +164,25 @@ class NBUF_User_Data {
 			array( 'reason' => $reason )
 		);
 
-		return self::update(
+		$result = self::update(
 			$user_id,
 			array(
 				'is_disabled'     => 1,
 				'disabled_reason' => $reason,
 			)
 		);
+
+		if ( $result ) {
+			/**
+			 * Fires when a user account is disabled.
+			 *
+			 * @param int    $user_id User ID.
+			 * @param string $reason  Disable reason.
+			 */
+			do_action( 'nbuf_user_disabled', $user_id, $reason );
+		}
+
+		return $result;
 	}
 
 	/**
@@ -360,6 +372,13 @@ class NBUF_User_Data {
 			if ( $user && class_exists( 'NBUF_Email' ) ) {
 				NBUF_Email::send_account_approved_email( $user->user_email, $user->user_login );
 			}
+
+			/**
+			 * Fires when a user account is approved.
+			 *
+			 * @param int $user_id User ID.
+			 */
+			do_action( 'nbuf_user_approved', $user_id );
 		}
 
 		return $result;

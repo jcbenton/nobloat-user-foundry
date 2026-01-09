@@ -1117,6 +1117,76 @@ class NBUF_Database {
 
 	/**
 	==========================================================
+	CREATE WEBHOOKS TABLE
+	----------------------------------------------------------
+	Creates table for storing webhook configurations.
+	Enables sending HTTP POST notifications to external
+	services when user events occur.
+	==========================================================
+	 */
+	public static function create_webhooks_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_webhooks';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            url VARCHAR(2048) NOT NULL,
+            secret VARCHAR(255) DEFAULT NULL,
+            events TEXT NOT NULL COMMENT 'JSON array of event types',
+            enabled TINYINT(1) NOT NULL DEFAULT 1,
+            last_triggered DATETIME DEFAULT NULL,
+            last_status INT(3) DEFAULT NULL COMMENT 'HTTP response code',
+            failure_count INT(10) UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY enabled (enabled),
+            KEY enabled_events (enabled)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	==========================================================
+	CREATE WEBHOOK LOG TABLE
+	----------------------------------------------------------
+	Creates table for logging webhook delivery attempts.
+	Useful for debugging and monitoring webhook reliability.
+	==========================================================
+	 */
+	public static function create_webhook_log_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_webhook_log';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            webhook_id BIGINT(20) UNSIGNED NOT NULL,
+            event_type VARCHAR(50) NOT NULL,
+            payload TEXT NOT NULL COMMENT 'JSON payload sent',
+            response_code INT(3) DEFAULT NULL,
+            response_body TEXT DEFAULT NULL,
+            duration_ms INT(10) UNSIGNED DEFAULT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY webhook_id (webhook_id),
+            KEY event_type (event_type),
+            KEY created_at (created_at),
+            KEY webhook_time (webhook_id, created_at)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	==========================================================
 	GET TABLE NAME
 	----------------------------------------------------------
 	Helper method to get full table name with WordPress prefix.

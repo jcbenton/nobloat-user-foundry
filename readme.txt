@@ -5,7 +5,7 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user management, email verification, account expiration, user lifecycle, registration
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html

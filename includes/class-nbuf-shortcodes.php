@@ -22,6 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NBUF_Shortcodes {
 
 	/**
+	 * Track whether combined CSS has been loaded.
+	 *
+	 * @var bool
+	 */
+	private static $combined_css_loaded = false;
+
+	/**
 	 * Enqueue frontend CSS for a specific page type.
 	 *
 	 * Called directly from shortcodes to ensure CSS loads
@@ -36,6 +43,20 @@ class NBUF_Shortcodes {
 			return;
 		}
 
+		/* Check if combined CSS is enabled */
+		$use_combined = NBUF_Options::get( 'nbuf_css_combine_files', true );
+
+		if ( $use_combined && ! self::$combined_css_loaded ) {
+			/* Load combined CSS file instead of individual files */
+			self::enqueue_combined_css();
+			self::$combined_css_loaded = true;
+			return;
+		} elseif ( $use_combined && self::$combined_css_loaded ) {
+			/* Combined CSS already loaded, nothing more to do */
+			return;
+		}
+
+		/* Combined disabled - load individual CSS files */
 		$css_files = array(
 			'login'        => array( 'nbuf-login', 'login-page', 'nbuf_login_page_css', 'nbuf_css_write_failed_login' ),
 			'registration' => array( 'nbuf-registration', 'registration-page', 'nbuf_registration_page_css', 'nbuf_css_write_failed_registration' ),
@@ -56,6 +77,49 @@ class NBUF_Shortcodes {
 		}
 
 		NBUF_CSS_Manager::enqueue_css( $handle, $filename, $db_option, $token_key );
+	}
+
+	/**
+	 * Enqueue the combined CSS file.
+	 *
+	 * Loads nobloat-combined-live.min.css or nobloat-combined-live.css
+	 * depending on minification setting.
+	 */
+	private static function enqueue_combined_css() {
+		$handle = 'nbuf-combined';
+
+		/* Already enqueued check */
+		if ( wp_style_is( $handle, 'enqueued' ) ) {
+			return;
+		}
+
+		$ui_dir     = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		$ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
+
+		/* Check minified preference */
+		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
+
+		/* Check for combined minified file */
+		if ( $use_minified ) {
+			$min_path = $ui_dir . 'nobloat-combined-live.min.css';
+			if ( file_exists( $min_path ) ) {
+				$version = filemtime( $min_path );
+				wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.min.css', array(), $version );
+				return;
+			}
+		}
+
+		/* Check for combined non-minified file */
+		$live_path = $ui_dir . 'nobloat-combined-live.css';
+		if ( file_exists( $live_path ) ) {
+			$version = filemtime( $live_path );
+			wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.css', array(), $version );
+			return;
+		}
+
+		/* Combined file not found - fall back to individual files */
+		self::$combined_css_loaded = false;
+		NBUF_Options::update( 'nbuf_css_combine_files', false, true, 'settings' );
 	}
 
 	/**

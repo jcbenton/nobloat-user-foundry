@@ -455,6 +455,103 @@ class NBUF_Options {
 	}
 
 	/**
+	 * Batch insert multiple options in a single query.
+	 *
+	 * Optimized for Galera clusters and high-latency databases.
+	 * Uses single INSERT ... ON DUPLICATE KEY UPDATE to minimize
+	 * round-trips and synchronization overhead.
+	 *
+	 * @since  1.5.0
+	 * @param  array  $options  Associative array of options (key => value).
+	 * @param  bool   $autoload Whether to autoload (default: false).
+	 * @param  string $group    Option group (default: 'settings').
+	 * @return int              Number of options inserted/updated.
+	 */
+	public static function batch_insert( array $options, bool $autoload = false, string $group = 'settings' ): int {
+		if ( empty( $options ) ) {
+			return 0;
+		}
+
+		global $wpdb;
+		self::init();
+
+		$values       = array();
+		$placeholders = array();
+		$autoload_int = $autoload ? 1 : 0;
+
+		foreach ( $options as $key => $value ) {
+			$serialized_value = maybe_serialize( $value );
+			$placeholders[]   = '(%s, %s, %d, %s)';
+			$values[]         = $key;
+			$values[]         = $serialized_value;
+			$values[]         = $autoload_int;
+			$values[]         = $group;
+		}
+
+		/*
+		 * Use INSERT ... ON DUPLICATE KEY UPDATE for atomic upsert.
+		 * This is a single query regardless of how many options.
+		 * Galera only needs to sync once instead of N times.
+		 *
+		 * Security: self::$table_name is set in init() from $wpdb->prefix (internal, trusted).
+		 * $placeholders are hardcoded format strings '(%s, %s, %d, %s)'.
+		 * All user values go through $wpdb->prepare().
+		 */
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted internal source, placeholders are hardcoded format strings.
+		$sql = "INSERT INTO `" . self::$table_name . "` (option_name, option_value, autoload, option_group)
+				VALUES " . implode( ', ', $placeholders ) . "
+				ON DUPLICATE KEY UPDATE
+					option_value = VALUES(option_value),
+					autoload = VALUES(autoload),
+					option_group = VALUES(option_group)";
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Batch insert to custom options table. Table name from trusted internal source. All user values go through $wpdb->prepare().
+		$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
+
+		/* Invalidate cache after batch insert */
+		if ( false !== $result ) {
+			wp_cache_delete( 'all_options', self::CACHE_GROUP );
+			self::$all_options_loaded = false;
+			self::$cache              = array();
+		}
+
+		return count( $options );
+	}
+
+	/**
+	 * Check which options from a list already exist.
+	 *
+	 * Returns only the option names that exist in the database.
+	 * Useful for determining which options need to be inserted.
+	 *
+	 * @since  1.5.0
+	 * @param  array $keys Array of option names to check.
+	 * @return array       Array of option names that exist.
+	 */
+	public static function get_existing_keys( array $keys ): array {
+		if ( empty( $keys ) ) {
+			return array();
+		}
+
+		global $wpdb;
+		self::init();
+
+		$placeholders = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause for checking existing options. Table name uses %i identifier placeholder (WP 6.2+). Read-only query, result used immediately.
+		$existing = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM %i WHERE option_name IN ($placeholders)",
+				self::$table_name,
+				...$keys
+			)
+		);
+		// phpcs:enable
+
+		return $existing ? $existing : array();
+	}
+
+	/**
 	 * Clear the in-memory cache and Redis cache
 	 * Useful for testing or after bulk operations
 	 */

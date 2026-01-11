@@ -1517,7 +1517,7 @@ class NBUF_Settings {
 							echo '<label class="nbuf-checkbox-label">';
 							echo '<input type="checkbox" name="' . esc_attr( $id ) . '[' . esc_attr( $opt_key ) . ']" value="1" ' . checked( $checked, true, false ) . '>';
 							echo ' ' . esc_html( $opt_label );
-							echo '</label>';
+							echo '</label><br>';
 						}
 						echo '</fieldset>';
 						if ( $desc ) {

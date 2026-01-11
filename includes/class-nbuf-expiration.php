@@ -43,13 +43,31 @@ class NBUF_Expiration {
 	 * @since 1.0.0
 	 */
 	public static function activate() {
-		// Schedule hourly check for expired users.
-		if ( ! wp_next_scheduled( 'nbuf_check_expirations' ) ) {
+		/*
+		 * Optimized: Read cron array once instead of multiple wp_next_scheduled() calls.
+		 * Reduces Galera sync overhead on clustered databases.
+		 */
+		$crons     = _get_cron_array();
+		$scheduled = array();
+
+		if ( ! empty( $crons ) ) {
+			foreach ( $crons as $timestamp => $cron ) {
+				if ( isset( $cron['nbuf_check_expirations'] ) ) {
+					$scheduled['nbuf_check_expirations'] = true;
+				}
+				if ( isset( $cron['nbuf_send_expiration_warnings'] ) ) {
+					$scheduled['nbuf_send_expiration_warnings'] = true;
+				}
+			}
+		}
+
+		/* Schedule hourly check for expired users */
+		if ( empty( $scheduled['nbuf_check_expirations'] ) ) {
 			wp_schedule_event( time(), 'hourly', 'nbuf_check_expirations' );
 		}
 
-		// Schedule daily expiration warning emails.
-		if ( ! wp_next_scheduled( 'nbuf_send_expiration_warnings' ) ) {
+		/* Schedule daily expiration warning emails */
+		if ( empty( $scheduled['nbuf_send_expiration_warnings'] ) ) {
 			wp_schedule_event( time(), 'daily', 'nbuf_send_expiration_warnings' );
 		}
 	}

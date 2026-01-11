@@ -237,7 +237,9 @@ jQuery(document).ready(function($) {
 
 		for (const [sourceField, data] of Object.entries(mappings)) {
 			html += '<tr>';
-			html += '<td><code>' + escapeHtml(sourceField) + '</code></td>';
+			/* Show field label if available (for custom fields), otherwise show field key */
+			const fieldDisplay = data.field_label ? escapeHtml(data.field_label) + ' <code style="font-size: 11px; color: #666;">(' + escapeHtml(sourceField) + ')</code>' : '<code>' + escapeHtml(sourceField) + '</code>';
+			html += '<td>' + fieldDisplay + '</td>';
 			html += '<td>' + (data.sample ? escapeHtml(data.sample) : '<em>' + NBUF_Migration.i18n.no_data + '</em>') + '</td>';
 			html += '<td>' + buildTargetSelect(sourceField, data.target) + '</td>';
 

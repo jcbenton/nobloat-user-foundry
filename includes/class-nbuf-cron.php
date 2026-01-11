@@ -25,27 +25,39 @@ class NBUF_Cron {
 	 * Activate cron.
 	 *
 	 * Called on plugin activation. Schedules the cleanup event.
+	 * Optimized to read cron array once instead of multiple wp_next_scheduled() calls.
 	 *
 	 * @since 1.0.0
 	 */
 	public static function activate() {
-		if ( ! wp_next_scheduled( 'nbuf_cleanup_cron' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_cron' );
+		/* Get all scheduled hooks in a single read */
+		$crons          = _get_cron_array();
+		$scheduled      = array();
+		$hooks_to_check = array(
+			'nbuf_cleanup_cron',
+			'nbuf_audit_log_cleanup_cron',
+			'nbuf_cleanup_version_history',
+			'nbuf_cleanup_transients',
+			'nbuf_cleanup_unverified_accounts',
+			'nbuf_enterprise_logging_cleanup',
+		);
+
+		/* Build list of already scheduled hooks */
+		if ( ! empty( $crons ) ) {
+			foreach ( $crons as $timestamp => $cron ) {
+				foreach ( $hooks_to_check as $hook ) {
+					if ( isset( $cron[ $hook ] ) ) {
+						$scheduled[ $hook ] = true;
+					}
+				}
+			}
 		}
-		if ( ! wp_next_scheduled( 'nbuf_audit_log_cleanup_cron' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_audit_log_cleanup_cron' );
-		}
-		if ( ! wp_next_scheduled( 'nbuf_cleanup_version_history' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_version_history' );
-		}
-		if ( ! wp_next_scheduled( 'nbuf_cleanup_transients' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_transients' );
-		}
-		if ( ! wp_next_scheduled( 'nbuf_cleanup_unverified_accounts' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_cleanup_unverified_accounts' );
-		}
-		if ( ! wp_next_scheduled( 'nbuf_enterprise_logging_cleanup' ) ) {
-			wp_schedule_event( time(), 'daily', 'nbuf_enterprise_logging_cleanup' );
+
+		/* Only schedule missing hooks */
+		foreach ( $hooks_to_check as $hook ) {
+			if ( empty( $scheduled[ $hook ] ) ) {
+				wp_schedule_event( time(), 'daily', $hook );
+			}
 		}
 	}
 

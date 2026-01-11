@@ -568,6 +568,28 @@ class NBUF_Migration {
 					'sample'      => $sample ? wp_trim_words( $sample, 5 ) : '',
 				);
 			}
+
+			/*
+			 * Also include discovered custom fields from UM forms.
+			 * These are fields that have actual user data but aren't in the default mapping.
+			 */
+			$custom_fields = $mapper->discover_custom_fields();
+			foreach ( $custom_fields as $field_key => $field_data ) {
+				/* Skip if already in default mapping */
+				if ( isset( $mappings[ $field_key ] ) ) {
+					continue;
+				}
+
+				/* Get sample value for display */
+				$sample_value = ! empty( $field_data['samples'][0] ) ? $field_data['samples'][0] : '';
+
+				$mappings[ $field_key ] = array(
+					'target'      => '', /* No auto-mapping for custom fields */
+					'auto_mapped' => false,
+					'sample'      => $sample_value ? wp_trim_words( $sample_value, 5 ) : '',
+					'field_label' => isset( $field_data['field_label'] ) ? $field_data['field_label'] : $field_key,
+				);
+			}
 		}
 
 		/* For BuddyPress */

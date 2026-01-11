@@ -458,6 +458,70 @@ class NBUF_User_Data {
 	}
 
 	/**
+	 * Batch verify multiple users in a single query.
+	 *
+	 * Much faster than verifying users one at a time during activation.
+	 * Uses INSERT ... ON DUPLICATE KEY UPDATE for efficiency.
+	 *
+	 * @since  1.5.0
+	 * @param  array $user_ids Array of user IDs to verify.
+	 * @return int             Number of users processed.
+	 */
+	public static function batch_verify_users( array $user_ids ): int {
+		if ( empty( $user_ids ) ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$table_name    = NBUF_Database::get_table_name( 'user_data' );
+		$verified_date = current_time( 'mysql', true );
+		$processed     = 0;
+
+		/* Process in batches of 500 to avoid memory issues */
+		$batches = array_chunk( $user_ids, 500 );
+
+		foreach ( $batches as $batch ) {
+			$values      = array();
+			$placeholders = array();
+
+			foreach ( $batch as $user_id ) {
+				$user_id = absint( $user_id );
+				if ( $user_id > 0 ) {
+					$placeholders[] = '(%d, 1, %s)';
+					$values[]       = $user_id;
+					$values[]       = $verified_date;
+				}
+			}
+
+			if ( empty( $placeholders ) ) {
+				continue;
+			}
+
+			/*
+			 * Use INSERT ... ON DUPLICATE KEY UPDATE for atomic upsert.
+			 * This handles both new users and existing users in one query.
+			 *
+			 * Security: $table_name is from NBUF_Database::get_table_name() (internal, trusted).
+			 * $placeholders are hardcoded format strings '(%d, 1, %s)'.
+			 * All user values go through $wpdb->prepare().
+			 */
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted internal function, placeholders are hardcoded format strings.
+			$sql = "INSERT INTO `{$table_name}` (user_id, is_verified, verified_date)
+					VALUES " . implode( ', ', $placeholders ) . '
+					ON DUPLICATE KEY UPDATE
+						is_verified = 1,
+						verified_date = COALESCE(verified_date, VALUES(verified_date))';
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Batch upsert to custom user_data table. Table name from NBUF_Database::get_table_name() (trusted internal). All user values go through $wpdb->prepare().
+			$wpdb->query( $wpdb->prepare( $sql, $values ) );
+
+			$processed += count( $batch );
+		}
+
+		return $processed;
+	}
+
+	/**
 	 * Update user data in table.
 	 *
 	 * @since  1.0.0

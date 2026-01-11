@@ -18,6 +18,12 @@ $nbuf_docs_path = NBUF_PLUGIN_DIR . 'docs/plugin-docs.html';
 <p class="description">
 	<?php esc_html_e( 'NoBloat User Foundry is a comprehensive user management solution for WordPress.', 'nobloat-user-foundry' ); ?>
 </p>
+<p>
+	<a href="https://docs.mailborder.com/nobloat-user-foundry" target="_blank" rel="noopener noreferrer" class="button button-secondary">
+		<?php esc_html_e( 'View Full Documentation', 'nobloat-user-foundry' ); ?>
+		<span class="dashicons dashicons-external" style="vertical-align: middle; margin-left: 4px;"></span>
+	</a>
+</p>
 
 <?php
 if ( file_exists( $nbuf_docs_path ) ) {
@@ -65,6 +71,4 @@ if ( file_exists( $nbuf_docs_path ) ) {
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation HTML.
 	echo $nbuf_content;
 
-} else {
-	echo '<p>' . esc_html__( 'No documentation file found. Place an HTML file at /docs/plugin-docs.html.', 'nobloat-user-foundry' ) . '</p>';
 }

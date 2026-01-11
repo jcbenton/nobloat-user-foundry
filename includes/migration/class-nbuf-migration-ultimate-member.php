@@ -113,6 +113,14 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				'target'    => 'bio',
 				'transform' => 'sanitize_textarea',
 			),
+			'bio'                  => array(
+				'target'    => 'bio',
+				'transform' => 'sanitize_textarea',
+			),
+			'about_me'             => array(
+				'target'    => 'bio',
+				'transform' => 'sanitize_textarea',
+			),
 			'nickname'             => 'nickname',
 			'birth_date'           => 'date_of_birth',
 			'gender'               => 'gender',
@@ -132,6 +140,8 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 			/* Website */
 			'user_url'             => 'website',
 			'website'              => 'website',
+			'secondary_website'    => 'website',
+			'secondary_url'        => 'website',
 
 			/* Social Media - UM predefined fields */
 			'facebook'             => 'facebook',

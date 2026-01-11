@@ -52,6 +52,7 @@ class NBUF_Profile_Data {
 					'work_phone'      => 'Work Phone',
 					'fax'             => 'Fax',
 					'preferred_name'  => 'Preferred Name',
+					'nickname'        => 'Nickname',
 					'pronouns'        => 'Pronouns',
 					'gender'          => 'Gender',
 					'date_of_birth'   => 'Date of Birth',
@@ -132,6 +133,7 @@ class NBUF_Profile_Data {
 			'personal'      => array(
 				'label'  => 'Personal',
 				'fields' => array(
+					'bio'               => 'Bio / About Me',
 					'website'           => 'Secondary Website',
 					'nationality'       => 'Nationality',
 					'languages'         => 'Languages Spoken',
@@ -268,7 +270,7 @@ class NBUF_Profile_Data {
 				/* If filter didn't handle it, use default sanitization based on field type */
 				if ( $sanitized === $value ) {
 					/* Text areas */
-					if ( in_array( $key, array( 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
+					if ( in_array( $key, array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
 						$sanitized = sanitize_textarea_field( $value );
 					} elseif ( in_array( $key, array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok' ), true ) ) {
 						/* URLs */

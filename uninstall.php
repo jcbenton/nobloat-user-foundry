@@ -82,6 +82,7 @@ function nbuf_run_uninstall() {
 			'nbuf_user_profile',
 			'nbuf_login_attempts',
 			'nbuf_user_2fa',
+			'nbuf_user_passkeys',
 			'nbuf_user_audit_log',
 			'nbuf_admin_audit_log',
 			'nbuf_user_notes',
@@ -91,6 +92,8 @@ function nbuf_run_uninstall() {
 			'nbuf_user_roles',
 			'nbuf_profile_versions',
 			'nbuf_security_log',
+			'nbuf_webhooks',
+			'nbuf_webhook_log',
 		);
 
 		foreach ( $nbuf_tables_to_drop as $nbuf_table ) {
@@ -203,6 +206,8 @@ function nbuf_run_uninstall() {
 		'nbuf_enterprise_logging_cleanup',
 		'nbuf_check_expirations',
 		'nbuf_send_expiration_warnings',
+		'nbuf_daily_security_log_prune',
+		'nbuf_cleanup_exports',
 	);
 	foreach ( $nbuf_cron_hooks as $nbuf_hook ) {
 		if ( wp_next_scheduled( $nbuf_hook ) ) {

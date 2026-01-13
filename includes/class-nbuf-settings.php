@@ -50,6 +50,7 @@ class NBUF_Settings {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_assets' ) );
 		add_action( 'wp_ajax_nbuf_reset_template', array( __CLASS__, 'ajax_reset_template' ) );
 		add_action( 'wp_ajax_nbuf_reset_style', array( __CLASS__, 'ajax_reset_style' ) );
+		add_action( 'wp_ajax_nbuf_reorder_custom_tabs', array( __CLASS__, 'ajax_reorder_custom_tabs' ) );
 		add_action( 'admin_post_nbuf_save_settings', array( __CLASS__, 'handle_settings_save' ) );
 
 		/* Admin footer text - plugin name and version */
@@ -574,6 +575,13 @@ class NBUF_Settings {
 			return;
 		}
 
+		/* Handle custom tab actions */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above
+		if ( isset( $_POST['nbuf_custom_tab_action'] ) ) {
+			self::handle_custom_tab_action();
+			return;
+		}
+
 		$registry      = self::get_settings_registry();
 		$saved_count   = 0;
 		$errors        = array();
@@ -766,6 +774,98 @@ class NBUF_Settings {
 	}
 
 	/**
+	 * Handle custom tab CRUD actions.
+	 *
+	 * @since 1.5.0
+	 */
+	private static function handle_custom_tab_action() {
+		$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=custom-tabs' );
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_settings_save.
+		$action = isset( $_POST['nbuf_custom_tab_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_custom_tab_action'] ) ) : '';
+		$tab_id = isset( $_POST['nbuf_custom_tab_id'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_custom_tab_id'] ) ) : '';
+		$data   = isset( $_POST['nbuf_custom_tab'] ) ? wp_unslash( $_POST['nbuf_custom_tab'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in NBUF_Custom_Tabs class.
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		switch ( $action ) {
+			case 'create':
+				/* Validate required fields */
+				if ( empty( $data['name'] ) || empty( $data['slug'] ) ) {
+					set_transient( 'nbuf_custom_tab_error', __( 'Tab name and slug are required.', 'nobloat-user-foundry' ), 30 );
+					break;
+				}
+
+				/* Validate slug */
+				$slug_errors = NBUF_Custom_Tabs::validate_slug( sanitize_title( $data['slug'] ) );
+				if ( ! empty( $slug_errors ) ) {
+					set_transient( 'nbuf_custom_tab_error', implode( ' ', $slug_errors ), 30 );
+					break;
+				}
+
+				NBUF_Custom_Tabs::create( $data );
+				set_transient( 'nbuf_settings_saved', true, 30 );
+				break;
+
+			case 'update':
+				if ( empty( $tab_id ) ) {
+					break;
+				}
+
+				/* Validate required fields */
+				if ( empty( $data['name'] ) || empty( $data['slug'] ) ) {
+					set_transient( 'nbuf_custom_tab_error', __( 'Tab name and slug are required.', 'nobloat-user-foundry' ), 30 );
+					$redirect_url = add_query_arg( 'edit_tab', $tab_id, $redirect_url );
+					break;
+				}
+
+				/* Validate slug (exclude current tab) */
+				$slug_errors = NBUF_Custom_Tabs::validate_slug( sanitize_title( $data['slug'] ), $tab_id );
+				if ( ! empty( $slug_errors ) ) {
+					set_transient( 'nbuf_custom_tab_error', implode( ' ', $slug_errors ), 30 );
+					$redirect_url = add_query_arg( 'edit_tab', $tab_id, $redirect_url );
+					break;
+				}
+
+				NBUF_Custom_Tabs::update( $tab_id, $data );
+				set_transient( 'nbuf_settings_saved', true, 30 );
+				break;
+		}
+
+		$redirect_url = add_query_arg( 'settings-updated', 'true', $redirect_url );
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * AJAX handler for reordering custom tabs.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function ajax_reorder_custom_tabs() {
+		/* Verify nonce */
+		if ( ! check_ajax_referer( 'nbuf_reorder_custom_tabs', '_ajax_nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Verify capability */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Get order array */
+		$order = isset( $_POST['order'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['order'] ) ) : array();
+
+		if ( empty( $order ) ) {
+			wp_send_json_error( array( 'message' => __( 'No order data provided.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Reorder tabs */
+		NBUF_Custom_Tabs::reorder( $order );
+
+		wp_send_json_success( array( 'message' => __( 'Order saved.', 'nobloat-user-foundry' ) ) );
+	}
+
+	/**
 	 * Display settings saved notice.
 	 */
 	public static function display_settings_notices() {
@@ -801,6 +901,13 @@ class NBUF_Settings {
 		if ( $webhook_test ) {
 			delete_transient( 'nbuf_webhook_test_success' );
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $webhook_test ) . '</p></div>';
+		}
+
+		/* Custom tab-specific notices */
+		$custom_tab_error = get_transient( 'nbuf_custom_tab_error' );
+		if ( $custom_tab_error ) {
+			delete_transient( 'nbuf_custom_tab_error' );
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $custom_tab_error ) . '</p></div>';
 		}
 	}
 
@@ -1624,6 +1731,7 @@ class NBUF_Settings {
 					'woocommerce'  => __( 'WooCommerce', 'nobloat-user-foundry' ),
 					'restrictions' => __( 'Restrictions', 'nobloat-user-foundry' ),
 					'webhooks'     => __( 'Webhooks', 'nobloat-user-foundry' ),
+					'custom-tabs'  => __( 'Custom Tabs', 'nobloat-user-foundry' ),
 				),
 			),
 			'tools'       => array(
@@ -2145,6 +2253,12 @@ class NBUF_Settings {
 					)
 				);
 			}
+		}
+
+		/* Integration tab specific scripts */
+		if ( 'integration' === $current_tab && 'custom-tabs' === $current_subtab ) {
+			/* jQuery UI Sortable for reordering custom tabs */
+			wp_enqueue_script( 'jquery-ui-sortable' );
 		}
 	}
 

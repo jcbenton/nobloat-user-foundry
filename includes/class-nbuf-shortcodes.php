@@ -1862,6 +1862,38 @@ class NBUF_Shortcodes {
 			$profile_photo_section = '<div class="nbuf-account-photo"><img src="' . esc_url( $profile_photo_url ) . '" alt="' . esc_attr( $current_user->display_name ) . '"></div>';
 		}
 
+		/* Build custom tabs if any are configured */
+		$custom_tabs_buttons = '';
+		$custom_tabs_content = '';
+		if ( class_exists( 'NBUF_Custom_Tabs' ) ) {
+			$user_custom_tabs = NBUF_Custom_Tabs::get_for_user( $user_id );
+			$has_tab_icons    = false;
+
+			foreach ( $user_custom_tabs as $custom_tab ) {
+				$tab_slug = esc_attr( $custom_tab['slug'] );
+				$tab_name = esc_html( $custom_tab['name'] );
+
+				/* Build icon HTML if set */
+				$icon_html = '';
+				if ( ! empty( $custom_tab['icon'] ) ) {
+					$icon_html     = '<span class="dashicons ' . esc_attr( $custom_tab['icon'] ) . '" style="margin-right: 6px; font-size: 16px; width: 16px; height: 16px; vertical-align: middle;"></span>';
+					$has_tab_icons = true;
+				}
+
+				/* Tab button */
+				$custom_tabs_buttons .= '<button type="button" class="nbuf-tab-button" data-tab="' . $tab_slug . '">' . $icon_html . $tab_name . '</button>';
+
+				/* Tab content - process shortcodes */
+				$tab_content = do_shortcode( $custom_tab['content'] );
+				$custom_tabs_content .= '<div class="nbuf-tab-content" data-tab="' . $tab_slug . '"><div class="nbuf-account-section">' . $tab_content . '</div></div>';
+			}
+
+			/* Enqueue dashicons if any custom tab has an icon */
+			if ( $has_tab_icons ) {
+				wp_enqueue_style( 'dashicons' );
+			}
+		}
+
 		/* Replace placeholders */
 		$replacements = array(
 			'{messages}'                     => $messages,
@@ -1898,12 +1930,40 @@ class NBUF_Shortcodes {
 			'{password_requirements}'        => esc_html( $password_requirements_text ),
 			'{security_tab_button}'          => $security_tab_button,
 			'{security_tab_content}'         => $security_tab_content,
-			'{policies_tab_button}'          => $policies_tab_button,
-			'{policies_tab_content}'         => $policies_tab_content,
+			'{policies_tab_button}'          => $policies_tab_button . $custom_tabs_buttons,
+			'{policies_tab_content}'         => $policies_tab_content . $custom_tabs_content,
+			'{custom_tabs_buttons}'          => $custom_tabs_buttons,
+			'{custom_tabs_content}'          => $custom_tabs_content,
 		);
 
 		foreach ( $replacements as $placeholder => $value ) {
 			$template = str_replace( $placeholder, $value, $template );
+		}
+
+		/*
+		 * Fallback injection for custom tabs if template doesn't have dedicated placeholders.
+		 * This handles templates stored in database before custom tabs feature was added.
+		 * Uses preg_replace_callback() to avoid regex backreference interpretation of $ and \ in content.
+		 */
+		if ( ! empty( $custom_tabs_buttons ) && strpos( $template, $custom_tabs_buttons ) === false ) {
+			/* Inject buttons before closing </div> of tab navigation */
+			$template = preg_replace_callback(
+				'/(<div[^>]*class="[^"]*nbuf-account-tabs[^"]*"[^>]*>.*?)(<\/div>)/s',
+				function ( $matches ) use ( $custom_tabs_buttons ) {
+					return $matches[1] . $custom_tabs_buttons . $matches[2];
+				},
+				$template,
+				1
+			);
+			/* Inject content before closing </div> of main wrapper */
+			$template = preg_replace_callback(
+				'/(.*)(<\/div>\s*)$/s',
+				function ( $matches ) use ( $custom_tabs_content ) {
+					return $matches[1] . $custom_tabs_content . $matches[2];
+				},
+				$template,
+				1
+			);
 		}
 
 		return $template;

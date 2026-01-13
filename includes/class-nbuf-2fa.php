@@ -791,7 +791,7 @@ If you did not request this code, please ignore this email.
 		if ( empty( $forced_at ) ) {
 			/* Set forced timestamp if this is first check */
 			if ( self::is_required( $user_id ) && ! self::is_enabled( $user_id ) ) {
-				$forced_at = current_time( 'mysql' );
+				$forced_at = current_time( 'mysql', true );
 				NBUF_User_2FA_Data::set_forced_at( $user_id, $forced_at );
 			} else {
 				return 0;

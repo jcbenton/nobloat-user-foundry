@@ -73,12 +73,10 @@ class NBUF_Member_Directory {
 			);
 		}
 
-		wp_enqueue_script(
+		NBUF_Asset_Minifier::enqueue_script(
 			'nbuf-directory',
-			plugin_dir_url( __DIR__ ) . 'assets/js/frontend/member-directory.js',
-			array( 'jquery' ),
-			NBUF_VERSION,
-			true
+			'assets/js/frontend/member-directory.js',
+			array( 'jquery' )
 		);
 
 		wp_localize_script(

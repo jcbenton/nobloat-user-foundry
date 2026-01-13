@@ -11,7 +11,7 @@
  * License: GPLv3 or later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: nobloat-user-foundry
- * Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
+ * Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
  *
  * @package NoBloat_User_Foundry
  */
@@ -92,6 +92,7 @@ register_deactivation_hook(
 	function () {
 		NBUF_Cron::deactivate();
 		NBUF_Expiration::deactivate();
+		NBUF_Asset_Minifier::clear_cache();
 	}
 );
 

@@ -286,7 +286,7 @@ class NBUF_Universal_Router {
 
 		/* Account page JS */
 		if ( 'account' === $view ) {
-			wp_enqueue_script( 'nbuf-account-page', NBUF_PLUGIN_URL . 'assets/js/frontend/account-page.js', array(), NBUF_VERSION, true );
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-account-page', 'assets/js/frontend/account-page.js', array() );
 
 			/* Get subtab from query param */
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reading subtab for display purposes.

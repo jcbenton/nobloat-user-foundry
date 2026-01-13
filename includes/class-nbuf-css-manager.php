@@ -95,8 +95,8 @@ class NBUF_CSS_Manager {
 	/**
 	 * Save CSS to disk
 	 *
-	 * Writes CSS to both .css and .min.css files.
-	 * Updates or removes write failure token based on success.
+	 * Writes CSS to timestamped .css and .min.css files for CDN-safe caching.
+	 * Cleans up old versions and stores timestamp for loading.
 	 *
 	 * @param  string $css       CSS content to save.
 	 * @param  string $filename  Base filename (e.g., 'reset-page').
@@ -114,45 +114,42 @@ class NBUF_CSS_Manager {
 			}
 		}
 
-		$live_path = $ui_dir . $filename . '-live.css';
-		$min_path  = $ui_dir . $filename . '-live.min.css';
+		/* Check if CSS actually changed (hash comparison with stored version) */
+		$new_hash        = md5( $css );
+		$version_key     = 'nbuf_css_version_' . $filename;
+		$stored_version  = NBUF_Options::get( $version_key );
+		$old_hash        = '';
 
-		/* Check if CSS actually changed (hash comparison) */
-		$new_hash = md5( $css );
-		$old_hash = '';
-
-		if ( file_exists( $live_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			$old_content = file_get_contents( $live_path );
-			if ( false === $old_content ) {
-				NBUF_Security_Log::log(
-					'css_read_failed',
-					'warning',
-					'Failed to read existing CSS file for hash comparison',
-					array(
-						'file_path' => $live_path,
-						'filename'  => $filename,
-					)
-				);
-				/* Continue anyway - will regenerate CSS */
-			} else {
-				$old_hash = md5( $old_content );
+		if ( $stored_version ) {
+			$old_path = $ui_dir . $filename . '.' . $stored_version . '.min.css';
+			if ( file_exists( $old_path ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				$old_content = file_get_contents( $old_path );
+				if ( false !== $old_content ) {
+					/* Compare against minified content */
+					$old_hash = md5( self::minify( $css ) ) === md5( $old_content ) ? $new_hash : '';
+				}
 			}
 		}
 
 		/* Skip write if CSS unchanged */
-		if ( $new_hash === $old_hash ) {
+		if ( $new_hash === $old_hash && ! empty( $old_hash ) ) {
 			return true;
 		}
 
-		/*
-		 * CSS changed - write live file
-		 */
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing CSS to assets directory; WP_Filesystem not practical for dynamic CSS generation.
+		/* Generate new timestamp for filename */
+		$timestamp = time();
+		$live_path = $ui_dir . $filename . '.' . $timestamp . '.css';
+		$min_path  = $ui_dir . $filename . '.' . $timestamp . '.min.css';
+
+		/* Clean up old versions before writing new ones */
+		self::cleanup_old_css_versions( $filename, $timestamp );
+
+		/* Write unminified file */
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		$wrote_css = file_put_contents( $live_path, $css );
 
 		if ( false === $wrote_css ) {
-			/* Write failed - set token */
 			NBUF_Options::update( $token_key, 1, true, 'system' );
 			NBUF_Security_Log::log(
 				'css_write_failed',
@@ -169,11 +166,10 @@ class NBUF_CSS_Manager {
 
 		/* Minify and write minified version */
 		$minified = self::minify( $css );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing CSS to assets directory
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		$wrote_min = file_put_contents( $min_path, $minified );
 
 		if ( false === $wrote_min ) {
-			/* Minified write failed - set token */
 			NBUF_Options::update( $token_key, 1, true, 'system' );
 			NBUF_Security_Log::log(
 				'css_minify_write_failed',
@@ -186,35 +182,71 @@ class NBUF_CSS_Manager {
 				)
 			);
 
-			/*
-			 * Delete the CSS file we just wrote to keep them in sync
-			 */
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup after failed CSS write; WP_Filesystem not practical here.
-			$unlink_result = unlink( $live_path );
-			if ( false === $unlink_result ) {
-				NBUF_Security_Log::log(
-					'css_cleanup_failed',
-					'warning',
-					'Failed to delete orphaned CSS file after minified write failure',
-					array(
-						'file_path' => $live_path,
-						'filename'  => $filename,
-					)
-				);
-			}
+			/* Delete the CSS file we just wrote to keep them in sync */
+			wp_delete_file( $live_path );
 			return false;
 		}
 
-		/* Both writes successful - clear token */
+		/* Store timestamp for loading and clear failure token */
+		NBUF_Options::update( $version_key, $timestamp, true, 'system' );
 		NBUF_Options::delete( $token_key );
 		return true;
+	}
+
+	/**
+	 * Clean up old CSS versions.
+	 *
+	 * Removes previous timestamped versions and legacy -live.css files.
+	 *
+	 * @since 1.5.0
+	 * @param string $filename      Base filename (e.g., 'reset-page').
+	 * @param int    $new_timestamp Timestamp of new file (to exclude from deletion).
+	 * @return int Number of old files deleted.
+	 */
+	private static function cleanup_old_css_versions( $filename, $new_timestamp ) {
+		$ui_dir  = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		$deleted = 0;
+
+		/* Clean up legacy -live.css and -live.min.css files */
+		$legacy_files = array(
+			$ui_dir . $filename . '-live.css',
+			$ui_dir . $filename . '-live.min.css',
+		);
+		foreach ( $legacy_files as $legacy_file ) {
+			if ( file_exists( $legacy_file ) ) {
+				wp_delete_file( $legacy_file );
+				++$deleted;
+			}
+		}
+
+		/* Clean up old timestamped versions */
+		$pattern = $ui_dir . $filename . '.*.css';
+		$files   = glob( $pattern );
+
+		if ( ! empty( $files ) && is_array( $files ) ) {
+			$new_base = $filename . '.' . $new_timestamp;
+			foreach ( $files as $file ) {
+				$basename = basename( $file );
+				/* Don't delete files we're about to create */
+				if ( strpos( $basename, $new_base ) === 0 ) {
+					continue;
+				}
+				/* Only delete timestamped versions (filename.timestamp.css or filename.timestamp.min.css) */
+				if ( preg_match( '/^' . preg_quote( $filename, '/' ) . '\.\d+\.(?:min\.)?css$/', $basename ) ) {
+					wp_delete_file( $file );
+					++$deleted;
+				}
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
 	 * Load CSS
 	 *
 	 * Loads CSS with token-based performance optimization.
-	 * Priority: -live.min.css → -live.css → default → DB fallback.
+	 * Priority: timestamped.min.css → timestamped.css → default → DB fallback.
 	 *
 	 * @param  string $filename  Base filename (e.g., 'reset-page').
 	 * @param  string $db_option Option name for DB fallback.
@@ -236,65 +268,38 @@ class NBUF_CSS_Manager {
 		$ui_dir        = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
 		$templates_dir = NBUF_TEMPLATES_DIR;
 
-		/* Priority 1: Minified live file */
-		$min_path = $ui_dir . $filename . '-live.min.css';
-		if ( file_exists( $min_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			$content = file_get_contents( $min_path );
-			if ( false === $content ) {
-				NBUF_Security_Log::log(
-					'css_read_failed',
-					'warning',
-					'Failed to read minified CSS file',
-					array(
-						'file_path' => $min_path,
-						'filename'  => $filename,
-					)
-				);
-				/* Fall through to next priority */
-			} else {
-				return $content;
-			}
-		}
+		/* Get stored timestamp for this file */
+		$version_key = 'nbuf_css_version_' . $filename;
+		$timestamp   = NBUF_Options::get( $version_key );
 
-		/* Priority 2: Live CSS file */
-		$live_path = $ui_dir . $filename . '-live.css';
-		if ( file_exists( $live_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
-			$content = file_get_contents( $live_path );
-			if ( false === $content ) {
-				NBUF_Security_Log::log(
-					'css_read_failed',
-					'warning',
-					'Failed to read live CSS file',
-					array(
-						'file_path' => $live_path,
-						'filename'  => $filename,
-					)
-				);
-				/* Fall through to next priority */
-			} else {
-				return $content;
+		if ( $timestamp ) {
+			/* Priority 1: Timestamped minified file */
+			$min_path = $ui_dir . $filename . '.' . $timestamp . '.min.css';
+			if ( file_exists( $min_path ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				$content = file_get_contents( $min_path );
+				if ( false !== $content ) {
+					return $content;
+				}
+			}
+
+			/* Priority 2: Timestamped unminified file */
+			$live_path = $ui_dir . $filename . '.' . $timestamp . '.css';
+			if ( file_exists( $live_path ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				$content = file_get_contents( $live_path );
+				if ( false !== $content ) {
+					return $content;
+				}
 			}
 		}
 
 		/* Priority 3: Default template from /templates/ */
 		$default_path = $templates_dir . $filename . '.css';
 		if ( file_exists( $default_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local CSS file, not remote URL
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 			$content = file_get_contents( $default_path );
-			if ( false === $content ) {
-				NBUF_Security_Log::log(
-					'css_read_failed',
-					'critical',
-					'Failed to read default CSS template',
-					array(
-						'file_path' => $default_path,
-						'filename'  => $filename,
-					)
-				);
-				/* Fall through to DB fallback */
-			} else {
+			if ( false !== $content ) {
 				return $content;
 			}
 		}
@@ -343,6 +348,7 @@ class NBUF_CSS_Manager {
 	 * Enqueue CSS
 	 *
 	 * Enqueues CSS inline or as file based on token status.
+	 * Uses timestamped filenames for CDN-safe cache busting.
 	 *
 	 * @param string $handle    Handle for wp_enqueue_style.
 	 * @param string $filename  Base filename (e.g., 'reset-page').
@@ -382,25 +388,27 @@ class NBUF_CSS_Manager {
 		$ui_dir            = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
 		$templates_dir     = NBUF_TEMPLATES_DIR;
 
-		/* Check minified preference */
+		/* Get stored timestamp for this file */
+		$version_key  = 'nbuf_css_version_' . $filename;
+		$timestamp    = NBUF_Options::get( $version_key );
 		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
 
-		/* Check for minified live file (if minified enabled) */
-		if ( $use_minified ) {
-			$min_path = $ui_dir . $filename . '-live.min.css';
-			if ( file_exists( $min_path ) ) {
-				$version = filemtime( $min_path );
-				wp_enqueue_style( $handle, $ui_dir_url . $filename . '-live.min.css', array(), $version );
+		if ( $timestamp ) {
+			/* Check for timestamped minified file */
+			if ( $use_minified ) {
+				$min_path = $ui_dir . $filename . '.' . $timestamp . '.min.css';
+				if ( file_exists( $min_path ) ) {
+					wp_enqueue_style( $handle, $ui_dir_url . $filename . '.' . $timestamp . '.min.css', array(), (string) $timestamp );
+					return;
+				}
+			}
+
+			/* Check for timestamped unminified file */
+			$live_path = $ui_dir . $filename . '.' . $timestamp . '.css';
+			if ( file_exists( $live_path ) ) {
+				wp_enqueue_style( $handle, $ui_dir_url . $filename . '.' . $timestamp . '.css', array(), (string) $timestamp );
 				return;
 			}
-		}
-
-		/* Check for live file */
-		$live_path = $ui_dir . $filename . '-live.css';
-		if ( file_exists( $live_path ) ) {
-			$version = filemtime( $live_path );
-			wp_enqueue_style( $handle, $ui_dir_url . $filename . '-live.css', array(), $version );
-			return;
 		}
 
 		/* Check for default template */
@@ -423,8 +431,8 @@ class NBUF_CSS_Manager {
 	/**
 	 * Enqueue the combined CSS file.
 	 *
-	 * Loads nobloat-combined-live.min.css or nobloat-combined-live.css
-	 * depending on minification setting.
+	 * Loads timestamped nobloat-combined.{timestamp}.min.css
+	 * for CDN-safe cache busting.
 	 *
 	 * @return bool True if combined CSS was loaded, false if not available.
 	 */
@@ -445,27 +453,29 @@ class NBUF_CSS_Manager {
 		$ui_dir     = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
 		$ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
 
-		/* Check minified preference */
+		/* Get stored timestamp for combined file */
+		$version_key  = 'nbuf_css_version_nobloat-combined';
+		$timestamp    = NBUF_Options::get( $version_key );
 		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
 
-		/* Check for combined minified file */
-		if ( $use_minified ) {
-			$min_path = $ui_dir . 'nobloat-combined-live.min.css';
-			if ( file_exists( $min_path ) ) {
-				$version = filemtime( $min_path );
-				wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.min.css', array(), $version );
+		if ( $timestamp ) {
+			/* Check for timestamped combined minified file */
+			if ( $use_minified ) {
+				$min_path = $ui_dir . 'nobloat-combined.' . $timestamp . '.min.css';
+				if ( file_exists( $min_path ) ) {
+					wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined.' . $timestamp . '.min.css', array(), (string) $timestamp );
+					self::$combined_css_loaded = true;
+					return true;
+				}
+			}
+
+			/* Check for timestamped combined non-minified file */
+			$live_path = $ui_dir . 'nobloat-combined.' . $timestamp . '.css';
+			if ( file_exists( $live_path ) ) {
+				wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined.' . $timestamp . '.css', array(), (string) $timestamp );
 				self::$combined_css_loaded = true;
 				return true;
 			}
-		}
-
-		/* Check for combined non-minified file */
-		$live_path = $ui_dir . 'nobloat-combined-live.css';
-		if ( file_exists( $live_path ) ) {
-			$version = filemtime( $live_path );
-			wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.css', array(), $version );
-			self::$combined_css_loaded = true;
-			return true;
 		}
 
 		/* Combined file not found */
@@ -523,7 +533,6 @@ class NBUF_CSS_Manager {
 			'member-directory'  => 'nbuf_member_directory_custom_css',
 			'version-history'   => 'nbuf_version_history_custom_css',
 			'data-export'       => 'nbuf_data_export_custom_css',
-			'security-account'  => 'nbuf_security_account_css',
 		);
 
 		$combined_parts = array();

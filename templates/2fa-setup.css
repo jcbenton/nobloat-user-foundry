@@ -393,6 +393,40 @@ body.nbuf-page .nbuf-2fa-verify-wrapper a {
     min-height: 44px;
 }
 
+/* Setup Actions - Button Group */
+.nbuf-setup-actions {
+    display: flex;
+    gap: var(--nbuf-space-sm);
+    margin-top: var(--nbuf-space-sm);
+}
+
+.nbuf-setup-actions .nbuf-verify-btn {
+    flex: 1;
+}
+
+.nbuf-setup-actions .nbuf-cancel-btn {
+    flex: 0 0 auto;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    background: #6c757d;
+    color: #fff;
+    text-decoration: none;
+    border: none;
+    border-radius: var(--nbuf-radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color var(--nbuf-transition-base);
+}
+
+.nbuf-setup-actions .nbuf-cancel-btn:hover {
+    background: #5a6268;
+    color: #fff;
+}
+
 .nbuf-next-note {
     margin: var(--nbuf-space-lg) 0 0 0;
     padding-top: var(--nbuf-space-md);

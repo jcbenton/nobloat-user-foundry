@@ -156,7 +156,7 @@ class NBUF_Migration_BP_Profile {
 
 					if ( $exists ) {
 							/* Update existing */
-							$nbuf_data['updated_at'] = current_time( 'mysql' );
+							$nbuf_data['updated_at'] = current_time( 'mysql', true );
                            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
 						$wpdb->update(
 							$table,
@@ -167,8 +167,8 @@ class NBUF_Migration_BP_Profile {
 						);
 					} else {
 						/* Insert new */
-						$nbuf_data['created_at'] = current_time( 'mysql' );
-						$nbuf_data['updated_at'] = current_time( 'mysql' );
+						$nbuf_data['created_at'] = current_time( 'mysql', true );
+						$nbuf_data['updated_at'] = current_time( 'mysql', true );
                   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
 						$wpdb->insert(
 							$table,

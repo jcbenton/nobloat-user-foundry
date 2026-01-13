@@ -35,15 +35,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_User_Data {
 
+	/**
+	 * Request-level cache for user data.
+	 * Prevents multiple database queries for the same user within a single request.
+	 *
+	 * @var array
+	 */
+	private static $cache = array();
 
 	/**
 	 * Get user data from custom table.
+	 *
+	 * Uses request-level caching to prevent redundant database queries.
+	 * Cache is automatically cleared when user data is modified.
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
 	 * @return object|null         User data object or null if not found.
 	 */
 	public static function get( int $user_id ): ?object {
+		/* Return cached data if available */
+		if ( isset( self::$cache[ $user_id ] ) ) {
+			return self::$cache[ $user_id ];
+		}
+
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
@@ -55,7 +70,26 @@ class NBUF_User_Data {
 			)
 		);
 
+		/* Cache the result (including null for non-existent users) */
+		self::$cache[ $user_id ] = $data;
+
 		return $data;
+	}
+
+	/**
+	 * Clear cache for a specific user or all users.
+	 *
+	 * Called automatically when user data is modified.
+	 *
+	 * @since  1.5.0
+	 * @param  int|null $user_id User ID to clear, or null to clear all.
+	 */
+	public static function clear_cache( ?int $user_id = null ): void {
+		if ( null === $user_id ) {
+			self::$cache = array();
+		} else {
+			unset( self::$cache[ $user_id ] );
+		}
 	}
 
 	/**
@@ -553,9 +587,12 @@ class NBUF_User_Data {
 			$result = $wpdb->insert( $table_name, $data );
 		}
 
-		/* Invalidate unified user cache. */
-		if ( false !== $result && class_exists( 'NBUF_User' ) ) {
-			NBUF_User::invalidate_cache( $user_id, 'user_data' );
+		/* Invalidate caches on successful write */
+		if ( false !== $result ) {
+			self::clear_cache( $user_id );
+			if ( class_exists( 'NBUF_User' ) ) {
+				NBUF_User::invalidate_cache( $user_id, 'user_data' );
+			}
 		}
 
 		return false !== $result;
@@ -578,6 +615,11 @@ class NBUF_User_Data {
 			array( 'user_id' => $user_id ),
 			array( '%d' )
 		);
+
+		/* Invalidate cache on successful delete */
+		if ( false !== $result ) {
+			self::clear_cache( $user_id );
+		}
 
 		return false !== $result;
 	}

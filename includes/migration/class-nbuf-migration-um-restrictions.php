@@ -94,8 +94,8 @@ class NBUF_Migration_UM_Restrictions {
 							'menu_item_id' => $post->ID,
 							'visibility'   => $nbuf_restriction['visibility'],
 							'allowed_roles' => wp_json_encode( $nbuf_restriction['allowed_roles'] ),
-							'created_at'   => current_time( 'mysql' ),
-							'updated_at'   => current_time( 'mysql' ),
+							'created_at'   => current_time( 'mysql', true ),
+							'updated_at'   => current_time( 'mysql', true ),
 						),
 						array( '%d', '%s', '%s', '%s', '%s' )
 					);
@@ -117,8 +117,8 @@ class NBUF_Migration_UM_Restrictions {
 						'restriction_action' => $nbuf_restriction['restriction_action'],
 						'custom_message'     => $nbuf_restriction['custom_message'],
 						'redirect_url'       => $nbuf_restriction['redirect_url'],
-						'created_at'         => current_time( 'mysql' ),
-						'updated_at'         => current_time( 'mysql' ),
+						'created_at'         => current_time( 'mysql', true ),
+						'updated_at'         => current_time( 'mysql', true ),
 					),
 					array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 				);

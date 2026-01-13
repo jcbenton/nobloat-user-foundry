@@ -38,6 +38,20 @@ class NBUF_Passkeys {
 	const CHALLENGE_EXPIRATION = 120;
 
 	/**
+	 * Rate limit: maximum requests per window for pre-login endpoints.
+	 *
+	 * @var int
+	 */
+	const RATE_LIMIT_MAX_REQUESTS = 10;
+
+	/**
+	 * Rate limit: time window in seconds (5 minutes).
+	 *
+	 * @var int
+	 */
+	const RATE_LIMIT_WINDOW = 300;
+
+	/**
 	 * Initialize passkeys functionality.
 	 *
 	 * @since 1.5.0
@@ -69,6 +83,125 @@ class NBUF_Passkeys {
 	 */
 	public static function is_enabled(): bool {
 		return (bool) NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+	}
+
+	/**
+	 * Check if IP is rate limited for pre-login passkey endpoints.
+	 *
+	 * SECURITY: Prevents abuse of pre-login endpoints for user enumeration or DoS.
+	 *
+	 * @since  1.5.0
+	 * @return bool True if rate limited, false if OK to proceed.
+	 */
+	private static function is_rate_limited(): bool {
+		$ip_address    = self::get_client_ip();
+		$transient_key = 'nbuf_passkey_rl_' . md5( $ip_address );
+
+		$request_data = get_transient( $transient_key );
+
+		if ( false === $request_data ) {
+			return false;
+		}
+
+		$count = isset( $request_data['count'] ) ? (int) $request_data['count'] : 0;
+
+		return $count >= self::RATE_LIMIT_MAX_REQUESTS;
+	}
+
+	/**
+	 * Record a request for rate limiting purposes.
+	 *
+	 * @since 1.5.0
+	 */
+	private static function record_rate_limit_request(): void {
+		$ip_address    = self::get_client_ip();
+		$transient_key = 'nbuf_passkey_rl_' . md5( $ip_address );
+
+		$request_data = get_transient( $transient_key );
+
+		if ( false === $request_data ) {
+			$request_data = array(
+				'count'      => 1,
+				'first_time' => time(),
+			);
+		} else {
+			++$request_data['count'];
+		}
+
+		set_transient( $transient_key, $request_data, self::RATE_LIMIT_WINDOW );
+	}
+
+	/**
+	 * Get client IP address for rate limiting.
+	 *
+	 * Uses same logic as login limiting for consistency.
+	 *
+	 * @since  1.5.0
+	 * @return string Client IP address.
+	 */
+	private static function get_client_ip(): string {
+		$ip = '';
+
+		/*
+		 * SECURITY: Prevent IP spoofing via X-Forwarded-For header.
+		 * Only trust proxy headers if request originates from a trusted proxy.
+		 */
+		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
+		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+		/* Only trust X-Forwarded-For if request comes from trusted proxy */
+		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
+			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			} elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+			}
+		}
+
+		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
+		if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		}
+
+		/* Handle multiple IPs from proxy (take first one) */
+		if ( strpos( $ip, ',' ) !== false ) {
+			$ip_array = explode( ',', $ip );
+			$ip       = trim( $ip_array[0] );
+		}
+
+		/* Validate IP address */
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+		}
+
+		return strtolower( $ip );
+	}
+
+	/**
+	 * Send rate limit error response and exit.
+	 *
+	 * @since 1.5.0
+	 */
+	private static function send_rate_limit_error(): void {
+		/* Log to security log */
+		if ( class_exists( 'NBUF_Security_Log' ) ) {
+			NBUF_Security_Log::log_or_update(
+				'passkey_rate_limited',
+				'warning',
+				'Passkey endpoint rate limited',
+				array(
+					'ip_address' => self::get_client_ip(),
+				)
+			);
+		}
+
+		wp_send_json_error(
+			array(
+				'message' => __( 'Too many requests. Please wait a few minutes before trying again.', 'nobloat-user-foundry' ),
+				'code'    => 'rate_limited',
+			),
+			429
+		);
 	}
 
 	/**
@@ -1134,6 +1267,12 @@ class NBUF_Passkeys {
 	 * @since 1.5.0
 	 */
 	public static function ajax_auth_options() {
+		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
+		if ( self::is_rate_limited() ) {
+			self::send_rate_limit_error();
+		}
+		self::record_rate_limit_request();
+
 		/* No nonce check for this endpoint - it's pre-login */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$username = isset( $_POST['username'] ) ? sanitize_text_field( wp_unslash( $_POST['username'] ) ) : '';
@@ -1153,6 +1292,12 @@ class NBUF_Passkeys {
 	 * @since 1.5.0
 	 */
 	public static function ajax_authenticate() {
+		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
+		if ( self::is_rate_limited() ) {
+			self::send_rate_limit_error();
+		}
+		self::record_rate_limit_request();
+
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON contains base64url data that must not be modified; pre-login endpoint.
 		$response = isset( $_POST['response'] ) ? json_decode( wp_unslash( $_POST['response'] ), true ) : null;
 
@@ -1203,11 +1348,14 @@ class NBUF_Passkeys {
 			setcookie(
 				'nbuf_2fa_token',
 				$twofa_token,
-				time() + 300,
-				COOKIEPATH,
-				COOKIE_DOMAIN,
-				is_ssl(),
-				true
+				array(
+					'expires'  => time() + 300,
+					'path'     => COOKIEPATH,
+					'domain'   => COOKIE_DOMAIN,
+					'secure'   => is_ssl(),
+					'httponly' => true,
+					'samesite' => 'Strict',
+				)
 			);
 
 			/* Send email code if using email 2FA */
@@ -1264,6 +1412,12 @@ class NBUF_Passkeys {
 	 * @since 1.5.0
 	 */
 	public static function ajax_check_user_passkeys() {
+		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
+		if ( self::is_rate_limited() ) {
+			self::send_rate_limit_error();
+		}
+		self::record_rate_limit_request();
+
 		/* No nonce check for this endpoint - it's pre-login */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey check endpoint.
 		$login = isset( $_POST['login'] ) ? sanitize_text_field( wp_unslash( $_POST['login'] ) ) : '';

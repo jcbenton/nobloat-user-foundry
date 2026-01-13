@@ -33,7 +33,7 @@ $nbuf_twofa_setup = NBUF_Template_Manager::load_template( '2fa-setup-totp' );
 				class="large-text code nbuf-template-editor"
 			><?php echo esc_textarea( $nbuf_twofa_setup ); ?></textarea>
 			<p class="description">
-				<?php esc_html_e( 'Available placeholders: {qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}, {success_message}, {app_name}, {instructions}', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Available placeholders: {qr_code}, {secret_key}, {action_url}, {cancel_url}, {nonce_field}, {error_message}, {success_message}, {app_name}, {instructions}', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
 				<button

@@ -409,9 +409,9 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 			case 'approved':
 				/* User is fully approved and verified */
 				$user_data['is_verified']   = 1;
-				$user_data['verified_date'] = current_time( 'mysql' );
+				$user_data['verified_date'] = current_time( 'mysql', true );
 				$user_data['is_approved']   = 1;
-				$user_data['approved_date'] = current_time( 'mysql' );
+				$user_data['approved_date'] = current_time( 'mysql', true );
 				break;
 
 			case 'awaiting_email_confirmation':
@@ -422,7 +422,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 			case 'awaiting_admin_review':
 				/* User verified email but awaiting admin approval */
 				$user_data['is_verified']       = 1;
-				$user_data['verified_date']     = current_time( 'mysql' );
+				$user_data['verified_date']     = current_time( 'mysql', true );
 				$user_data['requires_approval'] = 1;
 				$user_data['is_approved']       = 0;
 				$user_data['approval_notes']    = 'Migrated from Ultimate Member - awaiting review';

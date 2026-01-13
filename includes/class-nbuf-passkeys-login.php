@@ -123,12 +123,10 @@ class NBUF_Passkeys_Login {
 			return;
 		}
 
-		wp_enqueue_script(
+		NBUF_Asset_Minifier::enqueue_script(
 			'nbuf-passkeys-login',
-			NBUF_PLUGIN_URL . 'assets/js/frontend/passkeys-login.js',
-			array(),
-			NBUF_VERSION,
-			true
+			'assets/js/frontend/passkeys-login.js',
+			array()
 		);
 
 		wp_localize_script(
@@ -180,12 +178,10 @@ class NBUF_Passkeys_Login {
 			return;
 		}
 
-		wp_enqueue_script(
+		NBUF_Asset_Minifier::enqueue_script(
 			'nbuf-passkeys-login',
-			NBUF_PLUGIN_URL . 'assets/js/frontend/passkeys-login.js',
-			array(),
-			NBUF_VERSION,
-			true
+			'assets/js/frontend/passkeys-login.js',
+			array()
 		);
 
 		wp_localize_script(

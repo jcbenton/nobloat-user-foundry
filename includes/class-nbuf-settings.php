@@ -1644,6 +1644,12 @@ class NBUF_Settings {
 					'api'        => __( 'API Reference', 'nobloat-user-foundry' ),
 				),
 			),
+			'about'       => array(
+				'label'   => __( 'About', 'nobloat-user-foundry' ),
+				'subtabs' => array(
+					'info' => __( 'Info', 'nobloat-user-foundry' ),
+				),
+			),
 		);
 	}
 
@@ -1733,29 +1739,33 @@ class NBUF_Settings {
 				<div id="nbuf-tab-<?php echo esc_attr( $tab_key ); ?>"
 					class="nbuf-outer-tab-content<?php echo $active_tab === $tab_key ? ' active' : ''; ?>">
 
-					<!-- Inner tabs (sub-navigation) -->
-					<div class="nbuf-inner-tabs">
+					<!-- Inner tabs (sub-navigation) - hidden if only one subtab -->
 			<?php
-			$subtab_count  = 0;
 			$total_subtabs = count( $tab_data['subtabs'] );
-			foreach ( $tab_data['subtabs'] as $subtab_key => $subtab_label ) :
-				++$subtab_count;
-				$is_active = ( $active_tab === $tab_key && $active_subtab === $subtab_key );
+			if ( $total_subtabs > 1 ) :
 				?>
+					<div class="nbuf-inner-tabs">
+				<?php
+				$subtab_count = 0;
+				foreach ( $tab_data['subtabs'] as $subtab_key => $subtab_label ) :
+					++$subtab_count;
+					$is_active = ( $active_tab === $tab_key && $active_subtab === $subtab_key );
+					?>
 							<a href="?page=nobloat-foundry-users&tab=<?php echo esc_attr( $tab_key ); ?>&subtab=<?php echo esc_attr( $subtab_key ); ?>"
 								class="nbuf-inner-tab-link<?php echo $is_active ? ' active' : ''; ?>"
 								data-subtab="<?php echo esc_attr( $subtab_key ); ?>">
-				<?php echo esc_html( $subtab_label ); ?>
+					<?php echo esc_html( $subtab_label ); ?>
 							</a>
-				<?php
-				if ( $subtab_count < $total_subtabs ) :
-					?>
+					<?php
+					if ( $subtab_count < $total_subtabs ) :
+						?>
 								|
-								<?php
-				endif;
-				?>
-			<?php endforeach; ?>
+							<?php
+					endif;
+					?>
+				<?php endforeach; ?>
 					</div>
+			<?php endif; ?>
 
 					<!-- Subtab content areas -->
 			<?php

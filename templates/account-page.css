@@ -1110,3 +1110,916 @@ textarea.nbuf-account-input {
     cursor: not-allowed;
     opacity: 0.7;
 }
+
+/* ==========================================================
+   SECURITY TAB - SIMPLIFIED LAYOUT
+   ========================================================== */
+
+/* Simple description - clean single paragraph */
+.nbuf-simple-description {
+    margin: 0 0 20px 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--nbuf-text-secondary);
+    max-width: 600px;
+}
+
+/* Simple form wrapper */
+.nbuf-simple-form {
+    margin: 0;
+}
+
+/* Muted helper text */
+.nbuf-muted-text {
+    color: var(--nbuf-text-tertiary);
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Inline form - input and button side by side */
+.nbuf-inline-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.nbuf-inline-form .nbuf-form-input {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+    margin: 0;
+}
+
+/* Password change form */
+.nbuf-password-form {
+    max-width: 400px;
+}
+
+.nbuf-password-form .nbuf-button {
+    margin-top: 10px;
+}
+
+/* ==========================================================
+   DATA TABLES (App Passwords, Passkeys)
+   ========================================================== */
+
+.nbuf-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius);
+    background: var(--nbuf-surface);
+    margin-bottom: 20px;
+}
+
+.nbuf-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.nbuf-data-table thead tr {
+    background: var(--nbuf-background);
+    border-bottom: 2px solid var(--nbuf-border);
+}
+
+.nbuf-data-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-data-table th:last-child,
+.nbuf-data-table th.nbuf-th-actions {
+    text-align: right;
+}
+
+.nbuf-data-table tbody tr {
+    border-bottom: 1px solid var(--nbuf-border-light);
+}
+
+.nbuf-data-table tbody tr:hover {
+    background-color: var(--nbuf-background);
+}
+
+.nbuf-data-table td {
+    padding: 12px 16px;
+}
+
+.nbuf-data-table td:last-child {
+    text-align: right;
+}
+
+.nbuf-table-cell-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--nbuf-text-primary);
+}
+
+.nbuf-table-cell-meta {
+    font-size: 14px;
+    color: var(--nbuf-text-tertiary);
+}
+
+.nbuf-table-cell-actions {
+    white-space: nowrap;
+}
+
+.nbuf-table-cell-actions .nbuf-button-small {
+    margin-left: 6px;
+}
+
+/* Small buttons for table actions */
+.nbuf-button-small {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: auto;
+}
+
+/* Danger button */
+.nbuf-button-danger {
+    background: #dc3545;
+    color: #fff;
+}
+
+.nbuf-button-danger:hover {
+    background: #c82333;
+}
+
+/* ==========================================================
+   GENERATED PASSWORD CARD (App Passwords)
+   ========================================================== */
+
+.nbuf-generated-password-card {
+    display: none;
+    margin-top: 25px;
+    padding: 24px;
+    background: #f0fdf4;
+    border: 2px solid #22c55e;
+    border-radius: var(--nbuf-radius);
+    max-width: 500px;
+}
+
+.nbuf-generated-password-header {
+    font-size: 14px;
+    font-weight: 500;
+    color: #166534;
+    margin-bottom: 12px;
+}
+
+.nbuf-generated-password-value {
+    padding: 16px 20px;
+    background: #fff;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    font-family: 'SF Mono', Consolas, Monaco, 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: #166534;
+    text-align: center;
+    margin-bottom: 12px;
+    word-break: break-all;
+}
+
+.nbuf-generated-password-warning {
+    font-size: 13px;
+    color: #b45309;
+    margin-bottom: 16px;
+}
+
+.nbuf-generated-password-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.nbuf-generated-password-actions .nbuf-button {
+    flex: 1;
+}
+
+/* ==========================================================
+   BROWSER CHECK (Passkeys)
+   ========================================================== */
+
+.nbuf-browser-check {
+    display: none;
+    margin-bottom: 15px;
+}
+
+/* Margin utility */
+.nbuf-margin-top {
+    margin-top: 20px !important;
+}
+
+/* ==========================================================
+   SECURITY TAB - EXTENDED STYLES
+   ----------------------------------------------------------
+   Additional styles for security subtabs including status
+   boxes, notices, info boxes, and verification pages.
+   (Merged from security-account.css)
+   ========================================================== */
+
+/* Security Subtab Content Container */
+.nbuf-security-subtab-content {
+    padding: 0;
+}
+
+.nbuf-security-subtab-content h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.nbuf-security-subtab-content h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+/* Section description */
+.nbuf-section-description {
+    margin: 0 0 25px 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #4a5568;
+}
+
+/* Form help small variant */
+.nbuf-form-help-small {
+    margin: 15px 0 0 0;
+    font-size: 13px;
+    color: #6c757d;
+}
+
+/* ==========================================================
+   STATUS BOXES
+   ========================================================== */
+
+.nbuf-method-status {
+    padding: 15px 18px;
+    margin: 0 0 25px 0;
+    border-radius: 4px;
+}
+
+/* Status: Warning */
+.nbuf-status-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+}
+
+/* Status: Error */
+.nbuf-status-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-left: 4px solid #dc3545;
+}
+
+/* Status content layout */
+.nbuf-status-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+/* Status icon */
+.nbuf-status-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.nbuf-status-active .nbuf-status-icon {
+    color: #28a745;
+}
+
+.nbuf-status-inactive .nbuf-status-icon {
+    color: #6c757d;
+}
+
+.nbuf-status-warning .nbuf-status-icon {
+    color: #856404;
+}
+
+.nbuf-status-error .nbuf-status-icon {
+    color: #dc3545;
+}
+
+/* Status text container */
+.nbuf-status-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nbuf-status-text strong {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.nbuf-status-active .nbuf-status-text strong {
+    color: #155724;
+}
+
+.nbuf-status-inactive .nbuf-status-text strong {
+    color: #495057;
+}
+
+.nbuf-status-warning .nbuf-status-text strong {
+    color: #856404;
+}
+
+.nbuf-status-error .nbuf-status-text strong {
+    color: #721c24;
+}
+
+.nbuf-status-text span {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.nbuf-status-active .nbuf-status-text span {
+    color: #155724;
+}
+
+.nbuf-status-inactive .nbuf-status-text span {
+    color: #495057;
+}
+
+.nbuf-status-warning .nbuf-status-text span {
+    color: #856404;
+}
+
+.nbuf-status-error .nbuf-status-text span {
+    color: #721c24;
+}
+
+/* Legacy status icons */
+.nbuf-status-icon-active {
+    color: #28a745;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.nbuf-status-icon-inactive {
+    color: #6c757d;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.nbuf-status-text-active {
+    color: #155724;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.nbuf-status-text-inactive {
+    color: #495057;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.nbuf-status-codes-remaining {
+    color: #155724;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ==========================================================
+   CONTENT BOXES
+   ========================================================== */
+
+.nbuf-content-box {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 25px;
+}
+
+.nbuf-content-box-white {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.nbuf-content-box h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.nbuf-content-box p {
+    margin: 0 0 20px 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #4a5568;
+}
+
+/* ==========================================================
+   INFO BOXES
+   ========================================================== */
+
+.nbuf-info-box {
+    padding: 15px 18px;
+    margin: 20px 0;
+    background: #f0f6fc;
+    border: 1px solid #d0e3f7;
+    border-left: 4px solid #0073aa;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1a202c;
+}
+
+.nbuf-info-box p {
+    margin: 0;
+}
+
+.nbuf-info-box p + p {
+    margin-top: 10px;
+}
+
+.nbuf-info-box strong {
+    font-weight: 600;
+}
+
+.nbuf-info-box-muted {
+    background: #f8f9fa;
+    border-color: #e0e0e0;
+    border-left-color: #6c757d;
+    color: #495057;
+    margin-top: 30px;
+}
+
+/* ==========================================================
+   FORM ACTIONS
+   ========================================================== */
+
+.nbuf-form-actions {
+    margin-top: 20px;
+    padding-top: 5px;
+}
+
+.nbuf-form-actions form {
+    display: inline-block;
+}
+
+.nbuf-form-actions .nbuf-button + .nbuf-button,
+.nbuf-form-actions form + form {
+    margin-left: 10px;
+}
+
+/* ==========================================================
+   LIST SECTION
+   ========================================================== */
+
+.nbuf-list-section {
+    margin-bottom: 30px;
+}
+
+.nbuf-list-section h4 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+/* ==========================================================
+   SPACING UTILITIES
+   ========================================================== */
+
+.nbuf-section-spacing {
+    margin-bottom: 25px;
+}
+
+.nbuf-section-spacing-large {
+    margin-bottom: 35px;
+}
+
+.nbuf-margin-top-large {
+    margin-top: 30px;
+}
+
+.nbuf-optional {
+    font-weight: 400;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+/* ==========================================================
+   NOTICE BOXES
+   ========================================================== */
+
+.nbuf-notice {
+    padding: 15px 18px;
+    margin: 0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.nbuf-notice-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+.nbuf-notice-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-left: 4px solid #dc3545;
+    color: #721c24;
+}
+
+.nbuf-notice-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-left: 4px solid #28a745;
+    color: #155724;
+}
+
+.nbuf-notice-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-left: 4px solid #17a2b8;
+    color: #0c5460;
+}
+
+.nbuf-notice-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.nbuf-notice .nbuf-status-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.nbuf-notice-warning .nbuf-status-icon {
+    color: #856404;
+}
+
+.nbuf-notice-error .nbuf-status-icon {
+    color: #721c24;
+}
+
+.nbuf-notice-info .nbuf-status-icon {
+    color: #0c5460;
+}
+
+.nbuf-notice-success .nbuf-status-icon {
+    color: #155724;
+}
+
+.nbuf-notice .nbuf-status-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nbuf-notice .nbuf-status-text strong {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.nbuf-notice .nbuf-status-text span {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.nbuf-notice-warning .nbuf-status-text strong,
+.nbuf-notice-warning .nbuf-status-text span {
+    color: #856404;
+}
+
+.nbuf-notice-error .nbuf-status-text strong,
+.nbuf-notice-error .nbuf-status-text span {
+    color: #721c24;
+}
+
+.nbuf-notice-icon {
+    font-size: 18px;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.nbuf-notice-icon-warning {
+    color: #856404;
+}
+
+.nbuf-notice strong {
+    font-weight: 600;
+}
+
+.nbuf-notice p {
+    margin: 0;
+}
+
+.nbuf-setup-note {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    font-size: 14px;
+}
+
+/* ==========================================================
+   EMPTY STATES
+   ========================================================== */
+
+.nbuf-empty-state {
+    padding: 30px 25px;
+    background: #f8f9fa;
+    border: 1px dashed #d0d0d0;
+    border-radius: 6px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.nbuf-empty-state p {
+    margin: 0;
+    font-size: 15px;
+    color: #6c757d;
+    line-height: 1.5;
+}
+
+/* ==========================================================
+   PASSWORD DISPLAY
+   ========================================================== */
+
+.nbuf-password-important {
+    margin: 0 0 15px 0;
+    padding: 12px 15px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    font-size: 14px;
+}
+
+/* ==========================================================
+   DATA EXPORT SECTION
+   ========================================================== */
+
+.nbuf-data-export-section {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.nbuf-data-export-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a202c;
+}
+
+.nbuf-data-export-section p {
+    margin: 0 0 20px 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #4a5568;
+}
+
+/* ==========================================================
+   VERIFICATION PAGE
+   ========================================================== */
+
+.nobloat-verify-wrapper {
+    max-width: 600px;
+    margin: 80px auto;
+    text-align: center;
+}
+
+.nobloat-verify-title {
+    margin: 0 0 10px 0;
+}
+
+.nobloat-verify-message {
+    margin: 0 0 8px 0;
+}
+
+.nobloat-verify-next {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.nobloat-verify-login-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #2271b1;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.nobloat-verify-login-btn:hover {
+    background: #135e96;
+    color: #fff;
+}
+
+/* ==========================================================
+   FORM INPUT VARIATIONS
+   ========================================================== */
+
+.nbuf-form-input[disabled],
+.nbuf-form-input:disabled,
+.nbuf-form-input-disabled {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.nbuf-form-input-full {
+    max-width: none;
+}
+
+.nbuf-form-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.nbuf-form-group-full {
+    margin-bottom: 20px;
+}
+
+.nbuf-form-group-full .nbuf-form-input {
+    max-width: none;
+}
+
+/* ==========================================================
+   2FA SETUP PAGE
+   ========================================================== */
+
+.nbuf-2fa-setup-success {
+    margin: 20px 0;
+    padding: 15px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+}
+
+.nbuf-2fa-setup-success p {
+    margin: 0;
+}
+
+.nbuf-backup-codes-section {
+    margin: 30px 0;
+    padding: 20px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+}
+
+.nbuf-backup-codes-section h3 {
+    margin-top: 0;
+}
+
+.nbuf-backup-codes-section .nbuf-important {
+    color: #856404;
+}
+
+/* ==========================================================
+   ERROR/SUCCESS DISPLAY
+   ========================================================== */
+
+.nbuf-error {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    color: #721c24;
+}
+
+.nbuf-error p {
+    margin: 0;
+}
+
+.nbuf-success {
+    margin: 15px 0;
+    padding: 15px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    color: #155724;
+}
+
+.nbuf-success p {
+    margin: 0;
+}
+
+.nbuf-success-message {
+    margin: 0 0 15px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #155724;
+}
+
+/* ==========================================================
+   DESCRIPTION/WARNING BOXES
+   ========================================================== */
+
+.nbuf-description-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+/* ==========================================================
+   TEXT UTILITIES
+   ========================================================== */
+
+.nbuf-text-center {
+    text-align: center;
+}
+
+.nbuf-centered-message {
+    text-align: center;
+    margin: 80px auto;
+}
+
+/* ==========================================================
+   PHOTO UPLOAD SECTION
+   ========================================================== */
+
+.nbuf-photo-options {
+    margin-top: 15px;
+}
+
+.nbuf-photo-option {
+    margin-bottom: 15px;
+}
+
+.nbuf-gravatar-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.nbuf-gravatar-desc {
+    margin: 8px 0 0 26px;
+}
+
+.nbuf-gravatar-note {
+    color: #856404;
+}
+
+.nbuf-gravatar-submit {
+    margin-top: 12px;
+}
+
+/* ==========================================================
+   PROFILE SELECT
+   ========================================================== */
+
+.nbuf-profile-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+}
+
+/* ==========================================================
+   2FA BACKUP FORM
+   ========================================================== */
+
+#nbuf-backup-form {
+    display: none;
+    margin-top: 20px;
+}
+
+/* ==========================================================
+   AVATAR STYLING
+   ========================================================== */
+
+.nbuf-avatar-rounded {
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Spaced table wrapper */
+.nbuf-spaced {
+    margin-bottom: 0;
+}

@@ -191,24 +191,25 @@ class NBUF_Hooks {
 			return;
 		}
 
-		/* Check if user already has a recent verification token (avoid duplicates) */
-		if ( class_exists( 'NBUF_Database' ) ) {
-			$existing_token = NBUF_Database::get_valid_token( $user->user_email );
-			if ( $existing_token ) {
-				/* Token already exists, skip sending duplicate email */
-				self::$verification_sent_to[] = $user_id;
-				return;
-			}
-		}
-
 		$user_email = $user->user_email;
 
 		/* Generate cryptographically secure token and expiration */
 		$token   = bin2hex( random_bytes( 16 ) ); // 32 hex characters
 		$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
-		/* Store and send */
-		NBUF_Database::insert_token( $user_id, $user_email, $token, $expires, 0 );
+		/*
+		 * Atomically insert token only if no valid token exists.
+		 * This prevents race conditions where concurrent requests both
+		 * check for tokens and then both insert, causing duplicate emails.
+		 * Returns false if a valid token already exists for this email.
+		 */
+		if ( ! NBUF_Database::insert_token_atomic( $user_id, $user_email, $token, $expires, 0 ) ) {
+			/* Token already exists, skip sending duplicate email */
+			self::$verification_sent_to[] = $user_id;
+			return;
+		}
+
+		/* Token was inserted, send verification email */
 		NBUF_Email::send_verification_email( $user_email, $token );
 
 		/* Track that we sent to this user */

@@ -95,12 +95,10 @@ class NBUF_Antibot {
 
 		self::debug_log( 'Registration page detected - enqueueing antibot.js' );
 
-		wp_enqueue_script(
+		NBUF_Asset_Minifier::enqueue_script(
 			'nbuf-antibot',
-			NBUF_PLUGIN_URL . 'assets/js/frontend/antibot.js',
-			array(),
-			NBUF_VERSION,
-			true
+			'assets/js/frontend/antibot.js',
+			array()
 		);
 
 		$config = self::get_client_config();

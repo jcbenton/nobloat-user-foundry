@@ -103,7 +103,7 @@ class NBUF_Expiration {
 			return;
 		}
 
-		$current_time  = current_time( 'mysql' );
+		$current_time  = current_time( 'mysql', true );
 		$expired_users = NBUF_User_Data::get_expiring_before( $current_time );
 
 		if ( empty( $expired_users ) ) {

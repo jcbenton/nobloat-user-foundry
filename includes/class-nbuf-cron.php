@@ -102,7 +102,7 @@ class NBUF_Cron {
 	 */
 	public static function run_cleanup() {
 		NBUF_Database::cleanup_expired();
-		NBUF_Options::update( 'nbuf_last_cleanup', current_time( 'mysql' ), false, 'system' );
+		NBUF_Options::update( 'nbuf_last_cleanup', current_time( 'mysql', true ), false, 'system' );
 	}
 
 	/**
@@ -148,7 +148,7 @@ class NBUF_Cron {
 
 			/* Log cleanup result */
 			if ( $deleted > 0 ) {
-				NBUF_Options::update( 'nbuf_last_vh_cleanup', current_time( 'mysql' ), false, 'system' );
+				NBUF_Options::update( 'nbuf_last_vh_cleanup', current_time( 'mysql', true ), false, 'system' );
 				NBUF_Options::update( 'nbuf_last_vh_cleanup_count', $deleted, false, 'system' );
 			}
 		}
@@ -182,22 +182,31 @@ class NBUF_Cron {
 		);
 
 		/*
-		 * Delete corresponding transient values (orphaned after timeout deletion)
+		 * Delete orphaned transient values (those without matching timeout entries).
+		 *
+		 * OPTIMIZED: Uses LEFT JOIN instead of NOT IN subquery.
+		 * The NOT IN approach requires a correlated subquery that scans the
+		 * options table twice. LEFT JOIN is more efficient as MySQL can
+		 * use hash joins or merge joins depending on table size.
+		 *
+		 * Join logic:
+		 * - t.option_name: '_transient_nbuf_foo' (position 12+ = 'nbuf_foo')
+		 * - tmo.option_name: '_transient_timeout_nbuf_foo'
+		 * - Match when CONCAT('_transient_timeout_', SUBSTRING(t.option_name, 12)) = tmo.option_name
+		 * - Delete where no matching timeout exists (tmo.option_name IS NULL)
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Orphaned transient cleanup requires direct database query for efficiency.
 		$deleted_values = $wpdb->query(
-			"DELETE FROM {$wpdb->options}
-			 WHERE option_name LIKE '_transient_nbuf_%'
-			 AND option_name NOT IN (
-				 SELECT CONCAT('_transient_', SUBSTRING(option_name, 20))
-				 FROM {$wpdb->options}
-				 WHERE option_name LIKE '_transient_timeout_nbuf_%'
-			 )"
+			"DELETE t FROM {$wpdb->options} t
+			 LEFT JOIN {$wpdb->options} tmo
+			 ON tmo.option_name = CONCAT('_transient_timeout_', SUBSTRING(t.option_name, 12))
+			 WHERE t.option_name LIKE '_transient_nbuf_%'
+			 AND tmo.option_name IS NULL"
 		);
 
 		/* Log cleanup statistics */
 		if ( $deleted_timeouts > 0 || $deleted_values > 0 ) {
-			NBUF_Options::update( 'nbuf_last_transient_cleanup', current_time( 'mysql' ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_transient_cleanup', current_time( 'mysql', true ), false, 'system' );
 			NBUF_Options::update( 'nbuf_last_transient_cleanup_count', ( $deleted_timeouts + $deleted_values ), false, 'system' );
 		}
 
@@ -285,7 +294,7 @@ class NBUF_Cron {
 
 		/* Log cleanup statistics */
 		if ( $deleted_count > 0 ) {
-			NBUF_Options::update( 'nbuf_last_unverified_cleanup', current_time( 'mysql' ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_unverified_cleanup', current_time( 'mysql', true ), false, 'system' );
 			NBUF_Options::update( 'nbuf_last_unverified_cleanup_count', $deleted_count, false, 'system' );
 		}
 
@@ -338,7 +347,7 @@ class NBUF_Cron {
 		/* Log cleanup statistics */
 		$total_deleted = array_sum( $results );
 		if ( $total_deleted > 0 ) {
-			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup', current_time( 'mysql' ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup', current_time( 'mysql', true ), false, 'system' );
 			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup_count', $total_deleted, false, 'system' );
 			NBUF_Options::update( 'nbuf_last_enterprise_logging_cleanup_details', $results, false, 'system' );
 		}

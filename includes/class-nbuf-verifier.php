@@ -90,7 +90,7 @@ class NBUF_Verifier {
 			);
 		}
 
-		$now = current_time( 'mysql' );
+		$now = current_time( 'mysql', true );
 
 		// Expired token.
 		if ( (string) $entry->expires_at < $now ) {
@@ -192,7 +192,7 @@ class NBUF_Verifier {
 
 		$color = $success ? '#2d8a34' : '#c0392b';
 
-		// Using CSS classes from security-account.css; color is dynamic for success/failure
+		// Using CSS classes from account-page.css; color is dynamic for success/failure
 		$out  = '<div class="nobloat-verify-wrapper">';
 		$out .= '<h1 class="nobloat-verify-title" style="color:' . esc_attr( $color ) . ';">' . esc_html( $title ) . '</h1>';
 		$out .= '<p class="nobloat-verify-message">' . esc_html( $message ) . '</p>';

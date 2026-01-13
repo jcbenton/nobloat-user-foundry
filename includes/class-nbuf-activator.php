@@ -78,6 +78,9 @@ class NBUF_Activator {
 
 			/* Migrate audit log indexes for existing installations (v1.4.0+) */
 			NBUF_Database::migrate_audit_log_indexes();
+
+			/* Migrate tokens table indexes (v1.5.0+) */
+			NBUF_Database::migrate_tokens_indexes();
 		}
 		if ( $debug_timing ) {
 			$timings['1_database_tables'] = round( microtime( true ) - $start_time, 3 );

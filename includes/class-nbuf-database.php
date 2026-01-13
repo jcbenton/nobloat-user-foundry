@@ -110,6 +110,7 @@ class NBUF_Database {
             PRIMARY KEY (id),
             KEY token (token),
             KEY user_id (user_id),
+            KEY user_email (user_email),
             KEY cleanup (is_test, verified, expires_at)
         ) {$charset_collate};";
 
@@ -515,6 +516,69 @@ class NBUF_Database {
 		$format = array( '%d', '%s', '%s', '%s', '%d', '%d' );
 
 		return (bool) $wpdb->insert( self::$table_name, $data, $format );
+	}
+
+	/**
+	==========================================================
+	INSERT TOKEN ATOMICALLY (RACE-SAFE)
+	----------------------------------------------------------
+	Inserts a verification token only if no valid (unexpired,
+	unverified) token exists for the email. Uses a single
+	INSERT ... SELECT query to prevent race conditions.
+
+	@param  int    $user_id    User ID.
+	@param  string $email      User email address.
+	@param  string $token      Verification token string.
+	@param  mixed  $expires_at Expiration timestamp or date string.
+	@param  int    $is_test    Whether this is a test token (default 0).
+	@return bool True if token was inserted, false if token already existed.
+	==========================================================
+	 */
+	public static function insert_token_atomic( $user_id, $email, $token, $expires_at, $is_test = 0 ) {
+		global $wpdb;
+		self::init();
+
+		$sanitized_email = sanitize_email( $email );
+		$sanitized_token = sanitize_text_field( $token );
+		$expires_formatted = is_numeric( $expires_at )
+			? gmdate( 'Y-m-d H:i:s', $expires_at )
+			: gmdate( 'Y-m-d H:i:s', strtotime( $expires_at ) );
+		$now = gmdate( 'Y-m-d H:i:s' );
+
+		/*
+		 * Atomic INSERT ... SELECT that only inserts if no valid token exists.
+		 * This prevents race conditions where two concurrent requests both
+		 * check for existing tokens and then both insert.
+		 *
+		 * The WHERE NOT EXISTS subquery ensures the insert only happens if
+		 * no unexpired, unverified token exists for this email.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic token insert requires direct query.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT INTO %i (user_id, user_email, token, expires_at, verified, is_test)
+				SELECT %d, %s, %s, %s, 0, %d
+				WHERE NOT EXISTS (
+					SELECT 1 FROM %i
+					WHERE user_email = %s
+					AND verified = 0
+					AND expires_at > %s
+					LIMIT 1
+				)",
+				self::$table_name,
+				(int) $user_id,
+				$sanitized_email,
+				$sanitized_token,
+				$expires_formatted,
+				(int) $is_test,
+				self::$table_name,
+				$sanitized_email,
+				$now
+			)
+		);
+
+		/* $result is the number of rows affected (1 if inserted, 0 if skipped) */
+		return ( 1 === $result );
 	}
 
 	/**
@@ -1110,6 +1174,71 @@ class NBUF_Database {
 		} else {
 			error_log( '[NoBloat User Foundry] Audit log indexes migration failed: ' . implode( '; ', $errors ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
 			/* Don't mark as complete if migration failed - allow retry */
+		}
+
+		return $migration_success;
+	}
+
+	/**
+	==========================================================
+	MIGRATE TOKENS TABLE INDEXES
+	----------------------------------------------------------
+	Adds user_email index to tokens table for faster lookups
+	in get_valid_token() queries.
+
+	This migration is idempotent - safe to run multiple times.
+	Only runs once per installation using option flag.
+
+	@since 1.5.0
+	@return bool True on success, false on failure.
+	==========================================================
+	 */
+	public static function migrate_tokens_indexes() {
+		global $wpdb;
+		self::init();
+
+		$migration_key = 'nbuf_tokens_indexes_v1';
+
+		/* Check if migration already run */
+		if ( NBUF_Options::get( $migration_key ) ) {
+			return true;
+		}
+
+		/* Verify table exists before attempting migration */
+		$table_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				'SHOW TABLES LIKE %s',
+				self::$table_name
+			)
+		);
+
+		if ( ! $table_exists ) {
+			/* Table doesn't exist yet - indexes will be created during table creation */
+			NBUF_Options::update( $migration_key, time(), false, 'system' );
+			return true;
+		}
+
+		/* Get existing indexes to avoid duplication errors */
+		$existing_indexes = $wpdb->get_results(
+			$wpdb->prepare( 'SHOW INDEX FROM %i', self::$table_name ),
+			ARRAY_A
+		);
+		$index_names = wp_list_pluck( $existing_indexes, 'Key_name' );
+
+		$migration_success = true;
+
+		/* Add user_email index if not exists */
+		if ( ! in_array( 'user_email', $index_names, true ) ) {
+			$result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY user_email (user_email)', self::$table_name ) );
+			if ( false === $result ) {
+				$migration_success = false;
+				error_log( '[NoBloat User Foundry] Tokens index migration failed: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
+			}
+		}
+
+		/* Mark migration complete */
+		if ( $migration_success ) {
+			NBUF_Options::update( $migration_key, time(), false, 'system' );
 		}
 
 		return $migration_success;

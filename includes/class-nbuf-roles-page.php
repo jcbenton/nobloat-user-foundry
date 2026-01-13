@@ -569,8 +569,8 @@ class NBUF_Roles_Page {
 				'capabilities' => wp_json_encode( $wp_role->capabilities ),
 				'parent_role'  => null,
 				'priority'     => 0,
-				'created_at'   => current_time( 'mysql' ),
-				'updated_at'   => current_time( 'mysql' ),
+				'created_at'   => current_time( 'mysql', true ),
+				'updated_at'   => current_time( 'mysql', true ),
 			)
 		);
 

@@ -148,11 +148,14 @@ class NBUF_2FA_Login {
 		setcookie(
 			self::COOKIE_NAME,
 			$token,
-			time() + self::TRANSIENT_EXPIRATION,
-			COOKIEPATH,
-			COOKIE_DOMAIN,
-			is_ssl(),
-			true // httponly.
+			array(
+				'expires'  => time() + self::TRANSIENT_EXPIRATION,
+				'path'     => COOKIEPATH,
+				'domain'   => COOKIE_DOMAIN,
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Strict',
+			)
 		);
 
 		/* Send email code if using email 2FA */

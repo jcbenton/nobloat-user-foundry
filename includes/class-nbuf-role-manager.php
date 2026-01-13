@@ -170,8 +170,8 @@ class NBUF_Role_Manager {
 			'capabilities' => wp_json_encode( $final_capabilities ),
 			'parent_role'  => $parent_role ? sanitize_text_field( $parent_role ) : null,
 			'priority'     => absint( $priority ),
-			'created_at'   => current_time( 'mysql' ),
-			'updated_at'   => current_time( 'mysql' ),
+			'created_at'   => current_time( 'mysql', true ),
+			'updated_at'   => current_time( 'mysql', true ),
 		);
 
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -226,7 +226,7 @@ class NBUF_Role_Manager {
 
 		/* Prepare update data */
 		$data = array(
-			'updated_at' => current_time( 'mysql' ),
+			'updated_at' => current_time( 'mysql', true ),
 		);
 
 		if ( isset( $updates['role_name'] ) ) {
@@ -529,7 +529,7 @@ class NBUF_Role_Manager {
 			'capabilities' => $role['capabilities'],
 			'parent_role'  => $role['parent_role'],
 			'priority'     => $role['priority'],
-			'exported_at'  => current_time( 'mysql' ),
+			'exported_at'  => current_time( 'mysql', true ),
 			'exported_by'  => get_current_user_id(),
 		);
 
@@ -635,8 +635,8 @@ class NBUF_Role_Manager {
 					'capabilities' => wp_json_encode( $wp_role->capabilities ),
 					'parent_role'  => null,
 					'priority'     => 0,
-					'created_at'   => current_time( 'mysql' ),
-					'updated_at'   => current_time( 'mysql' ),
+					'created_at'   => current_time( 'mysql', true ),
+					'updated_at'   => current_time( 'mysql', true ),
 				)
 			);
 

@@ -104,6 +104,30 @@ function nbuf_run_uninstall() {
 	}
 
 	/**
+	 * Delete cache directory (always)
+	 *
+	 * Removes the /uploads/nobloat/cache/ directory which contains
+	 * minified JavaScript files. Safe to delete as these are regenerated.
+	 */
+	$nbuf_upload_dir = wp_upload_dir();
+	$nbuf_cache_dir  = trailingslashit( $nbuf_upload_dir['basedir'] ) . 'nobloat/cache/';
+
+	if ( file_exists( $nbuf_cache_dir ) ) {
+		$nbuf_cache_files = glob( $nbuf_cache_dir . '*' );
+
+		if ( ! empty( $nbuf_cache_files ) && is_array( $nbuf_cache_files ) ) {
+			foreach ( $nbuf_cache_files as $nbuf_cache_file ) {
+				if ( is_file( $nbuf_cache_file ) ) {
+					wp_delete_file( $nbuf_cache_file );
+				}
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.PHP.NoSilencedErrors.Discouraged
+		@rmdir( $nbuf_cache_dir );
+	}
+
+	/**
 	 * Delete uploads directory (if requested)
 	 *
 	 * Permanently deletes the entire /uploads/nobloat/ directory including

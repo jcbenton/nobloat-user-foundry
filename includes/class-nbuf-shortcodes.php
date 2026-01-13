@@ -483,13 +483,41 @@ class NBUF_Shortcodes {
 			return;
 		}
 
+		/* Check if on reset request page - either WordPress page or Universal Router */
+		$is_reset_page = false;
+
+		/* Check WordPress page */
 		$page_id = NBUF_Options::get( 'nbuf_page_request_reset' );
-		if ( ! $page_id || ! is_page( $page_id ) ) {
+		if ( $page_id && is_page( $page_id ) ) {
+			$is_reset_page = true;
+		}
+
+		/* Check Universal Router */
+		if ( ! $is_reset_page && class_exists( 'NBUF_Universal_Router' ) ) {
+			$current_view = NBUF_Universal_Router::get_current_view();
+			if ( 'forgot-password' === $current_view ) {
+				$is_reset_page = true;
+			}
+		}
+
+		if ( ! $is_reset_page ) {
 			return;
 		}
 
 		if ( empty( $_POST['nbuf_request_reset_action'] ) ) {
 			return;
+		}
+
+		/* Get the redirect URL for this page (Universal Router or WordPress page) */
+		$redirect_base_url = '';
+		if ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() ) {
+			$redirect_base_url = NBUF_Universal_Router::get_url( 'forgot-password' );
+		}
+		if ( empty( $redirect_base_url ) && $page_id ) {
+			$redirect_base_url = get_permalink( $page_id );
+		}
+		if ( empty( $redirect_base_url ) ) {
+			$redirect_base_url = home_url( '/forgot-password/' );
 		}
 
 		/*
@@ -503,7 +531,7 @@ class NBUF_Shortcodes {
 		$user_login = isset( $_POST['user_login'] ) ? sanitize_text_field( wp_unslash( $_POST['user_login'] ) ) : '';
 
 		if ( empty( $user_login ) ) {
-			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Please enter your email address.', 'nobloat-user-foundry' ) ), get_permalink( $page_id ) ) );
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Please enter your email address.', 'nobloat-user-foundry' ) ), $redirect_base_url ) );
 			exit;
 		}
 
@@ -522,7 +550,7 @@ class NBUF_Shortcodes {
 		$attempts = NBUF_Transients::increment( 'password_reset_rate', $rate_identifier, 1, 15 * MINUTE_IN_SECONDS );
 
 		if ( $attempts >= 3 ) {
-			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Too many password reset attempts. Please try again later.', 'nobloat-user-foundry' ) ), get_permalink( $page_id ) ) );
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Too many password reset attempts. Please try again later.', 'nobloat-user-foundry' ) ), $redirect_base_url ) );
 			exit;
 		}
 
@@ -531,7 +559,7 @@ class NBUF_Shortcodes {
 
 		if ( ! $user ) {
 			/* For security, show success message even if user not found */
-			wp_safe_redirect( add_query_arg( 'reset', 'sent', get_permalink( $page_id ) ) );
+			wp_safe_redirect( add_query_arg( 'reset', 'sent', $redirect_base_url ) );
 			exit;
 		}
 
@@ -539,20 +567,29 @@ class NBUF_Shortcodes {
 		$key = get_password_reset_key( $user );
 
 		if ( is_wp_error( $key ) ) {
-			wp_safe_redirect( add_query_arg( 'error', rawurlencode( $key->get_error_message() ), get_permalink( $page_id ) ) );
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( $key->get_error_message() ), $redirect_base_url ) );
 			exit;
 		}
 
-		/* Build reset link */
-		$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
-		if ( $reset_page_id ) {
+		/* Build reset link - prefer Universal Router, then page, then wp-login */
+		$reset_url = '';
+		if ( class_exists( 'NBUF_Universal_Router' ) ) {
+			$reset_url = NBUF_Universal_Router::get_url( 'reset-password' );
+		}
+		if ( empty( $reset_url ) ) {
+			$reset_page_id = NBUF_Options::get( 'nbuf_page_password_reset', 0 );
+			if ( $reset_page_id ) {
+				$reset_url = get_permalink( $reset_page_id );
+			}
+		}
+		if ( ! empty( $reset_url ) ) {
 			$reset_url = add_query_arg(
 				array(
 					'action' => 'rp',
 					'key'    => $key,
 					'login'  => rawurlencode( $user->user_login ),
 				),
-				get_permalink( $reset_page_id )
+				$reset_url
 			);
 		} else {
 			$reset_url = network_site_url( "wp-login.php?action=rp&key=$key&login=" . rawurlencode( $user->user_login ), 'login' );
@@ -605,7 +642,7 @@ class NBUF_Shortcodes {
 		);
 
 		/* Redirect with success message */
-		wp_safe_redirect( add_query_arg( 'reset', 'sent', get_permalink( $page_id ) ) );
+		wp_safe_redirect( add_query_arg( 'reset', 'sent', $redirect_base_url ) );
 		exit;
 	}
 
@@ -621,8 +658,24 @@ class NBUF_Shortcodes {
 			return;
 		}
 
+		/* Check if on password reset page - either WordPress page or Universal Router */
+		$is_reset_page = false;
+
+		/* Check WordPress page */
 		$page_id = NBUF_Options::get( 'nbuf_page_password_reset' );
-		if ( ! $page_id || ! is_page( $page_id ) ) {
+		if ( $page_id && is_page( $page_id ) ) {
+			$is_reset_page = true;
+		}
+
+		/* Check Universal Router */
+		if ( ! $is_reset_page && class_exists( 'NBUF_Universal_Router' ) ) {
+			$current_view = NBUF_Universal_Router::get_current_view();
+			if ( 'reset-password' === $current_view ) {
+				$is_reset_page = true;
+			}
+		}
+
+		if ( ! $is_reset_page ) {
 			return;
 		}
 
@@ -1092,10 +1145,22 @@ class NBUF_Shortcodes {
 			$error_message = '<div class="nbuf-message nbuf-message-error nbuf-registration-error">' . esc_html( urldecode( $error_param ) ) . '</div>';
 		}
 
+		/* Retrieve preserved form data from transient (if redirected back with error) */
+		$preserved_data = array();
+		$form_key       = self::get_query_param( 'form_key' );
+		if ( $form_key ) {
+			$preserved_data = get_transient( $form_key );
+			if ( $preserved_data ) {
+				delete_transient( $form_key ); /* One-time use */
+			} else {
+				$preserved_data = array();
+			}
+		}
+
 		/* Build username field HTML if needed */
 		$username_field_html = '';
 		if ( NBUF_Registration::should_show_username_field() ) {
-			$username_value      = isset( $_POST['username'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_POST['username'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$username_value      = isset( $preserved_data['username'] ) ? esc_attr( $preserved_data['username'] ) : '';
 			$username_field_html = '
                 <div class="nbuf-form-group">
                     <label class="nbuf-form-label nbuf-registration-label" for="nbuf_reg_username">' . esc_html__( 'Username', 'nobloat-user-foundry' ) . ' <span class="required">*</span></label>
@@ -1117,7 +1182,7 @@ class NBUF_Shortcodes {
 		$full_width_fields = array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
 
 		foreach ( $enabled_fields as $field_key => $field_data ) {
-			$field_value = isset( $_POST[ $field_key ] ) ? esc_attr( sanitize_text_field( wp_unslash( $_POST[ $field_key ] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$field_value = isset( $preserved_data[ $field_key ] ) ? esc_attr( $preserved_data[ $field_key ] ) : '';
 			$required    = $field_data['required'] ? ' <span class="required">*</span>' : '';
 			$req_attr    = $field_data['required'] ? ' required' : '';
 
@@ -1173,7 +1238,7 @@ class NBUF_Shortcodes {
 		}
 
 		/* Replace placeholders */
-		$email_value = isset( $_POST['email'] ) ? esc_attr( sanitize_email( wp_unslash( $_POST['email'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$email_value = isset( $preserved_data['email'] ) ? esc_attr( $preserved_data['email'] ) : '';
 
 		/* Build dynamic password requirements text */
 		$password_min_length      = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
@@ -1316,9 +1381,21 @@ class NBUF_Shortcodes {
 		$user_id = NBUF_Registration::register_user( $data );
 
 		if ( is_wp_error( $user_id ) ) {
+			/* Store form data (except passwords) in transient for repopulating form */
+			$preserved_data = $data;
+			unset( $preserved_data['password'], $preserved_data['password_confirm'] );
+			$transient_key = 'nbuf_reg_form_' . wp_hash( session_id() . wp_get_session_token() );
+			set_transient( $transient_key, $preserved_data, 5 * MINUTE_IN_SECONDS );
+
 			/* Redirect back with error */
 			$error_message = $user_id->get_error_message();
-			$redirect_url  = add_query_arg( 'error', rawurlencode( $error_message ), self::get_current_page_url() );
+			$redirect_url  = add_query_arg(
+				array(
+					'error'    => rawurlencode( $error_message ),
+					'form_key' => $transient_key,
+				),
+				self::get_current_page_url()
+			);
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
@@ -1385,7 +1462,7 @@ class NBUF_Shortcodes {
 
 		/* Enqueue profile photos script if profiles enabled */
 		if ( NBUF_Options::get( 'nbuf_enable_profiles', false ) ) {
-			wp_enqueue_script( 'nbuf-profile-photos', NBUF_PLUGIN_URL . 'assets/js/frontend/profile-photos.js', array( 'jquery' ), NBUF_VERSION, true );
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-profile-photos', 'assets/js/frontend/profile-photos.js', array( 'jquery' ) );
 			wp_localize_script(
 				'nbuf-profile-photos',
 				'NBUF_ProfilePhotos',
@@ -1413,12 +1490,12 @@ class NBUF_Shortcodes {
 		}
 
 		/* Enqueue account page JavaScript (tabs, toast auto-dismiss) */
-		wp_enqueue_script( 'nbuf-account-page', NBUF_PLUGIN_URL . 'assets/js/frontend/account-page.js', array(), NBUF_VERSION, true );
+		NBUF_Asset_Minifier::enqueue_script( 'nbuf-account-page', 'assets/js/frontend/account-page.js', array() );
 
 		/* Enqueue passkeys JavaScript if enabled */
 		$passkeys_enabled = NBUF_Options::get( 'nbuf_passkeys_enabled', false );
 		if ( $passkeys_enabled ) {
-			wp_enqueue_script( 'nbuf-passkeys-account', NBUF_PLUGIN_URL . 'assets/js/frontend/passkeys-account.js', array(), NBUF_VERSION, true );
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-passkeys-account', 'assets/js/frontend/passkeys-account.js', array() );
 		}
 
 		/* Get template using Template Manager (custom table + caching) */
@@ -2150,34 +2227,33 @@ class NBUF_Shortcodes {
 			wp_update_user( $user_data );
 		}
 
-		/* Collect NoBloat profile fields */
-		$profile_fields = array(
-			'phone',
-			'company',
-			'job_title',
-			'address',
-			'address_line1',
-			'address_line2',
-			'city',
-			'state',
-			'postal_code',
-			'country',
-			'bio',
-			'website',
-		);
+		/* Collect NoBloat profile fields - use ALL available fields from registry */
+		$all_profile_fields = NBUF_Profile_Data::get_all_field_keys();
+
+		/* Textarea fields that need special handling */
+		$textarea_fields = array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
+
+		/* URL fields that need URL sanitization */
+		$url_fields = array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok', 'twitch', 'reddit', 'snapchat', 'soundcloud', 'vimeo', 'spotify', 'pinterest' );
+
+		/* Email fields that need email sanitization */
+		$email_fields = array( 'secondary_email', 'work_email', 'supervisor_email' );
 
 		$profile_data = array();
 
-		foreach ( $profile_fields as $field ) {
+		foreach ( $all_profile_fields as $field ) {
 			if ( isset( $_POST[ $field ] ) ) {
-				if ( 'bio' === $field ) {
-					/* SECURITY: Enforce maximum length for bio field (5000 chars) */
+				if ( in_array( $field, $textarea_fields, true ) ) {
+					/* SECURITY: Enforce maximum length for textarea fields (5000 chars) */
 					$value                  = sanitize_textarea_field( wp_unslash( $_POST[ $field ] ) );
 					$profile_data[ $field ] = mb_substr( $value, 0, 5000 );
-				} elseif ( 'website' === $field ) {
+				} elseif ( in_array( $field, $url_fields, true ) ) {
 					/* SECURITY: Enforce maximum length for URL (500 chars) */
 					$value                  = esc_url_raw( wp_unslash( $_POST[ $field ] ) );
 					$profile_data[ $field ] = mb_substr( $value, 0, 500 );
+				} elseif ( in_array( $field, $email_fields, true ) ) {
+					/* Email fields */
+					$profile_data[ $field ] = sanitize_email( wp_unslash( $_POST[ $field ] ) );
 				} else {
 					/* SECURITY: Enforce maximum length for text fields (500 chars) */
 					$value                  = sanitize_text_field( wp_unslash( $_POST[ $field ] ) );
@@ -2946,6 +3022,11 @@ Best regards,
 					? NBUF_Universal_Router::get_url( '2fa-setup' )
 					: get_permalink();
 
+				/* Get cancel URL - back to account security > authenticator subtab */
+				$cancel_url = ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() )
+					? add_query_arg( 'subtab', 'authenticator', NBUF_Universal_Router::get_url( 'account', 'security' ) )
+					: add_query_arg( array( 'tab' => 'security', 'subtab' => 'authenticator' ), self::get_account_url() );
+
 				/* Generate nonce field */
 				ob_start();
 				wp_nonce_field( 'nbuf_2fa_setup_totp', 'nbuf_2fa_nonce' );
@@ -2957,6 +3038,7 @@ Best regards,
 					'{secret_key}'      => esc_attr( $secret ),
 					'{account_name}'    => esc_html( $username ),
 					'{action_url}'      => esc_url( $action_url ),
+					'{cancel_url}'      => esc_url( $cancel_url ),
 					'{nonce_field}'     => $nonce_field,
 					'{success_message}' => '',
 					'{error_message}'   => '',
@@ -3129,6 +3211,11 @@ Best regards,
 			? NBUF_Universal_Router::get_url( '2fa-setup' )
 			: get_permalink();
 
+		/* Get cancel URL - back to account security > authenticator subtab */
+		$cancel_url = ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() )
+			? add_query_arg( 'subtab', 'authenticator', NBUF_Universal_Router::get_url( 'account', 'security' ) )
+			: add_query_arg( array( 'tab' => 'security', 'subtab' => 'authenticator' ), self::get_account_url() );
+
 		/* Generate nonce field */
 		ob_start();
 		wp_nonce_field( 'nbuf_2fa_setup_totp', 'nbuf_2fa_nonce' );
@@ -3145,6 +3232,7 @@ Best regards,
 			'{secret_key}'      => esc_attr( $secret ),
 			'{account_name}'    => esc_html( $username ),
 			'{action_url}'      => esc_url( $action_url ),
+			'{cancel_url}'      => esc_url( $cancel_url ),
 			'{nonce_field}'     => $nonce_field,
 			'{success_message}' => '',
 			'{error_message}'   => $error_html,
@@ -3871,12 +3959,10 @@ Best regards,
 	 */
 	private static function wrap_with_policy_panel( $content, $position, $form_type ) {
 		/* Enqueue policy tabs JavaScript */
-		wp_enqueue_script(
+		NBUF_Asset_Minifier::enqueue_script(
 			'nbuf-policy-tabs',
-			NBUF_PLUGIN_URL . 'assets/js/frontend/policy-tabs.js',
-			array(),
-			NBUF_VERSION,
-			true
+			'assets/js/frontend/policy-tabs.js',
+			array()
 		);
 
 		$policy_panel = self::get_policy_panel();
@@ -4022,7 +4108,7 @@ Best regards,
 
 		/* Enqueue account page JavaScript */
 		if ( 'account' === $view ) {
-			wp_enqueue_script( 'nbuf-account-page', NBUF_PLUGIN_URL . 'assets/js/frontend/account-page.js', array(), NBUF_VERSION, true );
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-account-page', 'assets/js/frontend/account-page.js', array() );
 
 			/* Pass subview (tab) to JavaScript */
 			$subview = '';

@@ -633,7 +633,7 @@ class NBUF_Template_Manager {
 
 			// 2FA pages.
 			'2fa-verify'                => '{action_url}, {nonce_field}, {error_message}, {method}, {resend_link}',
-			'2fa-setup-totp'            => '{qr_code}, {secret_key}, {action_url}, {nonce_field}, {error_message}',
+			'2fa-setup-totp'            => '{qr_code}, {secret_key}, {action_url}, {cancel_url}, {nonce_field}, {error_message}',
 			'2fa-backup-codes'          => '{backup_codes}, {action_url}, {nonce_field}, {error_message}',
 			'2fa-backup-verify'         => '{action_url}, {nonce_field}, {error_message}, {success_message}, {device_trust_checkbox}, {regular_verify_link}, {help_text}',
 

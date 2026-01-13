@@ -7,7 +7,7 @@
 
 # NoBloat User Foundry
 
-Enterprise-grade user management for WordPress. Email verification, 2FA, passkeys, account expiration, GDPR compliance, and complete user lifecycle control - without the bloat.
+Enterprise-grade, business focused user management for WordPress. Email verification, 2FA, passkeys, account expiration, GDPR compliance, auditing, and complete user lifecycle control - without the bloat.
 
 ## Overview
 
@@ -18,6 +18,17 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 [https://docs.mailborder.com/nobloat-user-foundry](https://docs.mailborder.com/nobloat-user-foundry)
 
 ## Features
+
+### Clean Structure
+
+- No extra WordPress pages - all structure generated via internal router
+- Clean CSS and JS automatically minified and only loaded on relevant pages
+- No third party libraries
+- No external API calls
+- No static images
+- Custom database tables - no wp_usermeta or wp_options bloat
+- Lazy class loading - only loads what's needed per request
+- Complete uninstall - removes all plugin data cleanly
 
 ### Email Verification
 
@@ -113,6 +124,15 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 - Webhook delivery logging
 - Auto-disable after consecutive failures
 
+### Custom Account Tabs
+
+- Add custom tabs to the frontend account page
+- Shortcode content support (WooCommerce, EDD, LearnDash, etc.)
+- Role-based tab visibility restrictions
+- Optional Dashicon icons for visual identification
+- Drag-and-drop reordering in admin
+- Priority-based sorting
+
 ### Email System
 
 - Customizable email templates
@@ -182,6 +202,26 @@ Virtual page routing at `/user-foundry/` - no WordPress pages required:
 | `nbuf_verification_email_message` | Modify verification email message |
 | `nbuf_password_requirements` | Customize password requirements |
 | `nbuf_profile_fields` | Modify available profile fields |
+
+### Custom Tabs API
+
+```php
+// Get all custom tabs
+$tabs = NBUF_Custom_Tabs::get_all();
+
+// Get tabs visible to a specific user
+$user_tabs = NBUF_Custom_Tabs::get_for_user($user_id);
+
+// Create a custom tab programmatically
+$tab = NBUF_Custom_Tabs::create(array(
+    'name'    => 'My Orders',
+    'slug'    => 'my-orders',
+    'content' => '[woocommerce_my_account]',
+    'roles'   => array('customer'),
+    'icon'    => 'dashicons-cart',
+    'enabled' => true,
+));
+```
 
 ## Database Tables
 

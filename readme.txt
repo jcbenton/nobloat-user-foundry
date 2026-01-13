@@ -1,21 +1,31 @@
 === NoBloat User Foundry ===
-Contributors: nobloat
+Contributors: mailborder
 Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
-Tags: user management, email verification, two-factor authentication, user registration, GDPR
+Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Enterprise user management for WordPress. Email verification, 2FA, passkeys, account expiration, GDPR compliance, and complete user lifecycle control.
+Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
 
 == Description ==
 
-NoBloat User Foundry is a comprehensive yet lightweight user management system for WordPress. It replaces bloated membership plugins with a focused, performant solution for email verification, two-factor authentication, account expiration, user profiles, and GDPR compliance. This plugin was specifically designed to not cause bloat within the Wordpress database structure. It uses its own tables for all data except two required settings in wp_options. The uninstall options allows for a complete clean uninstall. 
+NoBloat User Foundry is a comprehensive yet lightweight user management system for WordPress. It replaces bloated membership plugins with a focused, performant solution for email verification, two-factor authentication, account expiration, user profiles, full audit logs, and GDPR compliance. This plugin was specifically designed to not cause bloat within the Wordpress database structure. It uses its own tables for all data except minimal required settings in wp_options. The uninstall options allows for a complete and total clean uninstall. 
 
 = Core Features =
+
+**Clean Structure**
+* No extra Wordpress pages. All structure is generated within and internal router.
+* Clean CSS and JS that is automatically minified and only loaded on relevant pages.
+* No third party libraries.
+* No external API calls.
+* No static images.
+* Custom database tables - no wp_usermeta or wp_options bloat.
+* Lazy class loading - only loads what's needed per request.
+* Complete uninstall - removes all plugin data cleanly.
 
 **Email Verification**
 
@@ -110,6 +120,15 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 * HMAC-SHA256 signature verification
 * Webhook delivery logging
 * Auto-disable after consecutive failures
+
+**Custom Account Tabs**
+
+* Add custom tabs to the frontend account page
+* Shortcode content support (WooCommerce, EDD, etc.)
+* Role-based tab visibility
+* Optional Dashicon icons
+* Drag-and-drop reordering
+* Priority-based sorting
 
 **Email System**
 
@@ -246,6 +265,15 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.5.0 =
+* Added: Custom account page tabs with shortcode content
+* Added: Role-based tab visibility restrictions
+* Added: Drag-and-drop tab reordering
+* Added: Dashicon support for custom tabs
+* Added: Rate limiting for passkey authentication endpoints
+* Improved: Template backward compatibility
+* Security: Rate limiting on pre-login passkey AJAX endpoints
+
 = 1.4.1 =
 * Added: Webhooks for external integrations
 * Added: 10 webhook events (registration, login, profile updates, etc.)
@@ -291,6 +319,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+Adds custom account page tabs for integrating third-party plugin content (WooCommerce, EDD, etc.). No database migration required.
 
 = 1.4.1 =
 Adds webhook support for external integrations. Database tables are automatically created on upgrade.

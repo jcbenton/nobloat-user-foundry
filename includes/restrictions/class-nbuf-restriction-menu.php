@@ -21,6 +21,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 
+	/**
+	 * Request-level cache for all menu restrictions.
+	 *
+	 * Loaded once per request to avoid duplicate queries when multiple
+	 * menus are rendered on the same page.
+	 *
+	 * @var array|null
+	 */
+	private static $restrictions_cache = null;
 
 	/**
 	 * Initialize menu restrictions
@@ -51,21 +60,8 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 			return $items;
 		}
 
-		/* Load all restrictions in one query */
-		global $wpdb;
-		$table        = $wpdb->prefix . 'nbuf_menu_restrictions';
-		$placeholders = implode( ',', array_fill( 0, count( $menu_item_ids ), '%d' ) );
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Custom menu restrictions table, dynamic IN clause with spread operator.
-		$restrictions = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM %i WHERE menu_item_id IN ($placeholders)",
-				$table,
-				...$menu_item_ids
-			),
-			OBJECT_K
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/* Load all restrictions once per request. */
+		$restrictions = self::get_all_restrictions();
 
 		/* Filter items */
 		$filtered_items = array();
@@ -108,6 +104,35 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 	}
 
 	/**
+	 * Get all menu restrictions, cached per request.
+	 *
+	 * Loads all restrictions once per page load and caches them.
+	 * This avoids duplicate queries when multiple menus render.
+	 *
+	 * @since  1.5.0
+	 * @return array Restrictions keyed by menu_item_id.
+	 */
+	private static function get_all_restrictions(): array {
+		/* Return cached if available. */
+		if ( null !== self::$restrictions_cache ) {
+			return self::$restrictions_cache;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom menu restrictions table, request-level cached.
+		$results = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT * FROM %i', $table ),
+			OBJECT_K
+		);
+
+		self::$restrictions_cache = is_array( $results ) ? $results : array();
+
+		return self::$restrictions_cache;
+	}
+
+	/**
 	 * Add restriction fields to menu editor
 	 *
 	 * @param int    $item_id Menu item ID.
@@ -116,18 +141,9 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 	 * @param array  $args    Menu arguments.
 	 */
 	public static function add_menu_fields( $item_id, $item, $depth, $args ) {
-		/* Get existing restriction */
-		global $wpdb;
-		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom menu restrictions table.
-		$restriction = $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE menu_item_id = %d',
-				$table,
-				$item_id
-			)
-		);
+		/* Get existing restriction from cache. */
+		$restrictions = self::get_all_restrictions();
+		$restriction  = isset( $restrictions[ $item_id ] ) ? $restrictions[ $item_id ] : null;
 
 		/* Current values */
 		$visibility    = $restriction ? $restriction->visibility : 'everyone';
@@ -221,6 +237,7 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 				array( 'menu_item_id' => $menu_item_id ),
 				array( '%d' )
 			);
+			self::$restrictions_cache = null; /* Clear cache on delete. */
 			return;
 		}
 
@@ -271,5 +288,8 @@ class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
 				array( '%d', '%s', '%s', '%s', '%s' )
 			);
 		}
+
+		/* Clear cache after save. */
+		self::$restrictions_cache = null;
 	}
 }

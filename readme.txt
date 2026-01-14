@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -18,6 +18,7 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 = Core Features =
 
 **Clean Structure**
+
 * No extra Wordpress pages. All structure is generated within and internal router.
 * Clean CSS and JS that is automatically minified and only loaded on relevant pages.
 * No third party libraries.
@@ -26,6 +27,7 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 * Custom database tables - no wp_usermeta or wp_options bloat.
 * Lazy class loading - only loads what's needed per request.
 * Complete uninstall - removes all plugin data cleanly.
+* Fully compliant with Wordpress coding standards.
 
 **Email Verification**
 
@@ -184,7 +186,9 @@ No WordPress pages required - URLs work automatically.
 
 * Lazy class loading (only loads what's needed)
 * Three-tier caching (memory, object cache, database)
+* Redis and Memcached compatible (works with popular object cache plugins)
 * Single-query option preloading
+* Request-level caching to eliminate duplicate queries
 * Minified CSS with on-disk caching
 * Conditional asset loading
 

@@ -29,6 +29,7 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 - Custom database tables - no wp_usermeta or wp_options bloat
 - Lazy class loading - only loads what's needed per request
 - Complete uninstall - removes all plugin data cleanly
+- Fully compliant with Wordpress coding standards.
 
 ### Email Verification
 
@@ -251,7 +252,9 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 - Lazy class loading (only loads what's needed)
 - Three-tier caching (memory, object cache, database)
+- Redis and Memcached compatible (works with popular object cache plugins)
 - Single-query option preloading
+- Request-level caching to eliminate duplicate queries
 - Minified CSS with on-disk caching
 - Conditional asset loading
 

@@ -1174,11 +1174,12 @@ class NBUF_Passkeys {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON contains base64url data that must not be modified
-		$response    = isset( $_POST['response'] ) ? json_decode( wp_unslash( $_POST['response'] ), true ) : null;
-		$device_name = isset( $_POST['device_name'] ) ? sanitize_text_field( wp_unslash( $_POST['device_name'] ) ) : '';
+		$response_raw = isset( $_POST['response'] ) ? wp_unslash( $_POST['response'] ) : '';
+		$response     = json_decode( $response_raw, true );
+		$device_name  = isset( $_POST['device_name'] ) ? sanitize_text_field( wp_unslash( $_POST['device_name'] ) ) : '';
 
-		if ( ! $response ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid response.', 'nobloat-user-foundry' ) ) );
+		if ( null === $response || JSON_ERROR_NONE !== json_last_error() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid response format.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$result = self::verify_registration( $user_id, $response, $device_name );
@@ -1299,10 +1300,11 @@ class NBUF_Passkeys {
 		self::record_rate_limit_request();
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON contains base64url data that must not be modified; pre-login endpoint.
-		$response = isset( $_POST['response'] ) ? json_decode( wp_unslash( $_POST['response'] ), true ) : null;
+		$response_raw = isset( $_POST['response'] ) ? wp_unslash( $_POST['response'] ) : '';
+		$response     = json_decode( $response_raw, true );
 
-		if ( ! $response ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid response.', 'nobloat-user-foundry' ) ) );
+		if ( null === $response || JSON_ERROR_NONE !== json_last_error() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid response format.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$user_id = self::verify_authentication( $response );

@@ -199,7 +199,7 @@ $nbuf_version = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : '1.0.0';
 				<span class="nbuf-version-badge">v<?php echo esc_html( $nbuf_version ); ?></span>
 			</h2>
 			<p>
-				<?php esc_html_e( 'NoBloat User Foundry is a comprehensive user management system for WordPress, designed from the ground up with enterprise environments in mind.', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'NoBloat User Foundry is a comprehensive user management system for WordPress, designed from the ground up with enterprise and business environments in mind.', 'nobloat-user-foundry' ); ?>
 			</p>
 		</div>
 
@@ -207,16 +207,20 @@ $nbuf_version = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : '1.0.0';
 		<div class="nbuf-about-section">
 			<h2><?php esc_html_e( 'Why NoBloat User Foundry?', 'nobloat-user-foundry' ); ?></h2>
 			<p>
-				<?php esc_html_e( 'After years of working with WordPress in enterprise environments, it became clear that existing user management solutions were either too bloated, too insecure, or simply not designed for serious production use. NoBloat User Foundry was created to address these shortcomings.', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'After years of working with WordPress in enterprise and business environments, it became clear that existing user management solutions for Wordpress were either too bloated, too insecure, or simply not designed for serious production use. NoBloat User Foundry was created to address these shortcomings.', 'nobloat-user-foundry' ); ?>
 			</p>
 			<ul>
 				<li>
-					<strong><?php esc_html_e( 'Enterprise Focus', 'nobloat-user-foundry' ); ?></strong> &mdash;
+					<strong><?php esc_html_e( 'Enterprise and Business Focus', 'nobloat-user-foundry' ); ?></strong> &mdash;
 					<?php esc_html_e( 'Built for organizations that require robust user management, audit logging, compliance features, and reliable performance under load.', 'nobloat-user-foundry' ); ?>
 				</li>
 				<li>
+					<strong><?php esc_html_e( 'E-commerce Integration', 'nobloat-user-foundry' ); ?></strong> &mdash;
+					<?php esc_html_e( 'Designed specifally to support e-commerce solutions such as Woocommerce, Easy Digital Downloads, or any other plugin or independent solution to give improved capabilities for customers.', 'nobloat-user-foundry' ); ?>
+				</li>
+				<li>
 					<strong><?php esc_html_e( 'Lightweight Architecture', 'nobloat-user-foundry' ); ?></strong> &mdash;
-					<?php esc_html_e( 'Custom database tables eliminate wp_options and wp_usermeta bloat. Autoloading ensures only required code is loaded. No unnecessary dependencies.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Custom database tables eliminate wp_options and wp_usermeta bloat. Autoloading ensures only required code is loaded. No unnecessary dependencies. No global loading of CSS or JS assets.', 'nobloat-user-foundry' ); ?>
 				</li>
 				<li>
 					<strong><?php esc_html_e( 'Security First', 'nobloat-user-foundry' ); ?></strong> &mdash;
@@ -236,7 +240,7 @@ $nbuf_version = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : '1.0.0';
 				<?php
 				printf(
 					/* translators: %s: Link to Mailborder Systems website */
-					esc_html__( 'NoBloat User Foundry is developed and maintained by Jerry Benton at %s, a software development company specializing in security-focused solutions for email infrastructure and web applications.', 'nobloat-user-foundry' ),
+					esc_html__( 'NoBloat User Foundry is developed and maintained by Jerry Benton at %s, a software development company specializing in security-focused solutions for email gateways, email infrastructure and web applications.', 'nobloat-user-foundry' ),
 					'<a href="https://mailborder.com" target="_blank" rel="noopener noreferrer" class="nbuf-external-link">Mailborder Systems</a>'
 				);
 				?>

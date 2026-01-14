@@ -431,26 +431,20 @@ class NBUF_Options {
 	}
 
 	/**
-	 * Preload autoload options into cache
-	 * Call this when plugin initializes (only if plugin is being used)
+	 * Preload options into cache.
 	 *
-	 * This mimics WordPress autoload behavior but only for our plugin
-	 * and only when the plugin is actually being used on the page.
+	 * Call this when plugin initializes (only if plugin is being used).
+	 * Delegates to load_all_options() to load everything in a single query.
+	 * More efficient than loading autoload options separately since
+	 * non-autoload options are often needed shortly after.
+	 *
+	 * @since 1.0.0
+	 * @since 1.5.0 Optimized to use load_all_options() instead of separate query.
 	 */
 	public static function preload_autoload(): void {
-		global $wpdb;
-		self::init();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT option_name, option_value FROM %i WHERE autoload = 1',
-				self::$table_name
-			)
-		);
-
-		foreach ( $results as $row ) {
-			self::$cache[ $row->option_name ] = maybe_unserialize( $row->option_value );
+		/* Load all options in single query (eliminates duplicate query). */
+		if ( ! self::$all_options_loaded ) {
+			self::load_all_options();
 		}
 	}
 

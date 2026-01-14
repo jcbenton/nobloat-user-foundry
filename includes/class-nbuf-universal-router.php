@@ -232,7 +232,27 @@ class NBUF_Universal_Router {
 				<main id="main" class="site-main">
 					<article class="page type-page status-publish hentry nbuf-virtual-page">
 						<div class="entry-content">
-							<?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Content is escaped in render methods. ?>
+							<?php
+							/*
+							 * SECURITY: Output escaping is handled by render methods in NBUF_Shortcodes.
+							 *
+							 * WHY THIS IS SAFE:
+							 * - $content comes exclusively from internal render methods (render_login, render_account, etc.)
+							 * - All render methods escape output using esc_html(), esc_attr(), wp_kses_post()
+							 * - No user input reaches this point without prior sanitization
+							 * - Content is generated server-side from trusted templates
+							 *
+							 * WHEN THIS WOULD NOT BE SAFE:
+							 * - If $content accepted raw user input without sanitization
+							 * - If a render method failed to escape dynamic values
+							 * - If external/untrusted content was passed to the router
+							 *
+							 * MAINTAINER NOTE: Any new render method MUST escape all dynamic output.
+							 * Review render methods when modifying: NBUF_Shortcodes::render_*()
+							 */
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							echo $content;
+							?>
 						</div>
 					</article>
 				</main>

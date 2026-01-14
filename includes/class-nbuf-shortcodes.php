@@ -1190,8 +1190,17 @@ class NBUF_Shortcodes {
 			$input_type    = self::get_field_input_type( $field_key );
 			$is_full_width = in_array( $field_key, $full_width_fields, true );
 
-			/* Text areas for long-form content */
-			if ( $is_full_width ) {
+			/* Special handling for timezone field - searchable select */
+			if ( 'timezone' === $field_key ) {
+				$field_html = self::render_timezone_select(
+					$field_key,
+					$field_value,
+					$field_data['label'],
+					$field_data['required'],
+					'registration'
+				);
+			} elseif ( $is_full_width ) {
+				/* Text areas for long-form content */
 				$field_html = sprintf(
 					'<div class="nbuf-form-group nbuf-form-group-full">
                         <label class="nbuf-form-label nbuf-registration-label" for="nbuf_reg_%1$s">%2$s%3$s</label>
@@ -2073,7 +2082,10 @@ class NBUF_Shortcodes {
 			$input_type   = self::get_field_input_type( $field_key );
 			$is_full_width = in_array( $field_key, $full_width_fields, true );
 
-			if ( $is_full_width ) {
+			/* Special handling for timezone field - searchable select */
+			if ( 'timezone' === $field_key ) {
+				$field_html = self::render_timezone_select( $field_key, $value, $label, false, 'account' );
+			} elseif ( $is_full_width ) {
 				$field_html = '<div class="nbuf-form-group nbuf-form-group-full">
 					<label for="' . esc_attr( $field_key ) . '" class="nbuf-form-label">' . esc_html( $label ) . '</label>
 					<textarea id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-form-textarea">' . esc_textarea( $value ) . '</textarea>
@@ -3932,6 +3944,183 @@ Best regards,
 
 		/* Default to text for all other fields */
 		return 'text';
+	}
+
+	/**
+	 * Flag to track if timezone JS has been output.
+	 *
+	 * @var bool
+	 */
+	private static $timezone_js_output = false;
+
+	/**
+	 * Render a searchable timezone select field.
+	 *
+	 * Uses native HTML select with vanilla JS filtering for search.
+	 * No third-party libraries required.
+	 *
+	 * @since  1.5.1
+	 * @param  string $field_key   Field key/name.
+	 * @param  string $value       Current selected value.
+	 * @param  string $label       Field label.
+	 * @param  bool   $required    Whether field is required.
+	 * @param  string $context     Context: 'account' or 'registration'.
+	 * @return string              HTML for the timezone select.
+	 */
+	private static function render_timezone_select( string $field_key, string $value, string $label, bool $required = false, string $context = 'account' ): string {
+		$field_id      = 'account' === $context ? $field_key : 'nbuf_reg_' . $field_key;
+		$required_html = $required ? ' <span class="required">*</span>' : '';
+		$req_attr      = $required ? ' required' : '';
+
+		/* Get all timezone identifiers grouped by region */
+		$timezones         = DateTimeZone::listIdentifiers();
+		$grouped_timezones = array();
+
+		foreach ( $timezones as $tz ) {
+			$parts  = explode( '/', $tz, 2 );
+			$region = $parts[0];
+			$city   = isset( $parts[1] ) ? str_replace( '_', ' ', $parts[1] ) : $tz;
+
+			if ( ! isset( $grouped_timezones[ $region ] ) ) {
+				$grouped_timezones[ $region ] = array();
+			}
+			$grouped_timezones[ $region ][ $tz ] = $city;
+		}
+
+		/* Build select options */
+		$options_html = '<option value="">' . esc_html__( 'Select timezone...', 'nobloat-user-foundry' ) . '</option>';
+
+		foreach ( $grouped_timezones as $region => $cities ) {
+			$options_html .= '<optgroup label="' . esc_attr( $region ) . '">';
+			foreach ( $cities as $tz_value => $tz_label ) {
+				$selected      = selected( $value, $tz_value, false );
+				$options_html .= '<option value="' . esc_attr( $tz_value ) . '"' . $selected . '>' . esc_html( $tz_label ) . '</option>';
+			}
+			$options_html .= '</optgroup>';
+		}
+
+		/* Build the searchable select component */
+		$html  = '<div class="nbuf-form-group nbuf-timezone-select-wrap">';
+		$html .= '<label for="' . esc_attr( $field_id ) . '" class="nbuf-form-label">' . esc_html( $label ) . $required_html . '</label>';
+		$html .= '<div class="nbuf-searchable-select">';
+		$html .= '<input type="text" class="nbuf-form-input nbuf-timezone-search" placeholder="' . esc_attr__( 'Search timezones...', 'nobloat-user-foundry' ) . '" autocomplete="off">';
+		$html .= '<select id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-timezone-select"' . $req_attr . '>';
+		$html .= $options_html;
+		$html .= '</select>';
+		$html .= '</div>';
+		$html .= '</div>';
+
+		/* Add inline JavaScript for search filtering (only once per page) */
+		if ( ! self::$timezone_js_output ) {
+			self::$timezone_js_output = true;
+			$html                    .= self::get_timezone_search_js();
+		}
+
+		return $html;
+	}
+
+	/**
+	 * Get inline JavaScript for timezone search filtering.
+	 *
+	 * @since  1.5.1
+	 * @return string Inline script tag.
+	 */
+	private static function get_timezone_search_js(): string {
+		$js = <<<'JS'
+<script>
+(function() {
+    'use strict';
+
+    function initTimezoneSearch() {
+        var wraps = document.querySelectorAll('.nbuf-searchable-select');
+
+        wraps.forEach(function(wrap) {
+            var search = wrap.querySelector('.nbuf-timezone-search');
+            var select = wrap.querySelector('.nbuf-timezone-select');
+
+            if (!search || !select || search.dataset.initialized) return;
+            search.dataset.initialized = 'true';
+
+            /* Store original options */
+            var optgroups = select.querySelectorAll('optgroup');
+            var originalData = [];
+
+            optgroups.forEach(function(og) {
+                var groupData = {
+                    label: og.label,
+                    options: []
+                };
+                og.querySelectorAll('option').forEach(function(opt) {
+                    groupData.options.push({
+                        value: opt.value,
+                        text: opt.textContent,
+                        selected: opt.selected
+                    });
+                });
+                originalData.push(groupData);
+            });
+
+            /* Also store the placeholder option */
+            var placeholder = select.querySelector('option:first-child');
+            var placeholderText = placeholder ? placeholder.textContent : '';
+
+            search.addEventListener('input', function() {
+                var query = this.value.toLowerCase().trim();
+                var currentValue = select.value;
+
+                /* Clear select except placeholder */
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                while (select.querySelectorAll('optgroup').length > 0) {
+                    select.querySelector('optgroup').remove();
+                }
+
+                /* Rebuild with filtered options */
+                originalData.forEach(function(group) {
+                    var matchingOpts = group.options.filter(function(opt) {
+                        return opt.text.toLowerCase().indexOf(query) !== -1 ||
+                               opt.value.toLowerCase().indexOf(query) !== -1 ||
+                               group.label.toLowerCase().indexOf(query) !== -1;
+                    });
+
+                    if (matchingOpts.length > 0 || query === '') {
+                        var optgroup = document.createElement('optgroup');
+                        optgroup.label = group.label;
+
+                        var optsToShow = query === '' ? group.options : matchingOpts;
+                        optsToShow.forEach(function(opt) {
+                            var option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.text;
+                            if (opt.value === currentValue) {
+                                option.selected = true;
+                            }
+                            optgroup.appendChild(option);
+                        });
+
+                        select.appendChild(optgroup);
+                    }
+                });
+
+                /* Restore selection if still available */
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            });
+        });
+    }
+
+    /* Initialize on DOM ready */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTimezoneSearch);
+    } else {
+        initTimezoneSearch();
+    }
+})();
+</script>
+JS;
+		return $js;
 	}
 
 	/**

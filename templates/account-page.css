@@ -2023,3 +2023,64 @@ textarea.nbuf-account-input {
 .nbuf-spaced {
     margin-bottom: 0;
 }
+
+/* ==========================================================
+   SEARCHABLE TIMEZONE SELECT
+   ========================================================== */
+
+.nbuf-timezone-select-wrap {
+    position: relative;
+}
+
+.nbuf-searchable-select {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--nbuf-border, #ddd);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--nbuf-surface, #fff);
+}
+
+.nbuf-timezone-search {
+    flex: 0 0 140px;
+    border: none !important;
+    border-right: 1px solid var(--nbuf-border, #ddd) !important;
+    border-radius: 0 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 8px center;
+    padding-left: 28px;
+    font-size: 13px;
+}
+
+.nbuf-timezone-search:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.nbuf-timezone-select {
+    flex: 1;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent;
+    min-width: 0;
+}
+
+.nbuf-timezone-select:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.nbuf-searchable-select:focus-within {
+    border-color: var(--nbuf-primary, #0073aa);
+    box-shadow: 0 0 0 2px var(--nbuf-primary-focus, rgba(0, 115, 170, 0.2));
+}
+
+.nbuf-timezone-select optgroup {
+    font-weight: 600;
+    color: var(--nbuf-text-primary, #333);
+}
+
+.nbuf-timezone-select option {
+    padding: 4px 8px;
+}

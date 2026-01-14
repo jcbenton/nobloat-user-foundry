@@ -19,7 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Direct database access is architectural for 2FA data management.
  * Custom nbuf_user_2fa table stores security-sensitive authentication data and cannot use
- * WordPress's standard meta APIs. Caching is not implemented for security reasons.
+ * WordPress's standard meta APIs. Request-level caching is used to avoid duplicate queries
+ * within the same page load; cache is automatically cleared per-request and on data updates.
  */
 
 /**
@@ -34,15 +35,33 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_User_2FA_Data {
 
+	/**
+	 * Request-level cache for 2FA data.
+	 *
+	 * Caches data per-request to avoid duplicate queries when multiple
+	 * helper methods are called for the same user. Cache is automatically
+	 * cleared at end of request (static property reset).
+	 *
+	 * @var array
+	 */
+	private static $request_cache = array();
 
 	/**
 	 * Get user 2FA data from custom table.
+	 *
+	 * Uses request-level caching to avoid duplicate queries within
+	 * the same page load when multiple helper methods are called.
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
 	 * @return object|null         User 2FA data object or null if not found
 	 */
 	public static function get( int $user_id ): ?object {
+		/* Check request-level cache first */
+		if ( array_key_exists( $user_id, self::$request_cache ) ) {
+			return self::$request_cache[ $user_id ];
+		}
+
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_2fa';
 
@@ -54,7 +73,22 @@ class NBUF_User_2FA_Data {
 			)
 		);
 
+		/* Store in request cache (including null results) */
+		self::$request_cache[ $user_id ] = $data;
+
 		return $data;
+	}
+
+	/**
+	 * Clear request cache for a specific user.
+	 *
+	 * Call this after updating 2FA data to ensure fresh data on next read.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 */
+	public static function clear_cache( int $user_id ): void {
+		unset( self::$request_cache[ $user_id ] );
 	}
 
 	/**
@@ -405,9 +439,12 @@ class NBUF_User_2FA_Data {
 			$result = $wpdb->insert( $table_name, $data );
 		}
 
-		/* Invalidate unified user cache. */
-		if ( false !== $result && class_exists( 'NBUF_User' ) ) {
-			NBUF_User::invalidate_cache( $user_id, '2fa' );
+		/* Invalidate request cache and unified user cache. */
+		if ( false !== $result ) {
+			self::clear_cache( $user_id );
+			if ( class_exists( 'NBUF_User' ) ) {
+				NBUF_User::invalidate_cache( $user_id, '2fa' );
+			}
 		}
 
 		return false !== $result;
@@ -430,6 +467,9 @@ class NBUF_User_2FA_Data {
 			array( 'user_id' => $user_id ),
 			array( '%d' )
 		);
+
+		/* Clear request cache on delete. */
+		self::clear_cache( $user_id );
 
 		return false !== $result;
 	}

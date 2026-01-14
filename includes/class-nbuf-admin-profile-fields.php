@@ -90,7 +90,124 @@ class NBUF_Admin_Profile_Fields {
 				border-left: 4px solid #2271b1;
 				color: #1d2327;
 			}
+			/* Searchable Timezone Select */
+			.nbuf-admin-searchable-select {
+				display: flex;
+				align-items: stretch;
+				max-width: 400px;
+				border: 1px solid #8c8f94;
+				border-radius: 4px;
+				overflow: hidden;
+				background: #fff;
+			}
+			.nbuf-admin-tz-search {
+				flex: 0 0 120px;
+				border: none !important;
+				border-right: 1px solid #8c8f94 !important;
+				border-radius: 0 !important;
+				box-shadow: none !important;
+				padding: 0 8px 0 28px !important;
+				margin: 0 !important;
+				min-height: 30px;
+				font-size: 13px;
+				background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' fill=\'%2350575e\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z\'/%3E%3C/svg%3E");
+				background-repeat: no-repeat;
+				background-position: 8px center;
+			}
+			.nbuf-admin-tz-search:focus {
+				outline: none;
+				box-shadow: none !important;
+			}
+			.nbuf-admin-tz-select {
+				flex: 1;
+				border: none !important;
+				border-radius: 0 !important;
+				box-shadow: none !important;
+				margin: 0 !important;
+				min-width: 0;
+				max-width: none !important;
+				width: auto !important;
+			}
+			.nbuf-admin-tz-select:focus {
+				outline: none;
+				box-shadow: none !important;
+			}
+			.nbuf-admin-searchable-select:focus-within {
+				border-color: #2271b1;
+				box-shadow: 0 0 0 1px #2271b1;
+			}
 			'
+		);
+
+		/* Add JavaScript for timezone search filtering */
+		wp_add_inline_script(
+			'jquery',
+			"
+			jQuery(document).ready(function($) {
+				$('.nbuf-admin-searchable-select').each(function() {
+					var wrap = $(this);
+					var search = wrap.find('.nbuf-admin-tz-search');
+					var select = wrap.find('.nbuf-admin-tz-select');
+
+					if (search.data('initialized')) return;
+					search.data('initialized', true);
+
+					/* Store original options */
+					var originalData = [];
+					select.find('optgroup').each(function() {
+						var group = {
+							label: $(this).attr('label'),
+							options: []
+						};
+						$(this).find('option').each(function() {
+							group.options.push({
+								value: $(this).val(),
+								text: $(this).text(),
+								selected: $(this).is(':selected')
+							});
+						});
+						originalData.push(group);
+					});
+
+					search.on('input', function() {
+						var query = $(this).val().toLowerCase().trim();
+						var currentValue = select.val();
+
+						/* Remove optgroups but keep placeholder */
+						select.find('optgroup').remove();
+
+						/* Rebuild with filtered options */
+						originalData.forEach(function(group) {
+							var matchingOpts = group.options.filter(function(opt) {
+								return opt.text.toLowerCase().indexOf(query) !== -1 ||
+									   opt.value.toLowerCase().indexOf(query) !== -1 ||
+									   group.label.toLowerCase().indexOf(query) !== -1;
+							});
+
+							if (matchingOpts.length > 0 || query === '') {
+								var optgroup = $('<optgroup>').attr('label', group.label);
+								var optsToShow = query === '' ? group.options : matchingOpts;
+
+								optsToShow.forEach(function(opt) {
+									var option = $('<option>').val(opt.value).text(opt.text);
+									if (opt.value === currentValue) {
+										option.prop('selected', true);
+									}
+									optgroup.append(option);
+								});
+
+								select.append(optgroup);
+							}
+						});
+
+						/* Restore selection */
+						if (currentValue) {
+							select.val(currentValue);
+						}
+					});
+				});
+			});
+			"
 		);
 	}
 
@@ -243,20 +360,8 @@ class NBUF_Admin_Profile_Fields {
 			</select>
 			<?php
 		} elseif ( 'timezone' === $field_key ) {
-			/* Special handling for timezone dropdown */
-			$timezones = timezone_identifiers_list();
-			?>
-			<select
-				id="<?php echo esc_attr( $field_id ); ?>"
-				name="<?php echo esc_attr( $field_name ); ?>">
-				<option value="">— Select Timezone —</option>
-				<?php foreach ( $timezones as $tz ) : ?>
-					<option value="<?php echo esc_attr( $tz ); ?>" <?php selected( $value, $tz ); ?>>
-						<?php echo esc_html( $tz ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
-			<?php
+			/* Special handling for searchable timezone dropdown */
+			self::render_timezone_select( $field_id, $field_name, $value );
 		} elseif ( 'country' === $field_key ) {
 			/* Country dropdown */
 			$countries = self::get_countries();
@@ -311,6 +416,52 @@ class NBUF_Admin_Profile_Fields {
 
 		/* Update profile data - NBUF_Profile_Data::update handles sanitization */
 		NBUF_Profile_Data::update( $user_id, $fields );
+	}
+
+	/**
+	 * Render searchable timezone select.
+	 *
+	 * @param string $field_id   Field ID attribute.
+	 * @param string $field_name Field name attribute.
+	 * @param string $value      Current selected value.
+	 */
+	private static function render_timezone_select( $field_id, $field_name, $value ) {
+		/* Get all timezone identifiers grouped by region */
+		$timezones         = DateTimeZone::listIdentifiers();
+		$grouped_timezones = array();
+
+		foreach ( $timezones as $tz ) {
+			$parts  = explode( '/', $tz, 2 );
+			$region = $parts[0];
+			$city   = isset( $parts[1] ) ? str_replace( '_', ' ', $parts[1] ) : $tz;
+
+			if ( ! isset( $grouped_timezones[ $region ] ) ) {
+				$grouped_timezones[ $region ] = array();
+			}
+			$grouped_timezones[ $region ][ $tz ] = $city;
+		}
+		?>
+		<div class="nbuf-admin-searchable-select">
+			<input type="text"
+				class="nbuf-admin-tz-search"
+				placeholder="<?php esc_attr_e( 'Search...', 'nobloat-user-foundry' ); ?>"
+				autocomplete="off">
+			<select id="<?php echo esc_attr( $field_id ); ?>"
+				name="<?php echo esc_attr( $field_name ); ?>"
+				class="nbuf-admin-tz-select">
+				<option value=""><?php esc_html_e( '— Select Timezone —', 'nobloat-user-foundry' ); ?></option>
+				<?php foreach ( $grouped_timezones as $region => $cities ) : ?>
+					<optgroup label="<?php echo esc_attr( $region ); ?>">
+						<?php foreach ( $cities as $tz_value => $tz_label ) : ?>
+							<option value="<?php echo esc_attr( $tz_value ); ?>" <?php selected( $value, $tz_value ); ?>>
+								<?php echo esc_html( $tz_label ); ?>
+							</option>
+						<?php endforeach; ?>
+					</optgroup>
+				<?php endforeach; ?>
+			</select>
+		</div>
+		<?php
 	}
 
 	/**

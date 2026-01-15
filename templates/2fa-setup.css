@@ -89,7 +89,8 @@
 body.nbuf-page .nbuf-2fa-setup-page,
 body.nbuf-page .nbuf-2fa-verify-wrapper,
 body.nbuf-page .nbuf-2fa-setup-wrapper,
-body.nbuf-page .nbuf-backup-codes-wrapper {
+body.nbuf-page .nbuf-backup-codes-wrapper,
+body.nbuf-page .nbuf-totp-setup-page {
     font-size: 16px;
     line-height: 1.6;
 }
@@ -99,13 +100,17 @@ body.nbuf-page .nbuf-2fa-setup-page h2,
 body.nbuf-page .nbuf-2fa-setup-page h3,
 body.nbuf-page .nbuf-2fa-verify-wrapper h1,
 body.nbuf-page .nbuf-2fa-verify-wrapper h2,
-body.nbuf-page .nbuf-2fa-verify-wrapper h3 {
+body.nbuf-page .nbuf-2fa-verify-wrapper h3,
+body.nbuf-page .nbuf-totp-setup-page h1,
+body.nbuf-page .nbuf-totp-setup-page h2,
+body.nbuf-page .nbuf-totp-setup-page h3 {
     line-height: 1.3;
 }
 
 body.nbuf-page .nbuf-2fa-setup-page p,
-body.nbuf-page .nbuf-2fa-verify-wrapper p {
-    font-size: 1em;
+body.nbuf-page .nbuf-2fa-verify-wrapper p,
+body.nbuf-page .nbuf-totp-setup-page p {
+    font-size: 16px;
     line-height: 1.6;
 }
 
@@ -119,18 +124,60 @@ body.nbuf-page .nbuf-2fa-verify-wrapper .nbuf-form-label {
 body.nbuf-page .nbuf-2fa-setup-page input,
 body.nbuf-page .nbuf-2fa-setup-page button,
 body.nbuf-page .nbuf-2fa-verify-wrapper input,
-body.nbuf-page .nbuf-2fa-verify-wrapper button {
-    font-size: 1em;
+body.nbuf-page .nbuf-2fa-verify-wrapper button,
+body.nbuf-page .nbuf-totp-setup-page input,
+body.nbuf-page .nbuf-totp-setup-page button {
+    font-size: 16px;
 }
 
 body.nbuf-page .nbuf-2fa-setup-page .nbuf-message,
-body.nbuf-page .nbuf-2fa-verify-wrapper .nbuf-message {
-    font-size: 1em;
+body.nbuf-page .nbuf-2fa-verify-wrapper .nbuf-message,
+body.nbuf-page .nbuf-totp-setup-page .nbuf-message {
+    font-size: 16px;
 }
 
 body.nbuf-page .nbuf-2fa-setup-page a,
-body.nbuf-page .nbuf-2fa-verify-wrapper a {
+body.nbuf-page .nbuf-2fa-verify-wrapper a,
+body.nbuf-page .nbuf-totp-setup-page a {
     font-size: inherit;
+}
+
+/* TOTP Setup Success Page Overrides */
+body.nbuf-page .nbuf-totp-setup-page .nbuf-2fa-setup-header h2 {
+    font-size: 1.5rem;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-setup-subtitle {
+    font-size: 16px;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-2fa-setup-success {
+    font-size: 16px;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-2fa-setup-success p {
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-backup-codes-section h3 {
+    font-size: 1.25rem;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-backup-codes-description {
+    font-size: 16px;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-important {
+    font-size: 16px;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-backup-code {
+    font-size: 1rem;
+}
+
+body.nbuf-page .nbuf-totp-setup-page .nbuf-button {
+    font-size: 14px;
 }
 
 /* ==========================================================

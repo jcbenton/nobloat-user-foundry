@@ -22,6 +22,11 @@ $nbuf_enable_registration       = NBUF_Options::get( 'nbuf_enable_registration',
 $nbuf_require_verification      = NBUF_Options::get( 'nbuf_require_verification', true );
 $nbuf_notify_admin_registration = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
 
+/* Email domain restrictions */
+$nbuf_email_restriction_mode    = NBUF_Options::get( 'nbuf_email_restriction_mode', 'none' );
+$nbuf_email_restriction_domains = NBUF_Options::get( 'nbuf_email_restriction_domains', '' );
+$nbuf_email_restriction_message = NBUF_Options::get( 'nbuf_email_restriction_message', '' );
+
 /* Check WordPress registration setting for mismatch warning */
 $nbuf_wp_users_can_register = get_option( 'users_can_register' );
 $nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $nbuf_wp_users_can_register ) || ( ! $nbuf_enable_registration && $nbuf_wp_users_can_register );
@@ -109,6 +114,70 @@ $nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $nbuf_wp_users_ca
 			</td>
 		</tr>
 	</table>
+
+	<h2><?php esc_html_e( 'Email Domain Restrictions', 'nobloat-user-foundry' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Control which email domains are allowed to register. Useful for corporate sites that only allow company email addresses.', 'nobloat-user-foundry' ); ?>
+	</p>
+	<table class="form-table">
+		<tr>
+			<th><?php esc_html_e( 'Restriction Mode', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<select name="nbuf_email_restriction_mode" id="nbuf_email_restriction_mode">
+					<option value="none" <?php selected( $nbuf_email_restriction_mode, 'none' ); ?>>
+						<?php esc_html_e( 'None - Allow all email domains', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="whitelist" <?php selected( $nbuf_email_restriction_mode, 'whitelist' ); ?>>
+						<?php esc_html_e( 'Whitelist - Only allow specified domains', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="blacklist" <?php selected( $nbuf_email_restriction_mode, 'blacklist' ); ?>>
+						<?php esc_html_e( 'Blacklist - Block specified domains', 'nobloat-user-foundry' ); ?>
+					</option>
+				</select>
+				<p class="description">
+					<?php esc_html_e( 'Whitelist: Only emails from listed domains can register. Blacklist: Block emails from listed domains (e.g., disposable email providers).', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr id="nbuf_email_domains_row">
+			<th><?php esc_html_e( 'Domain List', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<textarea name="nbuf_email_restriction_domains" rows="6" class="large-text code" placeholder="company.com&#10;*.partner.com"><?php echo esc_textarea( $nbuf_email_restriction_domains ); ?></textarea>
+				<p class="description">
+					<?php esc_html_e( 'One domain per line. Use *.domain.com to include all subdomains.', 'nobloat-user-foundry' ); ?>
+					<br>
+					<strong><?php esc_html_e( 'Examples:', 'nobloat-user-foundry' ); ?></strong>
+					<code>company.com</code> <?php esc_html_e( '(exact match)', 'nobloat-user-foundry' ); ?>,
+					<code>*.company.com</code> <?php esc_html_e( '(includes subdomains)', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr id="nbuf_email_message_row">
+			<th><?php esc_html_e( 'Error Message', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="text" name="nbuf_email_restriction_message" value="<?php echo esc_attr( $nbuf_email_restriction_message ); ?>" class="large-text" placeholder="<?php esc_attr_e( 'Registration is restricted to approved email domains.', 'nobloat-user-foundry' ); ?>">
+				<p class="description">
+					<?php esc_html_e( 'Custom message shown when a blocked email domain attempts registration. Leave blank for default message.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+	<script>
+	(function() {
+		var modeSelect = document.getElementById('nbuf_email_restriction_mode');
+		var domainsRow = document.getElementById('nbuf_email_domains_row');
+		var messageRow = document.getElementById('nbuf_email_message_row');
+
+		function toggleRows() {
+			var show = modeSelect.value !== 'none';
+			domainsRow.style.display = show ? '' : 'none';
+			messageRow.style.display = show ? '' : 'none';
+		}
+
+		modeSelect.addEventListener('change', toggleRows);
+		toggleRows();
+	})();
+	</script>
 
 	<p class="description" style="margin-top: 20px;">
 		<strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>

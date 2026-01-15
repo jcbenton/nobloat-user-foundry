@@ -85,6 +85,15 @@ body.nbuf-page .nbuf-login-wrapper a {
     font-size: inherit;
 }
 
+body.nbuf-page .nbuf-login-wrapper .nbuf-magic-link-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+    font-weight: 600;
+    text-decoration: none;
+}
+
 /* ==========================================================
    PAGE LAYOUT - Center the form
    ========================================================== */
@@ -497,4 +506,109 @@ body.nbuf-page .nbuf-login-wrapper a {
     border-radius: var(--nbuf-radius-md);
     margin-top: var(--nbuf-space-lg);
     font-size: 14px;
+}
+
+/* ==========================================================
+   MAGIC LINK OPTION
+   ========================================================== */
+
+.nbuf-magic-link-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: var(--nbuf-space-xl) 0;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.nbuf-magic-link-divider::before,
+.nbuf-magic-link-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--nbuf-border);
+}
+
+.nbuf-magic-link-divider span {
+    padding: 0 var(--nbuf-space-lg);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.nbuf-magic-link-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border: 2px solid var(--nbuf-primary);
+    border-radius: var(--nbuf-radius-md);
+    background: #fff;
+    color: var(--nbuf-primary);
+    font: inherit;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.nbuf-magic-link-button:hover {
+    background: var(--nbuf-primary);
+    color: #fff;
+}
+
+.nbuf-magic-link-button:active {
+    transform: translateY(1px);
+}
+
+.nbuf-magic-link-button:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+}
+
+/* ==========================================================
+   MAGIC LINK FORM PAGE
+   ========================================================== */
+
+.nbuf-magic-link-form-wrapper {
+    max-width: 480px;
+    margin: var(--nbuf-space-2xl) auto;
+    padding: var(--nbuf-space-2xl);
+}
+
+.nbuf-magic-link-form-wrapper h3 {
+    margin: 0 0 var(--nbuf-space-sm) 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    text-align: center;
+}
+
+.nbuf-magic-link-form-wrapper .nbuf-form-description {
+    color: #666;
+    margin-bottom: var(--nbuf-space-xl);
+    text-align: center;
+}
+
+.nbuf-magic-link-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nbuf-space-lg);
+}
+
+.nbuf-magic-link-form-wrapper .nbuf-form-footer {
+    margin-top: var(--nbuf-space-xl);
+    text-align: center;
+    color: #666;
+}
+
+.nbuf-magic-link-form-wrapper .nbuf-form-footer a {
+    color: var(--nbuf-primary);
+    text-decoration: none;
+}
+
+.nbuf-magic-link-form-wrapper .nbuf-form-footer a:hover {
+    text-decoration: underline;
 }

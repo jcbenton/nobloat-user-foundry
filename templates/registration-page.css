@@ -119,6 +119,31 @@ body.nbuf-page .nbuf-registration-wrapper a {
     font-size: inherit;
 }
 
+/* Page builder overrides for success container */
+body.nbuf-page .nbuf-registration-success-container {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-registration-success-container .nbuf-message {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-registration-success-container .nbuf-message p {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-registration-success-container p {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-registration-success-container a {
+    font-size: inherit;
+}
+
 /* ==========================================================
    PAGE LAYOUT
    ========================================================== */
@@ -356,12 +381,13 @@ textarea.nbuf-registration-input {
    REGISTRATION SUCCESS PAGE
    ----------------------------------------------------------
    Shown after successful registration, hides the form.
+   Styled to match the login page wrapper.
    ========================================================== */
 
 .nbuf-registration-success-container {
     max-width: 480px;
-    margin: var(--nbuf-space-3xl) auto;
-    padding: var(--nbuf-space-xl);
+    margin: var(--nbuf-space-2xl) auto;
+    padding: var(--nbuf-space-2xl);
     text-align: center;
 }
 
@@ -369,24 +395,28 @@ textarea.nbuf-registration-input {
     font-size: var(--nbuf-font-size-base);
     padding: var(--nbuf-space-xl);
     text-align: center;
+    line-height: 1.6;
 }
 
 .nbuf-registration-success-container .nbuf-message h3 {
-    margin: 0 0 var(--nbuf-space-md) 0;
-    font-size: var(--nbuf-font-size-xl);
+    margin: 0 0 var(--nbuf-space-lg) 0;
+    font-size: 1.5em;
     font-weight: 600;
     color: var(--nbuf-success);
+    line-height: 1.3;
 }
 
 .nbuf-registration-success-container .nbuf-message p {
     margin: 0;
-    font-size: 12px;
+    font-size: 1em;
     line-height: 1.6;
+    color: var(--nbuf-success);
 }
 
 .nbuf-registration-success-login {
     margin-top: var(--nbuf-space-xl);
-    font-size: 12px;
+    font-size: 1em;
+    line-height: 1.6;
 }
 
 .nbuf-registration-success-login a {
@@ -404,13 +434,13 @@ textarea.nbuf-registration-input {
     display: inline-block;
     width: 100%;
     max-width: 200px;
-    padding: 12px 24px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
     min-height: 44px;
-    font-size: 16px;
+    font-size: 1em;
+    font-weight: 600;
     background: var(--nbuf-primary);
     color: var(--nbuf-surface);
     text-decoration: none;
-    font-weight: 600;
     border-radius: var(--nbuf-radius-sm);
     transition: background-color var(--nbuf-transition-base);
 }

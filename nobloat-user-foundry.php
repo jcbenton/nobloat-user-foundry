@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Lightweight user management system for WordPress - email verification, account expiration, and user lifecycle management without the bloat.
- * Version: 1.5.1
+ * Version: 1.5.3
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Jerry Benton
@@ -119,7 +119,7 @@ add_filter(
  * to run on existing tables (only makes changes if needed).
  */
 function nbuf_maybe_upgrade_database() {
-	$current_db_version = '1.4.1'; /* Update this when adding new tables - bumped for webhooks */
+	$current_db_version = '1.5.2'; /* Update this when adding new tables - bumped for ToS */
 	$stored_db_version  = get_option( 'nbuf_db_version', '0' );
 
 	if ( version_compare( $stored_db_version, $current_db_version, '<' ) ) {
@@ -147,6 +147,10 @@ function nbuf_maybe_upgrade_database() {
 			/* Create webhooks tables */
 			NBUF_Database::create_webhooks_table();
 			NBUF_Database::create_webhook_log_table();
+
+			/* Create Terms of Service tables */
+			NBUF_Database::create_tos_versions_table();
+			NBUF_Database::create_tos_acceptances_table();
 		}
 
 		/* Update stored version */
@@ -245,6 +249,7 @@ add_action(
 			NBUF_Security_Log_Page::init();
 			NBUF_Admin_Audit_Log_Page::init();
 			NBUF_Version_History_Page::init();
+			NBUF_ToS_Admin::init();
 			NBUF_Migration::init();
 			NBUF_Admin_User_Search::init();
 			NBUF_Diagnostics::init();
@@ -266,6 +271,11 @@ add_action(
 		// Initialize security logging (ALWAYS - for audit trail and compliance).
 		NBUF_Security_Log::init();
 
+		// Run database migrations (checks internally if already done).
+		if ( class_exists( 'NBUF_Database' ) ) {
+			NBUF_Database::migrate_tokens_type_column();
+		}
+
 		// Initialize admin action hooks (ALWAYS - for accountability and compliance).
 		NBUF_Admin_Action_Hooks::init();
 
@@ -280,6 +290,30 @@ add_action(
 		// Initialize shortcodes (ALWAYS - show notice when system disabled instead of nothing).
 		if ( ! is_admin() ) {
 			NBUF_Shortcodes::init();
+		}
+
+		// Initialize Magic Links (if enabled).
+		$magic_links_enabled = NBUF_Options::get( 'nbuf_magic_links_enabled', false );
+		if ( $magic_links_enabled ) {
+			NBUF_Magic_Links::init();
+		}
+
+		// Initialize User Impersonation (if enabled).
+		$impersonation_enabled = NBUF_Options::get( 'nbuf_impersonation_enabled', false );
+		if ( $impersonation_enabled ) {
+			NBUF_Impersonation::init();
+		}
+
+		// Initialize Activity Dashboard (if enabled).
+		$activity_dashboard_enabled = NBUF_Options::get( 'nbuf_activity_dashboard_enabled', true );
+		if ( $activity_dashboard_enabled ) {
+			NBUF_Activity_Dashboard::init();
+		}
+
+		// Initialize Terms of Service tracking (if enabled).
+		$tos_enabled = NBUF_Options::get( 'nbuf_tos_enabled', false );
+		if ( $tos_enabled ) {
+			NBUF_ToS::init();
 		}
 
 		// Check if user management system is enabled.
@@ -404,6 +438,11 @@ add_action(
 		if ( $passkeys_enabled ) {
 			NBUF_Passkeys::init();
 			NBUF_Passkeys_Login::init();
+
+			// Initialize passkey enrollment prompt (if enabled).
+			// Prompts users without passkeys to set one up after login.
+			// Must init on all requests to catch wp_login hook; modal only renders on frontend.
+			NBUF_Passkey_Prompt::init();
 		}
 
 		// Initialize Access Restrictions (if enabled).
@@ -426,6 +465,13 @@ add_action(
 		// Initialize 2FA Account management (for application passwords AJAX handlers).
 		// Triggers autoloader which calls init() at file end to register AJAX handlers.
 		class_exists( 'NBUF_2FA_Account' );
+
+		// Initialize Sessions management (for AJAX handlers).
+		// Triggers autoloader which calls init() at file end to register AJAX handlers.
+		$sessions_enabled = NBUF_Options::get( 'nbuf_session_management_enabled', true );
+		if ( $sessions_enabled ) {
+			class_exists( 'NBUF_Sessions' );
+		}
 
 		// Initialize Public Profiles (if enabled).
 		$profiles_enabled        = NBUF_Options::get( 'nbuf_enable_profiles', false );
@@ -480,6 +526,12 @@ add_action(
 		$login_limiting_enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
 		if ( $login_limiting_enabled ) {
 			NBUF_Login_Limiting::init();
+		}
+
+		/* IP restrictions - works independently of main system toggle for security */
+		$ip_restriction_enabled = NBUF_Options::get( 'nbuf_ip_restriction_enabled', false );
+		if ( $ip_restriction_enabled ) {
+			NBUF_IP_Restrictions::init();
 		}
 
 		/* Anti-bot registration protection - works independently of main system toggle */

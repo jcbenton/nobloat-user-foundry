@@ -1437,6 +1437,42 @@ class NBUF_Passkeys {
 			$user = get_user_by( 'login', $login );
 		}
 
+		/* Check IP restrictions before proceeding */
+		if ( class_exists( 'NBUF_IP_Restrictions' ) && NBUF_IP_Restrictions::is_enabled() ) {
+			$client_ip = NBUF_IP_Restrictions::get_client_ip();
+
+			if ( ! NBUF_IP_Restrictions::is_ip_allowed( $client_ip ) ) {
+				/* Check admin bypass */
+				$bypass = false;
+				if ( NBUF_IP_Restrictions::admin_bypass_enabled() && $user && user_can( $user, 'manage_options' ) ) {
+					$bypass = true;
+				}
+
+				if ( ! $bypass ) {
+					/* Log the blocked attempt */
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log_or_update(
+							'ip_blocked',
+							'critical',
+							'Login blocked: IP not in allowed list',
+							array(
+								'ip_address' => $client_ip,
+								'username'   => $login,
+								'mode'       => NBUF_IP_Restrictions::get_mode(),
+							)
+						);
+					}
+
+					wp_send_json_error(
+						array(
+							'message'    => __( 'Access denied. Your IP address is not authorized to log in.', 'nobloat-user-foundry' ),
+							'ip_blocked' => true,
+						)
+					);
+				}
+			}
+		}
+
 		if ( ! $user ) {
 			/* Don't reveal if user exists - just say no passkeys (security) */
 			wp_send_json_success(

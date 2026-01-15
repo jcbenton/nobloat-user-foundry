@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Passkey options */
 $nbuf_passkeys_enabled           = NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+$nbuf_passkey_prompt_enabled     = NBUF_Options::get( 'nbuf_passkey_prompt_enabled', true );
 $nbuf_passkeys_max_per_user      = NBUF_Options::get( 'nbuf_passkeys_max_per_user', 10 );
 $nbuf_passkeys_user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 $nbuf_passkeys_attestation       = NBUF_Options::get( 'nbuf_passkeys_attestation', 'none' );
@@ -38,6 +39,7 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	<input type="hidden" name="nbuf_active_subtab" value="passkeys">
 	<!-- Declare checkboxes so unchecked state is saved -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_passkeys_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_passkey_prompt_enabled">
 
 	<h2><?php esc_html_e( 'Passkey Authentication', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -63,6 +65,18 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 				</label>
 				<p class="description">
 					<?php esc_html_e( 'When enabled, users can register passkeys in their account settings and use them to log in.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Enrollment Prompt', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_passkey_prompt_enabled" value="1" <?php checked( $nbuf_passkey_prompt_enabled, true ); ?> <?php disabled( ! is_ssl() ); ?>>
+					<?php esc_html_e( 'Prompt users to set up passkeys after login', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'Show a one-time prompt to users who haven\'t registered a passkey yet. Users can dismiss temporarily or permanently per device.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

@@ -70,6 +70,14 @@ class NBUF_Universal_Router {
 			'method' => 'render_profile',
 			'title'  => 'Profile',
 		),
+		'magic-link'      => array(
+			'method' => 'render_magic_link',
+			'title'  => 'Magic Link Login',
+		),
+		'accept-tos'      => array(
+			'method' => 'render_accept_tos',
+			'title'  => 'Terms of Service',
+		),
 	);
 
 	/**
@@ -147,6 +155,11 @@ class NBUF_Universal_Router {
 		/* 2FA verification form handler */
 		if ( class_exists( 'NBUF_2FA_Login' ) && method_exists( 'NBUF_2FA_Login', 'maybe_handle_2fa_verification' ) ) {
 			NBUF_2FA_Login::maybe_handle_2fa_verification();
+		}
+
+		/* Magic link token handler - must run before rendering */
+		if ( class_exists( 'NBUF_Magic_Links' ) && method_exists( 'NBUF_Magic_Links', 'maybe_handle_magic_link' ) ) {
+			NBUF_Magic_Links::maybe_handle_magic_link();
 		}
 
 		/* Render the page and exit */
@@ -279,6 +292,8 @@ class NBUF_Universal_Router {
 			'2fa-setup'       => '2fa',
 			'profile'         => 'profile',
 			'members'         => 'member-directory',
+			'accept-tos'      => 'tos',
+			'magic-link'      => 'login',
 		);
 
 		if ( isset( $css_map[ $view ] ) && class_exists( 'NBUF_CSS_Manager' ) ) {
@@ -292,6 +307,7 @@ class NBUF_Universal_Router {
 				'2fa'              => array( 'nbuf-2fa', '2fa-setup', 'nbuf_2fa_page_css', 'nbuf_css_write_failed_2fa' ),
 				'profile'          => array( 'nbuf-profile', 'profile', 'nbuf_profile_custom_css', 'nbuf_css_write_failed_profile' ),
 				'member-directory' => array( 'nbuf-member-directory', 'member-directory', 'nbuf_member_directory_custom_css', 'nbuf_css_write_failed_member_directory' ),
+				'tos'              => array( 'nbuf-tos', 'tos-acceptance', 'nbuf_tos_page_css', 'nbuf_css_write_failed_tos' ),
 			);
 
 			if ( isset( $css_files[ $page_type ] ) ) {
@@ -650,6 +666,50 @@ class NBUF_Universal_Router {
 		}
 
 		return NBUF_Shortcodes::sc_profile( array( 'user' => $username ) );
+	}
+
+	/**
+	 * Render magic link form/handler.
+	 *
+	 * @return string HTML.
+	 */
+	private static function render_magic_link() {
+		/* Check if magic links are enabled */
+		if ( ! class_exists( 'NBUF_Magic_Links' ) || ! NBUF_Magic_Links::is_enabled() ) {
+			return '<div class="nbuf-message nbuf-message-info">' .
+				esc_html__( 'Magic links are not enabled.', 'nobloat-user-foundry' ) .
+				'</div>';
+		}
+
+		if ( is_user_logged_in() ) {
+			return self::render_already_logged_in();
+		}
+
+		return NBUF_Magic_Links::shortcode_form( array() );
+	}
+
+	/**
+	 * Render Terms of Service acceptance page.
+	 *
+	 * @since  1.5.2
+	 * @return string HTML.
+	 */
+	private static function render_accept_tos() {
+		/* Check if ToS is enabled */
+		if ( ! class_exists( 'NBUF_ToS' ) || ! NBUF_ToS::is_enabled() ) {
+			return '<div class="nbuf-tos-wrapper"><div class="nbuf-tos-message nbuf-tos-message-info">' .
+				esc_html__( 'Terms of Service tracking is not enabled.', 'nobloat-user-foundry' ) .
+				'</div></div>';
+		}
+
+		/* Redirect non-logged-in users to login page */
+		if ( ! is_user_logged_in() ) {
+			$login_url = self::get_url( 'login' );
+			wp_safe_redirect( $login_url );
+			exit;
+		}
+
+		return NBUF_ToS::render_acceptance_page();
 	}
 
 	/**

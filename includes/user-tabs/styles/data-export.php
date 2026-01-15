@@ -24,8 +24,6 @@ if ( isset( $_POST['nbuf_reset_data_export_css'] ) && check_admin_referer( 'nbuf
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'data-export', 'nbuf_css_write_failed_data_export' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Data Export styles reset to default.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -48,8 +46,6 @@ if ( isset( $_POST['nbuf_save_data_export_css'] ) && check_admin_referer( 'nbuf_
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_data_export_css, 'data-export', 'nbuf_css_write_failed_data_export' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Data Export styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

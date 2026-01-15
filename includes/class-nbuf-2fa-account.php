@@ -493,10 +493,11 @@ class NBUF_2FA_Account {
 				var doneBtn = document.getElementById('nbuf-done-app-password');
 				var createForm = document.querySelector('.nbuf-create-app-password');
 
-				/* Helper to reload with security tab active */
+				/* Helper to reload with app-passwords subtab active */
 				function reloadWithTab() {
 					var url = new URL(window.location.href);
 					url.searchParams.set('tab', 'security');
+					url.searchParams.set('subtab', 'app-passwords');
 					window.location.href = url.toString();
 				}
 
@@ -625,6 +626,40 @@ class NBUF_2FA_Account {
 	}
 
 	/**
+	 * Build redirect URL for 2FA actions.
+	 *
+	 * Properly handles both Universal Router virtual pages and regular pages.
+	 *
+	 * @return string Redirect URL with tab and subtab parameters.
+	 */
+	private static function build_action_redirect_url() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Tab/subtab values only used for redirect URL.
+		$subtab = isset( $_POST['nbuf_active_subtab'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_active_subtab'] ) ) : 'backup-codes';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$args = array();
+
+		/* For Universal Router virtual pages, use path-based URLs */
+		if ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() ) {
+			$url = NBUF_Universal_Router::get_url( 'account', 'security' );
+			if ( $subtab ) {
+				$args['subtab'] = $subtab;
+			}
+		} else {
+			/* For regular pages, try form action URL first, then referer, then account page */
+			$url = self::get_form_action_url();
+
+			/* Add tab and subtab as query params */
+			$args['tab'] = 'security';
+			if ( $subtab ) {
+				$args['subtab'] = $subtab;
+			}
+		}
+
+		return add_query_arg( $args, $url );
+	}
+
+	/**
 	 * Handle 2FA account actions.
 	 *
 	 * Process 2FA enable/disable and backup code generation.
@@ -640,21 +675,8 @@ class NBUF_2FA_Account {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below per action.
 		$action = isset( $_POST['nbuf_2fa_action'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_action'] ) ) : '';
 
-		/* Get redirect URL with fallback to account page */
-		$redirect_url = wp_get_referer();
-		if ( ! $redirect_url ) {
-			$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
-			$redirect_url    = $account_page_id ? get_permalink( $account_page_id ) : home_url();
-		}
-		/* Append security tab parameter */
-		$redirect_url = add_query_arg( 'tab', 'security', $redirect_url );
-
-		/* Append subtab parameter if provided */
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified per action below.
-		$subtab = isset( $_POST['nbuf_active_subtab'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_active_subtab'] ) ) : '';
-		if ( ! empty( $subtab ) ) {
-			$redirect_url = add_query_arg( 'subtab', $subtab, $redirect_url );
-		}
+		/* Build redirect URL properly handling Universal Router virtual pages */
+		$redirect_url = self::build_action_redirect_url();
 
 		/* Handle each 2FA action */
 		switch ( $action ) {

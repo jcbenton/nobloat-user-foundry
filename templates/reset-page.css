@@ -26,15 +26,15 @@
     --nbuf-success: #155724;
     --nbuf-success-bg: #d4edda;
     --nbuf-success-border: #c3e6cb;
-    --nbuf-error: #b30000;
-    --nbuf-error-bg: #ffecec;
-    --nbuf-error-border: #f5c2c2;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
 
     /* Neutral Colors */
-    --nbuf-text-primary: #222;
-    --nbuf-text-secondary: #333;
-    --nbuf-border: #ccc;
-    --nbuf-background: #f7f7f7;
+    --nbuf-text-primary: #333;
+    --nbuf-text-secondary: #666;
+    --nbuf-border: #ddd;
+    --nbuf-background: #f9f9f9;
     --nbuf-surface: #fff;
 
     /* Spacing Scale (rem-based for accessibility) */
@@ -487,27 +487,30 @@ body.nbuf-reset-page {
 /* ==========================================================
    VERIFICATION PAGE
    ----------------------------------------------------------
-   Styles for the email verification results page.
+   Styled to match the login page wrapper for consistency.
    ========================================================== */
 
 .nobloat-verify-wrapper {
-    max-width: 600px;
-    margin: 60px auto;
+    max-width: 480px;
+    margin: var(--nbuf-space-2xl) auto;
     padding: var(--nbuf-space-2xl);
     text-align: center;
+    font-size: 16px;
+    line-height: 1.6;
 }
 
 .nobloat-verify-title {
-    margin: 0 0 16px 0;
-    font-size: 28px;
+    margin: 0 0 var(--nbuf-space-lg) 0;
+    font-size: 1.5em;
     font-weight: 600;
+    line-height: 1.3;
 }
 
 .nobloat-verify-message {
-    margin: 0 0 24px 0;
-    font-size: 18px;
+    margin: 0 0 var(--nbuf-space-xl) 0;
+    font-size: 1em;
     line-height: 1.6;
-    color: #333;
+    color: var(--nbuf-text-primary, #333);
 }
 
 .nobloat-verify-next {
@@ -517,18 +520,33 @@ body.nbuf-reset-page {
 
 .nobloat-verify-login-btn {
     display: inline-block;
-    padding: 12px 24px;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
     min-height: 44px;
     background: var(--nbuf-primary);
     color: var(--nbuf-surface);
     text-decoration: none;
     border-radius: var(--nbuf-radius-md);
+    font-size: 1em;
     font-weight: 600;
-    font-size: 16px;
     transition: background-color var(--nbuf-transition-base);
 }
 
 .nobloat-verify-login-btn:hover {
     background: var(--nbuf-primary-hover);
     color: var(--nbuf-surface);
+}
+
+/* Page builder override for verification page */
+body.nbuf-page .nobloat-verify-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nobloat-verify-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nobloat-verify-wrapper a {
+    font-size: inherit;
 }

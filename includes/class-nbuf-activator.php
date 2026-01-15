@@ -81,6 +81,9 @@ class NBUF_Activator {
 
 			/* Migrate tokens table indexes (v1.5.0+) */
 			NBUF_Database::migrate_tokens_indexes();
+
+			/* Migrate tokens table type column for magic links (v1.5.2+) */
+			NBUF_Database::migrate_tokens_type_column();
 		}
 		if ( $debug_timing ) {
 			$timings['1_database_tables'] = round( microtime( true ) - $start_time, 3 );

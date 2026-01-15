@@ -24,8 +24,6 @@ if ( isset( $_POST['nbuf_reset_version_history_css'] ) && check_admin_referer( '
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'version-history', 'nbuf_css_write_failed_version_history' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Version History styles reset to default.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -48,8 +46,6 @@ if ( isset( $_POST['nbuf_save_version_history_css'] ) && check_admin_referer( 'n
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_version_history_css, 'version-history', 'nbuf_css_write_failed_version_history' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Version History styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

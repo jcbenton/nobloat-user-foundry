@@ -91,6 +91,12 @@ class NBUF_Registration {
 			return new WP_Error( 'invalid_email', __( 'Please provide a valid email address.', 'nobloat-user-foundry' ) );
 		}
 
+		/* Check email domain restrictions */
+		$domain_check = NBUF_Email_Restrictions::validate( $data['email'] );
+		if ( is_wp_error( $domain_check ) ) {
+			return $domain_check;
+		}
+
 		/*
 		 * SECURITY: Prevent email enumeration via timing attack.
 		 * Always perform the same expensive operations regardless of whether email exists.

@@ -66,7 +66,9 @@
 
 		const result = await response.json();
 		if (!result.success) {
-			throw new Error(result.data?.message || 'Failed to check user');
+			const error = new Error(result.data?.message || 'Failed to check user');
+			error.ip_blocked = result.data?.ip_blocked || false;
+			throw error;
 		}
 
 		return result.data;
@@ -128,12 +130,21 @@
 
 	/* Show error message */
 	function showError(message) {
-		const errorDiv = document.getElementById('nbuf-passkey-error') ||
-			document.querySelector('.nbuf-login-error');
-		if (errorDiv) {
-			errorDiv.textContent = message;
-			errorDiv.style.display = 'block';
+		const wrapper = document.querySelector('.nbuf-login-wrapper');
+		if (!wrapper) return;
+
+		/* Always use/create an error div at the top of the wrapper */
+		let errorDiv = wrapper.querySelector(':scope > #nbuf-passkey-error');
+
+		if (!errorDiv) {
+			errorDiv = document.createElement('div');
+			errorDiv.id = 'nbuf-passkey-error';
+			errorDiv.className = 'nbuf-message nbuf-message-error nbuf-login-error';
+			wrapper.insertBefore(errorDiv, wrapper.firstChild);
 		}
+
+		errorDiv.textContent = message;
+		errorDiv.style.display = 'block';
 	}
 
 	/* Hide error message */
@@ -167,7 +178,9 @@
 			passkeyButton: document.getElementById('nbuf-passkey-login-btn'),
 			usePasswordLink: document.getElementById('nbuf-use-password-link'),
 			rememberRow: document.querySelector('.login-remember') || document.querySelector('.nbuf-remember-group') || document.querySelector('.nbuf-form-row-remember'),
-			forgotLink: document.querySelector('.login-forgot') || document.querySelector('.nbuf-login-links') || document.querySelector('a[href*="forgot"]')?.parentElement
+			forgotLink: document.querySelector('.login-forgot') || document.querySelector('.nbuf-login-links') || document.querySelector('a[href*="forgot"]')?.parentElement,
+			magicLinkDivider: document.querySelector('.nbuf-magic-link-divider'),
+			magicLinkButton: document.querySelector('.nbuf-magic-link-button')
 		};
 	}
 
@@ -231,6 +244,10 @@
 		/* Show forgot/register links */
 		if (el.forgotLink) el.forgotLink.style.display = '';
 
+		/* Show magic link option if available */
+		if (el.magicLinkDivider) el.magicLinkDivider.style.display = '';
+		if (el.magicLinkButton) el.magicLinkButton.style.display = '';
+
 		hideError();
 	}
 
@@ -272,6 +289,10 @@
 
 		/* Show forgot/register links */
 		if (el.forgotLink) el.forgotLink.style.display = '';
+
+		/* Hide magic link option */
+		if (el.magicLinkDivider) el.magicLinkDivider.style.display = 'none';
+		if (el.magicLinkButton) el.magicLinkButton.style.display = 'none';
 	}
 
 	/* Show Step 2b: Password entry */
@@ -310,6 +331,10 @@
 
 		/* Show forgot/register links */
 		if (el.forgotLink) el.forgotLink.style.display = '';
+
+		/* Hide magic link option */
+		if (el.magicLinkDivider) el.magicLinkDivider.style.display = 'none';
+		if (el.magicLinkButton) el.magicLinkButton.style.display = 'none';
 
 		/* Focus password field */
 		if (el.passwordField) {
@@ -355,8 +380,12 @@
 				showStep2Password();
 			}
 		} catch (error) {
-			console.error('Error checking passkeys:', error);
-			/* On error, fall back to password */
+			/* If IP is blocked, show error and don't proceed */
+			if (error.ip_blocked) {
+				showError(error.message);
+				return;
+			}
+			/* On other errors, fall back to password */
 			showStep2Password();
 		} finally {
 			if (continueBtn) {

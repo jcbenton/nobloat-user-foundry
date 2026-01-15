@@ -25,9 +25,6 @@ if ( isset( $_POST['nbuf_save_member_directory_css'] ) && check_admin_referer( '
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_member_directory_css, 'member-directory', 'nbuf_css_write_failed_member_directory' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
-
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Member directory styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';
 	} else {

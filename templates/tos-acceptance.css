@@ -1,0 +1,266 @@
+/* ==========================================================
+   NoBloat User Foundry - Terms of Service Acceptance Page
+   ----------------------------------------------------------
+   Consistent styling with login/registration pages.
+   Uses inherit for fonts/sizes to respect theme defaults.
+   ========================================================== */
+
+/* ==========================================================
+   CSS CUSTOM PROPERTIES
+   ========================================================== */
+
+:root {
+    /* Brand Colors */
+    --nbuf-primary: #0073aa;
+    --nbuf-primary-hover: #005177;
+    --nbuf-primary-focus: rgba(0, 115, 170, 0.2);
+
+    /* Status Colors */
+    --nbuf-success: #155724;
+    --nbuf-success-bg: #d4edda;
+    --nbuf-success-border: #c3e6cb;
+    --nbuf-error: #721c24;
+    --nbuf-error-bg: #f8d7da;
+    --nbuf-error-border: #f5c6cb;
+
+    /* Neutral Colors */
+    --nbuf-border: #ddd;
+    --nbuf-surface: #fff;
+    --nbuf-muted: #666;
+
+    /* Spacing */
+    --nbuf-space-xs: 0.25rem;
+    --nbuf-space-sm: 0.5rem;
+    --nbuf-space-md: 0.75rem;
+    --nbuf-space-lg: 1rem;
+    --nbuf-space-xl: 1.5rem;
+    --nbuf-space-2xl: 2rem;
+
+    /* Border Radius */
+    --nbuf-radius-md: 4px;
+    --nbuf-radius-lg: 8px;
+
+    /* Shadows */
+    --nbuf-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --nbuf-shadow-focus: 0 0 0 3px var(--nbuf-primary-focus);
+}
+
+/* ==========================================================
+   PAGE BUILDER OVERRIDE
+   ========================================================== */
+
+body.nbuf-page .nbuf-tos-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nbuf-tos-wrapper h1,
+body.nbuf-page .nbuf-tos-wrapper h2,
+body.nbuf-page .nbuf-tos-wrapper h3 {
+    line-height: 1.3;
+}
+
+body.nbuf-page .nbuf-tos-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+/* ==========================================================
+   PAGE LAYOUT
+   ========================================================== */
+
+.nbuf-tos-wrapper {
+    max-width: 800px;
+    margin: var(--nbuf-space-2xl) auto;
+    padding: var(--nbuf-space-2xl);
+}
+
+.nbuf-tos-header {
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+.nbuf-tos-title {
+    margin: 0 0 var(--nbuf-space-sm) 0;
+    font-size: 1.75em;
+    font-weight: 600;
+}
+
+.nbuf-tos-version-info {
+    color: var(--nbuf-muted);
+    font-size: 0.9em;
+}
+
+/* ==========================================================
+   CONTENT AREA
+   ========================================================== */
+
+.nbuf-tos-content-area {
+    background: #f9f9f9;
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-lg);
+    padding: var(--nbuf-space-xl);
+    max-height: 450px;
+    overflow-y: auto;
+    margin-bottom: var(--nbuf-space-xl);
+}
+
+/* Content styling */
+.nbuf-tos-content-area h2 {
+    font-size: 1.25em;
+    margin: var(--nbuf-space-xl) 0 var(--nbuf-space-md) 0;
+}
+
+.nbuf-tos-content-area h2:first-child {
+    margin-top: 0;
+}
+
+.nbuf-tos-content-area p {
+    margin: 0 0 var(--nbuf-space-md) 0;
+}
+
+.nbuf-tos-content-area ul {
+    margin: 0 0 var(--nbuf-space-md) 0;
+    padding-left: var(--nbuf-space-xl);
+}
+
+.nbuf-tos-content-area li {
+    margin-bottom: var(--nbuf-space-xs);
+}
+
+/* Custom scrollbar */
+.nbuf-tos-content-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.nbuf-tos-content-area::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.nbuf-tos-content-area::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.nbuf-tos-content-area::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* ==========================================================
+   ACCEPTANCE FORM
+   ========================================================== */
+
+.nbuf-tos-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nbuf-space-lg);
+}
+
+/* Checkbox group */
+.nbuf-tos-checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--nbuf-space-md);
+    padding: var(--nbuf-space-lg);
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius-md);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.nbuf-tos-checkbox-group:hover {
+    border-color: var(--nbuf-primary);
+}
+
+.nbuf-tos-checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--nbuf-primary);
+}
+
+.nbuf-tos-checkbox-label {
+    flex: 1;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* Submit button */
+.nbuf-tos-submit {
+    width: 100%;
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border: none;
+    border-radius: var(--nbuf-radius-md);
+    background: var(--nbuf-primary);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+    text-align: center;
+    transition: background 0.2s ease;
+}
+
+.nbuf-tos-submit:hover {
+    background: var(--nbuf-primary-hover);
+}
+
+.nbuf-tos-submit:focus-visible {
+    outline: 2px solid var(--nbuf-primary);
+    outline-offset: 2px;
+}
+
+.nbuf-tos-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ==========================================================
+   MESSAGES
+   ========================================================== */
+
+.nbuf-tos-message {
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    border-radius: var(--nbuf-radius-md);
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-tos-message-info {
+    color: #004085;
+    background: #cce5ff;
+    border: 1px solid #b8daff;
+}
+
+.nbuf-tos-message-success {
+    color: var(--nbuf-success);
+    background: var(--nbuf-success-bg);
+    border: 1px solid var(--nbuf-success-border);
+}
+
+.nbuf-tos-message a {
+    color: inherit;
+    font-weight: 600;
+}
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
+@media (max-width: 600px) {
+    .nbuf-tos-wrapper {
+        margin: var(--nbuf-space-lg);
+        padding: var(--nbuf-space-xl);
+    }
+
+    .nbuf-tos-content-area {
+        max-height: 350px;
+        padding: var(--nbuf-space-lg);
+    }
+
+    .nbuf-tos-title {
+        font-size: 1.5em;
+    }
+}

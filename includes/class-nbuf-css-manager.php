@@ -21,13 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NBUF_CSS_Manager {
 
 	/**
-	 * Track whether combined CSS has been loaded.
-	 *
-	 * @var bool
-	 */
-	private static $combined_css_loaded = false;
-
-	/**
 	 * Minify CSS.
 	 *
 	 * Strips whitespace and comments from CSS.
@@ -356,18 +349,6 @@ class NBUF_CSS_Manager {
 	 * @param string $token_key Option name for write failure token.
 	 */
 	public static function enqueue_css( $handle, $filename, $db_option, $token_key = 'nbuf_css_write_failed' ) {
-		/* Check if combined CSS is enabled and should be loaded instead */
-		$use_combined = NBUF_Options::get( 'nbuf_css_combine_files', true );
-
-		if ( $use_combined ) {
-			/* Try to load combined CSS file */
-			if ( self::enqueue_combined_css() ) {
-				/* Combined CSS loaded successfully, skip individual file */
-				return;
-			}
-			/* Combined file not available, fall through to individual loading */
-		}
-
 		/* If token exists, load from DB and inline it */
 		if ( NBUF_Options::get( $token_key ) ) {
 			$css = NBUF_Options::get( $db_option );
@@ -429,60 +410,6 @@ class NBUF_CSS_Manager {
 	}
 
 	/**
-	 * Enqueue the combined CSS file.
-	 *
-	 * Loads timestamped nobloat-combined.{timestamp}.min.css
-	 * for CDN-safe cache busting.
-	 *
-	 * @return bool True if combined CSS was loaded, false if not available.
-	 */
-	public static function enqueue_combined_css() {
-		/* Already loaded this request */
-		if ( self::$combined_css_loaded ) {
-			return true;
-		}
-
-		$handle = 'nbuf-combined';
-
-		/* Already enqueued check */
-		if ( wp_style_is( $handle, 'enqueued' ) ) {
-			self::$combined_css_loaded = true;
-			return true;
-		}
-
-		$ui_dir     = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
-		$ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
-
-		/* Get stored timestamp for combined file */
-		$version_key  = 'nbuf_css_version_nobloat-combined';
-		$timestamp    = NBUF_Options::get( $version_key );
-		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
-
-		if ( $timestamp ) {
-			/* Check for timestamped combined minified file */
-			if ( $use_minified ) {
-				$min_path = $ui_dir . 'nobloat-combined.' . $timestamp . '.min.css';
-				if ( file_exists( $min_path ) ) {
-					wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined.' . $timestamp . '.min.css', array(), (string) $timestamp );
-					self::$combined_css_loaded = true;
-					return true;
-				}
-			}
-
-			/* Check for timestamped combined non-minified file */
-			$live_path = $ui_dir . 'nobloat-combined.' . $timestamp . '.css';
-			if ( file_exists( $live_path ) ) {
-				wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined.' . $timestamp . '.css', array(), (string) $timestamp );
-				self::$combined_css_loaded = true;
-				return true;
-			}
-		}
-
-		/* Combined file not found */
-		return false;
-	}
-
-	/**
 	 * Get write failure status
 	 *
 	 * Checks if there's a write failure token set.
@@ -508,47 +435,253 @@ class NBUF_CSS_Manager {
 	}
 
 	/**
-	 * Rebuild combined CSS file
+	 * Get CSS template registry.
 	 *
-	 * Combines all frontend CSS files into a single file.
-	 * Called when any individual CSS file is saved and combine is enabled.
+	 * Returns array of all CSS templates with their configuration.
+	 * Dynamically discovers templates from /templates/ directory.
 	 *
-	 * @return bool True if write successful, false otherwise.
+	 * @since 1.5.3
+	 * @return array Array of template configurations.
 	 */
-	public static function rebuild_combined_css() {
-		/* Check if combine is enabled */
-		$combine_enabled = NBUF_Options::get( 'nbuf_css_combine_files', true );
-		if ( ! $combine_enabled ) {
-			return true;
-		}
-
-		/* Load all CSS - from DB or defaults */
-		$css_files = array(
-			'reset-page'        => 'nbuf_reset_page_css',
-			'login-page'        => 'nbuf_login_page_css',
-			'registration-page' => 'nbuf_registration_page_css',
-			'account-page'      => 'nbuf_account_page_css',
-			'2fa-setup'         => 'nbuf_2fa_page_css',
-			'profile'           => 'nbuf_profile_custom_css',
-			'member-directory'  => 'nbuf_member_directory_custom_css',
-			'version-history'   => 'nbuf_version_history_custom_css',
-			'data-export'       => 'nbuf_data_export_custom_css',
+	public static function get_css_templates(): array {
+		/* Static mapping of template file to DB option and token key */
+		$template_config = array(
+			'login-page'        => array(
+				'db_option' => 'nbuf_login_page_css',
+				'token_key' => 'nbuf_css_write_failed_login',
+				'label'     => __( 'Login', 'nobloat-user-foundry' ),
+			),
+			'registration-page' => array(
+				'db_option' => 'nbuf_registration_page_css',
+				'token_key' => 'nbuf_css_write_failed_registration',
+				'label'     => __( 'Register', 'nobloat-user-foundry' ),
+			),
+			'account-page'      => array(
+				'db_option' => 'nbuf_account_page_css',
+				'token_key' => 'nbuf_css_write_failed_account',
+				'label'     => __( 'Account', 'nobloat-user-foundry' ),
+			),
+			'reset-page'        => array(
+				'db_option' => 'nbuf_reset_page_css',
+				'token_key' => 'nbuf_css_write_failed_reset',
+				'label'     => __( 'Reset', 'nobloat-user-foundry' ),
+			),
+			'2fa-setup'         => array(
+				'db_option' => 'nbuf_2fa_page_css',
+				'token_key' => 'nbuf_css_write_failed_2fa',
+				'label'     => __( '2FA', 'nobloat-user-foundry' ),
+			),
+			'profile'           => array(
+				'db_option' => 'nbuf_profile_custom_css',
+				'token_key' => 'nbuf_css_write_failed_profile',
+				'label'     => __( 'Profiles', 'nobloat-user-foundry' ),
+			),
+			'member-directory'  => array(
+				'db_option' => 'nbuf_member_directory_custom_css',
+				'token_key' => 'nbuf_css_write_failed_member_directory',
+				'label'     => __( 'Member Directory', 'nobloat-user-foundry' ),
+			),
+			'version-history'   => array(
+				'db_option' => 'nbuf_version_history_custom_css',
+				'token_key' => 'nbuf_css_write_failed_version_history',
+				'label'     => __( 'Version History', 'nobloat-user-foundry' ),
+			),
+			'data-export'       => array(
+				'db_option' => 'nbuf_data_export_custom_css',
+				'token_key' => 'nbuf_css_write_failed_data_export',
+				'label'     => __( 'Data Export', 'nobloat-user-foundry' ),
+			),
+			'tos-acceptance'    => array(
+				'db_option' => 'nbuf_tos_acceptance_css',
+				'token_key' => 'nbuf_css_write_failed_tos',
+				'label'     => __( 'Terms of Service', 'nobloat-user-foundry' ),
+			),
 		);
 
-		$combined_parts = array();
+		/* Scan templates directory to find available CSS files */
+		$templates_dir = NBUF_TEMPLATES_DIR;
+		$templates     = array();
 
-		foreach ( $css_files as $filename => $db_option ) {
-			$css = NBUF_Options::get( $db_option );
+		if ( is_dir( $templates_dir ) ) {
+			$files = glob( $templates_dir . '*.css' );
+			if ( ! empty( $files ) ) {
+				foreach ( $files as $file ) {
+					$filename = basename( $file, '.css' );
+					if ( isset( $template_config[ $filename ] ) ) {
+						$templates[ $filename ] = array_merge(
+							$template_config[ $filename ],
+							array( 'file' => $file )
+						);
+					}
+				}
+			}
+		}
+
+		return $templates;
+	}
+
+	/**
+	 * Regenerate all CSS files.
+	 *
+	 * Reads CSS from database (or defaults if empty) and rewrites to disk.
+	 * Useful for refreshing minified files after manual edits.
+	 *
+	 * @since 1.5.3
+	 * @return array Results with success/failure counts and details.
+	 */
+	public static function regenerate_all_css(): array {
+		$templates = self::get_css_templates();
+		$results   = array(
+			'success' => 0,
+			'failed'  => 0,
+			'details' => array(),
+		);
+
+		foreach ( $templates as $filename => $config ) {
+			/* Get CSS from database first, fall back to default */
+			$css = NBUF_Options::get( $config['db_option'] );
 			if ( empty( $css ) ) {
 				$css = self::load_default_css( $filename );
 			}
-			if ( ! empty( $css ) ) {
-				$combined_parts[] = $css;
+
+			if ( empty( $css ) ) {
+				$results['details'][ $filename ] = array(
+					'status'  => 'skipped',
+					'message' => __( 'No CSS content found', 'nobloat-user-foundry' ),
+				);
+				continue;
+			}
+
+			/* Clear any existing failure token before attempting write */
+			self::clear_write_failure_token( $config['token_key'] );
+
+			/* Write to disk */
+			$success = self::save_css_to_disk( $css, $filename, $config['token_key'] );
+
+			if ( $success ) {
+				++$results['success'];
+				$results['details'][ $filename ] = array(
+					'status'  => 'success',
+					'message' => __( 'Regenerated successfully', 'nobloat-user-foundry' ),
+				);
+			} else {
+				++$results['failed'];
+				$results['details'][ $filename ] = array(
+					'status'  => 'failed',
+					'message' => __( 'Write failed - check permissions', 'nobloat-user-foundry' ),
+				);
 			}
 		}
 
-		$combined_css = implode( "\n\n", $combined_parts );
+		return $results;
+	}
 
-		return self::save_css_to_disk( $combined_css, 'nobloat-combined', 'nbuf_css_write_failed_combined' );
+	/**
+	 * Reset all CSS to defaults.
+	 *
+	 * Loads default CSS from templates and saves to both database and disk.
+	 * This overwrites any customizations.
+	 *
+	 * @since 1.5.3
+	 * @return array Results with success/failure counts and details.
+	 */
+	public static function reset_all_to_defaults(): array {
+		$templates = self::get_css_templates();
+		$results   = array(
+			'success' => 0,
+			'failed'  => 0,
+			'details' => array(),
+		);
+
+		foreach ( $templates as $filename => $config ) {
+			/* Load default CSS from template file */
+			$default_css = self::load_default_css( $filename );
+
+			if ( empty( $default_css ) ) {
+				$results['details'][ $filename ] = array(
+					'status'  => 'skipped',
+					'message' => __( 'No default template found', 'nobloat-user-foundry' ),
+				);
+				continue;
+			}
+
+			/* Save to database */
+			NBUF_Options::update( $config['db_option'], $default_css, false, 'css' );
+
+			/* Clear any existing failure token */
+			self::clear_write_failure_token( $config['token_key'] );
+
+			/* Write to disk */
+			$success = self::save_css_to_disk( $default_css, $filename, $config['token_key'] );
+
+			if ( $success ) {
+				++$results['success'];
+				$results['details'][ $filename ] = array(
+					'status'  => 'success',
+					'message' => __( 'Reset to default', 'nobloat-user-foundry' ),
+				);
+			} else {
+				++$results['failed'];
+				$results['details'][ $filename ] = array(
+					'status'  => 'partial',
+					'message' => __( 'Saved to DB but disk write failed', 'nobloat-user-foundry' ),
+				);
+			}
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Register AJAX handlers for CSS operations.
+	 *
+	 * @since 1.5.3
+	 */
+	public static function register_ajax_handlers(): void {
+		add_action( 'wp_ajax_nbuf_regenerate_all_css', array( __CLASS__, 'ajax_regenerate_all_css' ) );
+		add_action( 'wp_ajax_nbuf_reset_all_css', array( __CLASS__, 'ajax_reset_all_css' ) );
+	}
+
+	/**
+	 * AJAX handler for regenerating all CSS files.
+	 *
+	 * @since 1.5.3
+	 */
+	public static function ajax_regenerate_all_css(): void {
+		/* Verify nonce and capability */
+		if ( ! check_ajax_referer( 'nbuf_css_operations', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$results = self::regenerate_all_css();
+
+		wp_send_json_success( $results );
+	}
+
+	/**
+	 * AJAX handler for resetting all CSS to defaults.
+	 *
+	 * @since 1.5.3
+	 */
+	public static function ajax_reset_all_css(): void {
+		/* Verify nonce and capability */
+		if ( ! check_ajax_referer( 'nbuf_css_operations', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$results = self::reset_all_to_defaults();
+
+		wp_send_json_success( $results );
 	}
 }
+
+/* Register AJAX handlers on admin_init */
+add_action( 'admin_init', array( 'NBUF_CSS_Manager', 'register_ajax_handlers' ) );

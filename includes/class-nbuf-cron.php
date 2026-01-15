@@ -102,7 +102,33 @@ class NBUF_Cron {
 	 */
 	public static function run_cleanup() {
 		NBUF_Database::cleanup_expired();
+		self::cleanup_magic_link_transients();
 		NBUF_Options::update( 'nbuf_last_cleanup', current_time( 'mysql', true ), false, 'system' );
+	}
+
+	/**
+	 * Cleanup expired magic link rate limit transients.
+	 *
+	 * Removes expired transients from wp_options to prevent table bloat.
+	 * Only needed for sites without object caching.
+	 *
+	 * @since 1.5.2
+	 */
+	private static function cleanup_magic_link_transients() {
+		global $wpdb;
+
+		/* Delete expired magic link rate limit transients */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE a, b FROM {$wpdb->options} a
+				LEFT JOIN {$wpdb->options} b ON b.option_name = CONCAT('_transient_timeout_', SUBSTRING(a.option_name, 12))
+				WHERE a.option_name LIKE %s
+				AND b.option_value < %d",
+				'_transient_nbuf_magic_link_%',
+				time()
+			)
+		);
 	}
 
 	/**

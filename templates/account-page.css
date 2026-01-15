@@ -1798,40 +1798,69 @@ textarea.nbuf-account-input {
 
 /* ==========================================================
    VERIFICATION PAGE
+   ----------------------------------------------------------
+   Styled to match the login page wrapper for consistency.
    ========================================================== */
 
 .nobloat-verify-wrapper {
-    max-width: 600px;
-    margin: 80px auto;
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 2rem;
     text-align: center;
+    font-size: 16px;
+    line-height: 1.6;
 }
 
 .nobloat-verify-title {
-    margin: 0 0 10px 0;
+    margin: 0 0 1rem 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    line-height: 1.3;
 }
 
 .nobloat-verify-message {
-    margin: 0 0 8px 0;
+    margin: 0 0 1.5rem 0;
+    font-size: 1em;
+    line-height: 1.6;
+    color: var(--nbuf-text-primary, #333);
 }
 
 .nobloat-verify-next {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 1.5rem;
 }
 
 .nobloat-verify-login-btn {
     display: inline-block;
-    padding: 12px 24px;
-    background: #2271b1;
+    padding: 0.75rem 1.5rem;
+    min-height: 44px;
+    background: var(--nbuf-primary, #0073aa);
     color: #fff;
     text-decoration: none;
     border-radius: 4px;
-    font-weight: 500;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
 }
 
 .nobloat-verify-login-btn:hover {
-    background: #135e96;
+    background: var(--nbuf-primary-hover, #005177);
     color: #fff;
+}
+
+/* Page builder override for verification page */
+body.nbuf-page .nobloat-verify-wrapper {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nobloat-verify-wrapper p {
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+body.nbuf-page .nobloat-verify-wrapper a {
+    font-size: inherit;
 }
 
 /* ==========================================================
@@ -2083,4 +2112,125 @@ textarea.nbuf-account-input {
 
 .nbuf-timezone-select option {
     padding: 4px 8px;
+}
+
+/* ==========================================================
+   SESSIONS TAB
+   ========================================================== */
+
+.nbuf-sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nbuf-space-md);
+}
+
+.nbuf-session-item {
+    display: flex;
+    align-items: center;
+    gap: var(--nbuf-space-md);
+    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border);
+    border-radius: var(--nbuf-radius);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.nbuf-session-item.nbuf-session-current {
+    border-color: var(--nbuf-primary);
+    background: var(--nbuf-background);
+}
+
+.nbuf-session-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nbuf-background);
+    border-radius: var(--nbuf-radius);
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-session-current .nbuf-session-icon {
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+}
+
+.nbuf-session-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.nbuf-session-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.nbuf-session-device {
+    font-weight: 500;
+    color: var(--nbuf-text-primary);
+    margin-bottom: 2px;
+}
+
+.nbuf-session-ip {
+    font-size: 13px;
+    color: var(--nbuf-text-secondary);
+    font-family: 'SF Mono', Consolas, Monaco, monospace;
+}
+
+.nbuf-session-time {
+    font-size: 13px;
+    color: var(--nbuf-text-tertiary);
+}
+
+.nbuf-session-actions {
+    flex-shrink: 0;
+}
+
+.nbuf-session-current-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--nbuf-primary);
+    color: var(--nbuf-surface);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+}
+
+.nbuf-sessions-actions {
+    margin-bottom: var(--nbuf-space-lg);
+}
+
+.nbuf-no-sessions {
+    color: var(--nbuf-text-secondary);
+    text-align: center;
+    padding: var(--nbuf-space-xl);
+}
+
+/* Responsive sessions */
+@media (max-width: 600px) {
+    .nbuf-session-item {
+        flex-wrap: wrap;
+        gap: var(--nbuf-space-sm);
+    }
+
+    .nbuf-session-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .nbuf-session-details {
+        flex: 1 1 calc(100% - 52px);
+    }
+
+    .nbuf-session-actions {
+        flex: 0 0 100%;
+        margin-top: var(--nbuf-space-sm);
+    }
+
+    .nbuf-session-current-badge {
+        display: block;
+        text-align: center;
+    }
 }

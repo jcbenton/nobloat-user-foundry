@@ -17,6 +17,12 @@ $nbuf_login_max_attempts     = NBUF_Options::get( 'nbuf_login_max_attempts', 5 )
 $nbuf_login_lockout_duration = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
 $nbuf_trusted_proxies        = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
 
+/* IP restriction settings */
+$nbuf_ip_restriction_enabled      = NBUF_Options::get( 'nbuf_ip_restriction_enabled', false );
+$nbuf_ip_restriction_mode         = NBUF_Options::get( 'nbuf_ip_restriction_mode', 'whitelist' );
+$nbuf_ip_restriction_list         = NBUF_Options::get( 'nbuf_ip_restriction_list', '' );
+$nbuf_ip_restriction_admin_bypass = NBUF_Options::get( 'nbuf_ip_restriction_admin_bypass', true );
+
 /* Convert array to comma-separated string for display */
 $nbuf_trusted_proxies_str = is_array( $nbuf_trusted_proxies ) ? implode( ', ', $nbuf_trusted_proxies ) : '';
 
@@ -50,6 +56,8 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 	<input type="hidden" name="nbuf_active_subtab" value="login-limits">
 	<!-- Declare checkboxes so unchecked state is saved -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_login_limiting">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_ip_restriction_enabled">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_ip_restriction_admin_bypass">
 
 	<h2><?php esc_html_e( 'Login Protection', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -101,6 +109,89 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 			</td>
 		</tr>
 	</table>
+
+	<h2><?php esc_html_e( 'IP Access Restrictions', 'nobloat-user-foundry' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Restrict login access to specific IP addresses or ranges. Useful for limiting access to corporate networks or known locations.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<table class="form-table">
+		<tr>
+			<th><?php esc_html_e( 'IP Restrictions', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_ip_restriction_enabled" value="1" <?php checked( $nbuf_ip_restriction_enabled, true ); ?> id="nbuf_ip_restriction_enabled">
+					<?php esc_html_e( 'Enable IP-based login restrictions', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, only specified IP addresses can log in (whitelist mode) or specified IPs are blocked (blacklist mode).', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr id="nbuf_ip_mode_row">
+			<th><?php esc_html_e( 'Restriction Mode', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<select name="nbuf_ip_restriction_mode">
+					<option value="whitelist" <?php selected( $nbuf_ip_restriction_mode, 'whitelist' ); ?>>
+						<?php esc_html_e( 'Whitelist - Only allow specified IPs', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="blacklist" <?php selected( $nbuf_ip_restriction_mode, 'blacklist' ); ?>>
+						<?php esc_html_e( 'Blacklist - Block specified IPs', 'nobloat-user-foundry' ); ?>
+					</option>
+				</select>
+				<p class="description">
+					<?php esc_html_e( 'Whitelist: Only listed IPs can log in. Blacklist: Listed IPs are blocked from logging in.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr id="nbuf_ip_list_row">
+			<th><?php esc_html_e( 'IP Address List', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<textarea name="nbuf_ip_restriction_list" rows="6" class="large-text code" placeholder="192.168.1.1&#10;10.0.0.0/8&#10;172.16.*.*"><?php echo esc_textarea( $nbuf_ip_restriction_list ); ?></textarea>
+				<p class="description">
+					<?php esc_html_e( 'One IP per line. Supports:', 'nobloat-user-foundry' ); ?><br>
+					<code>192.168.1.1</code> <?php esc_html_e( '(exact IP)', 'nobloat-user-foundry' ); ?>,
+					<code>192.168.1.0/24</code> <?php esc_html_e( '(CIDR notation)', 'nobloat-user-foundry' ); ?>,
+					<code>192.168.1.*</code> <?php esc_html_e( '(wildcard)', 'nobloat-user-foundry' ); ?>
+				</p>
+				<p class="description" style="margin-top: 8px;">
+					<strong><?php esc_html_e( 'Your current IP:', 'nobloat-user-foundry' ); ?></strong>
+					<code><?php echo esc_html( class_exists( 'NBUF_IP_Restrictions' ) ? NBUF_IP_Restrictions::get_client_ip() : ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown' ) ); ?></code>
+					<?php esc_html_e( '- Make sure to include this IP if using whitelist mode to avoid locking yourself out.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr id="nbuf_ip_bypass_row">
+			<th><?php esc_html_e( 'Admin Bypass', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_ip_restriction_admin_bypass" value="1" <?php checked( $nbuf_ip_restriction_admin_bypass, true ); ?>>
+					<?php esc_html_e( 'Allow administrators to bypass IP restrictions', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'When enabled, users with administrator privileges can log in from any IP address. Recommended to prevent accidental lockouts.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+	<script>
+	(function() {
+		var enableCheckbox = document.getElementById('nbuf_ip_restriction_enabled');
+		var modeRow = document.getElementById('nbuf_ip_mode_row');
+		var listRow = document.getElementById('nbuf_ip_list_row');
+		var bypassRow = document.getElementById('nbuf_ip_bypass_row');
+
+		function toggleRows() {
+			var show = enableCheckbox.checked;
+			modeRow.style.display = show ? '' : 'none';
+			listRow.style.display = show ? '' : 'none';
+			bypassRow.style.display = show ? '' : 'none';
+		}
+
+		enableCheckbox.addEventListener('change', toggleRows);
+		toggleRows();
+	})();
+	</script>
 
 	<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 </form>

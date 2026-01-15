@@ -48,9 +48,11 @@ class NBUF_Shortcodes {
 
 		if ( $use_combined && ! self::$combined_css_loaded ) {
 			/* Load combined CSS file instead of individual files */
-			self::enqueue_combined_css();
-			self::$combined_css_loaded = true;
-			return;
+			if ( NBUF_CSS_Manager::enqueue_combined_css() ) {
+				self::$combined_css_loaded = true;
+				return;
+			}
+			/* Combined file not available, fall through to individual loading */
 		} elseif ( $use_combined && self::$combined_css_loaded ) {
 			/* Combined CSS already loaded, nothing more to do */
 			return;
@@ -77,49 +79,6 @@ class NBUF_Shortcodes {
 		}
 
 		NBUF_CSS_Manager::enqueue_css( $handle, $filename, $db_option, $token_key );
-	}
-
-	/**
-	 * Enqueue the combined CSS file.
-	 *
-	 * Loads nobloat-combined-live.min.css or nobloat-combined-live.css
-	 * depending on minification setting.
-	 */
-	private static function enqueue_combined_css() {
-		$handle = 'nbuf-combined';
-
-		/* Already enqueued check */
-		if ( wp_style_is( $handle, 'enqueued' ) ) {
-			return;
-		}
-
-		$ui_dir     = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
-		$ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
-
-		/* Check minified preference */
-		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
-
-		/* Check for combined minified file */
-		if ( $use_minified ) {
-			$min_path = $ui_dir . 'nobloat-combined-live.min.css';
-			if ( file_exists( $min_path ) ) {
-				$version = filemtime( $min_path );
-				wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.min.css', array(), $version );
-				return;
-			}
-		}
-
-		/* Check for combined non-minified file */
-		$live_path = $ui_dir . 'nobloat-combined-live.css';
-		if ( file_exists( $live_path ) ) {
-			$version = filemtime( $live_path );
-			wp_enqueue_style( $handle, $ui_dir_url . 'nobloat-combined-live.css', array(), $version );
-			return;
-		}
-
-		/* Combined file not found - fall back to individual files */
-		self::$combined_css_loaded = false;
-		NBUF_Options::update( 'nbuf_css_combine_files', false, true, 'settings' );
 	}
 
 	/**
@@ -859,6 +818,20 @@ class NBUF_Shortcodes {
 			}
 		}
 
+		// Build magic link option if enabled.
+		$magic_link = '';
+		if ( class_exists( 'NBUF_Magic_Links' ) && NBUF_Magic_Links::is_enabled() ) {
+			$magic_link_url = NBUF_Universal_Router::get_url( 'magic-link' );
+			if ( $magic_link_url ) {
+				$magic_link = '<div class="nbuf-magic-link-divider">'
+					. '<span>' . esc_html__( 'or', 'nobloat-user-foundry' ) . '</span>'
+					. '</div>'
+					. '<a href="' . esc_url( $magic_link_url ) . '" class="nbuf-magic-link-button">'
+					. esc_html__( 'Sign in with Magic Link', 'nobloat-user-foundry' )
+					. '</a>';
+			}
+		}
+
 		// Get error message if present.
 		$error_message = '';
 		$login_status  = self::get_query_param( 'login' );
@@ -885,6 +858,9 @@ class NBUF_Shortcodes {
 				case 'expired':
 					$error_message = '<div class="nbuf-message nbuf-message-error nbuf-login-error">' . esc_html__( 'Your account has expired. Please contact support.', 'nobloat-user-foundry' ) . '</div>';
 					break;
+				case 'ip_blocked':
+					$error_message = '<div class="nbuf-message nbuf-message-error nbuf-login-error">' . esc_html__( 'Access denied. Your IP address is not authorized to log in.', 'nobloat-user-foundry' ) . '</div>';
+					break;
 			}
 		}
 
@@ -902,6 +878,7 @@ class NBUF_Shortcodes {
 				'{reset_link}',
 				'{register_link}',
 				'{error_message}',
+				'{magic_link}',
 			),
 			array(
 				$action_url,
@@ -910,6 +887,7 @@ class NBUF_Shortcodes {
 				$reset_link,
 				$register_link,
 				$error_message,
+				$magic_link,
 			),
 			$template
 		);
@@ -1001,6 +979,46 @@ class NBUF_Shortcodes {
 			$current_url = home_url( $request_uri );
 			wp_safe_redirect( add_query_arg( 'login', 'failed', $current_url ) );
 			exit;
+		}
+
+		// Check IP restrictions before authentication.
+		if ( class_exists( 'NBUF_IP_Restrictions' ) && NBUF_IP_Restrictions::is_enabled() ) {
+			$client_ip = NBUF_IP_Restrictions::get_client_ip();
+
+			if ( ! NBUF_IP_Restrictions::is_ip_allowed( $client_ip ) ) {
+				// Check admin bypass - need to look up user first.
+				$bypass = false;
+				if ( NBUF_IP_Restrictions::admin_bypass_enabled() ) {
+					$check_user = get_user_by( 'login', $username );
+					if ( ! $check_user ) {
+						$check_user = get_user_by( 'email', $username );
+					}
+					if ( $check_user && user_can( $check_user, 'manage_options' ) ) {
+						$bypass = true;
+					}
+				}
+
+				if ( ! $bypass ) {
+					// Log the blocked attempt.
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log_or_update(
+							'ip_blocked',
+							'critical',
+							'Login blocked: IP not in allowed list',
+							array(
+								'ip_address' => $client_ip,
+								'username'   => $username,
+								'mode'       => NBUF_IP_Restrictions::get_mode(),
+							)
+						);
+					}
+
+					$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+					$current_url = home_url( $request_uri );
+					wp_safe_redirect( add_query_arg( 'login', 'ip_blocked', $current_url ) );
+					exit;
+				}
+			}
 		}
 
 		// Attempt authentication.
@@ -1799,6 +1817,60 @@ class NBUF_Shortcodes {
 		$security_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="security">' . esc_html__( 'Security', 'nobloat-user-foundry' ) . '</button>';
 		$security_tab_content = '<div class="nbuf-tab-content" data-tab="security">' . $security_tab_html . '</div>';
 
+		/* Build sessions tab content if enabled */
+		$sessions_tab_button  = '';
+		$sessions_tab_content = '';
+		$sessions_enabled     = NBUF_Options::get( 'nbuf_session_management_enabled', true );
+		if ( $sessions_enabled && class_exists( 'NBUF_Sessions' ) ) {
+			$sessions_tab_html    = NBUF_Sessions::build_sessions_tab_html( $user_id );
+			$sessions_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="sessions">' . esc_html__( 'Sessions', 'nobloat-user-foundry' ) . '</button>';
+			$sessions_tab_content = '<div class="nbuf-tab-content" data-tab="sessions">' . $sessions_tab_html . '</div>';
+
+			/* Enqueue sessions JavaScript */
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-sessions', 'assets/js/frontend/sessions.js', array() );
+			wp_localize_script(
+				'nbuf-sessions',
+				'NBUF_Sessions',
+				array(
+					'ajax_url' => admin_url( 'admin-ajax.php' ),
+					'i18n'     => array(
+						'revoking'        => __( 'Revoking...', 'nobloat-user-foundry' ),
+						'revoke'          => __( 'Revoke', 'nobloat-user-foundry' ),
+						'session_revoked' => __( 'Session revoked.', 'nobloat-user-foundry' ),
+						'all_revoked'     => __( 'All other sessions have been logged out.', 'nobloat-user-foundry' ),
+						'error'           => __( 'An error occurred.', 'nobloat-user-foundry' ),
+						'confirm_revoke_all' => __( 'Are you sure you want to log out all other sessions?', 'nobloat-user-foundry' ),
+					),
+				)
+			);
+		}
+
+		/* Build activity tab content if enabled */
+		$activity_tab_button  = '';
+		$activity_tab_content = '';
+		$activity_enabled     = NBUF_Options::get( 'nbuf_activity_dashboard_enabled', true );
+		if ( $activity_enabled && class_exists( 'NBUF_Activity_Dashboard' ) ) {
+			$activity_tab_html    = NBUF_Activity_Dashboard::build_activity_tab_html( $user_id );
+			$activity_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="activity">' . esc_html__( 'Activity', 'nobloat-user-foundry' ) . '</button>';
+			$activity_tab_content = '<div class="nbuf-tab-content" data-tab="activity">' . $activity_tab_html . '</div>';
+
+			/* Enqueue activity JavaScript */
+			NBUF_Asset_Minifier::enqueue_script( 'nbuf-activity', 'assets/js/frontend/activity.js', array() );
+			wp_localize_script(
+				'nbuf-activity',
+				'nbuf_activity',
+				array(
+					'ajax_url'     => admin_url( 'admin-ajax.php' ),
+					'loading_text' => __( 'Loading...', 'nobloat-user-foundry' ),
+					/* translators: 1: items shown, 2: total items */
+					'count_text'   => __( 'Showing %1$d of %2$d activities', 'nobloat-user-foundry' ),
+				)
+			);
+
+			/* Add activity CSS inline */
+			wp_add_inline_style( 'nbuf-account', NBUF_Activity_Dashboard::get_css() );
+		}
+
 		/* Build policies tab content if enabled */
 		$policies_tab_button  = '';
 		$policies_tab_content = '';
@@ -1939,8 +2011,12 @@ class NBUF_Shortcodes {
 			'{password_requirements}'        => esc_html( $password_requirements_text ),
 			'{security_tab_button}'          => $security_tab_button,
 			'{security_tab_content}'         => $security_tab_content,
-			'{policies_tab_button}'          => $policies_tab_button . $custom_tabs_buttons,
-			'{policies_tab_content}'         => $policies_tab_content . $custom_tabs_content,
+			'{sessions_tab_button}'          => $sessions_tab_button,
+			'{sessions_tab_content}'         => $sessions_tab_content,
+			'{activity_tab_button}'          => $activity_tab_button,
+			'{activity_tab_content}'         => $activity_tab_content,
+			'{policies_tab_button}'          => $policies_tab_button,
+			'{policies_tab_content}'         => $policies_tab_content,
 			'{custom_tabs_buttons}'          => $custom_tabs_buttons,
 			'{custom_tabs_content}'          => $custom_tabs_content,
 		);

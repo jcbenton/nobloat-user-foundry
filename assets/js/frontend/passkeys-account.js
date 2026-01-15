@@ -48,6 +48,17 @@
 		return window.nbufPasskeyData || {};
 	}
 
+	/* Reload page with passkeys subtab active */
+	function reloadWithPasskeysTab() {
+		const url = new URL(window.location.href);
+		url.searchParams.set('subtab', 'passkeys');
+		/* Also set tab param for non-virtual pages */
+		if (!url.pathname.includes('/account/')) {
+			url.searchParams.set('tab', 'security');
+		}
+		window.location.href = url.toString();
+	}
+
 	/* Get registration options from server */
 	async function getRegistrationOptions() {
 		const data = getPasskeyData();
@@ -219,8 +230,8 @@
 			/* Send to server */
 			await registerCredential(credential, deviceName);
 
-			/* Success - reload page to show new passkey */
-			window.location.reload();
+			/* Success - reload page to show new passkey with passkeys subtab active */
+			reloadWithPasskeysTab();
 
 		} catch (error) {
 			console.error('Passkey registration error:', error);
@@ -269,7 +280,8 @@
 			/* Check if table is now empty */
 			const tbody = document.querySelector('.nbuf-passkeys-table tbody');
 			if (tbody && tbody.children.length === 0) {
-				window.location.reload();
+				/* Reload with passkeys subtab active */
+				reloadWithPasskeysTab();
 			}
 
 		} catch (error) {
@@ -304,13 +316,8 @@
 
 			await renamePasskey(passkeyId, newName.trim());
 
-			/* Update name in UI */
-			if (nameSpan) {
-				nameSpan.textContent = newName.trim();
-			}
-
-			button.disabled = false;
-			button.textContent = originalText;
+			/* Reload page to show updated name */
+			reloadWithPasskeysTab();
 
 		} catch (error) {
 			console.error('Rename error:', error);

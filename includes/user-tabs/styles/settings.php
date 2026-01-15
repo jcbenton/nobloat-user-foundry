@@ -11,39 +11,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Handle CSS settings form submission
- */
-if ( isset( $_POST['nbuf_save_css_settings'] ) && check_admin_referer( 'nbuf_css_settings_save', 'nbuf_css_settings_nonce' ) ) {
-	/* Get and save CSS optimization options */
-	$nbuf_css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
-	$nbuf_css_use_minified  = isset( $_POST['nbuf_css_use_minified'] ) ? 1 : 0;
-	$nbuf_css_combine_files = isset( $_POST['nbuf_css_combine_files'] ) ? 1 : 0;
-	NBUF_Options::update( 'nbuf_css_load_on_pages', $nbuf_css_load_on_pages, true, 'settings' );
-	NBUF_Options::update( 'nbuf_css_use_minified', $nbuf_css_use_minified, true, 'settings' );
-	NBUF_Options::update( 'nbuf_css_combine_files', $nbuf_css_combine_files, true, 'settings' );
-
-	/* Regenerate the combined file (checks combine setting internally) */
-	NBUF_CSS_Manager::rebuild_combined_css();
-
-	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'CSS settings saved.', 'nobloat-user-foundry' ) . '</p></div>';
-}
-
 /* CSS optimization settings */
 $nbuf_css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
 $nbuf_css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
-$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
+
+/* Get CSS templates for display */
+$nbuf_css_templates = NBUF_CSS_Manager::get_css_templates();
 
 /*
 ==========================================================
 	CHECK FOR WRITE FAILURES
 	==========================================================
  */
-$nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_reset' ) ||
-					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_login' ) ||
-					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_registration' ) ||
-					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_account' ) ||
-					NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_failed_combined' );
+$nbuf_has_write_failure = false;
+foreach ( $nbuf_css_templates as $nbuf_template ) {
+	if ( NBUF_CSS_Manager::has_write_failure( $nbuf_template['token_key'] ) ) {
+		$nbuf_has_write_failure = true;
+		break;
+	}
+}
 
 ?>
 
@@ -58,8 +44,11 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 		</div>
 	<?php endif; ?>
 
-	<form method="post" action="">
-		<?php wp_nonce_field( 'nbuf_css_settings_save', 'nbuf_css_settings_nonce' ); ?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php
+		NBUF_Settings::settings_nonce_field();
+		settings_errors( 'nbuf_styles' );
+		?>
 		<input type="hidden" name="nbuf_active_tab" value="styles">
 		<input type="hidden" name="nbuf_active_subtab" value="settings">
 
@@ -69,6 +58,7 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 					<?php esc_html_e( 'Load CSS on NoBloat Pages', 'nobloat-user-foundry' ); ?>
 				</th>
 				<td>
+					<input type="hidden" name="nbuf_css_load_on_pages" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_css_load_on_pages" value="1" <?php checked( $nbuf_css_load_on_pages, true ); ?>>
 						<?php esc_html_e( 'Load CSS on plugin pages only', 'nobloat-user-foundry' ); ?>
@@ -83,6 +73,7 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 					<?php esc_html_e( 'Use Minified CSS Files', 'nobloat-user-foundry' ); ?>
 				</th>
 				<td>
+					<input type="hidden" name="nbuf_css_use_minified" value="0">
 					<label>
 						<input type="checkbox" name="nbuf_css_use_minified" value="1" <?php checked( $nbuf_css_use_minified, true ); ?>>
 						<?php esc_html_e( 'Load minified CSS files', 'nobloat-user-foundry' ); ?>
@@ -92,22 +83,154 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 					</p>
 				</td>
 			</tr>
-			<tr>
-				<th scope="row">
-					<?php esc_html_e( 'Combine CSS Files', 'nobloat-user-foundry' ); ?>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox" name="nbuf_css_combine_files" value="1" <?php checked( $nbuf_css_combine_files, true ); ?>>
-						<?php esc_html_e( 'Combine CSS into single file', 'nobloat-user-foundry' ); ?>
-					</label>
-					<p class="description">
-						<?php esc_html_e( 'When enabled, all plugin CSS is combined into a single file (nobloat-combined.css or nobloat-combined.min.css) reducing HTTP requests. Individual files are still saved for reference. Recommended: Enabled', 'nobloat-user-foundry' ); ?>
-					</p>
-				</td>
-			</tr>
 		</table>
 
-		<?php submit_button( __( 'Save Settings', 'nobloat-user-foundry' ), 'primary', 'nbuf_save_css_settings' ); ?>
+		<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 	</form>
+
+	<hr style="margin: 30px 0;">
+
+	<h2><?php esc_html_e( 'CSS File Management', 'nobloat-user-foundry' ); ?></h2>
+
+	<p class="description">
+		<?php esc_html_e( 'Manage all CSS files for the plugin. Use these tools to regenerate minified files or reset all styles to defaults.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<p style="margin-bottom: 10px;">
+		<strong><?php esc_html_e( 'CSS Templates:', 'nobloat-user-foundry' ); ?></strong>
+		<?php
+		$nbuf_labels = array();
+		foreach ( $nbuf_css_templates as $nbuf_template ) {
+			$nbuf_labels[] = $nbuf_template['label'];
+		}
+		echo esc_html( implode( ' | ', $nbuf_labels ) );
+		?>
+	</p>
+
+	<table class="form-table">
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Regenerate All CSS', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<button type="button" id="nbuf-regenerate-css-btn" class="button button-secondary">
+					<?php esc_html_e( 'Regenerate All CSS Files', 'nobloat-user-foundry' ); ?>
+				</button>
+				<span id="nbuf-regenerate-spinner" class="spinner" style="float: none; margin-top: 0;"></span>
+				<p class="description">
+					<?php esc_html_e( 'Rewrites all CSS files to disk from the database. Use this if CSS files are out of sync or after manual database changes.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">
+				<?php esc_html_e( 'Reset All to Defaults', 'nobloat-user-foundry' ); ?>
+			</th>
+			<td>
+				<button type="button" id="nbuf-reset-css-btn" class="button button-secondary" style="color: #b32d2e;">
+					<?php esc_html_e( 'Reset All CSS to Defaults', 'nobloat-user-foundry' ); ?>
+				</button>
+				<span id="nbuf-reset-spinner" class="spinner" style="float: none; margin-top: 0;"></span>
+				<p class="description" style="color: #b32d2e;">
+					<?php esc_html_e( 'Warning: This will overwrite all custom CSS styles with the plugin defaults. This action cannot be undone.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+
+	<div id="nbuf-css-results" style="display: none; margin-top: 20px;"></div>
+
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+	var nonce = '<?php echo esc_js( wp_create_nonce( 'nbuf_css_operations' ) ); ?>';
+
+	function showResults(results, action) {
+		var $container = $('#nbuf-css-results');
+		var html = '<div class="notice notice-' + (results.failed > 0 ? 'warning' : 'success') + ' inline">';
+		html += '<p><strong>' + (action === 'regenerate' ? '<?php echo esc_js( __( 'CSS Regeneration Complete', 'nobloat-user-foundry' ) ); ?>' : '<?php echo esc_js( __( 'CSS Reset Complete', 'nobloat-user-foundry' ) ); ?>') + '</strong></p>';
+		html += '<p><?php echo esc_js( __( 'Success:', 'nobloat-user-foundry' ) ); ?> ' + results.success + ' | <?php echo esc_js( __( 'Failed:', 'nobloat-user-foundry' ) ); ?> ' + results.failed + '</p>';
+
+		if (results.details) {
+			html += '<ul style="margin-left: 20px;">';
+			$.each(results.details, function(filename, detail) {
+				var icon = detail.status === 'success' ? '✓' : (detail.status === 'failed' ? '✗' : '○');
+				html += '<li>' + icon + ' <strong>' + filename + '</strong>: ' + detail.message + '</li>';
+			});
+			html += '</ul>';
+		}
+
+		html += '</div>';
+		$container.html(html).show();
+	}
+
+	$('#nbuf-regenerate-css-btn').on('click', function() {
+		var $btn = $(this);
+		var $spinner = $('#nbuf-regenerate-spinner');
+
+		$btn.prop('disabled', true);
+		$spinner.addClass('is-active');
+		$('#nbuf-css-results').hide();
+
+		$.ajax({
+			url: ajaxurl,
+			type: 'POST',
+			data: {
+				action: 'nbuf_regenerate_all_css',
+				nonce: nonce
+			},
+			success: function(response) {
+				if (response.success) {
+					showResults(response.data, 'regenerate');
+				} else {
+					$('#nbuf-css-results').html('<div class="notice notice-error inline"><p>' + (response.data.message || '<?php echo esc_js( __( 'An error occurred.', 'nobloat-user-foundry' ) ); ?>') + '</p></div>').show();
+				}
+			},
+			error: function() {
+				$('#nbuf-css-results').html('<div class="notice notice-error inline"><p><?php echo esc_js( __( 'Request failed. Please try again.', 'nobloat-user-foundry' ) ); ?></p></div>').show();
+			},
+			complete: function() {
+				$btn.prop('disabled', false);
+				$spinner.removeClass('is-active');
+			}
+		});
+	});
+
+	$('#nbuf-reset-css-btn').on('click', function() {
+		if (!confirm('<?php echo esc_js( __( 'Are you sure you want to reset ALL CSS files to defaults? This will overwrite any custom styles you have made.', 'nobloat-user-foundry' ) ); ?>')) {
+			return;
+		}
+
+		var $btn = $(this);
+		var $spinner = $('#nbuf-reset-spinner');
+
+		$btn.prop('disabled', true);
+		$spinner.addClass('is-active');
+		$('#nbuf-css-results').hide();
+
+		$.ajax({
+			url: ajaxurl,
+			type: 'POST',
+			data: {
+				action: 'nbuf_reset_all_css',
+				nonce: nonce
+			},
+			success: function(response) {
+				if (response.success) {
+					showResults(response.data, 'reset');
+				} else {
+					$('#nbuf-css-results').html('<div class="notice notice-error inline"><p>' + (response.data.message || '<?php echo esc_js( __( 'An error occurred.', 'nobloat-user-foundry' ) ); ?>') + '</p></div>').show();
+				}
+			},
+			error: function() {
+				$('#nbuf-css-results').html('<div class="notice notice-error inline"><p><?php echo esc_js( __( 'Request failed. Please try again.', 'nobloat-user-foundry' ) ); ?></p></div>').show();
+			},
+			complete: function() {
+				$btn.prop('disabled', false);
+				$spinner.removeClass('is-active');
+			}
+		});
+	});
+});
+</script>

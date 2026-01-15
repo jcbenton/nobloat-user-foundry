@@ -93,6 +93,12 @@ class NBUF_Settings {
 			'nbuf_require_verification'           => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_registration'            => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_notify_admin_registration'      => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/* Email domain restrictions */
+			'nbuf_email_restriction_mode'         => function ( $value ) {
+				return in_array( $value, array( 'none', 'whitelist', 'blacklist' ), true ) ? $value : 'none';
+			},
+			'nbuf_email_restriction_domains'      => 'sanitize_textarea_field',
 			'nbuf_enable_password_reset'          => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_enable_custom_roles'            => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_allow_email_change'             => function ( $value ) {
@@ -114,6 +120,10 @@ class NBUF_Settings {
 			/* Admin Dashboard Access */
 			'nbuf_restrict_admin_access'          => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_admin_redirect_url'             => 'esc_url_raw',
+
+			/* Account Page Features */
+			'nbuf_session_management_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_activity_dashboard_enabled'     => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Email Sender Settings */
 			'nbuf_email_sender_address'           => 'sanitize_email',
@@ -190,6 +200,14 @@ class NBUF_Settings {
 			'nbuf_login_max_attempts'             => array( __CLASS__, 'sanitize_positive_int' ),
 			'nbuf_login_lockout_duration'         => array( __CLASS__, 'sanitize_positive_int' ),
 			'nbuf_login_trusted_proxies'          => array( __CLASS__, 'sanitize_trusted_proxies' ),
+
+			/* Security - IP Restrictions */
+			'nbuf_ip_restriction_enabled'         => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_ip_restriction_mode'            => function ( $value ) {
+				return in_array( $value, array( 'whitelist', 'blacklist' ), true ) ? $value : 'whitelist';
+			},
+			'nbuf_ip_restriction_list'            => 'sanitize_textarea_field',
+			'nbuf_ip_restriction_admin_bypass'    => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Security - Anti-Bot Registration Protection */
 			'nbuf_antibot_enabled'                => array( __CLASS__, 'sanitize_checkbox' ),
@@ -307,6 +325,15 @@ class NBUF_Settings {
 			},
 			'nbuf_2fa_notify_lockout'             => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_2fa_notify_disable'             => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/* Security - Magic Links */
+			'nbuf_magic_links_enabled'            => array( __CLASS__, 'sanitize_checkbox' ),
+			'nbuf_magic_links_expiration'         => function ( $value ) {
+				return max( 5, min( 60, absint( $value ) ) );
+			},
+			'nbuf_magic_links_rate_limit'         => function ( $value ) {
+				return max( 1, min( 10, absint( $value ) ) );
+			},
 
 			/* Security - Passkeys */
 			'nbuf_passkeys_enabled'               => array( __CLASS__, 'sanitize_checkbox' ),
@@ -1698,6 +1725,7 @@ class NBUF_Settings {
 					'passwords'               => __( 'Passwords', 'nobloat-user-foundry' ),
 					'app-passwords' => __( 'App Passwords', 'nobloat-user-foundry' ),
 					'passkeys'      => __( 'Passkeys', 'nobloat-user-foundry' ),
+					'magic-links'   => __( 'Magic Links', 'nobloat-user-foundry' ),
 					'2fa-settings'  => __( '2FA Config', 'nobloat-user-foundry' ),
 					'2fa-email'     => __( 'Email Auth', 'nobloat-user-foundry' ),
 					'2fa-totp'      => __( 'Authenticator', 'nobloat-user-foundry' ),

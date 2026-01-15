@@ -103,6 +103,7 @@ class NBUF_Database {
             user_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
             user_email VARCHAR(255) NOT NULL,
             token VARCHAR(128) NOT NULL,
+            type VARCHAR(32) NOT NULL DEFAULT 'verification',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             expires_at DATETIME NOT NULL,
             verified TINYINT(1) NOT NULL DEFAULT 0,
@@ -111,6 +112,7 @@ class NBUF_Database {
             KEY token (token),
             KEY user_id (user_id),
             KEY user_email (user_email),
+            KEY type (type),
             KEY cleanup (is_test, verified, expires_at)
         ) {$charset_collate};";
 
@@ -641,11 +643,10 @@ class NBUF_Database {
 
 		$now = gmdate( 'Y-m-d H:i:s' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is trusted constant.
 		return (bool) $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM %i WHERE (expires_at < %s OR verified = 1) AND is_test = 0',
-				self::$table_name,
+				"DELETE FROM {$wpdb->prefix}nbuf_tokens WHERE (expires_at < %s OR verified = 1) AND is_test = 0",
 				$now
 			)
 		);
@@ -1246,6 +1247,43 @@ class NBUF_Database {
 
 	/**
 	==========================================================
+	MIGRATE TOKENS TABLE TYPE COLUMN
+	----------------------------------------------------------
+	Adds type column to tokens table to support different
+	token types (verification, magic_link, etc.).
+	==========================================================
+	 */
+	public static function migrate_tokens_type_column() {
+		global $wpdb;
+		self::init();
+
+		$migration_key = 'nbuf_tokens_type_column_v1';
+
+		/* Check if migration already run */
+		if ( NBUF_Options::get( $migration_key ) ) {
+			return true;
+		}
+
+		/* Add type column if not exists */
+		if ( ! self::column_exists( self::$table_name, 'type' ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration adding column, table name is trusted.
+			$result = $wpdb->query( "ALTER TABLE {$wpdb->prefix}nbuf_tokens ADD COLUMN type VARCHAR(32) NOT NULL DEFAULT 'verification' AFTER token" );
+			if ( false === $result ) {
+				error_log( '[NoBloat User Foundry] Tokens type column migration failed: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
+				return false;
+			}
+
+			/* Add index for type column */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration adding index, table name is trusted.
+			$wpdb->query( "ALTER TABLE {$wpdb->prefix}nbuf_tokens ADD KEY type (type)" );
+		}
+
+		NBUF_Options::update( $migration_key, time(), false, 'system' );
+		return true;
+	}
+
+	/**
+	==========================================================
 	CREATE WEBHOOKS TABLE
 	----------------------------------------------------------
 	Creates table for storing webhook configurations.
@@ -1308,6 +1346,72 @@ class NBUF_Database {
             KEY event_type (event_type),
             KEY created_at (created_at),
             KEY webhook_time (webhook_id, created_at)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	==========================================================
+	CREATE TOS VERSIONS TABLE
+	----------------------------------------------------------
+	Creates table for storing Terms of Service version history.
+	Supports multiple versions with effective dates for compliance.
+	==========================================================
+	 */
+	public static function create_tos_versions_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_tos_versions';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            version VARCHAR(20) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            content LONGTEXT NOT NULL,
+            effective_date DATETIME NOT NULL,
+            created_by BIGINT(20) UNSIGNED NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            is_active TINYINT(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY (id),
+            KEY version (version),
+            KEY is_active (is_active),
+            KEY effective_date (effective_date),
+            KEY active_effective (is_active, effective_date)
+        ) {$charset_collate};";
+
+		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	==========================================================
+	CREATE TOS ACCEPTANCES TABLE
+	----------------------------------------------------------
+	Creates table for tracking user ToS acceptances.
+	Records which version each user accepted and when.
+	==========================================================
+	 */
+	public static function create_tos_acceptances_table() {
+		global $wpdb;
+
+		$table_name      = $wpdb->prefix . 'nbuf_tos_acceptances';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            tos_version_id BIGINT(20) UNSIGNED NOT NULL,
+            accepted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent VARCHAR(500) DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_version (user_id, tos_version_id),
+            KEY user_id (user_id),
+            KEY tos_version_id (tos_version_id),
+            KEY accepted_at (accepted_at)
         ) {$charset_collate};";
 
 		include_once ABSPATH . 'wp-admin/includes/upgrade.php';

@@ -24,8 +24,6 @@ if ( isset( $_POST['nbuf_reset_profile_css'] ) && check_admin_referer( 'nbuf_pro
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'profile', 'nbuf_css_write_failed_profile' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile styles reset to default.', 'nobloat-user-foundry' ) . '</p></div>';
@@ -48,8 +46,6 @@ if ( isset( $_POST['nbuf_save_profile_css'] ) && check_admin_referer( 'nbuf_prof
 	/* Write to disk */
 	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_profile_css, 'profile', 'nbuf_css_write_failed_profile' );
 
-	/* Rebuild combined file if enabled */
-	NBUF_CSS_Manager::rebuild_combined_css();
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Profile page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

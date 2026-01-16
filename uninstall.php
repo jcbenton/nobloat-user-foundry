@@ -94,6 +94,8 @@ function nbuf_run_uninstall() {
 			'nbuf_security_log',
 			'nbuf_webhooks',
 			'nbuf_webhook_log',
+			'nbuf_tos_versions',
+			'nbuf_tos_acceptances',
 		);
 
 		foreach ( $nbuf_tables_to_drop as $nbuf_table ) {

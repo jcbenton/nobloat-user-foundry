@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<br><br>
 				<strong><?php esc_html_e( 'Attributes:', 'nobloat-user-foundry' ); ?></strong>
 				<ul style="margin: 10px 0 10px 20px; list-style: disc;">
-					<li><code>view</code> - <?php esc_html_e( 'Force a specific view (login, register, account, profile, verify, forgot-password, reset-password, 2fa, 2fa-setup, members, logout)', 'nobloat-user-foundry' ); ?></li>
+					<li><code>view</code> - <?php esc_html_e( 'Force a specific view (login, register, account, profile, verify, forgot-password, reset-password, 2fa, 2fa-setup, members, magic-link, accept-tos, logout)', 'nobloat-user-foundry' ); ?></li>
 					<li><code>default</code> - <?php esc_html_e( 'Default view when visiting base URL (default: account)', 'nobloat-user-foundry' ); ?></li>
 				</ul>
 				<strong><?php esc_html_e( 'URL Structure:', 'nobloat-user-foundry' ); ?></strong>
@@ -41,6 +41,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<li><code>/user-foundry/account/</code> - <?php esc_html_e( 'Account dashboard', 'nobloat-user-foundry' ); ?></li>
 					<li><code>/user-foundry/account/security/</code> - <?php esc_html_e( 'Account sub-tabs', 'nobloat-user-foundry' ); ?></li>
 					<li><code>/user-foundry/profile/username/</code> - <?php esc_html_e( 'Public profiles', 'nobloat-user-foundry' ); ?></li>
+					<li><code>/user-foundry/magic-link/</code> - <?php esc_html_e( 'Magic link request', 'nobloat-user-foundry' ); ?></li>
+					<li><code>/user-foundry/accept-tos/</code> - <?php esc_html_e( 'Terms of Service acceptance', 'nobloat-user-foundry' ); ?></li>
 				</ul>
 				<em><?php esc_html_e( 'Note: Base slug (/user-foundry/) is configurable in settings.', 'nobloat-user-foundry' ); ?></em>
 			</td>
@@ -86,6 +88,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td>
 				<strong><?php esc_html_e( 'Password Reset Form', 'nobloat-user-foundry' ); ?></strong><br>
 				<?php esc_html_e( 'Landing page for password reset links where users enter their new password.', 'nobloat-user-foundry' ); ?>
+			</td>
+		</tr>
+		<tr>
+			<td><code>[nbuf_magic_link_form]</code></td>
+			<td>
+				<strong><?php esc_html_e( 'Magic Link Form', 'nobloat-user-foundry' ); ?></strong><br>
+				<?php esc_html_e( 'Passwordless login form. Users enter their email to receive a one-time login link. Requires Magic Links to be enabled in Settings → Security.', 'nobloat-user-foundry' ); ?>
 			</td>
 		</tr>
 	</tbody>
@@ -204,6 +213,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tr><td><strong><?php esc_html_e( 'Verify Email', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_verify_page]</code></td></tr>
 		<tr><td><strong><?php esc_html_e( '2FA Verify', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_2fa_verify]</code></td></tr>
 		<tr><td><strong><?php esc_html_e( 'Authenticator Setup', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_totp_setup]</code></td></tr>
+		<tr><td><strong><?php esc_html_e( 'Magic Link', 'nobloat-user-foundry' ); ?></strong></td><td><code>[nbuf_magic_link_form]</code></td></tr>
 	</tbody>
 </table>
 <p class="description" style="margin-top: 10px;">

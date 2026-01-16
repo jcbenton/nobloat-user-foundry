@@ -89,6 +89,59 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 - WordPress privacy tools integration
 - Audit log anonymization on deletion
 
+### Magic Links
+
+- Passwordless email login links
+- Configurable link expiration (default 15 minutes)
+- Rate limiting to prevent abuse
+- One-time use tokens
+- Works with all other security features
+
+### User Impersonation
+
+- Admins can log in as any user for support
+- Full audit trail of impersonation sessions
+- Sticky banner showing impersonation status
+- One-click return to admin account
+- Capability-based access control
+
+### Email Domain Restrictions
+
+- Whitelist or blacklist email domains for registration
+- Wildcard subdomain support (*.example.com)
+- Customizable rejection messages
+- Security log integration
+
+### IP Restrictions
+
+- Whitelist or blacklist IP addresses for login
+- CIDR notation support (192.168.1.0/24)
+- Trusted proxy configuration for load balancers/CDNs
+- Works with Cloudflare, AWS, Nginx, and more
+
+### Terms of Service
+
+- Version-controlled Terms of Service
+- Track user acceptance with timestamps
+- Require acceptance on login for new versions
+- Configurable grace periods
+- Export acceptance records to CSV
+
+### Session Management
+
+- View all active login sessions
+- Device and browser detection
+- Revoke individual sessions
+- "Log out everywhere" option
+- Current session protection
+
+### Activity Dashboard
+
+- Timeline view of account activity
+- Security events (logins, password changes, 2FA)
+- Admin dashboard widget with site-wide stats
+- Paginated activity history
+
 ### Security Features
 
 - Login attempt limiting with IP-based lockouts
@@ -97,7 +150,6 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 - Anti-bot protection (honeypot, timing, JavaScript validation)
 - Application passwords for API access
 - Security event logging
-- Session management and termination
 
 ### Admin Features
 
@@ -158,6 +210,7 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 | `[nbuf_logout]` | Logout button |
 | `[nbuf_restrict]` | Restrict content by role/login |
 | `[nbuf_data_export]` | GDPR data export form |
+| `[nbuf_magic_link_form]` | Magic link request form |
 
 ## Universal Router
 
@@ -173,6 +226,8 @@ Virtual page routing at `/user-foundry/` - no WordPress pages required:
 - `/user-foundry/2fa/`
 - `/user-foundry/2fa-setup/`
 - `/user-foundry/members/`
+- `/user-foundry/magic-link/`
+- `/user-foundry/accept-tos/`
 - `/user-foundry/logout/`
 
 ## Developer Features
@@ -247,6 +302,8 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 | `nbuf_menu_restrictions` | Menu visibility rules |
 | `nbuf_content_restrictions` | Content visibility rules |
 | `nbuf_user_roles` | Custom role management |
+| `nbuf_tos_versions` | Terms of Service versions |
+| `nbuf_tos_acceptances` | User ToS acceptance records |
 
 ## Performance
 

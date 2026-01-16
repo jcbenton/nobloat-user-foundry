@@ -311,7 +311,7 @@ if ( $user ) {
     echo 'Verified: ' . ( $user->is_verified() ? 'Yes' : 'No' );
     echo 'Disabled: ' . ( $user->is_disabled() ? 'Yes' : 'No' );
     echo 'Has 2FA: ' . ( $user->has_2fa() ? 'Yes' : 'No' );
-    echo 'Phone: ' . $user->profile->phone;
+    echo 'Phone: ' . $user->phone;
 }
 
 // Batch load users (efficient for lists)

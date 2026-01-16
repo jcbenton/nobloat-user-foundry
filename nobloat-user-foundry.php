@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Lightweight user management system for WordPress - email verification, account expiration, and user lifecycle management without the bloat.
- * Version: 1.5.3
+ * Version: 1.5.4
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Jerry Benton

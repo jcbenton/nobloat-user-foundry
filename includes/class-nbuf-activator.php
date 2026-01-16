@@ -76,6 +76,10 @@ class NBUF_Activator {
 			NBUF_Database::create_webhooks_table();
 			NBUF_Database::create_webhook_log_table();
 
+			/* Create Terms of Service tables */
+			NBUF_Database::create_tos_versions_table();
+			NBUF_Database::create_tos_acceptances_table();
+
 			/* Migrate audit log indexes for existing installations (v1.4.0+) */
 			NBUF_Database::migrate_audit_log_indexes();
 

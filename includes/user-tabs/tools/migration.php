@@ -25,11 +25,11 @@ $nbuf_available_plugins = array(
 		<?php esc_html_e( 'Import profile data and settings from other WordPress user management plugins. This will NOT create new users - it migrates data for your existing WordPress users.', 'nobloat-user-foundry' ); ?>
 	</p>
 
-	<!-- Backup Warning -->
-	<div class="notice notice-warning inline" style="margin: 15px 0;">
+	<!-- Migration Info -->
+	<div class="notice notice-info inline" style="margin: 15px 0;">
 		<p>
-			<strong><?php esc_html_e( 'Important:', 'nobloat-user-foundry' ); ?></strong>
-			<?php esc_html_e( 'Create a database backup before running any migration. Profile data migrations overwrite existing user meta and cannot be automatically reversed.', 'nobloat-user-foundry' ); ?>
+			<strong><?php esc_html_e( 'How it works:', 'nobloat-user-foundry' ); ?></strong>
+			<?php esc_html_e( 'Migrations copy data from the source plugin into User Foundry tables. Source plugin data is never modified. However, running a migration twice will overwrite previously migrated User Foundry data.', 'nobloat-user-foundry' ); ?>
 		</p>
 	</div>
 

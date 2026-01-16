@@ -476,12 +476,26 @@ class NBUF_Activator {
 		}
 
 		// 6. Auto-verify existing users if enabled.
+		// Uses background processing for large sites to avoid PHP timeout.
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
 		if ( ! empty( $settings['auto_verify_existing'] ) ) {
 			if ( $debug_timing ) {
 				$timings['6_verify_users_count'] = count( get_users( array( 'fields' => 'ID' ) ) );
 			}
-			self::verify_all_existing_users();
+
+			/*
+			 * Try background processing for large user counts.
+			 * Falls back to immediate processing for small sites.
+			 */
+			$background_started = false;
+			if ( class_exists( 'NBUF_Background_Activation' ) ) {
+				$background_started = NBUF_Background_Activation::start_if_needed( array( 'verify_users' ) );
+			}
+
+			/* If background processing didn't start (small site or class unavailable), do it now */
+			if ( ! $background_started ) {
+				self::verify_all_existing_users();
+			}
 		}
 		if ( $debug_timing ) {
 			$timings['6_verify_existing_users'] = round( microtime( true ) - $start_time, 3 );

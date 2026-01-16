@@ -240,6 +240,7 @@ add_action(
 		if ( is_admin() ) {
 			NBUF_Settings::init();
 			NBUF_Appearance::init();
+			NBUF_Background_Activation::init();
 			NBUF_Roles_Page::init();
 			NBUF_Multi_Role::init();
 			NBUF_Username_Changer::init();

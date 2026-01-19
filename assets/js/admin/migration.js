@@ -19,6 +19,7 @@ jQuery(document).ready(function($) {
 	let selectedPlugin = null;
 	let fieldMappings = {};
 	let migrationTypes = [];
+	let cumulativeResults = {}; /* Track totals across batches */
 
 	/**
 	 * Escape HTML to prevent XSS attacks
@@ -381,6 +382,9 @@ jQuery(document).ready(function($) {
 		/* Get copy photos setting */
 		const copyPhotos = $('#nbuf-copy-photos').is(':checked');
 
+		/* Reset cumulative results for new migration */
+		cumulativeResults = {};
+
 		$('#nbuf-migration-progress').slideDown();
 		$('#nbuf-start-migration-btn').prop('disabled', true);
 
@@ -408,6 +412,9 @@ jQuery(document).ready(function($) {
 				if (response.success) {
 					const data = response.data;
 
+					/* Accumulate results across batches */
+					accumulateBatchResults(data.results);
+
 					/* Update progress bar with sanitized values */
 					const processed = parseInt(data.processed, 10) || 0;
 					const total = parseInt(data.total, 10) || 1;
@@ -419,9 +426,9 @@ jQuery(document).ready(function($) {
 					if (!data.completed) {
 						executeMigrationBatch(data.offset, copyPhotos);
 					} else {
-						/* Migration complete */
+						/* Migration complete - display cumulative results */
 						updateProgress(100, 'Complete!');
-						displayResults(data.results, data.users_with_data);
+						displayResults(cumulativeResults, data.users_with_data);
 					}
 				} else {
 					const errorMsg = (response.data && response.data.message) ? escapeHtml(response.data.message) : 'Migration failed.';
@@ -438,6 +445,30 @@ jQuery(document).ready(function($) {
 		});
 	}
 
+	/* Accumulate batch results into cumulative totals */
+	function accumulateBatchResults(batchResults) {
+		for (const [type, data] of Object.entries(batchResults)) {
+			if (!cumulativeResults[type]) {
+				cumulativeResults[type] = {
+					imported: 0,
+					migrated: 0,
+					skipped: 0,
+					total: 0,
+					errors: []
+				};
+			}
+
+			cumulativeResults[type].imported += (data.imported || 0);
+			cumulativeResults[type].migrated += (data.migrated || 0);
+			cumulativeResults[type].skipped += (data.skipped || 0);
+			cumulativeResults[type].total += (data.total || 0);
+
+			if (data.errors && data.errors.length > 0) {
+				cumulativeResults[type].errors = cumulativeResults[type].errors.concat(data.errors);
+			}
+		}
+	}
+
 	/* Update progress bar */
 	function updateProgress(percent, status) {
 		$('.nbuf-progress-fill').css('width', percent + '%').text(percent + '%');
@@ -450,15 +481,24 @@ jQuery(document).ready(function($) {
 		html += '<strong>' + NBUF_Migration.i18n.migration_complete + '</strong><br><br>';
 
 		for (const [type, data] of Object.entries(results)) {
-			html += '<strong>' + formatFieldName(type) + ':</strong><br>';
-			if (type === 'profile_data' && usersWithData !== undefined) {
-				html += '• ' + NBUF_Migration.i18n.users_with_plugin_data + ': ' + usersWithData + '<br>';
+			const typeLabel = formatFieldName(type);
+			const migrated = data.imported || data.migrated || 0;
+			const total = data.total || migrated;
+			const skipped = data.skipped || 0;
+			const errors = (data.errors && data.errors.length > 0) ? data.errors.length : 0;
+
+			html += '<strong>' + typeLabel + ':</strong><br>';
+			html += '• ' + NBUF_Migration.i18n.processed + ': ' + total + ' users<br>';
+			html += '• ' + NBUF_Migration.i18n.migrated + ': ' + migrated + '<br>';
+
+			if (skipped > 0) {
+				html += '• ' + NBUF_Migration.i18n.skipped + ': ' + skipped + '<br>';
 			}
-			html += '• ' + NBUF_Migration.i18n.migrated + ': ' + (data.imported || data.migrated || 0) + '<br>';
-			html += '• ' + NBUF_Migration.i18n.skipped + ': ' + (data.skipped || 0) + '<br>';
-			if (data.errors && data.errors.length > 0) {
-				html += '• ' + NBUF_Migration.i18n.errors + ': ' + data.errors.length + '<br>';
+
+			if (errors > 0) {
+				html += '• ' + NBUF_Migration.i18n.errors + ': ' + errors + '<br>';
 			}
+
 			html += '<br>';
 		}
 

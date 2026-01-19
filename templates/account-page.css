@@ -594,6 +594,10 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
     margin-bottom: 0;
 }
 
+.nbuf-account-section > h3:first-child {
+    margin-top: 0;
+}
+
 .nbuf-section-title {
     /* Heading class available for customization if needed */
 }
@@ -1927,6 +1931,7 @@ body.nbuf-page .nobloat-verify-wrapper a {
     background: #d4edda;
     border: 1px solid #c3e6cb;
     border-radius: 4px;
+    text-align: center;
 }
 
 .nbuf-2fa-setup-success p {

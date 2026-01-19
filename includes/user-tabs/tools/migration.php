@@ -25,11 +25,48 @@ $nbuf_available_plugins = array(
 		<?php esc_html_e( 'Import profile data and settings from other WordPress user management plugins. This will NOT create new users - it migrates data for your existing WordPress users.', 'nobloat-user-foundry' ); ?>
 	</p>
 
-	<!-- Migration Info -->
-	<div class="notice notice-info inline" style="margin: 15px 0;">
+	<!-- Migration Info Boxes -->
+	<div class="nbuf-migration-info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+
+		<!-- What Gets Migrated -->
+		<div class="nbuf-info-box" style="background: #f0f6fc; border: 1px solid #c3c4c7; border-left: 4px solid #2271b1; padding: 15px; border-radius: 4px;">
+			<h4 style="margin: 0 0 10px 0; color: #2271b1;">
+				<span class="dashicons dashicons-yes-alt" style="color: #2271b1;"></span>
+				<?php esc_html_e( 'What Gets Migrated', 'nobloat-user-foundry' ); ?>
+			</h4>
+			<ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+				<li><?php esc_html_e( 'Account status (verified, pending, disabled)', 'nobloat-user-foundry' ); ?></li>
+				<li><?php esc_html_e( 'Extended profile fields (phone, company, address, bio, social media)', 'nobloat-user-foundry' ); ?></li>
+				<li><?php esc_html_e( 'Profile and cover photos', 'nobloat-user-foundry' ); ?></li>
+				<li><?php esc_html_e( 'Profile privacy settings', 'nobloat-user-foundry' ); ?></li>
+				<li><?php esc_html_e( 'Content restrictions (optional)', 'nobloat-user-foundry' ); ?></li>
+			</ul>
+		</div>
+
+		<!-- What Does NOT Get Migrated -->
+		<div class="nbuf-info-box" style="background: #fcf9e8; border: 1px solid #c3c4c7; border-left: 4px solid #dba617; padding: 15px; border-radius: 4px;">
+			<h4 style="margin: 0 0 10px 0; color: #996800;">
+				<span class="dashicons dashicons-info" style="color: #996800;"></span>
+				<?php esc_html_e( 'What Does NOT Need Migration', 'nobloat-user-foundry' ); ?>
+			</h4>
+			<p style="margin: 0 0 10px 0; font-size: 13px;">
+				<?php esc_html_e( 'WordPress core user fields are already stored in WordPress tables and are automatically available:', 'nobloat-user-foundry' ); ?>
+			</p>
+			<ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+				<li><code>first_name</code>, <code>last_name</code>, <code>display_name</code></li>
+				<li><code>user_email</code>, <code>user_url</code> <?php esc_html_e( '(website)', 'nobloat-user-foundry' ); ?></li>
+				<li><code>description</code> <?php esc_html_e( '(biographical info)', 'nobloat-user-foundry' ); ?></li>
+				<li><?php esc_html_e( 'User roles and capabilities', 'nobloat-user-foundry' ); ?></li>
+			</ul>
+		</div>
+
+	</div>
+
+	<!-- How It Works -->
+	<div class="notice notice-info inline" style="margin: 0 0 20px 0;">
 		<p>
 			<strong><?php esc_html_e( 'How it works:', 'nobloat-user-foundry' ); ?></strong>
-			<?php esc_html_e( 'Migrations copy data from the source plugin into User Foundry tables. Source plugin data is never modified. However, running a migration twice will overwrite previously migrated User Foundry data.', 'nobloat-user-foundry' ); ?>
+			<?php esc_html_e( 'Migrations copy plugin-specific data from the source plugin into User Foundry tables. Source plugin data is never modified or deleted. Running a migration twice will overwrite previously migrated User Foundry data.', 'nobloat-user-foundry' ); ?>
 		</p>
 	</div>
 
@@ -111,13 +148,31 @@ $nbuf_available_plugins = array(
 		<div class="nbuf-migration-card">
 			<h3><?php esc_html_e( 'Start Migration', 'nobloat-user-foundry' ); ?></h3>
 
-			<div class="nbuf-migration-warning notice notice-info inline">
-				<p>
-					<strong><?php esc_html_e( 'Before you start:', 'nobloat-user-foundry' ); ?></strong><br>
-					• <?php esc_html_e( 'This will update existing user data in your database', 'nobloat-user-foundry' ); ?><br>
-					• <?php esc_html_e( 'Existing NBUF data will be overwritten if conflicts occur', 'nobloat-user-foundry' ); ?><br>
-					• <?php esc_html_e( 'It\'s recommended to backup your database first', 'nobloat-user-foundry' ); ?>
-				</p>
+			<div class="nbuf-migration-warning" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+				<!-- Safe Actions -->
+				<div style="background: #edfaef; border: 1px solid #c3c4c7; border-left: 4px solid #00a32a; padding: 12px; border-radius: 4px;">
+					<strong style="color: #00a32a;">
+						<span class="dashicons dashicons-shield" style="font-size: 16px; width: 16px; height: 16px;"></span>
+						<?php esc_html_e( 'Safe:', 'nobloat-user-foundry' ); ?>
+					</strong>
+					<ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.6;">
+						<li><?php esc_html_e( 'Source plugin data is never modified', 'nobloat-user-foundry' ); ?></li>
+						<li><?php esc_html_e( 'WordPress core user data unchanged', 'nobloat-user-foundry' ); ?></li>
+						<li><?php esc_html_e( 'Can be run multiple times safely', 'nobloat-user-foundry' ); ?></li>
+					</ul>
+				</div>
+				<!-- Before You Start -->
+				<div style="background: #fcf9e8; border: 1px solid #c3c4c7; border-left: 4px solid #dba617; padding: 12px; border-radius: 4px;">
+					<strong style="color: #996800;">
+						<span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px;"></span>
+						<?php esc_html_e( 'Before you start:', 'nobloat-user-foundry' ); ?>
+					</strong>
+					<ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.6;">
+						<li><?php esc_html_e( 'Backup your database first', 'nobloat-user-foundry' ); ?></li>
+						<li><?php esc_html_e( 'Existing User Foundry data will be overwritten', 'nobloat-user-foundry' ); ?></li>
+						<li><?php esc_html_e( 'Review field mapping before starting', 'nobloat-user-foundry' ); ?></li>
+					</ul>
+				</div>
 			</div>
 
 			<button type="button" id="nbuf-start-migration-btn" class="button button-primary button-hero" disabled>

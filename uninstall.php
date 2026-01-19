@@ -228,23 +228,32 @@ function nbuf_run_uninstall() {
 
 	/**
 	 * Remove scheduled cron jobs (if registered)
+	 *
+	 * Complete list of all plugin cron hooks - must be kept in sync
+	 * with NBUF_Cron::get_cron_definitions().
 	 */
 	$nbuf_cron_hooks = array(
+		/* Core Maintenance */
 		'nbuf_cleanup_cron',
-		'nbuf_audit_log_cleanup_cron',
-		'nbuf_cleanup_version_history',
 		'nbuf_cleanup_transients',
-		'nbuf_cleanup_unverified_accounts',
-		'nbuf_enterprise_logging_cleanup',
+		'nbuf_cleanup_exports',
+		/* User Management */
 		'nbuf_check_expirations',
 		'nbuf_send_expiration_warnings',
+		'nbuf_cleanup_unverified_accounts',
+		/* Security */
+		'nbuf_cleanup_login_attempts',
+		/* Logging & History */
+		'nbuf_audit_log_cleanup_cron',
+		'nbuf_cleanup_version_history',
 		'nbuf_daily_security_log_prune',
-		'nbuf_cleanup_exports',
+		'nbuf_enterprise_logging_cleanup',
+		/* Notifications */
+		'nbuf_send_change_digest_hourly',
+		'nbuf_send_change_digest_daily',
 	);
 	foreach ( $nbuf_cron_hooks as $nbuf_hook ) {
-		if ( wp_next_scheduled( $nbuf_hook ) ) {
-			wp_clear_scheduled_hook( $nbuf_hook );
-		}
+		wp_clear_scheduled_hook( $nbuf_hook );
 	}
 }
 

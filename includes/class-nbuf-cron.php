@@ -156,19 +156,17 @@ class NBUF_Cron {
 	/**
 	 * Deactivate cron.
 	 *
-	 * Called on plugin deactivation. Removes scheduled events.
+	 * Called on plugin deactivation. Removes all scheduled events.
+	 * Uses get_cron_definitions() as single source of truth.
 	 *
 	 * @since 1.0.0
 	 * @return void
 	 */
 	public static function deactivate(): void {
-		wp_clear_scheduled_hook( 'nbuf_cleanup_cron' );
-		wp_clear_scheduled_hook( 'nbuf_audit_log_cleanup_cron' );
-		wp_clear_scheduled_hook( 'nbuf_cleanup_version_history' );
-		wp_clear_scheduled_hook( 'nbuf_cleanup_transients' );
-		wp_clear_scheduled_hook( 'nbuf_cleanup_unverified_accounts' );
-		wp_clear_scheduled_hook( 'nbuf_enterprise_logging_cleanup' );
-		wp_clear_scheduled_hook( 'nbuf_cleanup_login_attempts' );
+		/* Clear all cron hooks defined in get_cron_definitions() */
+		foreach ( array_keys( self::get_cron_definitions() ) as $hook ) {
+			wp_clear_scheduled_hook( $hook );
+		}
 	}
 
 	/**

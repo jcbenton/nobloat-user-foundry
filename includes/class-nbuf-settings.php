@@ -2505,6 +2505,7 @@ class NBUF_Settings {
 							'migration_complete'        => __( 'Migration Complete!', 'nobloat-user-foundry' ),
 							'complete'                  => __( 'Complete', 'nobloat-user-foundry' ),
 							'total'                     => __( 'Total', 'nobloat-user-foundry' ),
+							'processed'                 => __( 'Processed', 'nobloat-user-foundry' ),
 							'migrated'                  => __( 'Migrated', 'nobloat-user-foundry' ),
 							'skipped'                   => __( 'Skipped', 'nobloat-user-foundry' ),
 							'errors'                    => __( 'Errors', 'nobloat-user-foundry' ),

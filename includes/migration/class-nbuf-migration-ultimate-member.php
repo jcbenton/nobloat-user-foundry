@@ -56,19 +56,25 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Get count of users with UM data
 	 *
+	 * Only counts users that actually exist in wp_users table,
+	 * excluding orphaned usermeta entries from deleted users.
+	 *
 	 * @return int
 	 */
 	public function get_user_count(): int {
 		global $wpdb;
 
 		/*
-		Count users with UM meta data
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		 * Count users with UM meta data.
+		 * INNER JOIN with wp_users ensures we only count existing users,
+		 * not orphaned usermeta entries from deleted users.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = $wpdb->get_var(
-			"SELECT COUNT(DISTINCT user_id)
-			FROM {$wpdb->usermeta}
-			WHERE meta_key LIKE 'um_%' OR meta_key LIKE '_um_%' OR meta_key = 'account_status'"
+			"SELECT COUNT(DISTINCT um.user_id)
+			FROM {$wpdb->usermeta} um
+			INNER JOIN {$wpdb->users} u ON um.user_id = u.ID
+			WHERE um.meta_key LIKE 'um_%' OR um.meta_key LIKE '_um_%' OR um.meta_key = 'account_status'"
 		);
 
 		return absint( $count );

@@ -1083,6 +1083,7 @@ body.nbuf-page .nbuf-totp-setup-page .nbuf-button {
     border-radius: var(--nbuf-radius-md);
     padding: var(--nbuf-space-lg) var(--nbuf-space-xl);
     margin-bottom: var(--nbuf-space-2xl);
+    text-align: center;
 }
 
 .nbuf-2fa-setup-success p {

@@ -928,22 +928,49 @@ class NBUF_Migration {
 			}
 		}
 
-		/* Get total user count for progress calculation */
+		/* Get total user count for progress calculation (all WordPress users) */
 		$total_users = count_users();
 		$total_users = $total_users['total_users'];
 
-		/* Calculate if we're done */
-		$processed    = $batch_offset + $batch_size;
-		$is_completed = $processed >= $total_users;
+		/*
+		 * Calculate if we're done.
+		 * Use batch_complete from batch_import if available (more accurate),
+		 * otherwise fall back to offset-based calculation.
+		 */
+		$is_completed = false;
+		if ( isset( $results['profile_data']['batch_complete'] ) && $results['profile_data']['batch_complete'] ) {
+			/* batch_import says no more users with plugin data */
+			$is_completed = true;
+		} elseif ( ! in_array( 'profile_data', $migration_types, true ) ) {
+			/* No profile_data migration - restrictions/roles only run on first batch */
+			$is_completed = true;
+		} else {
+			/* Fall back to offset-based check */
+			$is_completed = ( $batch_offset + $batch_size ) >= $total_users;
+		}
+
+		$processed = $batch_offset + $batch_size;
+
+		/*
+		 * Add users_with_data count to results for clear reporting.
+		 * This tells the user how many actually had plugin data to migrate.
+		 */
+		$users_with_data = 0;
+		if ( 'ultimate-member' === $plugin_slug && $mapper ) {
+			$users_with_data = $mapper->get_user_count();
+		} elseif ( 'buddypress' === $plugin_slug && class_exists( 'NBUF_Migration_BP_Profile' ) ) {
+			$users_with_data = NBUF_Migration_BP_Profile::get_user_count();
+		}
 
 		/* Prepare response */
 		$response = array(
-			'processed'  => min( $processed, $total_users ),
-			'total'      => $total_users,
-			'offset'     => $batch_offset + $batch_size,
-			'completed'  => $is_completed,
-			'batch_size' => $batch_size,
-			'results'    => $results,
+			'processed'       => min( $processed, $total_users ),
+			'total'           => $total_users,
+			'offset'          => $batch_offset + $batch_size,
+			'completed'       => $is_completed,
+			'batch_size'      => $batch_size,
+			'users_with_data' => $users_with_data,
+			'results'         => $results,
 		);
 
 		/* Log to history if completed */

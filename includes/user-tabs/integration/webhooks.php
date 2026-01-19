@@ -14,8 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Handle webhook actions */
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified in NBUF_Settings::init()
-$nbuf_webhook_action = isset( $_GET['webhook_action'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_action'] ) ) : '';
-$nbuf_webhook_id     = isset( $_GET['webhook_id'] ) ? absint( $_GET['webhook_id'] ) : 0;
+$nbuf_webhook_action  = isset( $_GET['webhook_action'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_action'] ) ) : '';
+$nbuf_webhook_id      = isset( $_GET['webhook_id'] ) ? absint( $_GET['webhook_id'] ) : 0;
+$nbuf_view_logs_for   = isset( $_GET['view_logs'] ) ? absint( $_GET['view_logs'] ) : 0;
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 /* Get current settings */
@@ -39,6 +40,8 @@ if ( 'edit' === $nbuf_webhook_action && $nbuf_webhook_id ) {
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="integration">
 	<input type="hidden" name="nbuf_active_subtab" value="webhooks">
+	<!-- Declare checkboxes for proper unchecked handling -->
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_webhooks_enabled">
 
 	<h2><?php esc_html_e( 'Webhook Configuration', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -226,6 +229,7 @@ if ( 'edit' === $nbuf_webhook_action && $nbuf_webhook_id ) {
 							admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=webhooks&webhook_action=edit&webhook_id=' . $nbuf_webhook->id ),
 							'nbuf_webhook_edit_' . $nbuf_webhook->id
 						);
+						$nbuf_logs_url   = admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=webhooks&view_logs=' . $nbuf_webhook->id );
 						$nbuf_test_url   = wp_nonce_url(
 							admin_url( 'admin-post.php?action=nbuf_save_settings&nbuf_active_tab=integration&nbuf_active_subtab=webhooks&nbuf_webhook_action=test&nbuf_webhook_id=' . $nbuf_webhook->id ),
 							'nbuf_save_settings',
@@ -238,6 +242,7 @@ if ( 'edit' === $nbuf_webhook_action && $nbuf_webhook_id ) {
 						);
 						?>
 						<a href="<?php echo esc_url( $nbuf_edit_url ); ?>"><?php esc_html_e( 'Edit', 'nobloat-user-foundry' ); ?></a> |
+						<a href="<?php echo esc_url( $nbuf_logs_url ); ?>"><?php esc_html_e( 'Logs', 'nobloat-user-foundry' ); ?></a> |
 						<a href="<?php echo esc_url( $nbuf_test_url ); ?>"><?php esc_html_e( 'Test', 'nobloat-user-foundry' ); ?></a> |
 						<a href="<?php echo esc_url( $nbuf_delete_url ); ?>" onclick="return confirm('<?php esc_attr_e( 'Delete this webhook?', 'nobloat-user-foundry' ); ?>');" style="color: #d63638;"><?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?></a>
 					</td>
@@ -245,6 +250,98 @@ if ( 'edit' === $nbuf_webhook_action && $nbuf_webhook_id ) {
 			<?php endforeach; ?>
 		</tbody>
 	</table>
+<?php endif; ?>
+
+<?php
+/* Delivery Log Viewer */
+if ( $nbuf_view_logs_for ) :
+	$nbuf_logs_webhook = NBUF_Webhooks::get( $nbuf_view_logs_for );
+	$nbuf_webhook_logs = $nbuf_logs_webhook ? NBUF_Webhooks::get_logs( $nbuf_view_logs_for, 50 ) : array();
+	?>
+	<hr>
+
+	<h3>
+		<?php
+		if ( $nbuf_logs_webhook ) {
+			printf(
+				/* translators: %s: webhook name */
+				esc_html__( 'Delivery Logs: %s', 'nobloat-user-foundry' ),
+				esc_html( $nbuf_logs_webhook->name )
+			);
+		} else {
+			esc_html_e( 'Delivery Logs', 'nobloat-user-foundry' );
+		}
+		?>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=webhooks' ) ); ?>" class="page-title-action" style="font-size: 13px; font-weight: normal;"><?php esc_html_e( 'Close', 'nobloat-user-foundry' ); ?></a>
+	</h3>
+
+	<?php if ( empty( $nbuf_webhook_logs ) ) : ?>
+		<p class="description"><?php esc_html_e( 'No delivery logs found for this webhook.', 'nobloat-user-foundry' ); ?></p>
+	<?php else : ?>
+		<table class="wp-list-table widefat fixed striped">
+			<thead>
+				<tr>
+					<th style="width: 15%;"><?php esc_html_e( 'Event', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 8%;"><?php esc_html_e( 'Status', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 8%;"><?php esc_html_e( 'Duration', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 15%;"><?php esc_html_e( 'Time', 'nobloat-user-foundry' ); ?></th>
+					<th style="width: 54%;"><?php esc_html_e( 'Response', 'nobloat-user-foundry' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $nbuf_webhook_logs as $nbuf_log ) : ?>
+					<tr>
+						<td><code><?php echo esc_html( $nbuf_log->event_type ); ?></code></td>
+						<td>
+							<?php
+							$nbuf_log_code    = intval( $nbuf_log->response_code );
+							$nbuf_log_success = $nbuf_log_code >= 200 && $nbuf_log_code < 300;
+							?>
+							<span style="color: <?php echo $nbuf_log_success ? '#00a32a' : '#d63638'; ?>;">
+								<?php echo esc_html( $nbuf_log_code ?: '—' ); ?>
+							</span>
+						</td>
+						<td>
+							<?php
+							if ( $nbuf_log->duration_ms ) {
+								printf(
+									/* translators: %d: milliseconds */
+									esc_html__( '%d ms', 'nobloat-user-foundry' ),
+									intval( $nbuf_log->duration_ms )
+								);
+							} else {
+								echo '—';
+							}
+							?>
+						</td>
+						<td>
+							<?php
+							$nbuf_log_time = strtotime( $nbuf_log->created_at );
+							echo esc_html( human_time_diff( $nbuf_log_time ) . ' ' . __( 'ago', 'nobloat-user-foundry' ) );
+							?>
+							<br><small style="color: #888;"><?php echo esc_html( wp_date( 'M j, Y g:i a', $nbuf_log_time ) ); ?></small>
+						</td>
+						<td>
+							<?php
+							$nbuf_response_body = $nbuf_log->response_body;
+							if ( $nbuf_response_body ) {
+								$nbuf_response_display = strlen( $nbuf_response_body ) > 200
+									? substr( $nbuf_response_body, 0, 200 ) . '...'
+									: $nbuf_response_body;
+								echo '<code style="font-size: 11px; word-break: break-all;">' . esc_html( $nbuf_response_display ) . '</code>';
+							} else {
+								echo '<span style="color: #888;">' . esc_html__( 'No response body', 'nobloat-user-foundry' ) . '</span>';
+							}
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description" style="margin-top: 10px;">
+			<?php esc_html_e( 'Showing up to 50 most recent deliveries. Logs older than 30 days are automatically cleaned up.', 'nobloat-user-foundry' ); ?>
+		</p>
+	<?php endif; ?>
 <?php endif; ?>
 
 <hr>

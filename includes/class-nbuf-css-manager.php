@@ -410,6 +410,42 @@ class NBUF_CSS_Manager {
 	}
 
 	/**
+	 * Enqueue combined CSS file.
+	 *
+	 * Loads a single combined CSS file containing all frontend styles.
+	 * Falls back to individual files if combined file is not available.
+	 *
+	 * @return bool True if combined CSS was enqueued, false if not available.
+	 */
+	public static function enqueue_combined_css() {
+		$ui_dir     = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
+		$ui_dir_url = NBUF_PLUGIN_URL . 'assets/css/frontend/';
+
+		/* Check for combined minified file */
+		$use_minified = NBUF_Options::get( 'nbuf_css_use_minified', true );
+
+		if ( $use_minified ) {
+			$combined_min_path = $ui_dir . 'nobloat-combined.min.css';
+			if ( file_exists( $combined_min_path ) ) {
+				$version = filemtime( $combined_min_path );
+				wp_enqueue_style( 'nbuf-combined', $ui_dir_url . 'nobloat-combined.min.css', array(), $version );
+				return true;
+			}
+		}
+
+		/* Check for combined unminified file */
+		$combined_path = $ui_dir . 'nobloat-combined.css';
+		if ( file_exists( $combined_path ) ) {
+			$version = filemtime( $combined_path );
+			wp_enqueue_style( 'nbuf-combined', $ui_dir_url . 'nobloat-combined.css', array(), $version );
+			return true;
+		}
+
+		/* Combined file not available */
+		return false;
+	}
+
+	/**
 	 * Get write failure status
 	 *
 	 * Checks if there's a write failure token set.

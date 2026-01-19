@@ -416,7 +416,7 @@ If you did not request this code, please ignore this email.
 		 * Return appropriate error based on what actually failed.
 		 */
 		if ( ! $code_exists ) {
-			self::record_failed_attempt( $user_id );
+			self::record_failed_attempt( $user_id, 'email' );
 			return new WP_Error(
 				'2fa_code_expired',
 				__( 'Verification code has expired. Please request a new code.', 'nobloat-user-foundry' )
@@ -425,7 +425,7 @@ If you did not request this code, please ignore this email.
 
 		/* Check if the provided code was invalid (wrong length or wrong digits) */
 		if ( $code_length !== $expected_length || ! $code_valid ) {
-			self::record_failed_attempt( $user_id );
+			self::record_failed_attempt( $user_id, 'email' );
 			return new WP_Error(
 				'2fa_invalid_code',
 				__( 'Invalid verification code. Please try again.', 'nobloat-user-foundry' )
@@ -471,21 +471,16 @@ If you did not request this code, please ignore this email.
 			);
 		}
 
-		/*
-		 * Get settings.
-		 * Tolerance of 2 allows ±60 seconds clock drift between server and
-		 * authenticator app. This is hardcoded to match TOTP setup tolerance
-		 * and ensure consistent verification behavior.
-		 */
-		$code_length = NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
-		$time_window = NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
-		$tolerance   = 2; /* Hardcoded - must match setup tolerance */
+		/* Get settings from Security > Authenticator tab */
+		$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+		$time_window = (int) NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+		$tolerance   = (int) NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
 
 		/* Verify code */
 		$valid = NBUF_TOTP::verify_code( $secret, $code, $tolerance, $code_length, $time_window );
 
 		if ( ! $valid ) {
-			self::record_failed_attempt( $user_id );
+			self::record_failed_attempt( $user_id, 'totp' );
 			return new WP_Error(
 				'2fa_invalid_code',
 				__( 'Invalid verification code. Please try again.', 'nobloat-user-foundry' )
@@ -506,13 +501,18 @@ If you did not request this code, please ignore this email.
 	 *
 	 * Creates a set of one-time use backup codes.
 	 * Codes are bcrypt hashed before storage.
+	 * Uses settings from Security > Backup Codes tab.
 	 *
-	 * @param  int $user_id User ID.
-	 * @param  int $count   Number of codes to generate (default BACKUP_CODE_COUNT).
+	 * @param  int      $user_id User ID.
+	 * @param  int|null $count   Number of codes to generate (null = use setting).
 	 * @return array Plain text codes (only shown once).
 	 */
-	public static function generate_backup_codes( int $user_id, int $count = self::BACKUP_CODE_COUNT ): array {
-		$code_length = NBUF_Options::get( 'nbuf_2fa_backup_length', self::BACKUP_CODE_LENGTH );
+	public static function generate_backup_codes( int $user_id, ?int $count = null ): array {
+		/* Get settings from Security > Backup Codes tab */
+		if ( null === $count ) {
+			$count = (int) NBUF_Options::get( 'nbuf_2fa_backup_count', self::BACKUP_CODE_COUNT );
+		}
+		$code_length = (int) NBUF_Options::get( 'nbuf_2fa_backup_length', self::BACKUP_CODE_LENGTH );
 		$codes       = array();
 		$hashed      = array();
 
@@ -728,21 +728,32 @@ If you did not request this code, please ignore this email.
 	 * Record failed attempt and check for lockout
 	 *
 	 * Increments failed attempt counter and applies lockout if threshold exceeded.
+	 * Uses method-specific settings for email 2FA, global settings for TOTP.
 	 *
-	 * @param  int $user_id User ID.
+	 * @param  int    $user_id User ID.
+	 * @param  string $method  2FA method: 'email' or 'totp'. Default 'email'.
 	 * @return bool True if now locked out.
 	 */
-	public static function record_failed_attempt( int $user_id ): bool {
+	public static function record_failed_attempt( int $user_id, string $method = 'email' ): bool {
 		$attempts_key = 'nbuf_2fa_attempts_' . $user_id;
 		$attempts     = (int) get_transient( $attempts_key );
 
 		++$attempts;
 
+		/* Rate window applies to both methods */
 		$rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 ) * 60;
 		set_transient( $attempts_key, $attempts, $rate_window );
 
-		/* Check for lockout */
-		$max_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
+		/*
+		 * Check for lockout using method-specific settings.
+		 * Email 2FA uses settings from Security > Email Auth tab.
+		 * TOTP uses global settings from Security > 2FA Config tab.
+		 */
+		if ( 'email' === $method ) {
+			$max_attempts = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
+		} else {
+			$max_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
+		}
 
 		if ( $attempts >= $max_attempts ) {
 			$lockout_key = 'nbuf_2fa_lockout_' . $user_id;

@@ -38,6 +38,24 @@ class NBUF_Version_History {
 	private $original_data = array();
 
 	/**
+	 * Users already processed in this request (prevents duplicate entries).
+	 *
+	 * @var array
+	 */
+	private $processed_users = array();
+
+	/**
+	 * Users with pending NBUF frontend updates (defer to nbuf_after_profile_update).
+	 *
+	 * When nbuf_before_profile_update fires, the user is added here. This tells
+	 * track_profile_update to skip processing, allowing track_frontend_profile_update
+	 * to capture the final state after ALL updates (including NBUF custom tables).
+	 *
+	 * @var array
+	 */
+	private $pending_frontend_updates = array();
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -72,9 +90,32 @@ class NBUF_Version_History {
 	/**
 	 * Store original user data before update
 	 *
+	 * Only stores data if not already captured for this user during this request.
+	 * This prevents multiple hooks from overwriting the true original state with
+	 * intermediate states during a single profile update operation.
+	 *
 	 * @param int $user_id User ID.
 	 */
 	public function store_original_data( $user_id ) {
+		/* Skip if already processed a version for this user in this request */
+		if ( isset( $this->processed_users[ $user_id ] ) ) {
+			return;
+		}
+
+		/* Only store if not already captured - prevents intermediate state overwrites */
+		if ( isset( $this->original_data[ $user_id ] ) ) {
+			return;
+		}
+
+		/*
+		 * If called from nbuf_before_profile_update, mark this as a frontend update.
+		 * This tells track_profile_update to skip and let track_frontend_profile_update
+		 * capture the final state after ALL updates (including NBUF custom tables).
+		 */
+		if ( doing_action( 'nbuf_before_profile_update' ) ) {
+			$this->pending_frontend_updates[ $user_id ] = true;
+		}
+
 		/*
 		 * Use output buffering to prevent any database warnings/notices
 		 * from corrupting AJAX JSON responses.
@@ -98,6 +139,19 @@ class NBUF_Version_History {
 	 * @param object $old_user_data Old user object (WP_User).
 	 */
 	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
+		/* Skip if already processed in this request (prevents duplicate entries) */
+		if ( isset( $this->processed_users[ $user_id ] ) ) {
+			return;
+		}
+
+		/*
+		 * Skip if this is a NBUF frontend update - let track_frontend_profile_update handle it.
+		 * This ensures we capture the final state AFTER all updates including NBUF custom tables.
+		 */
+		if ( isset( $this->pending_frontend_updates[ $user_id ] ) ) {
+			return;
+		}
+
 		/* Skip if no original data captured (prevents duplicate logging) */
 		if ( ! isset( $this->original_data[ $user_id ] ) ) {
 			return;
@@ -127,6 +181,9 @@ class NBUF_Version_History {
 
 		/* Save version */
 		$this->save_version( $user_id, $after, $changed_fields, $change_type, $changed_by );
+
+		/* Mark user as processed to prevent duplicate entries from other hooks */
+		$this->processed_users[ $user_id ] = true;
 
 		/* Cleanup old versions for this user */
 		$this->enforce_max_versions( $user_id );
@@ -161,6 +218,11 @@ class NBUF_Version_History {
 	 * @param int $user_id User ID.
 	 */
 	public function track_frontend_profile_update( $user_id ) {
+		/* Skip if already processed in this request (prevents duplicate entries) */
+		if ( isset( $this->processed_users[ $user_id ] ) ) {
+			return;
+		}
+
 		/*
 		 * Use output buffering to prevent any database warnings/notices
 		 * from corrupting AJAX JSON responses.
@@ -192,6 +254,10 @@ class NBUF_Version_History {
 
 			/* Frontend updates are always self-updates */
 			$this->save_version( $user_id, $after, $changed_fields, 'profile_update', null );
+
+			/* Mark user as processed and clear pending flag */
+			$this->processed_users[ $user_id ] = true;
+			unset( $this->pending_frontend_updates[ $user_id ] );
 
 			/* Cleanup old versions for this user */
 			$this->enforce_max_versions( $user_id );
@@ -886,7 +952,7 @@ class NBUF_Version_History {
 		}
 
 		/* Users can view their own if enabled */
-		$user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', true );
+		$user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', false );
 		if ( $user_visible && (int) $current_user_id === (int) $user_id ) {
 			return true;
 		}
@@ -960,33 +1026,7 @@ class NBUF_Version_History {
 
 		/* Enqueue version history JS */
 		wp_enqueue_script( 'nbuf-version-history', plugin_dir_url( __DIR__ ) . 'assets/js/admin/version-history.js', array( 'jquery' ), '1.4.0', true );
-		wp_localize_script(
-			'nbuf-version-history',
-			'NBUF_VersionHistory',
-			array(
-				'ajax_url'   => admin_url( 'admin-ajax.php' ),
-				'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-				'can_revert' => $can_revert ? true : false,
-				'i18n'       => array(
-					'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
-					'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
-					'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
-					'import'         => __( 'Import', 'nobloat-user-foundry' ),
-					'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
-					'self'           => __( 'Self', 'nobloat-user-foundry' ),
-					'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
-					'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-					'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-					'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
-					'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
-					'before'         => __( 'Before:', 'nobloat-user-foundry' ),
-					'after'          => __( 'After:', 'nobloat-user-foundry' ),
-					'field'          => __( 'Field', 'nobloat-user-foundry' ),
-					'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
-					'after_value'    => __( 'After', 'nobloat-user-foundry' ),
-				),
-			)
-		);
+		wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', self::get_script_data( $can_revert ) );
 
 		?>
 		<div class="nbuf-account-section nbuf-vh-account">
@@ -1004,6 +1044,112 @@ class NBUF_Version_History {
 		?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Get script localization data for version history JS.
+	 *
+	 * Centralized method to avoid duplicating the localize_script data in multiple files.
+	 * Includes the timeline item template with labels pre-replaced.
+	 *
+	 * @since 1.4.1
+	 * @param bool $can_revert Whether the current user can revert versions.
+	 * @return array Localization data for wp_localize_script.
+	 */
+	public static function get_script_data( $can_revert = false ) {
+		return array(
+			'ajax_url'     => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( 'nbuf_version_history' ),
+			'can_revert'   => $can_revert ? true : false,
+			'itemTemplate' => self::get_timeline_item_template(),
+			'i18n'         => array(
+				'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
+				'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
+				'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
+				'import'         => __( 'Import', 'nobloat-user-foundry' ),
+				'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
+				'self'           => __( 'Self', 'nobloat-user-foundry' ),
+				'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
+				'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
+				'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
+				'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
+				'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
+				'before'         => __( 'Before:', 'nobloat-user-foundry' ),
+				'after'          => __( 'After:', 'nobloat-user-foundry' ),
+				'field'          => __( 'Field', 'nobloat-user-foundry' ),
+				'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
+				'after_value'    => __( 'After', 'nobloat-user-foundry' ),
+			),
+		);
+	}
+
+	/**
+	 * Get the timeline item template HTML with labels replaced.
+	 *
+	 * This template is used by JavaScript to render each timeline item.
+	 * Labels use {placeholder} format (PHP-replaced), while data uses
+	 * {{placeholder}} format (JS-replaced at runtime).
+	 *
+	 * @since 1.4.1
+	 * @return string Template HTML.
+	 */
+	private static function get_timeline_item_template() {
+		$template = '
+	<div class="nbuf-vh-item" data-version-id="{{version_id}}">
+		<div class="nbuf-vh-item-icon">
+			<span class="dashicons dashicons-{{icon}}"></span>
+		</div>
+		<div class="nbuf-vh-item-content">
+			<div class="nbuf-vh-item-header">
+				<div class="nbuf-vh-item-meta">
+					<span class="nbuf-vh-item-date">{{date}}</span>
+					<span class="nbuf-vh-item-time">{{time}}</span>
+					<span class="nbuf-vh-item-type nbuf-vh-type-{{change_type}}">{{change_type_label}}</span>
+				</div>
+				<div class="nbuf-vh-item-user">
+					{{changed_by}}
+				</div>
+			</div>
+			<div class="nbuf-vh-item-details">
+				<p class="nbuf-vh-item-fields">
+					<strong>{fields_changed_label}</strong>
+					{{fields_changed}}
+				</p>
+				{{#ip_address}}
+				<p class="nbuf-vh-item-ip">
+					<strong>{ip_address_label}</strong>
+					{{ip_address}}
+				</p>
+				{{/ip_address}}
+			</div>
+			<div class="nbuf-vh-item-actions">
+				<button class="nbuf-button nbuf-button-small nbuf-button-primary nbuf-vh-view-details" data-version-id="{{version_id}}">
+					{view_snapshot_button}
+				</button>
+				{{#has_previous}}
+				<button class="nbuf-button nbuf-button-small nbuf-button-primary nbuf-vh-compare" data-version-id="{{version_id}}" data-previous-id="{{previous_id}}">
+					{compare_button}
+				</button>
+				{{/has_previous}}
+				{{#can_revert}}
+				<button class="nbuf-button nbuf-button-small nbuf-button-primary nbuf-vh-revert" data-version-id="{{version_id}}">
+					{revert_button}
+				</button>
+				{{/can_revert}}
+			</div>
+		</div>
+	</div>';
+
+		/* Replace label placeholders with translated strings */
+		$replacements = array(
+			'{fields_changed_label}' => esc_html__( 'Fields changed:', 'nobloat-user-foundry' ),
+			'{ip_address_label}'     => esc_html__( 'IP Address:', 'nobloat-user-foundry' ),
+			'{view_snapshot_button}' => esc_html__( 'View Snapshot', 'nobloat-user-foundry' ),
+			'{compare_button}'       => esc_html__( 'Compare Changes', 'nobloat-user-foundry' ),
+			'{revert_button}'        => esc_html__( '⟲ Revert to This Version', 'nobloat-user-foundry' ),
+		);
+
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}
 
 	/**

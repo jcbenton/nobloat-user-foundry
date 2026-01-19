@@ -348,45 +348,36 @@
 
 			$('#nbuf-wp-fields-table tbody').html(wpHtml);
 
-			/* Extended fields */
-			const extendedFields = [
-				{ key: 'phone', label: 'Phone Number' },
-				{ key: 'mobile_phone', label: 'Mobile Phone' },
-				{ key: 'work_phone', label: 'Work Phone' },
-				{ key: 'address', label: 'Address' },
-				{ key: 'city', label: 'City' },
-				{ key: 'state', label: 'State' },
-				{ key: 'postal_code', label: 'Postal Code' },
-				{ key: 'country', label: 'Country' },
-				{ key: 'company', label: 'Company' },
-				{ key: 'job_title', label: 'Job Title' },
-				{ key: 'secondary_email', label: 'Secondary Email' }
-			];
+			/*
+			 * Extended fields - use field registry from PHP (NBUF_Profile_Data::get_field_registry())
+			 * Format: { 'field_key': 'Field Label', ... }
+			 */
+			const fieldRegistry = NBUF_Merge.field_registry || {};
 
 			let extHtml = '';
 			let hasExtendedData = false;
 
-			extendedFields.forEach(function (field) {
-				const sourceVal = self.sourceUser.extended_fields[field.key] || '';
-				const targetVal = self.targetUser.extended_fields[field.key] || '';
+			for (const [fieldKey, fieldLabel] of Object.entries(fieldRegistry)) {
+				const sourceVal = self.sourceUser.extended_fields[fieldKey] || '';
+				const targetVal = self.targetUser.extended_fields[fieldKey] || '';
 
 				/* Only show if at least one account has data */
 				if (sourceVal || targetVal) {
 					hasExtendedData = true;
 
 					extHtml += '<tr>';
-					extHtml += '<td><strong>' + self.escapeHtml(field.label) + '</strong></td>';
+					extHtml += '<td><strong>' + self.escapeHtml(fieldLabel) + '</strong></td>';
 					extHtml += '<td class="' + (sourceVal ? '' : 'field-empty') + '">' + (sourceVal ? self.escapeHtml(sourceVal) : NBUF_Merge.i18n.empty) + '</td>';
 					extHtml += '<td class="' + (targetVal ? '' : 'field-empty') + '">' + (targetVal ? self.escapeHtml(targetVal) : NBUF_Merge.i18n.empty) + '</td>';
 					extHtml += '<td>';
-					extHtml += '<select name="nbuf_field_' + field.key + '" style="width:100%;">';
+					extHtml += '<select name="nbuf_field_' + self.escapeHtml(fieldKey) + '" style="width:100%;">';
 					extHtml += '<option value="target"' + (targetVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.target + '</option>';
 					extHtml += '<option value="source"' + (!targetVal && sourceVal ? ' selected' : '') + '>' + NBUF_Merge.i18n.source + '</option>';
 					extHtml += '</select>';
 					extHtml += '</td>';
 					extHtml += '</tr>';
 				}
-			});
+			}
 
 			if (hasExtendedData) {
 				$('#nbuf-extended-fields-table tbody').html(extHtml);

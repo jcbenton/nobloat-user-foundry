@@ -1,8 +1,8 @@
 <?php
 /**
- * Tests Tab
+ * Tools > Email Tests Tab
  *
- * Testing tools for email verification and other plugin features.
+ * Testing tools for all plugin email types.
  *
  * @package NoBloat_User_Foundry
  */
@@ -27,14 +27,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td>
 				<select name="nbuf_email_type" class="regular-text" required>
 					<option value=""><?php esc_html_e( '-- Select Email Type --', 'nobloat-user-foundry' ); ?></option>
-					<option value="email-verification"><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></option>
-					<option value="welcome-email"><?php esc_html_e( 'Welcome Email', 'nobloat-user-foundry' ); ?></option>
-					<option value="expiration-warning"><?php esc_html_e( 'Expiration Warning', 'nobloat-user-foundry' ); ?></option>
-					<option value="2fa-email-code"><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></option>
-					<option value="password-reset"><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></option>
-					<option value="admin-new-user"><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></option>
-					<option value="profile-change"><?php esc_html_e( 'Profile Change Notification', 'nobloat-user-foundry' ); ?></option>
-					<option value="security-alert"><?php esc_html_e( 'Security Alert', 'nobloat-user-foundry' ); ?></option>
+					<optgroup label="<?php esc_attr_e( 'Registration & Verification', 'nobloat-user-foundry' ); ?>">
+						<option value="email-verification"><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></option>
+						<option value="welcome-email"><?php esc_html_e( 'Welcome Email', 'nobloat-user-foundry' ); ?></option>
+						<option value="account-approved"><?php esc_html_e( 'Account Approved', 'nobloat-user-foundry' ); ?></option>
+						<option value="account-rejected"><?php esc_html_e( 'Account Rejected', 'nobloat-user-foundry' ); ?></option>
+					</optgroup>
+					<optgroup label="<?php esc_attr_e( 'Authentication', 'nobloat-user-foundry' ); ?>">
+						<option value="password-reset"><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></option>
+						<option value="magic-link"><?php esc_html_e( 'Magic Link', 'nobloat-user-foundry' ); ?></option>
+						<option value="2fa-email-code"><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></option>
+					</optgroup>
+					<optgroup label="<?php esc_attr_e( 'Account Management', 'nobloat-user-foundry' ); ?>">
+						<option value="expiration-warning"><?php esc_html_e( 'Expiration Warning', 'nobloat-user-foundry' ); ?></option>
+						<option value="expiration-notice"><?php esc_html_e( 'Expiration Notice', 'nobloat-user-foundry' ); ?></option>
+						<option value="profile-change"><?php esc_html_e( 'Profile Change Notification', 'nobloat-user-foundry' ); ?></option>
+					</optgroup>
+					<optgroup label="<?php esc_attr_e( 'Admin Notifications', 'nobloat-user-foundry' ); ?>">
+						<option value="admin-new-user"><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></option>
+						<option value="security-alert"><?php esc_html_e( 'Security Alert', 'nobloat-user-foundry' ); ?></option>
+					</optgroup>
 				</select>
 				<p class="description"><?php esc_html_e( 'Select which type of email you want to test.', 'nobloat-user-foundry' ); ?></p>
 			</td>
@@ -56,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 
 	<input type="hidden" name="nbuf_active_tab" value="tools">
-	<input type="hidden" name="nbuf_active_subtab" value="tests">
+	<input type="hidden" name="nbuf_active_subtab" value="email-tests">
 	<?php submit_button( __( 'Send Test Email', 'nobloat-user-foundry' ), 'secondary' ); ?>
 </form>
 
@@ -76,6 +88,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tr>
 	</thead>
 	<tbody>
+		<!-- Registration & Verification -->
 		<tr>
 			<td><strong><?php esc_html_e( 'Email Verification', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent when a new user registers and needs to verify their email address.', 'nobloat-user-foundry' ); ?></td>
@@ -87,29 +100,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=welcome' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
-			<td><strong><?php esc_html_e( 'Expiration Warning', 'nobloat-user-foundry' ); ?></strong></td>
-			<td><?php esc_html_e( 'Sent to users when their account is approaching expiration.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=expiration' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><strong><?php esc_html_e( 'Account Approved', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when an administrator approves a pending user registration.', 'nobloat-user-foundry' ); ?></td>
+			<td><span class="description"><?php esc_html_e( 'Plain text (no template)', 'nobloat-user-foundry' ); ?></span></td>
 		</tr>
 		<tr>
-			<td><strong><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></strong></td>
-			<td><?php esc_html_e( 'Sent when a user needs a verification code for two-factor authentication.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=2fa' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><strong><?php esc_html_e( 'Account Rejected', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when an administrator rejects a pending user registration.', 'nobloat-user-foundry' ); ?></td>
+			<td><span class="description"><?php esc_html_e( 'Plain text (no template)', 'nobloat-user-foundry' ); ?></span></td>
 		</tr>
+		<!-- Authentication -->
 		<tr>
 			<td><strong><?php esc_html_e( 'Password Reset', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent when a user requests a password reset link.', 'nobloat-user-foundry' ); ?></td>
 			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=password-reset' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
-			<td><strong><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></strong></td>
-			<td><?php esc_html_e( 'Sent to the site admin when a new user registers.', 'nobloat-user-foundry' ); ?></td>
-			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=admin-notification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+			<td><strong><?php esc_html_e( 'Magic Link', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when a user requests a passwordless login link.', 'nobloat-user-foundry' ); ?></td>
+			<td><span class="description"><?php esc_html_e( 'Plain text (no template)', 'nobloat-user-foundry' ); ?></span></td>
+		</tr>
+		<tr>
+			<td><strong><?php esc_html_e( '2FA Email Code', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when a user needs a verification code for two-factor authentication.', 'nobloat-user-foundry' ); ?></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=2fa' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+		</tr>
+		<!-- Account Management -->
+		<tr>
+			<td><strong><?php esc_html_e( 'Expiration Warning', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent to users when their account is approaching expiration.', 'nobloat-user-foundry' ); ?></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=expiration' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
+		</tr>
+		<tr>
+			<td><strong><?php esc_html_e( 'Expiration Notice', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent when a user account has expired and been disabled.', 'nobloat-user-foundry' ); ?></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=expiration' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Profile Change Notification', 'nobloat-user-foundry' ); ?></strong></td>
 			<td><?php esc_html_e( 'Sent to admins when users make changes to their profile data.', 'nobloat-user-foundry' ); ?></td>
 			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=notifications' ) ); ?>"><?php esc_html_e( 'Configure Notifications', 'nobloat-user-foundry' ); ?></a></td>
+		</tr>
+		<!-- Admin Notifications -->
+		<tr>
+			<td><strong><?php esc_html_e( 'Admin New User Notification', 'nobloat-user-foundry' ); ?></strong></td>
+			<td><?php esc_html_e( 'Sent to the site admin when a new user registers.', 'nobloat-user-foundry' ); ?></td>
+			<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-appearance&tab=emails&subtab=admin-notification' ) ); ?>"><?php esc_html_e( 'Edit Template', 'nobloat-user-foundry' ); ?></a></td>
 		</tr>
 		<tr>
 			<td><strong><?php esc_html_e( 'Security Alert', 'nobloat-user-foundry' ); ?></strong></td>

@@ -110,6 +110,7 @@ $nbuf_registration_mismatch = ( $nbuf_enable_registration && ! $nbuf_wp_users_ca
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'How usernames are assigned during registration.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Approximately 90 common usernames (admin, support, webmaster, etc.) are automatically reserved. For "Auto from Email", reserved prefixes fall back to random generation. For "User Entered", reserved names are rejected.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

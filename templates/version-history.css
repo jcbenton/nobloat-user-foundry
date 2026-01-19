@@ -240,7 +240,7 @@
 	flex-wrap: wrap;
 }
 
-.nbuf-vh-item-actions .button {
+.nbuf-vh-item-actions .nbuf-button {
 	font-size: 12px;
 }
 
@@ -289,7 +289,7 @@
 	left: 50%;
 	transform: translate(-50%, -50%);
 	width: 90%;
-	max-width: 800px;
+	max-width: 1100px;
 	max-height: 80vh;
 	background: #fff;
 	border-radius: 8px;
@@ -312,6 +312,11 @@
 	margin: 0;
 	font-size: 1.1rem;
 	color: #1d2327;
+}
+
+.nbuf-vh-close-diff {
+	font-size: 12px;
+	padding: 6px 12px;
 }
 
 .nbuf-vh-diff-body {
@@ -389,17 +394,15 @@
 	background: #f9f9f9;
 }
 
-/* Diff Status Colors */
-.nbuf-vh-diff-added td {
-	background: #d4edda !important;
+/* Diff Column Colors - Before (yellow) and After (green) */
+.nbuf-vh-diff-table th:nth-child(2),
+.nbuf-vh-diff-table td:nth-child(2) {
+	background: #fff3cd;
 }
 
-.nbuf-vh-diff-removed td {
-	background: #f8d7da !important;
-}
-
-.nbuf-vh-diff-changed td {
-	background: #fff3cd !important;
+.nbuf-vh-diff-table th:nth-child(3),
+.nbuf-vh-diff-table td:nth-child(3) {
+	background: #d4edda;
 }
 
 /* Snapshot Table */
@@ -470,7 +473,7 @@
 		flex-direction: column;
 	}
 
-	.nbuf-vh-item-actions .button {
+	.nbuf-vh-item-actions .nbuf-button {
 		width: 100%;
 		text-align: center;
 	}

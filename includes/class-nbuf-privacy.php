@@ -80,6 +80,11 @@ class NBUF_Privacy {
 			'callback'               => array( __CLASS__, 'export_profile_photos' ),
 		);
 
+		$exporters['nobloat-user-foundry-login-attempts'] = array(
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - Login Attempts', 'nobloat-user-foundry' ),
+			'callback'               => array( __CLASS__, 'export_login_attempts' ),
+		);
+
 		return $exporters;
 	}
 
@@ -573,6 +578,84 @@ class NBUF_Privacy {
 	}
 
 	/**
+	 * Export login attempts
+	 *
+	 * Exports failed login attempts for the user's account.
+	 *
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
+	 * @return array Export data.
+	 */
+	public static function export_login_attempts( $email_address, $page = 1 ) {
+		/* Check if login attempts should be included */
+		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$user = get_user_by( 'email', $email_address );
+
+		if ( ! $user ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		global $wpdb;
+		$table_name     = $wpdb->prefix . 'nbuf_login_attempts';
+		$data_to_export = array();
+		$per_page       = 500;
+		$offset         = ( $page - 1 ) * $per_page;
+
+		/* Get failed login attempts for this user's username and email */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required for custom table, pagination makes caching impractical.
+		$attempts = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE username = %s OR username = %s ORDER BY attempt_time DESC LIMIT %d OFFSET %d',
+				$table_name,
+				$user->user_login,
+				$user->user_email,
+				$per_page,
+				$offset
+			)
+		);
+
+		if ( $attempts ) {
+			foreach ( $attempts as $attempt ) {
+				$data_to_export[] = array(
+					'group_id'    => 'nobloat-user-foundry-login-attempts',
+					'group_label' => __( 'Failed Login Attempts', 'nobloat-user-foundry' ),
+					'item_id'     => 'login-attempt-' . $attempt->id,
+					'data'        => array(
+						array(
+							'name'  => __( 'Date/Time', 'nobloat-user-foundry' ),
+							'value' => $attempt->attempt_time,
+						),
+						array(
+							'name'  => __( 'Username Used', 'nobloat-user-foundry' ),
+							'value' => $attempt->username,
+						),
+						array(
+							'name'  => __( 'IP Address', 'nobloat-user-foundry' ),
+							'value' => $attempt->ip_address ? $attempt->ip_address : 'N/A',
+						),
+					),
+				);
+			}
+		}
+
+		$done = ! $attempts || count( $attempts ) < $per_page;
+
+		return array(
+			'data' => $data_to_export,
+			'done' => $done,
+		);
+	}
+
+	/**
 	 * Erase user data
 	 *
 	 * @param  string $email_address User email address.
@@ -664,7 +747,7 @@ class NBUF_Privacy {
 		$messages       = array();
 
 		/* Get GDPR deletion mode (delete, anonymize, keep) */
-		$deletion_mode = NBUF_Options::get( 'nbuf_logging_user_deletion_action', 'anonymize' );
+		$deletion_mode = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
 
 		if ( 'delete' === $deletion_mode ) {
 			/* Permanently delete logs from all 3 tables */
@@ -778,7 +861,7 @@ class NBUF_Privacy {
 		 * Handle logs per GDPR settings.
 		 * These are audit/security logs, not user data.
 		 */
-		$deletion_mode = NBUF_Options::get( 'nbuf_logging_user_deletion_action', 'anonymize' );
+		$deletion_mode = NBUF_Options::get( 'nbuf_gdpr_delete_audit_logs', 'anonymize' );
 
 		if ( 'delete' === $deletion_mode ) {
 			/* Permanently delete logs from all 3 tables */

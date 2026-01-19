@@ -196,7 +196,7 @@ class NBUF_Webhooks {
 	 */
 	public static function trigger( $event, $payload ) {
 		/* Check if webhooks are enabled globally */
-		if ( ! NBUF_Options::get( 'nbuf_webhooks_enabled', true ) ) {
+		if ( ! NBUF_Options::get( 'nbuf_webhooks_enabled', false ) ) {
 			return;
 		}
 

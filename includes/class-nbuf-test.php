@@ -27,6 +27,7 @@ class NBUF_Test {
 		add_action( 'admin_post_nbuf_send_test_email', array( __CLASS__, 'handle_test_email' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notice' ) );
 		add_action( 'wp_ajax_nbuf_test_change_notification', array( __CLASS__, 'ajax_test_change_notification' ) );
+		add_action( 'wp_ajax_nbuf_test_webhook', array( __CLASS__, 'ajax_test_webhook' ) );
 	}
 
 	/**
@@ -68,14 +69,26 @@ class NBUF_Test {
 			case 'welcome-email':
 				$sent = self::send_test_welcome( $recipient );
 				break;
+			case 'account-approved':
+				$sent = self::send_test_account_approved( $recipient );
+				break;
+			case 'account-rejected':
+				$sent = self::send_test_account_rejected( $recipient );
+				break;
 			case 'expiration-warning':
 				$sent = self::send_test_expiration( $recipient );
+				break;
+			case 'expiration-notice':
+				$sent = self::send_test_expiration_notice( $recipient );
 				break;
 			case '2fa-email-code':
 				$sent = self::send_test_2fa_code( $recipient );
 				break;
 			case 'password-reset':
 				$sent = self::send_test_password_reset( $recipient );
+				break;
+			case 'magic-link':
+				$sent = self::send_test_magic_link( $recipient );
 				break;
 			case 'admin-new-user':
 				$sent = self::send_test_admin_notification( $recipient );
@@ -146,6 +159,72 @@ class NBUF_Test {
 	}
 
 	/**
+	 * Send test account approved email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_account_approved( $recipient ) {
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = sprintf(
+			/* translators: %s: Site name */
+			__( 'Your account has been approved on %s', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$message  = sprintf(
+			/* translators: %s: username */
+			__( 'Hello %s,', 'nobloat-user-foundry' ),
+			'testuser'
+		) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: site name */
+			__( 'Your account on %s has been approved by an administrator.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( 'You can now log in to your account:', 'nobloat-user-foundry' ) . "\n";
+		$message .= wp_login_url() . "\n\n";
+		$message .= __( 'Thank you!', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= __( '(This is a test email - no actual account was approved)', 'nobloat-user-foundry' );
+
+		return wp_mail( $recipient, $subject, $message );
+	}
+
+	/**
+	 * Send test account rejected email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_account_rejected( $recipient ) {
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = sprintf(
+			/* translators: %s: Site name */
+			__( 'Account registration update from %s', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$message  = sprintf(
+			/* translators: %s: Site name */
+			__( 'Your account registration on %s has been reviewed.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( 'Unfortunately, your account was not approved at this time.', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= __( 'Reason:', 'nobloat-user-foundry' ) . "\n";
+		$message .= __( 'Sample rejection reason for testing purposes.', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: Site contact URL */
+			__( 'If you have questions, please contact us: %s', 'nobloat-user-foundry' ),
+			home_url( '/contact' )
+		) . "\n\n";
+		$message .= __( '(This is a test email - no actual account was rejected)', 'nobloat-user-foundry' );
+
+		return wp_mail( $recipient, $subject, $message );
+	}
+
+	/**
 	 * Send test expiration warning email.
 	 *
 	 * @param  string $recipient Email recipient.
@@ -171,6 +250,43 @@ class NBUF_Test {
 		$message = strtr( $template, $replacements );
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account is expiring soon', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
+
+		$content_type_callback = function () use ( $mode ) {
+			return 'html' === $mode ? 'text/html' : 'text/plain';
+		};
+		add_filter( 'wp_mail_content_type', $content_type_callback );
+
+		$sent = wp_mail( $recipient, $subject, $message );
+
+		remove_filter( 'wp_mail_content_type', $content_type_callback );
+
+		return $sent;
+	}
+
+	/**
+	 * Send test expiration notice email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_expiration_notice( $recipient ) {
+		$mode          = 'html';
+		$template_name = ( 'html' === $mode ) ? 'expiration-notice-html' : 'expiration-notice-text';
+		$template      = NBUF_Template_Manager::load_template( $template_name );
+
+		$replacements = array(
+			'{site_name}'       => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'{site_url}'        => home_url(),
+			'{display_name}'    => 'Test User',
+			'{username}'        => 'testuser',
+			'{expires_date}'    => gmdate( 'F j, Y' ),
+			'{expiration_date}' => gmdate( 'F j, Y' ),
+			'{contact_url}'     => home_url( '/contact' ),
+		);
+
+		$message = strtr( $template, $replacements );
+		/* translators: %s: Site name */
+		$subject = sprintf( __( '[%s] Your account has expired', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
 		$content_type_callback = function () use ( $mode ) {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
@@ -259,6 +375,49 @@ class NBUF_Test {
 	}
 
 	/**
+	 * Send test magic link email.
+	 *
+	 * @param  string $recipient Email recipient.
+	 * @return bool True if sent successfully.
+	 */
+	private static function send_test_magic_link( $recipient ) {
+		$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+
+		$subject = sprintf(
+			/* translators: %s: site name */
+			__( 'Your Magic Link for %s', 'nobloat-user-foundry' ),
+			$site_name
+		);
+
+		$message  = sprintf(
+			/* translators: %s: user display name */
+			__( 'Hi %s,', 'nobloat-user-foundry' ),
+			'Test User'
+		) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: site name */
+			__( 'You requested a magic link to log into %s.', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( 'Click the link below to log in:', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= home_url( '/user-foundry/magic-link/?token=test-magic-link-token-12345' ) . "\n\n";
+		$message .= sprintf(
+			/* translators: %d: expiration time in minutes */
+			__( 'This link expires in %d minutes and can only be used once.', 'nobloat-user-foundry' ),
+			15
+		) . "\n\n";
+		$message .= __( 'If you did not request this link, you can safely ignore this email.', 'nobloat-user-foundry' ) . "\n\n";
+		$message .= sprintf(
+			/* translators: %s: site name */
+			__( '- The %s Team', 'nobloat-user-foundry' ),
+			$site_name
+		) . "\n\n";
+		$message .= __( '(This is a test email - the link above will not work)', 'nobloat-user-foundry' );
+
+		return wp_mail( $recipient, $subject, $message );
+	}
+
+	/**
 	 * Send test admin new user notification email.
 	 *
 	 * @param  string $recipient Email recipient.
@@ -301,38 +460,44 @@ class NBUF_Test {
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_security_alert( $recipient ) {
-		$site_name    = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		$current_user = wp_get_current_user();
+		/*
+		 * Use the real security alert system to test the actual template and flow.
+		 * This tests the HTML template and NBUF_Email::send() integration.
+		 *
+		 * Note: The recipient parameter is ignored - the email goes to the
+		 * configured security alert recipient (admin or custom email).
+		 * This tests the actual production flow.
+		 */
+		if ( ! class_exists( 'NBUF_Security_Log' ) ) {
+			return false;
+		}
 
-		$subject = sprintf(
-			/* translators: %s: site name */
-			__( '[%s] Test Security Alert', 'nobloat-user-foundry' ),
-			$site_name
-		);
+		/* Check if security alerts are enabled */
+		$alerts_enabled = NBUF_Options::get( 'nbuf_security_log_alerts_enabled', false );
+		if ( ! $alerts_enabled ) {
+			/*
+			 * Alerts are disabled - send a simple notification to the specified
+			 * recipient explaining that alerts need to be enabled.
+			 */
+			$site_name = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+			$subject   = sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Security Alerts Not Enabled', 'nobloat-user-foundry' ),
+				$site_name
+			);
+			$message = __( 'Security alert emails are currently disabled.', 'nobloat-user-foundry' ) . "\n\n";
+			$message .= __( 'To receive security alerts for critical events (brute force attacks, privilege escalation, etc.), enable them in:', 'nobloat-user-foundry' ) . "\n";
+			$message .= __( 'User Foundry > GDPR & Privacy > Logging > Enable Critical Alert Emails', 'nobloat-user-foundry' ) . "\n\n";
+			$message .= __( 'Once enabled, security alerts will be sent using the HTML template to your configured recipient.', 'nobloat-user-foundry' );
 
-		$message  = sprintf(
-			/* translators: %s: site name */
-			__( 'This is a test security alert from %s.', 'nobloat-user-foundry' ),
-			$site_name
-		) . "\n\n";
-		$message .= __( 'If you received this email, your security alert notifications are configured correctly.', 'nobloat-user-foundry' ) . "\n\n";
-		$message .= __( '--- Sample Alert ---', 'nobloat-user-foundry' ) . "\n\n";
-		$message .= __( 'Event Type: Test Alert', 'nobloat-user-foundry' ) . "\n";
-		$message .= __( 'Severity: Critical', 'nobloat-user-foundry' ) . "\n";
-		$message .= sprintf(
-			/* translators: %s: username */
-			__( 'User: %s', 'nobloat-user-foundry' ),
-			$current_user->user_login
-		) . "\n";
-		$message .= __( 'IP Address: 127.0.0.1', 'nobloat-user-foundry' ) . "\n";
-		$message .= sprintf(
-			/* translators: %s: date/time */
-			__( 'Time: %s', 'nobloat-user-foundry' ),
-			current_time( 'F j, Y g:i a' )
-		) . "\n\n";
-		$message .= __( 'This is a test notification. No actual security event occurred.', 'nobloat-user-foundry' );
+			return wp_mail( $recipient, $subject, $message );
+		}
 
-		return wp_mail( $recipient, $subject, $message );
+		/* Use the real security log test method which tests the full flow */
+		$result = NBUF_Security_Log::send_test_email();
+
+		/* send_test_email returns true on success, WP_Error on failure */
+		return true === $result;
 	}
 
 	/**
@@ -475,6 +640,49 @@ class NBUF_Test {
 	}
 
 	/**
+	 * AJAX handler for testing a webhook.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function ajax_test_webhook() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( ! wp_verify_nonce( isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '', 'nbuf_test_webhook' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$webhook_id = isset( $_POST['webhook_id'] ) ? absint( $_POST['webhook_id'] ) : 0;
+
+		if ( ! $webhook_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid webhook ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( ! class_exists( 'NBUF_Webhooks' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Webhooks not available.', 'nobloat-user-foundry' ) ) );
+		}
+
+		$result = NBUF_Webhooks::test( $webhook_id );
+
+		if ( $result['success'] ) {
+			wp_send_json_success(
+				array(
+					'code'    => $result['code'],
+					'message' => $result['message'],
+				)
+			);
+		} else {
+			wp_send_json_error(
+				array(
+					'code'    => $result['code'],
+					'message' => $result['message'],
+				)
+			);
+		}
+	}
+
+	/**
 	 * Redirect with status code.
 	 *
 	 * @param string $code Status code (success, failed, missing).
@@ -484,7 +692,7 @@ class NBUF_Test {
 			array(
 				'page'      => 'nobloat-foundry-users',
 				'tab'       => 'tools',
-				'subtab'    => 'tests',
+				'subtab'    => 'email-tests',
 				'nbuf_test' => $code,
 			),
 			admin_url( 'admin.php' )
@@ -507,7 +715,7 @@ class NBUF_Test {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameters
 		$subtab = isset( $_GET['subtab'] ) ? sanitize_text_field( wp_unslash( $_GET['subtab'] ) ) : '';
 
-		if ( 'tools' !== $tab || 'tests' !== $subtab ) {
+		if ( 'tools' !== $tab || 'email-tests' !== $subtab ) {
 			return;
 		}
 

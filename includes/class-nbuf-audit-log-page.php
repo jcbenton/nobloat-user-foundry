@@ -87,7 +87,7 @@ class NBUF_Audit_Log_Page {
 		printf(
 		/* translators: %s: Settings page URL */
 			esc_html__( 'Configure user audit log settings in %s', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings → Tools → Audit Log', 'nobloat-user-foundry' ) . '</a>'
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ) . '">' . esc_html__( 'Settings → GDPR → Logging', 'nobloat-user-foundry' ) . '</a>'
 		);
 		?>
 				</p>
@@ -100,7 +100,7 @@ class NBUF_Audit_Log_Page {
 			printf(
 			/* translators: %s: Settings page URL */
 				esc_html__( 'Audit logging is currently disabled. Enable it in %s to start tracking user activity.', 'nobloat-user-foundry' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=tools&subtab=audit-log' ) ) . '">' . esc_html__( 'Settings > Tools > Audit Log', 'nobloat-user-foundry' ) . '</a>'
+				'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ) . '">' . esc_html__( 'Settings → GDPR → Logging', 'nobloat-user-foundry' ) . '</a>'
 			);
 			?>
 					</p>
@@ -345,7 +345,7 @@ class NBUF_Audit_Log_Page {
 	 * @return string Export URL.
 	 */
 	private static function get_export_url() {
-		$url = admin_url( 'admin.php' );
+		$url = admin_url( 'admin.php?page=nobloat-foundry-user-log' );
 		$url = add_query_arg( 'action', 'nbuf_export_logs', $url );
 
 		/*

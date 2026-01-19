@@ -17,8 +17,6 @@ $nbuf_public_profiles    = NBUF_Options::get( 'nbuf_enable_public_profiles', fal
 $nbuf_gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 $nbuf_default_privacy    = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 $nbuf_allow_cover_photos = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
-$nbuf_max_photo_size     = NBUF_Options::get( 'nbuf_profile_max_photo_size', 5 );
-$nbuf_max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 );
 
 ?>
 
@@ -122,28 +120,11 @@ $nbuf_max_cover_size     = NBUF_Options::get( 'nbuf_profile_max_cover_size', 10 
 				</td>
 			</tr>
 
-			<!-- File Size Limits -->
-			<tr>
-				<th><?php esc_html_e( 'Profile Photo Size Limit', 'nobloat-user-foundry' ); ?></th>
-				<td>
-					<input type="number" name="nbuf_profile_max_photo_size" value="<?php echo esc_attr( $nbuf_max_photo_size ); ?>" min="1" max="50" class="small-text"> MB
-					<p class="description">
-						<?php esc_html_e( 'Maximum file size for profile photos (recommended: 5MB or less).', 'nobloat-user-foundry' ); ?>
-					</p>
-				</td>
-			</tr>
-
-			<tr>
-				<th><?php esc_html_e( 'Cover Photo Size Limit', 'nobloat-user-foundry' ); ?></th>
-				<td>
-					<input type="number" name="nbuf_profile_max_cover_size" value="<?php echo esc_attr( $nbuf_max_cover_size ); ?>" min="1" max="50" class="small-text"> MB
-					<p class="description">
-						<?php esc_html_e( 'Maximum file size for cover photos (recommended: 10MB or less).', 'nobloat-user-foundry' ); ?>
-					</p>
-				</td>
-			</tr>
-
 		</table>
+
+		<p class="description">
+			<?php esc_html_e( 'Photo file size limits can be configured in the Media tab.', 'nobloat-user-foundry' ); ?>
+		</p>
 
 		<?php submit_button( __( 'Save Changes', 'nobloat-user-foundry' ) ); ?>
 	</form>

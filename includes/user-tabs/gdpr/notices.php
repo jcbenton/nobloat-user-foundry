@@ -19,31 +19,40 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 /* Handle form submission */
-if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_notices' === $_POST['nbuf_form_id'] && check_admin_referer( 'nbuf_gdpr_notices_settings' ) ) {
-	/* Policy Display Settings */
+// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after check.
+if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_notices' === sanitize_key( wp_unslash( $_POST['nbuf_form_id'] ) ) && check_admin_referer( 'nbuf_gdpr_notices_settings' ) ) {
+	/* Allowed position values for whitelist validation */
+	$nbuf_allowed_positions = array( 'left', 'right' );
+
+	/* Policy Display Settings - checkboxes save boolean, positions validate against whitelist */
 	$nbuf_policy_login_enabled = isset( $_POST['nbuf_policy_login_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_login_enabled', $nbuf_policy_login_enabled, true, 'gdpr' );
-	$nbuf_policy_login_position = isset( $_POST['nbuf_policy_login_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_login_position'] ) ) : 'right';
+	$nbuf_policy_login_position = isset( $_POST['nbuf_policy_login_position'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_policy_login_position'] ) ) : 'right';
+	$nbuf_policy_login_position = in_array( $nbuf_policy_login_position, $nbuf_allowed_positions, true ) ? $nbuf_policy_login_position : 'right';
 	NBUF_Options::update( 'nbuf_policy_login_position', $nbuf_policy_login_position, true, 'gdpr' );
 
 	$nbuf_policy_registration_enabled = isset( $_POST['nbuf_policy_registration_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_registration_enabled', $nbuf_policy_registration_enabled, true, 'gdpr' );
-	$nbuf_policy_registration_position = isset( $_POST['nbuf_policy_registration_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_registration_position'] ) ) : 'right';
+	$nbuf_policy_registration_position = isset( $_POST['nbuf_policy_registration_position'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_policy_registration_position'] ) ) : 'right';
+	$nbuf_policy_registration_position = in_array( $nbuf_policy_registration_position, $nbuf_allowed_positions, true ) ? $nbuf_policy_registration_position : 'right';
 	NBUF_Options::update( 'nbuf_policy_registration_position', $nbuf_policy_registration_position, true, 'gdpr' );
 
 	$nbuf_policy_verify_enabled = isset( $_POST['nbuf_policy_verify_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_verify_enabled', $nbuf_policy_verify_enabled, true, 'gdpr' );
-	$nbuf_policy_verify_position = isset( $_POST['nbuf_policy_verify_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_verify_position'] ) ) : 'right';
+	$nbuf_policy_verify_position = isset( $_POST['nbuf_policy_verify_position'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_policy_verify_position'] ) ) : 'right';
+	$nbuf_policy_verify_position = in_array( $nbuf_policy_verify_position, $nbuf_allowed_positions, true ) ? $nbuf_policy_verify_position : 'right';
 	NBUF_Options::update( 'nbuf_policy_verify_position', $nbuf_policy_verify_position, true, 'gdpr' );
 
 	$nbuf_policy_request_reset_enabled = isset( $_POST['nbuf_policy_request_reset_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_request_reset_enabled', $nbuf_policy_request_reset_enabled, true, 'gdpr' );
-	$nbuf_policy_request_reset_position = isset( $_POST['nbuf_policy_request_reset_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_request_reset_position'] ) ) : 'right';
+	$nbuf_policy_request_reset_position = isset( $_POST['nbuf_policy_request_reset_position'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_policy_request_reset_position'] ) ) : 'right';
+	$nbuf_policy_request_reset_position = in_array( $nbuf_policy_request_reset_position, $nbuf_allowed_positions, true ) ? $nbuf_policy_request_reset_position : 'right';
 	NBUF_Options::update( 'nbuf_policy_request_reset_position', $nbuf_policy_request_reset_position, true, 'gdpr' );
 
 	$nbuf_policy_reset_enabled = isset( $_POST['nbuf_policy_reset_enabled'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_policy_reset_enabled', $nbuf_policy_reset_enabled, true, 'gdpr' );
-	$nbuf_policy_reset_position = isset( $_POST['nbuf_policy_reset_position'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_policy_reset_position'] ) ) : 'right';
+	$nbuf_policy_reset_position = isset( $_POST['nbuf_policy_reset_position'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_policy_reset_position'] ) ) : 'right';
+	$nbuf_policy_reset_position = in_array( $nbuf_policy_reset_position, $nbuf_allowed_positions, true ) ? $nbuf_policy_reset_position : 'right';
 	NBUF_Options::update( 'nbuf_policy_reset_position', $nbuf_policy_reset_position, true, 'gdpr' );
 
 	$nbuf_policy_account_tab_enabled = isset( $_POST['nbuf_policy_account_tab_enabled'] ) ? 1 : 0;

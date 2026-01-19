@@ -40,25 +40,39 @@ if ( ! is_array( $nbuf_notify_fields ) ) {
 /* Available fields to monitor */
 $nbuf_available_fields = array(
 	'Core WordPress Fields' => array(
-		'user_email'   => 'Email Address',
-		'display_name' => 'Display Name',
-		'first_name'   => 'First Name',
-		'last_name'    => 'Last Name',
-		'description'  => 'Bio / Description',
+		'user_email'   => __( 'Email Address', 'nobloat-user-foundry' ),
+		'display_name' => __( 'Display Name', 'nobloat-user-foundry' ),
+		'first_name'   => __( 'First Name', 'nobloat-user-foundry' ),
+		'last_name'    => __( 'Last Name', 'nobloat-user-foundry' ),
+		'description'  => __( 'Bio / Description', 'nobloat-user-foundry' ),
 	),
-	'Profile Fields'        => array(
-		'bio'       => 'Bio',
-		'phone'     => 'Phone',
-		'city'      => 'City',
-		'state'     => 'State',
-		'country'   => 'Country',
-		'company'   => 'Company',
-		'job_title' => 'Job Title',
-	),
-	'Security & Privacy'    => array(
-		'2fa_status'      => '2FA Enabled/Disabled',
-		'profile_privacy' => 'Profile Privacy Setting',
-	),
+);
+
+/* Add enabled profile fields dynamically (with custom labels) */
+$nbuf_enabled_profile_fields = NBUF_Profile_Data::get_account_fields();
+if ( ! empty( $nbuf_enabled_profile_fields ) ) {
+	$nbuf_field_registry    = NBUF_Profile_Data::get_field_registry_with_labels();
+	$nbuf_profile_fields_to_monitor = array();
+
+	foreach ( $nbuf_enabled_profile_fields as $nbuf_field_key ) {
+		/* Find the label in the registry */
+		foreach ( $nbuf_field_registry as $nbuf_category ) {
+			if ( isset( $nbuf_category['fields'][ $nbuf_field_key ] ) ) {
+				$nbuf_profile_fields_to_monitor[ $nbuf_field_key ] = $nbuf_category['fields'][ $nbuf_field_key ];
+				break;
+			}
+		}
+	}
+
+	if ( ! empty( $nbuf_profile_fields_to_monitor ) ) {
+		$nbuf_available_fields['Profile Fields'] = $nbuf_profile_fields_to_monitor;
+	}
+}
+
+/* Add security & privacy fields */
+$nbuf_available_fields['Security & Privacy'] = array(
+	'2fa_status'      => __( '2FA Enabled/Disabled', 'nobloat-user-foundry' ),
+	'profile_privacy' => __( 'Profile Privacy Setting', 'nobloat-user-foundry' ),
 );
 ?>
 
@@ -68,6 +82,8 @@ $nbuf_available_fields = array(
 	<input type="hidden" name="nbuf_active_subtab" value="notifications">
 	<!-- Declare checkboxes on this form for proper unchecked handling -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_notify_profile_changes">
+	<!-- Declare array fields for proper empty array handling -->
+	<input type="hidden" name="nbuf_form_arrays[]" value="nbuf_notify_profile_changes_fields">
 
 	<h2><?php esc_html_e( 'Enable Notifications', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'Get notified when users make changes to their profiles.', 'nobloat-user-foundry' ); ?></p>
@@ -143,6 +159,16 @@ $nbuf_available_fields = array(
 				<p class="description">
 					<strong><?php esc_html_e( 'Recommended minimum:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Email Address and Display Name', 'nobloat-user-foundry' ); ?><br/>
 					<strong><?php esc_html_e( 'Security tip:', 'nobloat-user-foundry' ); ?></strong> <?php esc_html_e( 'Monitor 2FA and privacy settings for security awareness.', 'nobloat-user-foundry' ); ?>
+					<?php if ( empty( $nbuf_enabled_profile_fields ) ) : ?>
+						<br/><strong><?php esc_html_e( 'Note:', 'nobloat-user-foundry' ); ?></strong>
+						<?php
+						printf(
+							/* translators: %s: link to profile fields settings */
+							esc_html__( 'Profile Fields section will appear when you enable profile fields in %s.', 'nobloat-user-foundry' ),
+							'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=users&subtab=profile-fields' ) ) . '">' . esc_html__( 'Settings > Users > Profile Fields', 'nobloat-user-foundry' ) . '</a>'
+						);
+						?>
+					<?php endif; ?>
 				</p>
 			</td>
 		</tr>

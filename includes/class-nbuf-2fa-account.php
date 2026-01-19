@@ -233,21 +233,65 @@ class NBUF_2FA_Account {
 	 * @return string HTML output.
 	 */
 	private static function build_email_2fa_subtab_html( $user_id, $has_email ) {
+		$user = get_userdata( $user_id );
 		$html = '<div class="nbuf-security-subtab-content">';
 
+		/* Status box */
 		if ( $has_email ) {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Email 2FA is enabled. A verification code will be sent to your email each time you log in.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<div class="nbuf-method-status nbuf-status-active">';
+			$html .= '<div class="nbuf-status-content">';
+			$html .= '<span class="nbuf-status-icon">&#10003;</span>';
+			$html .= '<div class="nbuf-status-text">';
+			$html .= '<strong>' . esc_html__( 'Email 2FA is Enabled', 'nobloat-user-foundry' ) . '</strong>';
+			$html .= '<span>' . esc_html__( 'A verification code will be sent to your email each time you log in.', 'nobloat-user-foundry' ) . '</span>';
+			$html .= '</div></div></div>';
+		} else {
+			$html .= '<div class="nbuf-method-status nbuf-status-inactive">';
+			$html .= '<div class="nbuf-status-content">';
+			$html .= '<span class="nbuf-status-icon">&#9675;</span>';
+			$html .= '<div class="nbuf-status-text">';
+			$html .= '<strong>' . esc_html__( 'Email 2FA is Not Enabled', 'nobloat-user-foundry' ) . '</strong>';
+			$html .= '<span>' . esc_html__( 'Enable it below to add an extra layer of security to your account.', 'nobloat-user-foundry' ) . '</span>';
+			$html .= '</div></div></div>';
+		}
 
+		$html .= '<h4>' . esc_html__( 'What is Email 2FA?', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Email two-factor authentication adds an extra security step when you log in. After entering your password, you\'ll receive a 6-digit verification code at your email address that you must enter to complete the login.', 'nobloat-user-foundry' ) . '</p>';
+
+		$html .= '<h4>' . esc_html__( 'How It Works', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<ul class="nbuf-benefits-list">';
+		$html .= '<li>' . esc_html__( 'Enter your username and password as usual', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Check your email for a 6-digit verification code', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Enter the code to complete your login', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Codes expire after a few minutes for security', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '</ul>';
+
+		$html .= '<h4>' . esc_html__( 'Benefits', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<ul class="nbuf-benefits-list">';
+		$html .= '<li>' . esc_html__( 'No app installation required—works with any email', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Protects your account even if your password is compromised', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Easy to use on any device with email access', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '</ul>';
+
+		if ( $user ) {
+			$html .= '<div class="nbuf-info-box nbuf-info-box-muted">';
+			$html .= '<p><strong>' . esc_html__( 'Your email:', 'nobloat-user-foundry' ) . '</strong> ';
+			$html .= esc_html( $user->user_email ) . '<br>';
+			$html .= esc_html__( 'Verification codes will be sent to this address. Make sure you have access to it before enabling.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
+		}
+
+		$html .= '<div class="nbuf-section-spacing-large"></div>';
+
+		if ( $has_email ) {
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= '<input type="hidden" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_disable_email' ) ) . '">';
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_email">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="2fa-email">';
-			$html .= '<button type="submit" class="nbuf-button nbuf-button-danger">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
+			$html .= '<button type="submit" class="nbuf-button nbuf-button-danger" onclick="return confirm(\'' . esc_js( __( 'Are you sure you want to disable Email 2FA? This will reduce your account security.', 'nobloat-user-foundry' ) ) . '\')">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		} else {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Enable email verification to add an extra layer of security. You\'ll receive a 6-digit code each time you log in.', 'nobloat-user-foundry' ) . '</p>';
-
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= '<input type="hidden" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_enable_email' ) ) . '">';
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="enable_email">';
@@ -272,7 +316,25 @@ class NBUF_2FA_Account {
 		$html = '<div class="nbuf-security-subtab-content">';
 
 		if ( $has_totp ) {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Authenticator app is configured. Open your app and enter the 6-digit code when you log in.', 'nobloat-user-foundry' ) . '</p>';
+			/* Status box for enabled state */
+			$html .= '<div class="nbuf-method-status nbuf-status-active">';
+			$html .= '<div class="nbuf-status-content">';
+			$html .= '<span class="nbuf-status-icon">&#10003;</span>';
+			$html .= '<div class="nbuf-status-text">';
+			$html .= '<strong>' . esc_html__( 'Authenticator App Enabled', 'nobloat-user-foundry' ) . '</strong>';
+			$html .= '<span>' . esc_html__( 'Your account is protected with two-factor authentication.', 'nobloat-user-foundry' ) . '</span>';
+			$html .= '</div></div></div>';
+
+			$html .= '<h4>' . esc_html__( 'How It Works', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'When you log in, open your authenticator app and enter the 6-digit code shown. Codes refresh every 30 seconds, so make sure to enter the current one.', 'nobloat-user-foundry' ) . '</p>';
+
+			$html .= '<div class="nbuf-info-box nbuf-info-box-muted">';
+			$html .= '<p><strong>' . esc_html__( 'Lost your device?', 'nobloat-user-foundry' ) . '</strong> ';
+			$html .= esc_html__( 'Use a backup code to log in, then set up a new authenticator. Keep your backup codes in a safe place.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
+
+			$html .= '<h4>' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Disabling the authenticator will remove this layer of security from your account. You can set it up again anytime.', 'nobloat-user-foundry' ) . '</p>';
 
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= '<input type="hidden" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_disable_totp' ) ) . '">';
@@ -282,7 +344,25 @@ class NBUF_2FA_Account {
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-danger">' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		} else {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Use an authenticator app (Google Authenticator, Authy, 1Password) to generate time-based codes for login.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<h4>' . esc_html__( 'What is an Authenticator App?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'An authenticator app generates time-based security codes on your phone or device. When you log in, you\'ll enter both your password and a 6-digit code from the app. This means even if someone learns your password, they can\'t access your account without your device.', 'nobloat-user-foundry' ) . '</p>';
+
+			$html .= '<h4>' . esc_html__( 'Recommended Apps', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Download any of these free authenticator apps to get started:', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<ul class="nbuf-app-list">';
+			$html .= '<li><strong>Google Authenticator</strong> &mdash; ' . esc_html__( 'Simple and reliable. Available for iOS and Android.', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>Microsoft Authenticator</strong> &mdash; ' . esc_html__( 'Includes cloud backup. Available for iOS and Android.', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>Authy</strong> &mdash; ' . esc_html__( 'Syncs across multiple devices. Available for iOS, Android, and desktop.', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>1Password</strong> &mdash; ' . esc_html__( 'Built into the password manager. Requires subscription.', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+
+			$html .= '<h4>' . esc_html__( 'Why Use It?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-benefits-list">';
+			$html .= '<li>' . esc_html__( 'Stronger protection than password alone', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Works offline &mdash; no internet or cell service needed', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Codes change every 30 seconds, so they can\'t be reused', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Free to use with any compatible app', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
 
 			/* Link to TOTP setup page */
 			$setup_url = '';
@@ -294,7 +374,8 @@ class NBUF_2FA_Account {
 			}
 
 			if ( $setup_url ) {
-				$html .= '<a href="' . esc_url( $setup_url ) . '" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Set Up Authenticator', 'nobloat-user-foundry' ) . '</a>';
+				$html .= '<div class="nbuf-section-spacing-large"></div>';
+				$html .= '<button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href=\'' . esc_url( $setup_url ) . '\'">' . esc_html__( 'Set Up Authenticator', 'nobloat-user-foundry' ) . '</button>';
 			} else {
 				$html .= '<p class="nbuf-muted-text">' . esc_html__( 'Authenticator setup is not currently available.', 'nobloat-user-foundry' ) . '</p>';
 			}
@@ -319,18 +400,47 @@ class NBUF_2FA_Account {
 		$html = '<div class="nbuf-security-subtab-content">';
 
 		if ( is_array( $backup_codes ) && ! empty( $backup_codes ) ) {
-			/* Show remaining count */
+			/* Status box for codes remaining */
 			if ( $codes_remaining > 0 ) {
-				$html .= '<p class="nbuf-simple-description">' . sprintf(
+				$html .= '<div class="nbuf-method-status nbuf-status-active">';
+				$html .= '<div class="nbuf-status-content">';
+				$html .= '<span class="nbuf-status-icon">&#10003;</span>';
+				$html .= '<div class="nbuf-status-text">';
+				$html .= '<strong>' . sprintf(
 					/* translators: %1$d: remaining codes, %2$d: total codes */
-					esc_html__( 'You have %1$d of %2$d backup codes remaining. Store them securely and use them if you lose access to your authenticator.', 'nobloat-user-foundry' ),
+					esc_html__( '%1$d of %2$d Backup Codes Remaining', 'nobloat-user-foundry' ),
 					$codes_remaining,
 					$total_codes
-				) . '</p>';
+				) . '</strong>';
+				$html .= '<span>' . esc_html__( 'Store these codes in a safe place. You\'ll need them if you lose access to your authenticator.', 'nobloat-user-foundry' ) . '</span>';
+				$html .= '</div></div></div>';
 			} else {
-				$html .= '<p class="nbuf-simple-description">' . esc_html__( 'All backup codes have been used. Generate new codes to maintain emergency access to your account.', 'nobloat-user-foundry' ) . '</p>';
+				$html .= '<div class="nbuf-method-status nbuf-status-warning">';
+				$html .= '<div class="nbuf-status-content">';
+				$html .= '<span class="nbuf-status-icon">&#9888;</span>';
+				$html .= '<div class="nbuf-status-text">';
+				$html .= '<strong>' . esc_html__( 'All Backup Codes Used', 'nobloat-user-foundry' ) . '</strong>';
+				$html .= '<span>' . esc_html__( 'Generate new codes now to maintain emergency access to your account.', 'nobloat-user-foundry' ) . '</span>';
+				$html .= '</div></div></div>';
 			}
 
+			$html .= '<h4>' . esc_html__( 'How Backup Codes Work', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Backup codes are one-time passwords you can use instead of your authenticator app. Each code works only once, then it\'s marked as used. When you run low on codes, generate a new set.', 'nobloat-user-foundry' ) . '</p>';
+
+			$html .= '<h4>' . esc_html__( 'Storage Tips', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-benefits-list">';
+			$html .= '<li>' . esc_html__( 'Save them in a password manager', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Print and store in a secure location', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Keep them separate from your devices', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Never share them with anyone', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+
+			$html .= '<div class="nbuf-info-box nbuf-info-box-muted">';
+			$html .= '<p><strong>' . esc_html__( 'Need new codes?', 'nobloat-user-foundry' ) . '</strong> ';
+			$html .= esc_html__( 'Generating new codes will invalidate all existing ones. Make sure to save the new codes before leaving the page.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
+
+			$html .= '<div class="nbuf-section-spacing-large"></div>';
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= '<input type="hidden" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_generate_backup' ) ) . '">';
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
@@ -341,8 +451,21 @@ class NBUF_2FA_Account {
 			$html .= '</button>';
 			$html .= '</form>';
 		} else {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Backup codes let you log in if you lose access to your authenticator app or email. Each code can only be used once.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<h4>' . esc_html__( 'What Are Backup Codes?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Backup codes are emergency passwords you can use to log in when you don\'t have access to your authenticator app or email. Each code is a one-time use password that bypasses two-factor authentication.', 'nobloat-user-foundry' ) . '</p>';
 
+			$html .= '<h4>' . esc_html__( 'When You\'ll Need Them', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-benefits-list">';
+			$html .= '<li>' . esc_html__( 'Lost or broken phone with authenticator app', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Traveling without access to your usual devices', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Email temporarily unavailable for verification', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Switching to a new phone before transferring your authenticator', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+
+			$html .= '<h4>' . esc_html__( 'How It Works', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'When you generate backup codes, you\'ll receive a set of unique codes. Save these in a secure place. At the login screen, use any unused code instead of your regular verification method.', 'nobloat-user-foundry' ) . '</p>';
+
+			$html .= '<div class="nbuf-section-spacing-large"></div>';
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= '<input type="hidden" name="nbuf_2fa_nonce" value="' . esc_attr( wp_create_nonce( 'nbuf_2fa_generate_backup' ) ) . '">';
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
@@ -365,10 +488,28 @@ class NBUF_2FA_Account {
 	private static function build_privacy_subtab_html( $user_id ) {
 		$html = '<div class="nbuf-security-subtab-content">';
 
+		$html .= '<h4>' . esc_html__( 'Your Privacy Rights', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'You have the right to know what personal data we store about you and to receive a copy of that data. This includes information you\'ve provided and data generated through your use of the site.', 'nobloat-user-foundry' ) . '</p>';
+
 		/* Check if GDPR export class exists */
 		if ( class_exists( 'NBUF_GDPR_Export' ) ) {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Download a copy of your personal data in JSON format, including profile details, registration date, and login history.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<h4>' . esc_html__( 'Download Your Data', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Export a complete copy of your personal data in JSON format. This file can be opened in any text editor or imported into other services.', 'nobloat-user-foundry' ) . '</p>';
 
+			$html .= '<h4>' . esc_html__( 'What\'s Included', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-benefits-list">';
+			$html .= '<li>' . esc_html__( 'Profile information (name, email, bio, etc.)', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Account details (registration date, role)', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Login history and security events', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li>' . esc_html__( 'Custom profile fields and preferences', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+
+			$html .= '<div class="nbuf-info-box nbuf-info-box-muted">';
+			$html .= '<p><strong>' . esc_html__( 'Processing time:', 'nobloat-user-foundry' ) . '</strong> ';
+			$html .= esc_html__( 'Your download will start immediately. For large accounts, this may take a few moments.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
+
+			$html .= '<div class="nbuf-section-spacing-large"></div>';
 			$html .= '<form method="post" action="' . esc_url( self::get_form_action_url() ) . '" class="nbuf-simple-form">';
 			$html .= wp_nonce_field( 'nbuf_export_data', 'nbuf_export_nonce', true, false );
 			$html .= '<input type="hidden" name="nbuf_account_action" value="export_data">';
@@ -376,8 +517,13 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="privacy">';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Download My Data', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
+
+			$html .= '<h4 class="nbuf-margin-top-large">' . esc_html__( 'Need to Delete Your Account?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'If you wish to delete your account and all associated data, please contact the site administrator. Account deletion is permanent and cannot be undone.', 'nobloat-user-foundry' ) . '</p>';
 		} else {
-			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Data export is not currently available. Contact the site administrator for assistance.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '<div class="nbuf-info-box nbuf-info-box-muted">';
+			$html .= '<p>' . esc_html__( 'Data export is not currently available. Please contact the site administrator to request a copy of your personal data or for any privacy-related inquiries.', 'nobloat-user-foundry' ) . '</p>';
+			$html .= '</div>';
 		}
 
 		$html .= '</div>';
@@ -404,13 +550,44 @@ class NBUF_2FA_Account {
 
 		/* Get existing application passwords */
 		$app_passwords = WP_Application_Passwords::get_user_application_passwords( $user_id );
+		$password_count = count( $app_passwords );
 
 		$html = '<div class="nbuf-security-subtab-content">';
 
-		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Application passwords let third-party apps connect to your account without sharing your main password. They bypass 2FA, so only create them for trusted apps.', 'nobloat-user-foundry' ) . '</p>';
+		/* Status box showing current app passwords count */
+		if ( $password_count > 0 ) {
+			$html .= '<div class="nbuf-method-status nbuf-status-active">';
+			$html .= '<div class="nbuf-status-content">';
+			$html .= '<span class="nbuf-status-icon">&#128274;</span>';
+			$html .= '<div class="nbuf-status-text">';
+			$html .= '<strong>' . sprintf(
+				/* translators: %d: number of active app passwords */
+				esc_html( _n( '%d Active App Password', '%d Active App Passwords', $password_count, 'nobloat-user-foundry' ) ),
+				$password_count
+			) . '</strong>';
+			$html .= '<span>' . esc_html__( 'Review periodically and revoke any you no longer use.', 'nobloat-user-foundry' ) . '</span>';
+			$html .= '</div></div></div>';
+		}
+
+		$html .= '<h4>' . esc_html__( 'What Are App Passwords?', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Application passwords are unique passwords that let third-party apps access your account without sharing your main password. Each app password is specific to one application and can be revoked independently.', 'nobloat-user-foundry' ) . '</p>';
+
+		$html .= '<h4>' . esc_html__( 'Common Uses', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<ul class="nbuf-benefits-list">';
+		$html .= '<li>' . esc_html__( 'Mobile apps that connect to your site', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Desktop publishing tools (e.g., blog editors)', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'Automation services and integrations', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '<li>' . esc_html__( 'REST API access for development', 'nobloat-user-foundry' ) . '</li>';
+		$html .= '</ul>';
+
+		$html .= '<div class="nbuf-info-box">';
+		$html .= '<p><strong>' . esc_html__( 'Security Note:', 'nobloat-user-foundry' ) . '</strong> ';
+		$html .= esc_html__( 'App passwords bypass two-factor authentication. Only create them for apps you trust, and revoke them immediately if a device is lost or compromised.', 'nobloat-user-foundry' ) . '</p>';
+		$html .= '</div>';
 
 		/* List existing passwords */
 		if ( ! empty( $app_passwords ) ) {
+			$html .= '<h4>' . esc_html__( 'Your App Passwords', 'nobloat-user-foundry' ) . '</h4>';
 			$html .= '<div class="nbuf-table-wrapper nbuf-spaced">';
 			$html .= '<table class="nbuf-data-table nbuf-app-passwords-table">';
 			$html .= '<thead>';
@@ -445,6 +622,8 @@ class NBUF_2FA_Account {
 		}
 
 		/* Create new password form */
+		$html .= '<h4>' . esc_html__( 'Create New App Password', 'nobloat-user-foundry' ) . '</h4>';
+		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Enter a name to identify where you\'ll use this password (e.g., "iPhone WordPress App" or "Home Desktop").', 'nobloat-user-foundry' ) . '</p>';
 		$html .= '<div class="nbuf-create-app-password nbuf-inline-form">';
 		$html .= '<input type="text" id="nbuf-app-password-name" class="nbuf-form-input" placeholder="' . esc_attr__( 'App name (e.g., My Phone)', 'nobloat-user-foundry' ) . '">';
 		$html .= '<button type="button" id="nbuf-create-app-password" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Create Password', 'nobloat-user-foundry' ) . '</button>';
@@ -871,7 +1050,43 @@ class NBUF_2FA_Account {
 
 		$html = '<div class="nbuf-security-subtab-content">';
 
-		$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Sign in using fingerprint, face recognition, or a hardware security key. Passkeys are more secure and faster than passwords.', 'nobloat-user-foundry' ) . '</p>';
+		/* Show different content based on whether user has passkeys */
+		if ( ! empty( $passkeys ) ) {
+			$html .= '<div class="nbuf-method-status nbuf-status-active">';
+			$html .= '<div class="nbuf-status-content">';
+			$html .= '<span class="nbuf-status-icon">&#10003;</span>';
+			$html .= '<div class="nbuf-status-text">';
+			$html .= '<strong>' . sprintf(
+				/* translators: %d: number of registered passkeys */
+				esc_html( _n( '%d Passkey Registered', '%d Passkeys Registered', $passkey_count, 'nobloat-user-foundry' ) ),
+				$passkey_count
+			) . '</strong>';
+			$html .= '<span>' . esc_html__( 'You can sign in quickly using biometrics or a security key.', 'nobloat-user-foundry' ) . '</span>';
+			$html .= '</div></div></div>';
+
+			$html .= '<h4>' . esc_html__( 'How to Sign In', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'On the login page, click "Sign in with Passkey" and follow your device\'s prompts. You\'ll use your fingerprint, face, or security key instead of typing a password.', 'nobloat-user-foundry' ) . '</p>';
+		} else {
+			$html .= '<h4>' . esc_html__( 'What Are Passkeys?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<p class="nbuf-simple-description">' . esc_html__( 'Passkeys replace passwords with biometric authentication (fingerprint or face recognition) or hardware security keys. They\'re built into your devices and work across platforms.', 'nobloat-user-foundry' ) . '</p>';
+
+			$html .= '<h4>' . esc_html__( 'Why Use Passkeys?', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-benefits-list">';
+			$html .= '<li><strong>' . esc_html__( 'More secure', 'nobloat-user-foundry' ) . '</strong> &mdash; ' . esc_html__( 'Can\'t be phished, guessed, or stolen in data breaches', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>' . esc_html__( 'Faster login', 'nobloat-user-foundry' ) . '</strong> &mdash; ' . esc_html__( 'Touch your fingerprint sensor or glance at your camera', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>' . esc_html__( 'No memorization', 'nobloat-user-foundry' ) . '</strong> &mdash; ' . esc_html__( 'Your device handles everything securely', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>' . esc_html__( 'Works everywhere', 'nobloat-user-foundry' ) . '</strong> &mdash; ' . esc_html__( 'Syncs across your phones, tablets, and computers', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+
+			$html .= '<h4>' . esc_html__( 'Supported Devices', 'nobloat-user-foundry' ) . '</h4>';
+			$html .= '<ul class="nbuf-app-list">';
+			$html .= '<li><strong>iPhone/iPad</strong> &mdash; ' . esc_html__( 'iOS 16+ with Face ID or Touch ID', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>Mac</strong> &mdash; ' . esc_html__( 'macOS Ventura+ with Touch ID or iPhone nearby', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>Android</strong> &mdash; ' . esc_html__( 'Android 9+ with fingerprint or screen lock', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>Windows</strong> &mdash; ' . esc_html__( 'Windows 10/11 with Windows Hello', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '<li><strong>' . esc_html__( 'Security Keys', 'nobloat-user-foundry' ) . '</strong> &mdash; ' . esc_html__( 'YubiKey, Titan, and other FIDO2 keys', 'nobloat-user-foundry' ) . '</li>';
+			$html .= '</ul>';
+		}
 
 		/* Browser support notice (hidden by JS if supported) */
 		$html .= '<div class="nbuf-passkeys-browser-check nbuf-browser-check">';

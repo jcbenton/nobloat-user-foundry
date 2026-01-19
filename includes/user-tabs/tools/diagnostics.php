@@ -20,54 +20,49 @@ global $wpdb;
  * ==========================================================
  */
 
-/* Database Tables */
-$nbuf_tables = array(
-	'tokens'               => $wpdb->prefix . 'nbuf_tokens',
-	'user_data'            => $wpdb->prefix . 'nbuf_user_data',
-	'user_2fa'             => $wpdb->prefix . 'nbuf_user_2fa',
-	'user_passkeys'        => $wpdb->prefix . 'nbuf_user_passkeys',
-	'user_profile'         => $wpdb->prefix . 'nbuf_user_profile',
-	'profile_versions'     => $wpdb->prefix . 'nbuf_profile_versions',
-	'login_attempts'       => $wpdb->prefix . 'nbuf_login_attempts',
-	'options'              => $wpdb->prefix . 'nbuf_options',
-	'user_audit_log'       => $wpdb->prefix . 'nbuf_user_audit_log',
-	'admin_audit_log'      => $wpdb->prefix . 'nbuf_admin_audit_log',
-	'security_log'         => $wpdb->prefix . 'nbuf_security_log',
-	'user_notes'           => $wpdb->prefix . 'nbuf_user_notes',
-	'user_roles'           => $wpdb->prefix . 'nbuf_user_roles',
-	'import_history'       => $wpdb->prefix . 'nbuf_import_history',
-	'menu_restrictions'    => $wpdb->prefix . 'nbuf_menu_restrictions',
-	'content_restrictions' => $wpdb->prefix . 'nbuf_content_restrictions',
-);
+/*
+ * Database Tables - uses database introspection to discover tables.
+ * Returns: expected, existing, missing, unexpected arrays.
+ */
+$nbuf_table_data = NBUF_Database::get_all_tables();
+$nbuf_tables     = $nbuf_table_data['expected']; /* For backward compatibility with queries below */
 
+/* Gather stats for all tables (expected + any unexpected) */
+$nbuf_all_tables  = array_merge( $nbuf_table_data['expected'], $nbuf_table_data['unexpected'] );
 $nbuf_table_stats = array();
-foreach ( $nbuf_tables as $nbuf_key => $nbuf_table_name ) {
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	$nbuf_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) );
+
+foreach ( $nbuf_all_tables as $nbuf_key => $nbuf_table_name ) {
+	$nbuf_exists = in_array( $nbuf_table_name, array_values( $nbuf_table_data['existing'] ), true )
+	            || in_array( $nbuf_table_name, array_values( $nbuf_table_data['unexpected'] ), true );
+
 	if ( $nbuf_exists ) {
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$nbuf_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_table_name ) );
 
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$nbuf_size                = $wpdb->get_var(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$nbuf_size = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT ROUND((data_length + index_length) / 1024, 2)
-			FROM information_schema.TABLES
-			WHERE table_schema = %s AND table_name = %s',
+				FROM information_schema.TABLES
+				WHERE table_schema = %s AND table_name = %s',
 				DB_NAME,
 				$nbuf_table_name
 			)
 		);
 		$nbuf_table_stats[ $nbuf_key ] = array(
-			'exists' => true,
-			'count'  => (int) $nbuf_count,
-			'size'   => (float) $nbuf_size,
+			'name'       => $nbuf_table_name,
+			'exists'     => true,
+			'count'      => (int) $nbuf_count,
+			'size'       => (float) $nbuf_size,
+			'unexpected' => isset( $nbuf_table_data['unexpected'][ $nbuf_key ] ),
 		);
 	} else {
 		$nbuf_table_stats[ $nbuf_key ] = array(
-			'exists' => false,
-			'count'  => 0,
-			'size'   => 0,
+			'name'       => $nbuf_table_name,
+			'exists'     => false,
+			'count'      => 0,
+			'size'       => 0,
+			'unexpected' => false,
 		);
 	}
 }
@@ -203,9 +198,11 @@ $nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 			<tbody>
 				<?php foreach ( $nbuf_table_stats as $nbuf_key => $nbuf_stats ) : ?>
 					<tr>
-						<td><code><?php echo esc_html( $nbuf_tables[ $nbuf_key ] ); ?></code></td>
+						<td><code><?php echo esc_html( $nbuf_stats['name'] ); ?></code></td>
 						<td>
-					<?php if ( $nbuf_stats['exists'] ) : ?>
+							<?php if ( $nbuf_stats['unexpected'] ) : ?>
+								<span class="nbuf-status-badge warning">⚠ <?php esc_html_e( 'Unexpected', 'nobloat-user-foundry' ); ?></span>
+							<?php elseif ( $nbuf_stats['exists'] ) : ?>
 								<span class="nbuf-status-badge success">✓ <?php esc_html_e( 'Exists', 'nobloat-user-foundry' ); ?></span>
 							<?php else : ?>
 								<span class="nbuf-status-badge error">✗ <?php esc_html_e( 'Missing', 'nobloat-user-foundry' ); ?></span>
@@ -221,6 +218,15 @@ $nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 				</tr>
 			</tbody>
 		</table>
+
+		<?php if ( ! empty( $nbuf_table_data['unexpected'] ) ) : ?>
+		<div class="notice notice-warning inline" style="margin: 15px 0;">
+			<p>
+				<strong><?php esc_html_e( 'Unexpected tables detected:', 'nobloat-user-foundry' ); ?></strong>
+				<?php esc_html_e( 'These tables exist in the database but are not part of the current plugin version. They may be from an older version or a different plugin.', 'nobloat-user-foundry' ); ?>
+			</p>
+		</div>
+		<?php endif; ?>
 
 		<div style="margin-top: 15px;">
 			<p class="description" style="margin-bottom: 10px;">
@@ -246,7 +252,7 @@ $nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 		<table class="nbuf-diag-table">
 			<tbody>
 				<tr>
-					<td><strong><?php esc_html_e( 'wp_options bloat', 'nobloat-user-foundry' ); ?></strong></td>
+					<td><strong><code><?php echo esc_html( $wpdb->options ); ?></code></strong> <span class="description">(<?php esc_html_e( 'nbuf_ entries', 'nobloat-user-foundry' ); ?>)</span></td>
 					<td>
 						<?php if ( (int) $nbuf_wp_options_bloat < 10 ) : ?>
 							<span class="nbuf-status-badge success">✓ <?php echo esc_html( (int) $nbuf_wp_options_bloat ); ?> <?php esc_html_e( 'entries (minimal)', 'nobloat-user-foundry' ); ?></span>
@@ -256,7 +262,7 @@ $nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 					</td>
 				</tr>
 				<tr>
-					<td><strong><?php esc_html_e( 'wp_usermeta bloat', 'nobloat-user-foundry' ); ?></strong></td>
+					<td><strong><code><?php echo esc_html( $wpdb->usermeta ); ?></code></strong> <span class="description">(<?php esc_html_e( 'nbuf_ entries', 'nobloat-user-foundry' ); ?>)</span></td>
 					<td>
 						<?php if ( 0 === (int) $nbuf_wp_usermeta_bloat ) : ?>
 							<span class="nbuf-status-badge success">✓ <?php esc_html_e( 'Zero entries', 'nobloat-user-foundry' ); ?></span>
@@ -266,7 +272,7 @@ $nbuf_wp_max_memory_limit = WP_MAX_MEMORY_LIMIT;
 					</td>
 				</tr>
 				<tr>
-					<td><strong><?php esc_html_e( 'Custom options table', 'nobloat-user-foundry' ); ?></strong></td>
+					<td><strong><code><?php echo esc_html( $nbuf_tables['options'] ); ?></code></strong></td>
 					<td>
 						<span class="nbuf-status-badge success"><?php echo esc_html( number_format_i18n( $nbuf_custom_options_count ) ); ?> <?php esc_html_e( 'settings stored', 'nobloat-user-foundry' ); ?></span>
 					</td>

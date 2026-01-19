@@ -129,9 +129,26 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
    PAGE LAYOUT
    ========================================================== */
 
+.nbuf-virtual-page-wrapper {
+    width: 90%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.nbuf-virtual-page-wrapper .entry-content {
+    max-width: none;
+    width: 100%;
+}
+
+.nbuf-virtual-page .entry-content {
+    min-height: 90vh;
+}
+
 .nbuf-account-wrapper {
     margin: var(--nbuf-space-2xl) auto;
     padding: var(--nbuf-space-lg);
+    width: 90%;
+    box-sizing: border-box;
 }
 
 /* ==========================================================
@@ -174,42 +191,51 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
 .nbuf-account-tabs {
     display: flex;
     align-items: center;
-    gap: var(--nbuf-space-xs);
-    border-bottom: 2px solid var(--nbuf-border-light);
+    gap: var(--nbuf-space-sm);
     margin-bottom: var(--nbuf-space-xl);
-    padding-bottom: 0;
+    padding: var(--nbuf-space-xs);
+    background: var(--nbuf-background);
+    border-radius: var(--nbuf-radius-md);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 .nbuf-tab-button {
-    padding: var(--nbuf-space-md) var(--nbuf-space-lg);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
     background: transparent;
     border: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
+    border-radius: var(--nbuf-radius-sm);
     cursor: pointer;
     font: inherit;
     font-weight: 500;
     color: var(--nbuf-text-secondary);
     transition: color var(--nbuf-transition-base),
-                border-color var(--nbuf-transition-base);
+                background-color var(--nbuf-transition-base);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .nbuf-tab-button:hover {
     color: var(--nbuf-primary);
+    background: rgba(0, 115, 170, 0.08);
 }
 
 .nbuf-tab-button.nbuf-tab-active {
     color: var(--nbuf-primary);
-    border-bottom-color: var(--nbuf-primary);
+    background: var(--nbuf-surface);
     font-weight: 600;
+    box-shadow: var(--nbuf-shadow-sm);
 }
 
 .nbuf-tab-button:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
-    border-radius: var(--nbuf-radius-sm);
 }
-
 
 /* ==========================================================
    TAB CONTENT
@@ -231,19 +257,24 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
     display: flex;
     gap: var(--nbuf-space-xs);
     margin-bottom: var(--nbuf-space-lg);
-    padding-bottom: var(--nbuf-space-sm);
-    border-bottom: 1px solid var(--nbuf-border-light);
+    padding: var(--nbuf-space-xs);
+    background: var(--nbuf-background);
+    border-radius: var(--nbuf-radius-sm);
 }
 
 .nbuf-subtab-link,
 .nbuf-subtab-button {
-    padding: var(--nbuf-space-xs) var(--nbuf-space-sm);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: var(--nbuf-space-xs) var(--nbuf-space-md);
     background: transparent;
     border: none;
     border-radius: var(--nbuf-radius-sm);
     cursor: pointer;
     font: inherit;
-    color: var(--nbuf-primary);
+    font-size: 0.9em;
+    color: var(--nbuf-text-secondary);
     text-decoration: none;
     transition: color var(--nbuf-transition-base),
                 background-color var(--nbuf-transition-base);
@@ -251,35 +282,22 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
 
 .nbuf-subtab-link:hover,
 .nbuf-subtab-button:hover {
-    color: var(--nbuf-primary-hover);
-    background: rgba(34, 113, 177, 0.08);
+    color: var(--nbuf-primary);
+    background: rgba(0, 115, 170, 0.08);
 }
 
 .nbuf-subtab-link.active,
 .nbuf-subtab-button.nbuf-subtab-active {
-    color: var(--nbuf-text-primary);
-    background: rgba(34, 113, 177, 0.1);
+    color: var(--nbuf-primary);
+    background: var(--nbuf-surface);
     font-weight: 600;
+    box-shadow: var(--nbuf-shadow-sm);
 }
 
 .nbuf-subtab-link:focus-visible,
 .nbuf-subtab-button:focus-visible {
     outline: 2px solid var(--nbuf-primary);
     outline-offset: 2px;
-}
-
-/* Pipe separator between subtabs */
-.nbuf-subtab-link::after,
-.nbuf-subtab-button::after {
-    content: '|';
-    margin-left: var(--nbuf-space-sm);
-    color: var(--nbuf-border);
-    font-weight: 300;
-}
-
-.nbuf-subtab-link:last-child::after,
-.nbuf-subtab-button:last-child::after {
-    content: none;
 }
 
 /* ==========================================================
@@ -712,6 +730,17 @@ textarea.nbuf-account-input {
 
 .nbuf-button-primary:hover {
     background: var(--nbuf-primary-hover);
+    color: var(--nbuf-surface);
+}
+
+/* Ensure link-buttons don't inherit theme link colors */
+a.nbuf-button-primary,
+a.nbuf-button-primary:visited,
+a.nbuf-button-primary:hover,
+a.nbuf-button-primary:focus,
+a.nbuf-button-primary:active {
+    color: var(--nbuf-surface);
+    text-decoration: none;
 }
 
 /* Subtle press effect for tactile feedback */
@@ -762,6 +791,20 @@ textarea.nbuf-account-input {
     background: var(--nbuf-info-bg);
     color: var(--nbuf-info);
     border: 1px solid var(--nbuf-info-border);
+}
+
+.nbuf-message-warning {
+    background: var(--nbuf-warning-bg);
+    color: var(--nbuf-warning);
+    border: 1px solid var(--nbuf-warning-border);
+}
+
+.nbuf-message-warning ul {
+    margin: 8px 0 0 20px;
+}
+
+.nbuf-message-warning li {
+    margin-bottom: 4px;
 }
 
 /* Page-specific message override targets */
@@ -834,12 +877,15 @@ textarea.nbuf-account-input {
 }
 
 .nbuf-button-secondary {
-    background: #dc3545;
-    color: var(--nbuf-surface);
+    background: var(--nbuf-surface);
+    color: var(--nbuf-text-secondary);
+    border: 1px solid var(--nbuf-border);
 }
 
 .nbuf-button-secondary:hover {
-    background: #b02a37;
+    background: var(--nbuf-background);
+    color: var(--nbuf-text-primary);
+    border-color: var(--nbuf-text-tertiary);
 }
 
 /* Backup codes display */
@@ -923,7 +969,8 @@ textarea.nbuf-account-input {
     }
 
     .nbuf-account-tabs {
-        flex-wrap: wrap;
+        /* Allow horizontal scroll instead of wrap */
+        flex-wrap: nowrap;
     }
 
     .nbuf-tab-button {
@@ -951,58 +998,36 @@ textarea.nbuf-account-input {
     }
 
     .nbuf-account-tabs {
-        gap: 0;
+        gap: var(--nbuf-space-xs);
+        /* Hide scrollbar on mobile for cleaner look, users can still swipe */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .nbuf-account-tabs::-webkit-scrollbar {
+        display: none;
     }
 
     .nbuf-tab-button {
-        flex: 1;
+        /* Keep tabs scrollable, don't stretch */
+        flex: 0 0 auto;
         text-align: center;
         font-size: 14px;
     }
 
-    /* Sub-tabs responsive - pill style buttons */
+    /* Sub-tabs responsive */
     .nbuf-subtabs {
         flex-wrap: wrap;
-        gap: var(--nbuf-space-sm);
-        border-bottom: none;
-        padding-bottom: 0;
-        margin-bottom: var(--nbuf-space-lg);
+        gap: var(--nbuf-space-xs);
     }
 
     .nbuf-subtab-link,
     .nbuf-subtab-button {
-        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
-        background: var(--nbuf-background);
-        border: 1px solid var(--nbuf-border);
-        border-radius: 20px;
-        font-size: 14px;
-        min-height: 44px;
+        font-size: 13px;
+        min-height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    /* Remove pipe separators on mobile */
-    .nbuf-subtab-link::after,
-    .nbuf-subtab-button::after {
-        content: none;
-    }
-
-    .nbuf-subtab-link.active,
-    .nbuf-subtab-button.nbuf-subtab-active {
-        background: var(--nbuf-primary);
-        color: var(--nbuf-surface);
-        border-color: var(--nbuf-primary);
-    }
-
-    .nbuf-subtab-link:hover,
-    .nbuf-subtab-button:hover {
-        background: var(--nbuf-border-light);
-    }
-
-    .nbuf-subtab-link.active:hover,
-    .nbuf-subtab-button.nbuf-subtab-active:hover {
-        background: var(--nbuf-primary-hover);
     }
 }
 
@@ -2077,8 +2102,8 @@ body.nbuf-page .nobloat-verify-wrapper a {
     border-radius: 0 !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: 8px center;
-    padding-left: 28px;
+    background-position: 10px center;
+    padding: 10px 10px 10px 32px !important;
     font-size: 13px;
 }
 
@@ -2206,6 +2231,34 @@ body.nbuf-page .nobloat-verify-wrapper a {
     color: var(--nbuf-text-secondary);
     text-align: center;
     padding: var(--nbuf-space-xl);
+}
+
+/* ==========================================================
+   AUTHENTICATOR TAB LISTS
+   ========================================================== */
+
+.nbuf-app-list,
+.nbuf-benefits-list {
+    margin: 0 0 20px 0;
+    padding: 0 0 0 20px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--nbuf-text-secondary);
+}
+
+.nbuf-app-list li,
+.nbuf-benefits-list li {
+    margin-bottom: 8px;
+    padding-left: 4px;
+}
+
+.nbuf-app-list li:last-child,
+.nbuf-benefits-list li:last-child {
+    margin-bottom: 0;
+}
+
+.nbuf-app-list strong {
+    color: var(--nbuf-text-primary);
 }
 
 /* Responsive sessions */

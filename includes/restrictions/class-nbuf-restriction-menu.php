@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Handles menu item visibility restrictions.
  */
-class NBUF_Restriction_Menu extends Abstract_NBUF_Restriction {
+class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 
 	/**
 	 * Request-level cache for all menu restrictions.

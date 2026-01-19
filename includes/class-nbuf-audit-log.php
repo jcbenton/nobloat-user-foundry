@@ -185,17 +185,19 @@ class NBUF_Audit_Log {
 		}
 
 		/* Get category tracking settings */
-		$tracking_settings = NBUF_Options::get(
-			'nbuf_audit_log_events',
-			array(
+		$tracking_settings = NBUF_Options::get( 'nbuf_audit_log_events', false );
+
+		/* Handle corrupted value (false instead of array) - use defaults */
+		if ( ! is_array( $tracking_settings ) ) {
+			$tracking_settings = array(
 				'authentication' => true,
 				'verification'   => true,
 				'passwords'      => true,
 				'2fa'            => true,
 				'account_status' => true,
 				'profile'        => false,
-			)
-		);
+			);
+		}
 
 		return isset( $tracking_settings[ $category ] ) && $tracking_settings[ $category ];
 	}
@@ -491,7 +493,7 @@ class NBUF_Audit_Log {
 			return '';
 		}
 		foreach ( $csv as $row ) {
-			fputcsv( $output, $row );
+			fputcsv( $output, array_map( array( __CLASS__, 'csv_escape' ), $row ) );
 		}
      // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Required for CSV output to php://output stream.
 		fclose( $output );
@@ -704,6 +706,26 @@ class NBUF_Audit_Log {
 			$parts[3] = '0';
 			return implode( '.', $parts );
 		}
+	}
+
+	/**
+	 * Escape CSV value to prevent formula injection
+	 *
+	 * Prefixes values starting with formula characters (=, +, -, @, tab, carriage return)
+	 * with a single quote to prevent spreadsheet applications from interpreting them as formulas.
+	 *
+	 * @param  mixed $value Value to escape.
+	 * @return string Escaped value.
+	 */
+	private static function csv_escape( $value ): string {
+		$value = (string) $value;
+
+		/* Prefix dangerous formula characters with single quote */
+		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+			$value = "'" . $value;
+		}
+
+		return str_replace( '"', '""', $value );
 	}
 
 	/**

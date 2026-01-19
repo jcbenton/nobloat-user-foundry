@@ -230,9 +230,9 @@ jQuery(document).ready(function($) {
 		let html = '<table class="nbuf-mapping-table">';
 		html += '<thead><tr>';
 		html += '<th>' + NBUF_Migration.i18n.source_field + '</th>';
-		html += '<th>' + NBUF_Migration.i18n.sample_value + '</th>';
 		html += '<th>' + NBUF_Migration.i18n.map_to + '</th>';
 		html += '<th>' + NBUF_Migration.i18n.status + '</th>';
+		html += '<th>' + NBUF_Migration.i18n.sample_value + '</th>';
 		html += '</tr></thead><tbody>';
 
 		for (const [sourceField, data] of Object.entries(mappings)) {
@@ -240,12 +240,12 @@ jQuery(document).ready(function($) {
 			/* Show field label if available (for custom fields), otherwise show field key */
 			const fieldDisplay = data.field_label ? escapeHtml(data.field_label) + ' <code style="font-size: 11px; color: #666;">(' + escapeHtml(sourceField) + ')</code>' : '<code>' + escapeHtml(sourceField) + '</code>';
 			html += '<td>' + fieldDisplay + '</td>';
-			html += '<td>' + (data.sample ? escapeHtml(data.sample) : '<em>' + NBUF_Migration.i18n.no_data + '</em>') + '</td>';
 			html += '<td>' + buildTargetSelect(sourceField, data.target) + '</td>';
 
 			const status = data.auto_mapped ? 'auto' : (data.target ? 'manual' : 'unmapped');
 			const statusText = status === 'auto' ? '✓ ' + NBUF_Migration.i18n.auto : (status === 'manual' ? '✎ ' + NBUF_Migration.i18n.manual : '○ ' + NBUF_Migration.i18n.skip);
 			html += '<td><span class="nbuf-mapping-status ' + status + '">' + statusText + '</span></td>';
+			html += '<td>' + (data.sample ? escapeHtml(data.sample) : '<em>' + NBUF_Migration.i18n.no_data + '</em>') + '</td>';
 			html += '</tr>';
 
 			/* Store initial mapping */
@@ -260,25 +260,23 @@ jQuery(document).ready(function($) {
 
 	/* Build target field select dropdown */
 	function buildTargetSelect(sourceField, selectedTarget) {
-		/* Get NBUF field registry */
-		const targetFields = {
-			'Basic Contact': ['phone', 'mobile_phone', 'work_phone', 'fax', 'preferred_name', 'nickname', 'pronouns', 'gender', 'date_of_birth', 'timezone', 'secondary_email'],
-			'Address': ['address', 'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country'],
-			'Professional': ['company', 'job_title', 'department', 'division', 'employee_id', 'badge_number', 'manager_name', 'supervisor_email', 'office_location', 'hire_date', 'termination_date', 'work_email', 'employment_type', 'license_number', 'professional_memberships', 'security_clearance', 'shift', 'remote_status'],
-			'Education': ['student_id', 'school_name', 'degree', 'major', 'graduation_year', 'gpa', 'certifications'],
-			'Social Media': ['twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok', 'discord_username', 'whatsapp', 'telegram', 'viber', 'twitch', 'reddit', 'snapchat', 'soundcloud', 'vimeo', 'spotify', 'pinterest'],
-			'Personal': ['bio', 'website', 'nationality', 'languages', 'emergency_contact']
-		};
+		/*
+		 * Use field registry from PHP (NBUF_Profile_Data::get_field_registry())
+		 * This ensures the migration tool always has the complete, up-to-date field list.
+		 * Format: { 'Category Label': { 'field_key': 'Field Label', ... }, ... }
+		 */
+		const targetFields = NBUF_Migration.field_registry || {};
 
 		let html = '<select class="nbuf-target-field" data-source="' + escapeHtml(sourceField) + '">';
 		html += '<option value="">' + NBUF_Migration.i18n.skip_field + '</option>';
 
 		for (const [category, fields] of Object.entries(targetFields)) {
 			html += '<optgroup label="' + escapeHtml(category) + '">';
-			fields.forEach(field => {
-				const selected = (field === selectedTarget) ? ' selected' : '';
-				html += '<option value="' + field + '"' + selected + '>' + formatFieldName(field) + '</option>';
-			});
+			/* fields is an object: { field_key: 'Field Label' } */
+			for (const [fieldKey, fieldLabel] of Object.entries(fields)) {
+				const selected = (fieldKey === selectedTarget) ? ' selected' : '';
+				html += '<option value="' + escapeHtml(fieldKey) + '"' + selected + '>' + escapeHtml(fieldLabel) + '</option>';
+			}
 			html += '</optgroup>';
 		}
 
@@ -423,7 +421,7 @@ jQuery(document).ready(function($) {
 					} else {
 						/* Migration complete */
 						updateProgress(100, 'Complete!');
-						displayResults(data.results);
+						displayResults(data.results, data.users_with_data);
 					}
 				} else {
 					const errorMsg = (response.data && response.data.message) ? escapeHtml(response.data.message) : 'Migration failed.';
@@ -447,15 +445,17 @@ jQuery(document).ready(function($) {
 	}
 
 	/* Display migration results */
-	function displayResults(results) {
+	function displayResults(results, usersWithData) {
 		let html = '<div class="notice notice-success inline"><p>';
 		html += '<strong>' + NBUF_Migration.i18n.migration_complete + '</strong><br><br>';
 
 		for (const [type, data] of Object.entries(results)) {
 			html += '<strong>' + formatFieldName(type) + ':</strong><br>';
-			html += '• ' + NBUF_Migration.i18n.total + ': ' + data.total + '<br>';
-			html += '• ' + NBUF_Migration.i18n.migrated + ': ' + data.migrated + '<br>';
-			html += '• ' + NBUF_Migration.i18n.skipped + ': ' + data.skipped + '<br>';
+			if (type === 'profile_data' && usersWithData !== undefined) {
+				html += '• ' + NBUF_Migration.i18n.users_with_plugin_data + ': ' + usersWithData + '<br>';
+			}
+			html += '• ' + NBUF_Migration.i18n.migrated + ': ' + (data.imported || data.migrated || 0) + '<br>';
+			html += '• ' + NBUF_Migration.i18n.skipped + ': ' + (data.skipped || 0) + '<br>';
 			if (data.errors && data.errors.length > 0) {
 				html += '• ' + NBUF_Migration.i18n.errors + ': ' + data.errors.length + '<br>';
 			}

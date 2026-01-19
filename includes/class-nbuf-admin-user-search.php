@@ -63,6 +63,9 @@ class NBUF_Admin_User_Search {
 		$show_company  = NBUF_Options::get( 'nbuf_users_column_company', false );
 		$show_location = NBUF_Options::get( 'nbuf_users_column_location', false );
 
+		/* Track columns we handle so we can preserve others from third-party plugins */
+		$handled_columns = array( 'cb', 'username', 'name', 'email', 'role', 'posts' );
+
 		/* Build columns in specific order: username, name, email, verified, expiration, role */
 		$new_columns = array();
 
@@ -107,6 +110,13 @@ class NBUF_Admin_User_Search {
 		/* Optional: Location (off by default) */
 		if ( $show_location ) {
 			$new_columns['nbuf_location'] = __( 'Location', 'nobloat-user-foundry' );
+		}
+
+		/* Preserve columns from other plugins (e.g., EDD Customer column) */
+		foreach ( $columns as $key => $label ) {
+			if ( ! in_array( $key, $handled_columns, true ) && ! isset( $new_columns[ $key ] ) ) {
+				$new_columns[ $key ] = $label;
+			}
 		}
 
 		return $new_columns;
@@ -790,13 +800,25 @@ class NBUF_Admin_User_Search {
 			/* Put our filters on their own row */
 			.tablenav .nbuf-user-filters {
 				flex-basis: 100%;
-				margin-top: 8px;
-				padding-top: 8px;
 				padding-bottom: 8px;
-				border-top: 1px solid #c3c4c7;
+				display: flex;
+				align-items: center;
+			}
+			.tablenav .nbuf-user-filters::before {
+				content: "|";
+				color: #c3c4c7;
+				margin-right: 10px;
+				font-size: 14px;
 			}
 			.tablenav .nbuf-user-filters select {
 				margin-right: 6px;
+			}
+
+			/* Remove optgroup separator lines in bulk actions */
+			.tablenav select optgroup {
+				border: none;
+				margin: 0;
+				padding: 0;
 			}
 
 			.nbuf-status-badge {

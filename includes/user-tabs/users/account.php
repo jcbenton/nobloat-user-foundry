@@ -12,10 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Login settings */
-$nbuf_reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
-$nbuf_login_method = $nbuf_reg_settings['login_method'] ?? 'email_or_username';
-
 /* Password reset */
 $nbuf_enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 
@@ -40,25 +36,6 @@ $nbuf_warning_days      = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 )
 	<h2><?php esc_html_e( 'Account Settings', 'nobloat-user-foundry' ); ?></h2>
 
 	<table class="form-table">
-		<tr>
-			<th><?php esc_html_e( 'Login Method', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<select name="nbuf_registration_fields[login_method]">
-					<option value="email_only" <?php selected( $nbuf_login_method, 'email_only' ); ?>>
-						<?php esc_html_e( 'Email Only - Users login with email address', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="username_only" <?php selected( $nbuf_login_method, 'username_only' ); ?>>
-						<?php esc_html_e( 'Username Only - Users login with username', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="email_or_username" <?php selected( $nbuf_login_method, 'email_or_username' ); ?>>
-						<?php esc_html_e( 'Email or Username - Users can use either', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
-				<p class="description">
-					<?php esc_html_e( 'How users will authenticate when logging in.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
 		<tr>
 			<th><?php esc_html_e( 'Password Resets', 'nobloat-user-foundry' ); ?></th>
 			<td>

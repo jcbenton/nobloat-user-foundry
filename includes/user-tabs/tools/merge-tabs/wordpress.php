@@ -135,7 +135,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<input type="checkbox" name="nbuf_merge_comments" value="1" checked>
 								<?php esc_html_e( 'Comments', 'nobloat-user-foundry' ); ?>
 								<span id="nbuf-source-comment-count" class="description"></span>
+							</label><br>
+							<label>
+								<input type="checkbox" name="nbuf_merge_meta" value="1" checked>
+								<?php esc_html_e( 'User meta (plugin data, preferences)', 'nobloat-user-foundry' ); ?>
 							</label>
+							<p class="description"><?php esc_html_e( 'Copies non-duplicate meta keys from source to target. Core WordPress meta (capabilities, sessions) is excluded.', 'nobloat-user-foundry' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -276,14 +281,24 @@ wp_enqueue_script(
 	true
 );
 
+/* Get field registry for extended fields display (with custom labels) */
+$nbuf_field_registry = array();
+if ( class_exists( 'NBUF_Profile_Data' ) ) {
+	$nbuf_registry = NBUF_Profile_Data::get_field_registry_with_labels();
+	foreach ( $nbuf_registry as $nbuf_category_data ) {
+		$nbuf_field_registry = array_merge( $nbuf_field_registry, $nbuf_category_data['fields'] );
+	}
+}
+
 /* Localize script */
 wp_localize_script(
 	'nbuf-merge-accounts',
 	'NBUF_Merge',
 	array(
-		'ajaxurl' => admin_url( 'admin-ajax.php' ),
-		'nonce'   => wp_create_nonce( 'nbuf_merge_accounts' ),
-		'i18n'    => array(
+		'ajaxurl'        => admin_url( 'admin-ajax.php' ),
+		'nonce'          => wp_create_nonce( 'nbuf_merge_accounts' ),
+		'field_registry' => $nbuf_field_registry,
+		'i18n'           => array(
 			'searching'        => __( 'Searching...', 'nobloat-user-foundry' ),
 			'no_results'       => __( 'No users found', 'nobloat-user-foundry' ),
 			'min_chars'        => __( 'Type at least 2 characters to search', 'nobloat-user-foundry' ),

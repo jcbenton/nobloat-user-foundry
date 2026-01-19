@@ -21,7 +21,7 @@ if ( ! current_user_can( 'manage_options' ) ) {
 
 /* Get current settings */
 $nbuf_enabled           = NBUF_Options::get( 'nbuf_version_history_enabled', true );
-$nbuf_user_visible      = NBUF_Options::get( 'nbuf_version_history_user_visible', true );
+$nbuf_user_visible      = NBUF_Options::get( 'nbuf_version_history_user_visible', false );
 $nbuf_allow_user_revert = NBUF_Options::get( 'nbuf_version_history_allow_user_revert', false );
 $nbuf_retention_days    = NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
 $nbuf_max_versions      = NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );

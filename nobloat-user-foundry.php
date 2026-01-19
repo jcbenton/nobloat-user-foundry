@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
- * Description: Lightweight user management system for WordPress - email verification, account expiration, and user lifecycle management without the bloat.
+ * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
  * Version: 1.5.4
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -31,7 +31,6 @@ define( 'NBUF_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'NBUF_TEMPLATES_DIR', NBUF_PLUGIN_DIR . 'templates/' );
 define( 'NBUF_INCLUDE_DIR', NBUF_PLUGIN_DIR . 'includes/' );
 define( 'NBUF_DB_TABLE', 'nbuf_tokens' );
-define( 'NBUF_USER_DATA_TABLE', 'nbuf_user_data' );
 
 /**
  * Register PSR-4 autoloader
@@ -92,6 +91,7 @@ register_deactivation_hook(
 	function () {
 		NBUF_Cron::deactivate();
 		NBUF_Expiration::deactivate();
+		NBUF_Change_Notifications::unschedule_digests();
 		NBUF_Asset_Minifier::clear_cache();
 	}
 );
@@ -489,7 +489,11 @@ add_action(
 			NBUF_Account_Merger::init();
 		}
 
-		// Initialize Change Notifications (if enabled).
+		// Register Change Notifications cron handlers (ALWAYS - to send pending digests).
+		// Must be registered even when disabled so scheduled events can fire.
+		NBUF_Change_Notifications::register_cron_handlers();
+
+		// Initialize Change Notifications tracking (if enabled).
 		$notify_changes_enabled = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
 		if ( $notify_changes_enabled ) {
 			new NBUF_Change_Notifications();
@@ -548,6 +552,9 @@ add_action(
 			if ( $password_expiration_enabled ) {
 				NBUF_Password_Expiration::init();
 			}
+
+			/* Weak password migration - validates passwords at login */
+			NBUF_Password_Validator::init();
 		}
 	},
 	5 /* Early priority to ensure hooks are registered before login processing */

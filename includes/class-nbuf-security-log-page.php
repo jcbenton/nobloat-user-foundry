@@ -474,7 +474,7 @@ class NBUF_Security_Log_Page {
 	 * @return string Export URL.
 	 */
 	private static function get_export_url() {
-		$url = admin_url( 'admin.php' );
+		$url = admin_url( 'admin.php?page=nobloat-foundry-security-log' );
 		$url = add_query_arg( 'action', 'nbuf_export_security_logs', $url );
 
 		/*

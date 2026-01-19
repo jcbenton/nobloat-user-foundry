@@ -63,6 +63,24 @@ class NBUF_Restriction_Metabox {
 	 * @param WP_Post $post Post object.
 	 */
 	public static function render_metabox( $post ) {
+		/* Check if content restrictions are enabled */
+		$content_enabled = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
+		if ( ! $content_enabled ) {
+			?>
+			<div class="notice notice-warning inline" style="margin: 0 0 10px 0; padding: 8px 12px;">
+				<p style="margin: 0;">
+					<?php
+					printf(
+						/* translators: %s: Link to settings page */
+						esc_html__( 'Content restrictions are currently disabled. %s to enable enforcement.', 'nobloat-user-foundry' ),
+						'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=restrictions' ) ) . '">' . esc_html__( 'Go to Settings', 'nobloat-user-foundry' ) . '</a>'
+					);
+					?>
+				</p>
+			</div>
+			<?php
+		}
+
 		/* Get existing restriction */
 		$restriction = NBUF_Restrictions::get_content_restriction( $post->ID, $post->post_type );
 

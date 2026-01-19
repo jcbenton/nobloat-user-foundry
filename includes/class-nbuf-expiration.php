@@ -123,6 +123,9 @@ class NBUF_Expiration {
 			$sessions = WP_Session_Tokens::get_instance( $user_id );
 			$sessions->destroy_all();
 
+			// Send expiration notice email.
+			self::send_expiration_notice_email( $user_id );
+
 			// Fire action hook for extensions.
 			do_action( 'nbuf_user_expired', $user_id );
 
@@ -227,6 +230,73 @@ class NBUF_Expiration {
 
 		// Send email using central sender.
 		return NBUF_Email::send( $user->user_email, $subject, $message, $use_html ? 'html' : 'text' );
+	}
+
+	/**
+	 * Send expiration notice email to user.
+	 *
+	 * Sent when the account has actually expired and been disabled.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success, false on failure.
+	 */
+	private static function send_expiration_notice_email( $user_id ) {
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return false;
+		}
+
+		$user_data = NBUF_User_Data::get( $user_id );
+
+		// Get email templates using Template Manager.
+		$html_template = NBUF_Template_Manager::load_template( 'expiration-notice-html' );
+		$text_template = NBUF_Template_Manager::load_template( 'expiration-notice-text' );
+
+		// If both templates are empty/default fallback, skip sending.
+		if ( empty( $html_template ) && empty( $text_template ) ) {
+			return false;
+		}
+
+		// Prepare placeholders.
+		$expires_date = $user_data && $user_data->expires_at
+			? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $user_data->expires_at ) )
+			: date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+
+		$placeholders = array(
+			'{site_name}'       => get_bloginfo( 'name' ),
+			'{site_url}'        => home_url(),
+			'{display_name}'    => $user->display_name ? $user->display_name : $user->user_login,
+			'{username}'        => $user->user_login,
+			'{expires_date}'    => $expires_date,
+			'{expiration_date}' => $expires_date,
+			'{contact_url}'     => home_url( '/contact' ),
+		);
+
+		// Use HTML template if available, otherwise text.
+		$use_html = ! empty( $html_template ) && strpos( $html_template, 'Template not found' ) === false;
+		$template = $use_html ? $html_template : $text_template;
+
+		// Replace placeholders.
+		$message = str_replace( array_keys( $placeholders ), array_values( $placeholders ), $template );
+
+		// Prepare email.
+		/* translators: %s: Site name */
+		$subject = sprintf( __( '[%s] Your account has expired', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
+
+		// Send email using central sender.
+		$sent = NBUF_Email::send( $user->user_email, $subject, $message, $use_html ? 'html' : 'text' );
+
+		// Log result if WP_DEBUG enabled.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			if ( $sent ) {
+				error_log( sprintf( '[NoBloat User Foundry] Expiration notice sent to user ID %d.', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			} else {
+				error_log( sprintf( '[NoBloat User Foundry] Failed to send expiration notice to user ID %d.', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+		}
+
+		return $sent;
 	}
 
 	/**

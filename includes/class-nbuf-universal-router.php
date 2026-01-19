@@ -226,20 +226,6 @@ class NBUF_Universal_Router {
 		/* Output the page using theme's header/footer */
 		get_header();
 		?>
-		<style>
-			.nbuf-virtual-page-wrapper {
-				max-width: 900px;
-				margin: 0 auto 40px auto;
-				padding: 0 20px;
-				box-sizing: border-box;
-				width: 100%;
-			}
-			/* Prevent inner content from triggering mobile styles */
-			.nbuf-virtual-page-wrapper .entry-content {
-				max-width: none;
-				width: 100%;
-			}
-		</style>
 		<div class="nbuf-virtual-page-wrapper">
 			<div id="primary" class="content-area">
 				<main id="main" class="site-main">

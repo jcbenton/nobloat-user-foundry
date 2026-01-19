@@ -124,6 +124,7 @@ class NBUF_Background_Activation {
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 
 		/* Check if table exists */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 		$table_exists = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',
@@ -134,14 +135,19 @@ class NBUF_Background_Activation {
 
 		if ( ! $table_exists ) {
 			/* Table doesn't exist, count all users */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 			return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
 		}
 
 		/* Count users needing verification (not in table or is_verified != 1) */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 		$count = $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$wpdb->users} u
-			LEFT JOIN {$user_data_table} ud ON u.ID = ud.user_id
-			WHERE ud.user_id IS NULL OR ud.is_verified != 1"
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->users} u
+				LEFT JOIN %i ud ON u.ID = ud.user_id
+				WHERE ud.user_id IS NULL OR ud.is_verified != 1",
+				$user_data_table
+			)
 		);
 
 		return (int) $count;
@@ -175,6 +181,7 @@ class NBUF_Background_Activation {
 		}
 
 		/* Get batch of user IDs */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Batch processing during activation.
 		$user_ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT ID FROM {$wpdb->users} ORDER BY ID ASC LIMIT %d OFFSET %d",

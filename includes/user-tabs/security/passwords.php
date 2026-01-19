@@ -13,7 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Password strength settings */
 $nbuf_password_requirements_enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', true );
-$nbuf_password_min_strength         = NBUF_Options::get( 'nbuf_password_min_strength', 'medium' );
 $nbuf_password_min_length           = NBUF_Options::get( 'nbuf_password_min_length', 12 );
 $nbuf_password_require_uppercase    = NBUF_Options::get( 'nbuf_password_require_uppercase', false );
 $nbuf_password_require_lowercase    = NBUF_Options::get( 'nbuf_password_require_lowercase', false );
@@ -72,31 +71,6 @@ $nbuf_password_expiration_warning_days = NBUF_Options::get( 'nbuf_password_expir
 				</label>
 				<p class="description">
 					<?php esc_html_e( 'Enforce minimum password strength and character requirements for better security.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
-			<th><?php esc_html_e( 'Minimum Password Strength', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<select name="nbuf_password_min_strength">
-					<option value="none" <?php selected( $nbuf_password_min_strength, 'none' ); ?>>
-						<?php esc_html_e( 'None - Any strength', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="weak" <?php selected( $nbuf_password_min_strength, 'weak' ); ?>>
-						<?php esc_html_e( 'Weak', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="medium" <?php selected( $nbuf_password_min_strength, 'medium' ); ?>>
-						<?php esc_html_e( 'Medium', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="strong" <?php selected( $nbuf_password_min_strength, 'strong' ); ?>>
-						<?php esc_html_e( 'Strong', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="very-strong" <?php selected( $nbuf_password_min_strength, 'very-strong' ); ?>>
-						<?php esc_html_e( 'Very Strong', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
-				<p class="description">
-					<?php esc_html_e( 'Minimum password strength as measured by WordPress password meter. Default: Medium', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

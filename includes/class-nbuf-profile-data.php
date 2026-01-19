@@ -144,6 +144,34 @@ class NBUF_Profile_Data {
 	}
 
 	/**
+	 * Get field registry with custom labels applied.
+	 *
+	 * Merges any custom field labels from settings over the default labels.
+	 *
+	 * @since  1.6.0
+	 * @return array    Field registry with custom labels applied.
+	 */
+	public static function get_field_registry_with_labels() {
+		$registry      = self::get_field_registry();
+		$custom_labels = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+
+		if ( empty( $custom_labels ) || ! is_array( $custom_labels ) ) {
+			return $registry;
+		}
+
+		/* Apply custom labels to the registry */
+		foreach ( $registry as $category_key => $category_data ) {
+			foreach ( $category_data['fields'] as $field_key => $default_label ) {
+				if ( ! empty( $custom_labels[ $field_key ] ) ) {
+					$registry[ $category_key ]['fields'][ $field_key ] = $custom_labels[ $field_key ];
+				}
+			}
+		}
+
+		return $registry;
+	}
+
+	/**
 	 * Get flat array of all available field keys.
 	 *
 	 * @since  1.0.0

@@ -264,9 +264,9 @@
 }
 
 .nbuf-vh-close-diff {
-	font-size: 24px;
+	font-size: 13px;
 	line-height: 1;
-	padding: 5px 12px;
+	padding: 6px 12px;
 }
 
 .nbuf-vh-diff-body {
@@ -326,29 +326,15 @@
 	background: #f9f9f9;
 }
 
-/* Diff status colors */
-.nbuf-vh-diff-changed {
+/* Diff Column Colors - Before (yellow) and After (green) */
+.nbuf-vh-diff-table th:nth-child(2),
+.nbuf-vh-diff-table td:nth-child(2) {
 	background: #fff3cd;
 }
 
-.nbuf-vh-diff-changed:hover {
-	background: #ffe8a1;
-}
-
-.nbuf-vh-diff-added {
+.nbuf-vh-diff-table th:nth-child(3),
+.nbuf-vh-diff-table td:nth-child(3) {
 	background: #d4edda;
-}
-
-.nbuf-vh-diff-added:hover {
-	background: #c3e6cb;
-}
-
-.nbuf-vh-diff-removed {
-	background: #f8d7da;
-}
-
-.nbuf-vh-diff-removed:hover {
-	background: #f1c2c7;
 }
 
 .nbuf-vh-diff-table td:first-child {

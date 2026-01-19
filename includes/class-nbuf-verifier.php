@@ -122,8 +122,70 @@ class NBUF_Verifier {
 		}
 
 		// Mark user verified (if a user_id exists).
+		$email_was_changed = false;
 		if ( ! empty( $entry->user_id ) ) {
-			NBUF_User_Data::set_verified( (int) $entry->user_id );
+			$user_id = (int) $entry->user_id;
+
+			/*
+			 * Check for pending email change.
+			 * If this verification is for a pending email, apply the change.
+			 */
+			$pending_email = get_user_meta( $user_id, 'nbuf_pending_email', true );
+			if ( $pending_email && strtolower( $pending_email ) === strtolower( $entry->user_email ) ) {
+				/* Get old email for notification */
+				$user      = get_userdata( $user_id );
+				$old_email = $user ? $user->user_email : '';
+
+				/* Set flag to prevent hooks from triggering re-verification */
+				if ( class_exists( 'NBUF_Hooks' ) ) {
+					NBUF_Hooks::set_applying_pending_email( true );
+				}
+
+				/* Disable WordPress's built-in email change notification - we send our own */
+				add_filter( 'send_email_change_email', '__return_false' );
+
+				/* Apply the email change */
+				$result = wp_update_user(
+					array(
+						'ID'         => $user_id,
+						'user_email' => $pending_email,
+					)
+				);
+
+				/* Re-enable WordPress email change notification */
+				remove_filter( 'send_email_change_email', '__return_false' );
+
+				/* Reset flag */
+				if ( class_exists( 'NBUF_Hooks' ) ) {
+					NBUF_Hooks::set_applying_pending_email( false );
+				}
+
+				if ( ! is_wp_error( $result ) ) {
+					$email_was_changed = true;
+
+					/* Clear pending email */
+					delete_user_meta( $user_id, 'nbuf_pending_email' );
+
+					/* Send notification to old email */
+					if ( $old_email && class_exists( 'NBUF_Shortcodes' ) ) {
+						NBUF_Shortcodes::send_email_change_notification( $user_id, $old_email, $pending_email );
+					}
+
+					/* Log email change completion */
+					NBUF_Audit_Log::log(
+						$user_id,
+						'email_changed',
+						'success',
+						'Email address changed after verification',
+						array(
+							'old_email' => $old_email,
+							'new_email' => $pending_email,
+						)
+					);
+				}
+			}
+
+			NBUF_User_Data::set_verified( $user_id );
 
 			/* Log successful email verification */
 			NBUF_Audit_Log::log(
@@ -152,7 +214,11 @@ class NBUF_Verifier {
 		$settings     = NBUF_Options::get( 'nbuf_settings', array() );
 		$redirect_url = ! empty( $settings['verified_redirect'] ) ? esc_url_raw( $settings['verified_redirect'] ) : '';
 
-		$msg  = __( 'Your email address has been successfully verified. You may now log in.', 'nobloat-user-foundry' );
+		if ( $email_was_changed ) {
+			$msg = __( 'Your new email address has been verified and is now active on your account.', 'nobloat-user-foundry' );
+		} else {
+			$msg = __( 'Your email address has been successfully verified. You may now log in.', 'nobloat-user-foundry' );
+		}
 		$html = self::wrap_notice( $msg, true );
 
 		/* Get login URL from settings (respects Universal Router) */
@@ -166,9 +232,9 @@ class NBUF_Verifier {
 
 		/* Add "Go to Login" button */
 		$html .= '<p class="nobloat-verify-next">'
-			. '<a class="nobloat-verify-login-btn" href="' . esc_url( $login_url ) . '">'
+			. '<button type="button" class="nobloat-verify-login-btn" onclick="window.location.href=\'' . esc_url( $login_url ) . '\'">'
 			. esc_html__( 'Go to Login', 'nobloat-user-foundry' )
-			. '</a></p>';
+			. '</button></p>';
 
 		return $html;
 	}

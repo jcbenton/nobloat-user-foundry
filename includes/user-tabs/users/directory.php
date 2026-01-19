@@ -19,45 +19,15 @@ $nbuf_directory_view          = NBUF_Options::get( 'nbuf_directory_default_view'
 $nbuf_directory_per_page      = NBUF_Options::get( 'nbuf_directory_per_page', 20 );
 $nbuf_directory_show_search   = NBUF_Options::get( 'nbuf_directory_show_search', true );
 $nbuf_directory_show_filters  = NBUF_Options::get( 'nbuf_directory_show_filters', true );
-$nbuf_directory_privacy       = NBUF_Options::get( 'nbuf_directory_default_privacy', 'private' );
-$nbuf_directory_auto_include  = NBUF_Options::get( 'nbuf_directory_auto_include', false );
-$nbuf_allow_privacy_control   = NBUF_Options::get( 'nbuf_allow_user_privacy_control', false );
+$nbuf_directory_privacy        = NBUF_Options::get( 'nbuf_directory_default_privacy', 'private' );
+$nbuf_allow_privacy_control    = NBUF_Options::get( 'nbuf_allow_user_privacy_control', false );
 $nbuf_display_privacy_disabled = NBUF_Options::get( 'nbuf_display_privacy_when_disabled', false );
-$nbuf_searchable_fields       = NBUF_Options::get( 'nbuf_directory_searchable_fields', array( 'display_name', 'bio', 'city' ) );
-$nbuf_visible_fields          = NBUF_Options::get( 'nbuf_directory_visible_fields', array( 'location', 'website', 'company', 'job_title', 'joined' ) );
-$nbuf_directory_roles         = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
+$nbuf_directory_roles          = NBUF_Options::get( 'nbuf_directory_roles', array( 'author', 'contributor', 'subscriber' ) );
 
 /* Ensure arrays */
-if ( ! is_array( $nbuf_searchable_fields ) ) {
-	$nbuf_searchable_fields = array( 'display_name', 'bio', 'city' );
-}
-if ( ! is_array( $nbuf_visible_fields ) ) {
-	$nbuf_visible_fields = array( 'location', 'website', 'company', 'job_title', 'joined' );
-}
 if ( ! is_array( $nbuf_directory_roles ) ) {
 	$nbuf_directory_roles = array( 'author', 'contributor', 'subscriber' );
 }
-
-/* Available searchable fields */
-$nbuf_available_search_fields = array(
-	'display_name' => __( 'Display Name', 'nobloat-user-foundry' ),
-	'bio'          => __( 'Biography', 'nobloat-user-foundry' ),
-	'city'         => __( 'City', 'nobloat-user-foundry' ),
-	'state'        => __( 'State/Province', 'nobloat-user-foundry' ),
-	'country'      => __( 'Country', 'nobloat-user-foundry' ),
-	'company'      => __( 'Company', 'nobloat-user-foundry' ),
-	'job_title'    => __( 'Job Title', 'nobloat-user-foundry' ),
-);
-
-/* Available visible fields for member cards */
-$nbuf_available_visible_fields = array(
-	'bio'       => __( 'Biography', 'nobloat-user-foundry' ),
-	'location'  => __( 'Location (City/State/Country)', 'nobloat-user-foundry' ),
-	'website'   => __( 'Website', 'nobloat-user-foundry' ),
-	'company'   => __( 'Company', 'nobloat-user-foundry' ),
-	'job_title' => __( 'Job Title', 'nobloat-user-foundry' ),
-	'joined'    => __( 'Join Date', 'nobloat-user-foundry' ),
-);
 
 /* Get all roles */
 $nbuf_wp_roles = wp_roles()->get_names();
@@ -71,9 +41,10 @@ $nbuf_wp_roles = wp_roles()->get_names();
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_member_directory">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_directory_show_search">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_directory_show_filters">
-	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_directory_auto_include">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_allow_user_privacy_control">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_display_privacy_when_disabled">
+	<!-- Declare arrays on this form for proper empty array handling -->
+	<input type="hidden" name="nbuf_form_arrays[]" value="nbuf_directory_roles">
 
 	<h2><?php esc_html_e( 'Member Directory', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -154,42 +125,6 @@ $nbuf_wp_roles = wp_roles()->get_names();
 				</p>
 			</td>
 		</tr>
-
-		<!-- Visible Fields in Member Cards -->
-		<tr>
-			<th><?php esc_html_e( 'Visible in Member Cards', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<fieldset>
-					<?php foreach ( $nbuf_available_visible_fields as $nbuf_field_key => $nbuf_field_label ) : ?>
-						<label style="display: block; margin-bottom: 5px;">
-							<input type="checkbox" name="nbuf_directory_visible_fields[]" value="<?php echo esc_attr( $nbuf_field_key ); ?>" <?php checked( in_array( $nbuf_field_key, $nbuf_visible_fields, true ) ); ?>>
-							<?php echo esc_html( $nbuf_field_label ); ?>
-						</label>
-					<?php endforeach; ?>
-				</fieldset>
-				<p class="description">
-					<?php esc_html_e( 'Select which profile fields are displayed in member cards (subject to user privacy settings).', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-
-		<!-- Searchable Fields -->
-		<tr>
-			<th><?php esc_html_e( 'Searchable Fields', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<fieldset>
-					<?php foreach ( $nbuf_available_search_fields as $nbuf_field_key => $nbuf_field_label ) : ?>
-						<label style="display: block; margin-bottom: 5px;">
-							<input type="checkbox" name="nbuf_directory_searchable_fields[]" value="<?php echo esc_attr( $nbuf_field_key ); ?>" <?php checked( in_array( $nbuf_field_key, $nbuf_searchable_fields, true ) ); ?>>
-							<?php echo esc_html( $nbuf_field_label ); ?>
-						</label>
-					<?php endforeach; ?>
-				</fieldset>
-				<p class="description">
-					<?php esc_html_e( 'Select which profile fields can be searched in the member directory.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
 	</table>
 
 	<h2><?php esc_html_e( 'Privacy Settings', 'nobloat-user-foundry' ); ?></h2>
@@ -206,21 +141,6 @@ $nbuf_wp_roles = wp_roles()->get_names();
 				</select>
 				<p class="description">
 					<?php esc_html_e( 'The default privacy setting for new user registrations.', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-
-		<!-- Auto-Include New Users -->
-		<tr>
-			<th><?php esc_html_e( 'Auto-Include New Users', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<input type="hidden" name="nbuf_directory_auto_include" value="0">
-				<label>
-					<input type="checkbox" name="nbuf_directory_auto_include" value="1" <?php checked( $nbuf_directory_auto_include, true ); ?>>
-					<?php esc_html_e( 'Automatically include new users in the member directory', 'nobloat-user-foundry' ); ?>
-				</label>
-				<p class="description">
-					<?php esc_html_e( 'Automatically opt-in new users to appear in member directories (respecting their privacy level). If disabled, users must manually opt-in from their account settings.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

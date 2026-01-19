@@ -186,8 +186,8 @@ $nbuf_all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 								</tr>
 								<tr>
 									<td><code>message</code></td>
-									<td><?php esc_html_e( 'Custom text', 'nobloat-user-foundry' ); ?></td>
-									<td><?php esc_html_e( 'Custom message shown to unauthorized users', 'nobloat-user-foundry' ); ?></td>
+									<td><?php esc_html_e( 'Custom text (optional)', 'nobloat-user-foundry' ); ?></td>
+									<td><?php esc_html_e( 'Message shown to unauthorized users. If omitted, content is silently hidden.', 'nobloat-user-foundry' ); ?></td>
 								</tr>
 							</tbody>
 						</table>

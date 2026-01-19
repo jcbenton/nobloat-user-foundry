@@ -19,13 +19,13 @@
 
 	<!-- Pagination -->
 	<div class="nbuf-vh-pagination">
-		<button class="button nbuf-vh-prev-page" disabled>
+		<button class="nbuf-button nbuf-button-small nbuf-button-secondary nbuf-vh-prev-page" disabled>
 			{prev_button}
 		</button>
 		<span class="nbuf-vh-page-info">
 			{page_info}
 		</span>
-		<button class="button nbuf-vh-next-page" disabled>
+		<button class="nbuf-button nbuf-button-small nbuf-button-secondary nbuf-vh-next-page" disabled>
 			{next_button}
 		</button>
 	</div>
@@ -42,7 +42,7 @@
 		<div class="nbuf-vh-diff-content">
 			<div class="nbuf-vh-diff-header">
 				<h3>{diff_modal_title}</h3>
-				<button class="nbuf-vh-close-diff button">{close_button}</button>
+				<button class="nbuf-button nbuf-button-small nbuf-button-secondary nbuf-vh-close-diff">{close_button}</button>
 			</div>
 			<div class="nbuf-vh-diff-body">
 				<div class="nbuf-vh-diff-loading">
@@ -57,51 +57,3 @@
 	</div>
 
 </div>
-
-<!-- Timeline Item Template (JavaScript uses this) -->
-<script type="text/template" id="nbuf-vh-timeline-item-template">
-	<div class="nbuf-vh-item" data-version-id="{{version_id}}">
-		<div class="nbuf-vh-item-icon">
-			<span class="dashicons dashicons-{{icon}}"></span>
-		</div>
-		<div class="nbuf-vh-item-content">
-			<div class="nbuf-vh-item-header">
-				<div class="nbuf-vh-item-meta">
-					<span class="nbuf-vh-item-date">{{date}}</span>
-					<span class="nbuf-vh-item-time">{{time}}</span>
-					<span class="nbuf-vh-item-type nbuf-vh-type-{{change_type}}">{{change_type_label}}</span>
-				</div>
-				<div class="nbuf-vh-item-user">
-					{{changed_by}}
-				</div>
-			</div>
-			<div class="nbuf-vh-item-details">
-				<p class="nbuf-vh-item-fields">
-					<strong>{fields_changed_label}</strong>
-					{{fields_changed}}
-				</p>
-				{{#ip_address}}
-				<p class="nbuf-vh-item-ip">
-					<strong>{ip_address_label}</strong>
-					{{ip_address}}
-				</p>
-				{{/ip_address}}
-			</div>
-			<div class="nbuf-vh-item-actions">
-				<button class="button button-small nbuf-vh-view-details" data-version-id="{{version_id}}">
-					{view_snapshot_button}
-				</button>
-				{{#has_previous}}
-				<button class="button button-small nbuf-vh-compare" data-version-id="{{version_id}}" data-previous-id="{{previous_id}}">
-					{compare_button}
-				</button>
-				{{/has_previous}}
-				{{#can_revert}}
-				<button class="button button-primary button-small nbuf-vh-revert" data-version-id="{{version_id}}">
-					{revert_button}
-				</button>
-				{{/can_revert}}
-			</div>
-		</div>
-	</div>
-</script>

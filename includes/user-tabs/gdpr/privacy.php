@@ -19,23 +19,26 @@ if ( ! current_user_can( 'manage_options' ) ) {
 }
 
 /* Handle form submission */
-if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_privacy' === $_POST['nbuf_form_id'] && check_admin_referer( 'nbuf_gdpr_privacy_settings' ) ) {
-	/* Data Retention on User Deletion */
-	$nbuf_delete_audit_logs = isset( $_POST['nbuf_gdpr_delete_audit_logs'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_gdpr_delete_audit_logs'] ) ) : 'anonymize';
+// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after check.
+if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_privacy' === sanitize_key( wp_unslash( $_POST['nbuf_form_id'] ) ) && check_admin_referer( 'nbuf_gdpr_privacy_settings' ) ) {
+	/* Data Retention on User Deletion - validate against allowed values */
+	$nbuf_allowed_modes     = array( 'delete', 'anonymize', 'keep' );
+	$nbuf_delete_audit_logs = isset( $_POST['nbuf_gdpr_delete_audit_logs'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_gdpr_delete_audit_logs'] ) ) : 'anonymize';
+	$nbuf_delete_audit_logs = in_array( $nbuf_delete_audit_logs, $nbuf_allowed_modes, true ) ? $nbuf_delete_audit_logs : 'anonymize';
 	NBUF_Options::update( 'nbuf_gdpr_delete_audit_logs', $nbuf_delete_audit_logs, true, 'gdpr' );
 
-	/* Data Export Options */
-	$nbuf_include_audit_logs = isset( $_POST['nbuf_gdpr_include_audit_logs'] ) ? 1 : 0;
+	/* Data Export Options - checkboxes: check existence, save boolean */
+	$nbuf_include_audit_logs = ! empty( $_POST['nbuf_gdpr_include_audit_logs'] );
 	NBUF_Options::update( 'nbuf_gdpr_include_audit_logs', $nbuf_include_audit_logs, true, 'gdpr' );
 
-	$nbuf_include_2fa_data = isset( $_POST['nbuf_gdpr_include_2fa_data'] ) ? 1 : 0;
+	$nbuf_include_2fa_data = ! empty( $_POST['nbuf_gdpr_include_2fa_data'] );
 	NBUF_Options::update( 'nbuf_gdpr_include_2fa_data', $nbuf_include_2fa_data, true, 'gdpr' );
 
-	$nbuf_include_login_attempts = isset( $_POST['nbuf_gdpr_include_login_attempts'] ) ? 1 : 0;
+	$nbuf_include_login_attempts = ! empty( $_POST['nbuf_gdpr_include_login_attempts'] );
 	NBUF_Options::update( 'nbuf_gdpr_include_login_attempts', $nbuf_include_login_attempts, true, 'gdpr' );
 
 	/* User Content Deletion Options */
-	$nbuf_delete_user_photos = isset( $_POST['nbuf_gdpr_delete_user_photos'] ) ? 1 : 0;
+	$nbuf_delete_user_photos = ! empty( $_POST['nbuf_gdpr_delete_user_photos'] );
 	NBUF_Options::update( 'nbuf_gdpr_delete_user_photos', $nbuf_delete_user_photos, true, 'gdpr' );
 
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Privacy settings saved.', 'nobloat-user-foundry' ) . '</p></div>';

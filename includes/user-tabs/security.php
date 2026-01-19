@@ -18,9 +18,8 @@ $nbuf_login_max_attempts     = NBUF_Options::get( 'nbuf_login_max_attempts', 5 )
 $nbuf_login_lockout_duration = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
 
 /* Password strength settings */
-$nbuf_password_requirements_enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', false );
-$nbuf_password_min_strength         = NBUF_Options::get( 'nbuf_password_min_strength', 'medium' );
-$nbuf_password_min_length           = NBUF_Options::get( 'nbuf_password_min_length', 8 );
+$nbuf_password_requirements_enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', true );
+$nbuf_password_min_length           = NBUF_Options::get( 'nbuf_password_min_length', 12 );
 $nbuf_password_require_uppercase    = NBUF_Options::get( 'nbuf_password_require_uppercase', false );
 $nbuf_password_require_lowercase    = NBUF_Options::get( 'nbuf_password_require_lowercase', false );
 $nbuf_password_require_numbers      = NBUF_Options::get( 'nbuf_password_require_numbers', false );
@@ -113,37 +112,12 @@ $nbuf_password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_perio
 			</td>
 		</tr>
 		<tr>
-			<th><?php esc_html_e( 'Minimum Password Strength', 'nobloat-user-foundry' ); ?></th>
-			<td>
-				<select name="nbuf_password_min_strength">
-					<option value="none" <?php selected( $nbuf_password_min_strength, 'none' ); ?>>
-						<?php esc_html_e( 'None - Any strength', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="weak" <?php selected( $nbuf_password_min_strength, 'weak' ); ?>>
-						<?php esc_html_e( 'Weak', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="medium" <?php selected( $nbuf_password_min_strength, 'medium' ); ?>>
-						<?php esc_html_e( 'Medium', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="strong" <?php selected( $nbuf_password_min_strength, 'strong' ); ?>>
-						<?php esc_html_e( 'Strong', 'nobloat-user-foundry' ); ?>
-					</option>
-					<option value="very-strong" <?php selected( $nbuf_password_min_strength, 'very-strong' ); ?>>
-						<?php esc_html_e( 'Very Strong', 'nobloat-user-foundry' ); ?>
-					</option>
-				</select>
-				<p class="description">
-					<?php esc_html_e( 'Minimum password strength as measured by WordPress password meter. Default: Medium', 'nobloat-user-foundry' ); ?>
-				</p>
-			</td>
-		</tr>
-		<tr>
 			<th><?php esc_html_e( 'Minimum Length', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<input type="number" name="nbuf_password_min_length" value="<?php echo esc_attr( $nbuf_password_min_length ); ?>" min="1" max="128" class="small-text">
 				<span><?php esc_html_e( 'characters', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
-					<?php esc_html_e( 'Minimum number of characters required. Default: 8', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Minimum number of characters required. Default: 12', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -545,7 +519,7 @@ $nbuf_password_grace_period      = NBUF_Options::get( 'nbuf_password_grace_perio
 	<h2><?php esc_html_e( 'Account Verification & Approval', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">
 		<?php
-		$nbuf_require_verification   = NBUF_Options::get( 'nbuf_require_verification', false );
+		$nbuf_require_verification   = NBUF_Options::get( 'nbuf_require_verification', true );
 		$nbuf_require_approval       = NBUF_Options::get( 'nbuf_require_approval', false );
 		$nbuf_delete_unverified_days = NBUF_Options::get( 'nbuf_delete_unverified_days', 5 );
 		$nbuf_new_user_default_role  = NBUF_Options::get( 'nbuf_new_user_default_role', 'subscriber' );

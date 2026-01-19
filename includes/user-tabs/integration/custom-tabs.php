@@ -12,21 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Handle delete action from URL */
-// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below for delete
-$nbuf_delete_tab_id = isset( $_GET['delete_tab'] ) ? sanitize_text_field( wp_unslash( $_GET['delete_tab'] ) ) : '';
-if ( $nbuf_delete_tab_id && isset( $_GET['_wpnonce'] ) ) {
-	if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'delete_custom_tab_' . $nbuf_delete_tab_id ) ) {
-		NBUF_Custom_Tabs::delete( $nbuf_delete_tab_id );
-		/* Redirect to remove query params */
-		wp_safe_redirect( admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=custom-tabs&deleted=1' ) );
-		exit;
-	}
-}
+/* Delete action is handled in NBUF_Settings::handle_custom_tab_delete() on admin_init */
 
 /* Handle edit mode */
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only edit mode selection.
 $nbuf_edit_tab_id = isset( $_GET['edit_tab'] ) ? sanitize_text_field( wp_unslash( $_GET['edit_tab'] ) ) : '';
-// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 $nbuf_editing_tab = null;
 if ( $nbuf_edit_tab_id ) {

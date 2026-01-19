@@ -116,6 +116,16 @@ class NBUF_Hooks {
 	private static $direct_registration = false;
 
 	/**
+	 * Flag indicating a pending email change is being applied.
+	 *
+	 * When true, the profile_update hook should not trigger re-verification
+	 * because the email was already verified through the pending email flow.
+	 *
+	 * @var bool
+	 */
+	private static $applying_pending_email = false;
+
+	/**
 	 * Set direct registration flag.
 	 *
 	 * Called by NBUF_Registration before wp_create_user() to prevent
@@ -134,6 +144,18 @@ class NBUF_Hooks {
 	 */
 	public static function is_direct_registration() {
 		return self::$direct_registration;
+	}
+
+	/**
+	 * Set pending email application flag.
+	 *
+	 * Called by NBUF_Verifier before applying a pending email change
+	 * to prevent the profile_update hook from triggering re-verification.
+	 *
+	 * @param bool $value True if applying pending email.
+	 */
+	public static function set_applying_pending_email( $value ) {
+		self::$applying_pending_email = (bool) $value;
 	}
 
 	/**
@@ -243,6 +265,14 @@ class NBUF_Hooks {
 	 * @param object $old_user_data Old user data object.
 	 */
 	public static function handle_email_change( $user_id, $old_user_data ) {
+		/*
+		 * Skip if a pending email is being applied.
+		 * The email was already verified through the pending email flow.
+		 */
+		if ( self::$applying_pending_email ) {
+			return;
+		}
+
 		$user = get_userdata( $user_id );
 		if ( ! $user || empty( $old_user_data->user_email ) ) {
 			return;

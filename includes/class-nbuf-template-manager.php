@@ -94,6 +94,8 @@ class NBUF_Template_Manager {
 		'welcome-email-text'        => 'welcome-email.txt',
 		'expiration-warning-html'   => 'expiration-warning.html',
 		'expiration-warning-text'   => 'expiration-warning.txt',
+		'expiration-notice-html'    => 'expiration-notice.html',
+		'expiration-notice-text'    => 'expiration-notice.txt',
 		'2fa-email-code-html'       => '2fa-email-code.html',
 		'2fa-email-code-text'       => '2fa-email-code.txt',
 		'password-reset-html'       => 'password-reset.html',
@@ -214,6 +216,20 @@ class NBUF_Template_Manager {
 		if ( $is_email_template ) {
 			// Email templates: use permissive kses that preserves email HTML structure.
 			return self::sanitize_email_template( $content );
+		}
+
+		// Page templates need SVG, data attributes, and flexible HTML.
+		// These are only editable by admins with manage_options capability.
+		$is_page_template = (
+			strpos( $template_name, 'public-profile' ) !== false ||
+			strpos( $template_name, 'member-directory' ) !== false ||
+			strpos( $template_name, 'account-data-export' ) !== false ||
+			strpos( $template_name, 'version-history-viewer' ) !== false
+		);
+
+		if ( $is_page_template ) {
+			// Page templates: use permissive kses that preserves SVG and data attributes.
+			return self::sanitize_page_template( $content );
 		}
 
 		// Form/page templates - allow forms and safe HTML.
@@ -490,6 +506,262 @@ class NBUF_Template_Manager {
 		$sanitized = wp_kses( $content, $allowed_html );
 
 		return $has_doctype ? $doctype . $sanitized : $sanitized;
+	}
+
+	/**
+	 * SANITIZE PAGE TEMPLATE.
+	 *
+	 * Permissive sanitization for page templates (public profile, member directory,
+	 * version history, data export) that preserves SVG elements, data attributes,
+	 * and flexible HTML structure.
+	 *
+	 * Only admins with manage_options can edit these templates.
+	 *
+	 * @param  string $content Page template content.
+	 * @return string Sanitized content with HTML structure preserved.
+	 */
+	private static function sanitize_page_template( $content ) {
+		// Common attributes for most elements.
+		$common_attrs = array(
+			'class' => true,
+			'id'    => true,
+			'style' => true,
+		);
+
+		// Data attributes commonly used in templates.
+		$data_attrs = array(
+			'data-tab'         => true,
+			'data-subtab'      => true,
+			'data-view'        => true,
+			'data-user-id'     => true,
+			'data-context'     => true,
+			'data-version-id'  => true,
+			'data-previous-id' => true,
+			'data-codes'       => true,
+			'data-secret'      => true,
+			'data-template'    => true,
+			'data-target'      => true,
+		);
+
+		$allowed_html = array(
+			// Structural elements.
+			'div'        => $common_attrs + $data_attrs,
+			'span'       => $common_attrs + $data_attrs,
+			'section'    => $common_attrs,
+			'article'    => $common_attrs,
+			'header'     => $common_attrs,
+			'footer'     => $common_attrs,
+			'main'       => $common_attrs,
+			'aside'      => $common_attrs,
+			'nav'        => $common_attrs,
+
+			// Headings.
+			'h1'         => $common_attrs,
+			'h2'         => $common_attrs,
+			'h3'         => $common_attrs,
+			'h4'         => $common_attrs,
+			'h5'         => $common_attrs,
+			'h6'         => $common_attrs,
+
+			// Text elements.
+			'p'          => $common_attrs,
+			'strong'     => $common_attrs,
+			'em'         => $common_attrs,
+			'b'          => array(),
+			'i'          => $common_attrs,
+			'u'          => array(),
+			'small'      => $common_attrs,
+			'mark'       => $common_attrs,
+			'del'        => $common_attrs,
+			'ins'        => $common_attrs,
+			'sub'        => array(),
+			'sup'        => array(),
+			'br'         => array(),
+			'hr'         => $common_attrs,
+			'pre'        => $common_attrs,
+			'code'       => $common_attrs,
+			'blockquote' => $common_attrs,
+			'time'       => $common_attrs + array( 'datetime' => true ),
+
+			// Links and images.
+			'a'          => $common_attrs + array(
+				'href'   => true,
+				'target' => true,
+				'rel'    => true,
+				'title'  => true,
+			),
+			'img'        => $common_attrs + array(
+				'src'     => true,
+				'alt'     => true,
+				'width'   => true,
+				'height'  => true,
+				'loading' => true,
+				'srcset'  => true,
+				'sizes'   => true,
+			),
+
+			// Lists.
+			'ul'         => $common_attrs,
+			'ol'         => $common_attrs + array( 'start' => true, 'type' => true ),
+			'li'         => $common_attrs,
+			'dl'         => $common_attrs,
+			'dt'         => $common_attrs,
+			'dd'         => $common_attrs,
+
+			// Tables.
+			'table'      => $common_attrs + array( 'role' => true ),
+			'thead'      => $common_attrs,
+			'tbody'      => $common_attrs,
+			'tfoot'      => $common_attrs,
+			'tr'         => $common_attrs,
+			'th'         => $common_attrs + array( 'colspan' => true, 'rowspan' => true, 'scope' => true ),
+			'td'         => $common_attrs + array( 'colspan' => true, 'rowspan' => true ),
+			'caption'    => $common_attrs,
+
+			// Forms.
+			'form'       => $common_attrs + array(
+				'method'  => true,
+				'action'  => true,
+				'enctype' => true,
+			),
+			'input'      => $common_attrs + $data_attrs + array(
+				'type'         => true,
+				'name'         => true,
+				'value'        => true,
+				'placeholder'  => true,
+				'required'     => true,
+				'disabled'     => true,
+				'readonly'     => true,
+				'checked'      => true,
+				'maxlength'    => true,
+				'minlength'    => true,
+				'min'          => true,
+				'max'          => true,
+				'step'         => true,
+				'pattern'      => true,
+				'autocomplete' => true,
+				'autofocus'    => true,
+			),
+			'button'     => $common_attrs + $data_attrs + array(
+				'type'     => true,
+				'name'     => true,
+				'value'    => true,
+				'disabled' => true,
+				'title'    => true,
+			),
+			'select'     => $common_attrs + array(
+				'name'     => true,
+				'required' => true,
+				'disabled' => true,
+				'multiple' => true,
+			),
+			'option'     => array(
+				'value'    => true,
+				'selected' => true,
+				'disabled' => true,
+			),
+			'optgroup'   => array( 'label' => true ),
+			'textarea'   => $common_attrs + array(
+				'name'        => true,
+				'rows'        => true,
+				'cols'        => true,
+				'placeholder' => true,
+				'required'    => true,
+				'disabled'    => true,
+				'readonly'    => true,
+				'maxlength'   => true,
+			),
+			'label'      => $common_attrs + array( 'for' => true ),
+			'fieldset'   => $common_attrs,
+			'legend'     => $common_attrs,
+
+			// SVG elements (essential for icons).
+			'svg'        => array(
+				'class'           => true,
+				'id'              => true,
+				'width'           => true,
+				'height'          => true,
+				'viewbox'         => true,
+				'fill'            => true,
+				'xmlns'           => true,
+				'aria-hidden'     => true,
+				'aria-label'      => true,
+				'aria-labelledby' => true,
+				'role'            => true,
+				'focusable'       => true,
+			),
+			'path'       => array(
+				'd'            => true,
+				'fill'         => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'circle'     => array(
+				'cx'           => true,
+				'cy'           => true,
+				'r'            => true,
+				'fill'         => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'rect'       => array(
+				'x'            => true,
+				'y'            => true,
+				'width'        => true,
+				'height'       => true,
+				'rx'           => true,
+				'ry'           => true,
+				'fill'         => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'line'       => array(
+				'x1'           => true,
+				'y1'           => true,
+				'x2'           => true,
+				'y2'           => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'polyline'   => array(
+				'points'       => true,
+				'fill'         => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'polygon'    => array(
+				'points'       => true,
+				'fill'         => true,
+				'stroke'       => true,
+				'stroke-width' => true,
+				'class'        => true,
+			),
+			'g'          => array(
+				'fill'         => true,
+				'stroke'       => true,
+				'transform'    => true,
+				'class'        => true,
+			),
+			'use'        => array(
+				'href'       => true,
+				'xlink:href' => true,
+				'x'          => true,
+				'y'          => true,
+				'width'      => true,
+				'height'     => true,
+				'class'      => true,
+			),
+			'defs'       => array(),
+			'clippath'   => array( 'id' => true ),
+			'title'      => array(),
+		);
+
+		return wp_kses( $content, $allowed_html );
 	}
 
 	/**

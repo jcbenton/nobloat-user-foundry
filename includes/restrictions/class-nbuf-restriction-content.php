@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Handles post/page access restrictions.
  */
-class NBUF_Restriction_Content extends Abstract_NBUF_Restriction {
+class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 
 
 	/**

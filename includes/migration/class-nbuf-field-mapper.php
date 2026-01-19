@@ -301,12 +301,12 @@ class NBUF_Field_Mapper {
 	/**
 	 * Get available target fields
 	 *
-	 * Returns all NoBloat profile fields that can be mapped to.
+	 * Returns all NoBloat profile fields that can be mapped to (with custom labels).
 	 *
 	 * @return array Field keys => labels
 	 */
 	private function get_available_target_fields() {
-		$registry = NBUF_Profile_Data::get_field_registry();
+		$registry = NBUF_Profile_Data::get_field_registry_with_labels();
 		$fields   = array();
 
 		foreach ( $registry as $category ) {

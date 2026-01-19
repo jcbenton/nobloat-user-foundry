@@ -1022,10 +1022,12 @@ class NBUF_GDPR_Export {
 			if ( ! wp_check_password( $password, $user->user_pass ) ) {
 				/* Log failed attempt to security log */
 				if ( class_exists( 'NBUF_Security_Log' ) ) {
-					NBUF_Security_Log::log_event(
+					NBUF_Security_Log::log(
 						'data_export_failed',
-						$user_id,
-						'incorrect_password'
+						'warning',
+						__( 'GDPR data export failed: incorrect password.', 'nobloat-user-foundry' ),
+						array(),
+						$user_id
 					);
 				}
 				wp_send_json_error( __( 'Incorrect password.', 'nobloat-user-foundry' ) );

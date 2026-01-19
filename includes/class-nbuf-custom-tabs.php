@@ -305,7 +305,7 @@ class NBUF_Custom_Tabs {
 			'roles'    => $sanitized_roles,
 			'icon'     => isset( $data['icon'] ) ? sanitize_html_class( $data['icon'] ) : '',
 			'priority' => isset( $data['priority'] ) ? absint( $data['priority'] ) : 50,
-			'enabled'  => isset( $data['enabled'] ) ? (bool) $data['enabled'] : true,
+			'enabled'  => ! empty( $data['enabled'] ),
 		);
 	}
 

@@ -1266,16 +1266,16 @@ class NBUF_Database {
 
 		/* Add type column if not exists */
 		if ( ! self::column_exists( self::$table_name, 'type' ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration adding column, table name is trusted.
-			$result = $wpdb->query( "ALTER TABLE {$wpdb->prefix}nbuf_tokens ADD COLUMN type VARCHAR(32) NOT NULL DEFAULT 'verification' AFTER token" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Migration adding column.
+			$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN type VARCHAR(32) NOT NULL DEFAULT 'verification' AFTER token", $wpdb->prefix . 'nbuf_tokens' ) );
 			if ( false === $result ) {
 				error_log( '[NoBloat User Foundry] Tokens type column migration failed: ' . $wpdb->last_error ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
 				return false;
 			}
 
 			/* Add index for type column */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration adding index, table name is trusted.
-			$wpdb->query( "ALTER TABLE {$wpdb->prefix}nbuf_tokens ADD KEY type (type)" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Migration adding index.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY type (type)', $wpdb->prefix . 'nbuf_tokens' ) );
 		}
 
 		NBUF_Options::update( $migration_key, time(), false, 'system' );
@@ -1431,6 +1431,144 @@ class NBUF_Database {
 	public static function get_table_name( $table ) {
 		global $wpdb;
 		return $wpdb->prefix . 'nbuf_' . $table;
+	}
+
+	/**
+	==========================================================
+	GET EXPECTED TABLES
+	----------------------------------------------------------
+	Returns table names that SHOULD exist (for repair/validation).
+	Used to identify missing tables that need to be created.
+	 *
+		@return array Associative array of table_key => full_table_name.
+	==========================================================
+	 */
+	public static function get_expected_tables() {
+		global $wpdb;
+
+		return array(
+			'tokens'               => $wpdb->prefix . 'nbuf_tokens',
+			'user_data'            => $wpdb->prefix . 'nbuf_user_data',
+			'user_2fa'             => $wpdb->prefix . 'nbuf_user_2fa',
+			'user_passkeys'        => $wpdb->prefix . 'nbuf_user_passkeys',
+			'user_profile'         => $wpdb->prefix . 'nbuf_user_profile',
+			'profile_versions'     => $wpdb->prefix . 'nbuf_profile_versions',
+			'login_attempts'       => $wpdb->prefix . 'nbuf_login_attempts',
+			'options'              => $wpdb->prefix . 'nbuf_options',
+			'user_audit_log'       => $wpdb->prefix . 'nbuf_user_audit_log',
+			'admin_audit_log'      => $wpdb->prefix . 'nbuf_admin_audit_log',
+			'security_log'         => $wpdb->prefix . 'nbuf_security_log',
+			'user_notes'           => $wpdb->prefix . 'nbuf_user_notes',
+			'user_roles'           => $wpdb->prefix . 'nbuf_user_roles',
+			'import_history'       => $wpdb->prefix . 'nbuf_import_history',
+			'menu_restrictions'    => $wpdb->prefix . 'nbuf_menu_restrictions',
+			'content_restrictions' => $wpdb->prefix . 'nbuf_content_restrictions',
+			'webhooks'             => $wpdb->prefix . 'nbuf_webhooks',
+			'webhook_log'          => $wpdb->prefix . 'nbuf_webhook_log',
+			'tos_versions'         => $wpdb->prefix . 'nbuf_tos_versions',
+			'tos_acceptances'      => $wpdb->prefix . 'nbuf_tos_acceptances',
+		);
+	}
+
+	/**
+	==========================================================
+	GET ALL TABLES (DATABASE INTROSPECTION)
+	----------------------------------------------------------
+	Discovers all nbuf_ tables that actually exist in database.
+	Compares against expected tables to provide complete picture.
+	 *
+		@return array Array with 'expected', 'existing', 'missing', 'unexpected' keys.
+	==========================================================
+	 */
+	public static function get_all_tables() {
+		global $wpdb;
+
+		$expected_tables = self::get_expected_tables();
+
+		/* Query database for all nbuf_ tables that actually exist */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$existing_in_db = $wpdb->get_col(
+			$wpdb->prepare(
+				"SHOW TABLES LIKE %s",
+				$wpdb->prefix . 'nbuf_%'
+			)
+		);
+
+		/* Build result arrays */
+		$existing   = array();
+		$missing    = array();
+		$unexpected = array();
+
+		/* Check expected tables - which exist, which are missing */
+		foreach ( $expected_tables as $key => $table_name ) {
+			if ( in_array( $table_name, $existing_in_db, true ) ) {
+				$existing[ $key ] = $table_name;
+			} else {
+				$missing[ $key ] = $table_name;
+			}
+		}
+
+		/* Check for unexpected tables (exist in DB but not in expected list) */
+		$expected_names = array_values( $expected_tables );
+		foreach ( $existing_in_db as $table_name ) {
+			if ( ! in_array( $table_name, $expected_names, true ) ) {
+				/* Extract key from table name (remove prefix + nbuf_) */
+				$key                 = str_replace( $wpdb->prefix . 'nbuf_', '', $table_name );
+				$unexpected[ $key ] = $table_name;
+			}
+		}
+
+		return array(
+			'expected'   => $expected_tables,
+			'existing'   => $existing,
+			'missing'    => $missing,
+			'unexpected' => $unexpected,
+			'all'        => array_merge( $existing, $missing, $unexpected ),
+		);
+	}
+
+	/**
+	==========================================================
+	REPAIR ALL TABLES
+	----------------------------------------------------------
+	Creates all missing database tables.
+	Safe to run multiple times (uses CREATE TABLE IF NOT EXISTS).
+	Called by diagnostics repair button.
+	==========================================================
+	 */
+	public static function repair_all_tables() {
+		/* Create all core tables */
+		self::create_table();
+		self::create_user_data_table();
+		self::create_options_table();
+		self::create_user_profile_table();
+		self::create_login_attempts_table();
+		self::create_user_2fa_table();
+		self::create_user_passkeys_table();
+		self::create_user_audit_log_table();
+		self::create_admin_audit_log_table();
+		self::create_user_notes_table();
+		self::create_import_history_table();
+		self::create_menu_restrictions_table();
+		self::create_content_restrictions_table();
+		self::create_user_roles_table();
+		self::create_profile_versions_table();
+		self::create_webhooks_table();
+		self::create_webhook_log_table();
+		self::create_tos_versions_table();
+		self::create_tos_acceptances_table();
+
+		/* Run column update migrations */
+		self::update_user_data_table_for_privacy();
+		self::update_user_data_table_for_photos();
+		self::update_user_data_table_for_password_expiration();
+		self::update_user_data_table_for_last_login();
+		self::update_user_profile_table_for_account_merging();
+
+		/* Create security log table if class exists */
+		if ( class_exists( 'NBUF_Security_Log' ) ) {
+			NBUF_Security_Log::create_table();
+		}
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -22,6 +22,96 @@ class NBUF_Cron {
 
 
 	/**
+	 * Get all registered cron job definitions.
+	 *
+	 * Single source of truth for all plugin cron jobs. Used by:
+	 * - System Health page for status display
+	 * - activate() for scheduling
+	 * - deactivate() for cleanup
+	 *
+	 * @since 1.5.0
+	 * @return array Array of cron job definitions keyed by hook name.
+	 */
+	public static function get_cron_definitions() {
+		return array(
+			/* Core Maintenance */
+			'nbuf_cleanup_cron'                => array(
+				'label'       => __( 'Token Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes expired and used verification tokens.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_cleanup_transients'          => array(
+				'label'       => __( 'Transient Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes expired plugin transients from database.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_cleanup_exports'             => array(
+				'label'       => __( 'GDPR Export Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes old GDPR data export files.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+
+			/* User Management */
+			'nbuf_check_expirations'           => array(
+				'label'       => __( 'Expiration Check', 'nobloat-user-foundry' ),
+				'description' => __( 'Checks for and disables expired user accounts.', 'nobloat-user-foundry' ),
+				'schedule'    => 'hourly',
+			),
+			'nbuf_send_expiration_warnings'    => array(
+				'label'       => __( 'Expiration Warnings', 'nobloat-user-foundry' ),
+				'description' => __( 'Sends warning emails to users with upcoming expiration.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_cleanup_unverified_accounts' => array(
+				'label'       => __( 'Unverified Account Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes accounts that never completed email verification.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+
+			/* Security */
+			'nbuf_cleanup_login_attempts'      => array(
+				'label'       => __( 'Login Attempts Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes old login attempt records for rate limiting.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+
+			/* Logging & History */
+			'nbuf_audit_log_cleanup_cron'      => array(
+				'label'       => __( 'Audit Log Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Prunes old user audit log entries based on retention settings.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_cleanup_version_history'     => array(
+				'label'       => __( 'Version History Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes old profile version snapshots based on retention settings.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_daily_security_log_prune'    => array(
+				'label'       => __( 'Security Log Prune', 'nobloat-user-foundry' ),
+				'description' => __( 'Removes old security log entries based on retention settings.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+			'nbuf_enterprise_logging_cleanup'  => array(
+				'label'       => __( 'Enterprise Logging Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Prunes all enterprise logging tables based on retention settings.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+
+			/* Notifications */
+			'nbuf_send_change_digest_hourly'   => array(
+				'label'       => __( 'Change Digest (Hourly)', 'nobloat-user-foundry' ),
+				'description' => __( 'Sends hourly digest of profile changes to admins.', 'nobloat-user-foundry' ),
+				'schedule'    => 'hourly',
+			),
+			'nbuf_send_change_digest_daily'    => array(
+				'label'       => __( 'Change Digest (Daily)', 'nobloat-user-foundry' ),
+				'description' => __( 'Sends daily digest of profile changes to admins.', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
+		);
+	}
+
+	/**
 	 * Activate cron.
 	 *
 	 * Called on plugin activation. Schedules the cleanup event.
@@ -40,6 +130,7 @@ class NBUF_Cron {
 			'nbuf_cleanup_transients',
 			'nbuf_cleanup_unverified_accounts',
 			'nbuf_enterprise_logging_cleanup',
+			'nbuf_cleanup_login_attempts',
 		);
 
 		/* Build list of already scheduled hooks */
@@ -75,6 +166,7 @@ class NBUF_Cron {
 		wp_clear_scheduled_hook( 'nbuf_cleanup_transients' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_unverified_accounts' );
 		wp_clear_scheduled_hook( 'nbuf_enterprise_logging_cleanup' );
+		wp_clear_scheduled_hook( 'nbuf_cleanup_login_attempts' );
 	}
 
 	/**
@@ -91,6 +183,7 @@ class NBUF_Cron {
 		add_action( 'nbuf_cleanup_transients', array( __CLASS__, 'run_transient_cleanup' ) );
 		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
 		add_action( 'nbuf_enterprise_logging_cleanup', array( __CLASS__, 'run_enterprise_logging_cleanup' ) );
+		add_action( 'nbuf_cleanup_login_attempts', array( __CLASS__, 'run_login_attempts_cleanup' ) );
 	}
 
 	/**
@@ -250,7 +343,7 @@ class NBUF_Cron {
 	 */
 	public static function run_unverified_cleanup(): int {
 		/* Check if email verification is required */
-		$require_verification = NBUF_Options::get( 'nbuf_require_verification', false );
+		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
 
 		if ( ! $require_verification ) {
 			return 0;
@@ -349,12 +442,9 @@ class NBUF_Cron {
 			'security_log' => 0,
 		);
 
-		/* Prune user audit log */
-		if ( class_exists( 'NBUF_Audit_Log' ) && NBUF_Options::get( 'nbuf_logging_user_audit_enabled', true ) ) {
-			$retention = NBUF_Options::get( 'nbuf_logging_user_audit_retention', '365' );
-			if ( 'forever' !== $retention ) {
-				$results['user_audit'] = NBUF_Audit_Log::prune_logs_older_than( absint( $retention ) );
-			}
+		/* Prune user audit log - uses NBUF_Audit_Log's built-in cleanup which reads nbuf_audit_log_retention */
+		if ( class_exists( 'NBUF_Audit_Log' ) ) {
+			$results['user_audit'] = NBUF_Audit_Log::cleanup_old_logs();
 		}
 
 		/* Prune admin audit log */
@@ -379,6 +469,52 @@ class NBUF_Cron {
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Run login attempts cleanup.
+	 *
+	 * Removes old login attempt records from the database.
+	 * The inline cleanup in NBUF_Login_Limiting::record_failed_attempt() handles
+	 * records older than 24 hours, but this cron provides additional hygiene
+	 * for edge cases and ensures the table stays clean.
+	 *
+	 * @since 1.5.0
+	 * @return int Number of records deleted.
+	 */
+	public static function run_login_attempts_cleanup() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+
+		/* Check if table exists */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table existence check.
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
+			return 0;
+		}
+
+		/*
+		 * Delete attempts older than 24 hours.
+		 * This is the same window used by the inline cleanup in NBUF_Login_Limiting,
+		 * but running via cron ensures cleanup happens even if no login attempts occur.
+		 */
+		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE attempt_time < %s',
+				$table_name,
+				$cutoff_time
+			)
+		);
+
+		/* Log cleanup statistics */
+		if ( $deleted > 0 ) {
+			NBUF_Options::update( 'nbuf_last_login_attempts_cleanup', current_time( 'mysql', true ), false, 'system' );
+			NBUF_Options::update( 'nbuf_last_login_attempts_cleanup_count', $deleted, false, 'system' );
+		}
+
+		return (int) $deleted;
 	}
 }
 

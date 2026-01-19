@@ -232,7 +232,7 @@ class NBUF_Public_Profiles {
 			$account_url = class_exists( 'NBUF_URL' ) ? NBUF_URL::get( 'account' ) : '';
 			if ( $account_url ) {
 				$edit_profile_button = '<div class="nbuf-profile-actions">';
-				$edit_profile_button .= '<a href="' . esc_url( $account_url ) . '" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Edit Profile', 'nobloat-user-foundry' ) . '</a>';
+				$edit_profile_button .= '<button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href=\'' . esc_url( $account_url ) . '\'">' . esc_html__( 'Edit Profile', 'nobloat-user-foundry' ) . '</button>';
 				$edit_profile_button .= '</div>';
 			}
 		}

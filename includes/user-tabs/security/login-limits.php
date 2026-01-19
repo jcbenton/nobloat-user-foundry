@@ -12,10 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Login limiting settings */
-$nbuf_enable_login_limiting  = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
-$nbuf_login_max_attempts     = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
-$nbuf_login_lockout_duration = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
-$nbuf_trusted_proxies        = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
+$nbuf_enable_login_limiting         = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
+$nbuf_login_max_attempts            = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
+$nbuf_login_lockout_duration        = NBUF_Options::get( 'nbuf_login_lockout_duration', 10 );
+$nbuf_login_max_attempts_username   = NBUF_Options::get( 'nbuf_login_max_attempts_per_username', 10 );
+$nbuf_login_username_lockout_window = NBUF_Options::get( 'nbuf_login_username_lockout_window', 60 );
+$nbuf_trusted_proxies               = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
 
 /* IP restriction settings */
 $nbuf_ip_restriction_enabled      = NBUF_Options::get( 'nbuf_ip_restriction_enabled', false );
@@ -93,6 +95,33 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
 				<p class="description">
 					<?php esc_html_e( 'How long to block the IP address after exceeding max attempts. Default: 10 minutes', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+	</table>
+
+	<h3><?php esc_html_e( 'Distributed Attack Protection', 'nobloat-user-foundry' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Protect against distributed brute force attacks where multiple IP addresses target a single username.', 'nobloat-user-foundry' ); ?>
+	</p>
+
+	<table class="form-table">
+		<tr>
+			<th><?php esc_html_e( 'Max Attempts per Username', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="number" name="nbuf_login_max_attempts_per_username" value="<?php echo esc_attr( $nbuf_login_max_attempts_username ); ?>" min="5" max="100" class="small-text">
+				<p class="description">
+					<?php esc_html_e( 'Maximum failed login attempts for a single username across ALL IP addresses before blocking. Prevents distributed brute force attacks. Default: 10', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Username Lockout Window', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<input type="number" name="nbuf_login_username_lockout_window" value="<?php echo esc_attr( $nbuf_login_username_lockout_window ); ?>" min="5" max="1440" class="small-text">
+				<span><?php esc_html_e( 'minutes', 'nobloat-user-foundry' ); ?></span>
+				<p class="description">
+					<?php esc_html_e( 'Time window for counting username-based attempts. Default: 60 minutes (1 hour)', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

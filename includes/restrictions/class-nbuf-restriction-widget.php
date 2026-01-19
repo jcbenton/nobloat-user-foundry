@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Handles widget visibility restrictions.
  */
-class NBUF_Restriction_Widget extends Abstract_NBUF_Restriction {
+class NBUF_Restriction_Widget extends NBUF_Abstract_Restriction {
 
 
 	/**

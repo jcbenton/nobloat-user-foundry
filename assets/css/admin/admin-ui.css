@@ -162,6 +162,17 @@
 	margin-bottom: var(--nbuf-spacing-lg);
 }
 
+/* Field mapping table container - allow horizontal scroll on narrow screens */
+#nbuf-field-mapping-table {
+	overflow-x: auto;
+	margin: 0 -20px;
+	padding: 0 20px;
+}
+
+#nbuf-field-mapping-table .nbuf-mapping-table {
+	min-width: 700px;
+}
+
 .nbuf-diag-section h3,
 .nbuf-migration-card h3 {
 	margin-top: 0;

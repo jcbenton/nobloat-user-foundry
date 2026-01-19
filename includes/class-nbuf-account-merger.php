@@ -113,24 +113,12 @@ class NBUF_Account_Merger {
 			'user_url'     => $user->user_url,
 		);
 
-		/* NoBloat extended fields */
+		/* NoBloat extended fields - use field registry for complete list */
 		$extended_fields = array();
-		$profile_fields  = array(
-			'phone'           => __( 'Phone Number', 'nobloat-user-foundry' ),
-			'mobile_phone'    => __( 'Mobile Phone', 'nobloat-user-foundry' ),
-			'work_phone'      => __( 'Work Phone', 'nobloat-user-foundry' ),
-			'address'         => __( 'Address', 'nobloat-user-foundry' ),
-			'city'            => __( 'City', 'nobloat-user-foundry' ),
-			'state'           => __( 'State', 'nobloat-user-foundry' ),
-			'postal_code'     => __( 'Postal Code', 'nobloat-user-foundry' ),
-			'country'         => __( 'Country', 'nobloat-user-foundry' ),
-			'company'         => __( 'Company', 'nobloat-user-foundry' ),
-			'job_title'       => __( 'Job Title', 'nobloat-user-foundry' ),
-			'secondary_email' => __( 'Secondary Email', 'nobloat-user-foundry' ),
-		);
+		$all_field_keys  = NBUF_Profile_Data::get_all_field_keys();
 
-		foreach ( $profile_fields as $field => $label ) {
-			$value                    = NBUF_Profile_Data::get_field( $user_id, $field );
+		foreach ( $all_field_keys as $field ) {
+			$value                     = NBUF_Profile_Data::get_field( $user_id, $field );
 			$extended_fields[ $field ] = $value ? $value : '';
 		}
 
@@ -762,8 +750,8 @@ class NBUF_Account_Merger {
 		/* WordPress core fields that can be updated */
 		$wp_fields = array( 'display_name', 'first_name', 'last_name', 'nickname', 'description', 'user_url' );
 
-		/* Extended NoBloat fields */
-		$extended_fields = array( 'phone', 'mobile_phone', 'work_phone', 'address', 'city', 'state', 'postal_code', 'country', 'company', 'job_title', 'secondary_email' );
+		/* Extended NoBloat fields - use field registry for complete list */
+		$extended_fields = NBUF_Profile_Data::get_all_field_keys();
 
 		/* Process each field choice */
 		foreach ( $field_choices as $field => $choice ) {

@@ -184,8 +184,15 @@ body.nbuf-page .nbuf-totp-setup-page .nbuf-button {
    PAGE LAYOUT
    ========================================================== */
 
-.nbuf-2fa-setup-page {
+.nbuf-virtual-page-wrapper {
+    width: 90%;
     max-width: 900px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.nbuf-2fa-setup-page {
+    width: 100%;
     margin: var(--nbuf-space-4xl) auto;
     padding: var(--nbuf-space-xl);
     font-family: var(--nbuf-font-family);
@@ -196,13 +203,14 @@ body.nbuf-page .nbuf-totp-setup-page .nbuf-button {
    ========================================================== */
 
 .nbuf-2fa-setup-wrapper {
-    max-width: 800px;
+    width: 100%;
     margin: var(--nbuf-space-3xl) auto;
     padding: var(--nbuf-space-2xl);
     background: var(--nbuf-surface);
     border: 1px solid var(--nbuf-border);
     border-radius: var(--nbuf-radius-md);
     box-shadow: var(--nbuf-shadow-md);
+    box-sizing: border-box;
 }
 
 .nbuf-2fa-setup-header {
@@ -632,14 +640,17 @@ body.nbuf-page .nbuf-totp-setup-page .nbuf-button {
     background: var(--nbuf-primary-hover);
 }
 
-/* Shared secondary button color (danger/destructive actions) */
+/* Shared secondary button color (neutral/outline style) */
 .nbuf-button-secondary {
-    background: #d63638;
-    color: var(--nbuf-surface);
+    background: var(--nbuf-surface);
+    color: var(--nbuf-text-secondary);
+    border: 1px solid var(--nbuf-border);
 }
 
 .nbuf-button-secondary:hover {
-    background: #b32d2e;
+    background: var(--nbuf-background);
+    color: var(--nbuf-text-primary);
+    border-color: var(--nbuf-text-tertiary);
 }
 
 /* Subtle press effect for tactile feedback */

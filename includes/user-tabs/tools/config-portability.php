@@ -129,43 +129,54 @@ $nbuf_export_sensitive = NBUF_Options::get( 'nbuf_config_export_sensitive', fals
 
 	<!-- Settings -->
 	<div class="nbuf-card" style="margin-top: 30px;">
-		<h3>Import/Export Settings</h3>
+		<h3><?php esc_html_e( 'Import/Export Settings', 'nobloat-user-foundry' ); ?></h3>
 
-		<table class="form-table">
-			<tr>
-				<th scope="row">
-					<label for="nbuf_config_allow_import">Allow Configuration Import</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_config_allow_import"
-								id="nbuf_config_allow_import"
-								value="1"
-								<?php checked( $nbuf_allow_import ); ?> />
-						Enable configuration import functionality
-					</label>
-					<p class="description">For security, you can disable imports when not needed.</p>
-				</td>
-			</tr>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php NBUF_Settings::settings_nonce_field(); ?>
+			<input type="hidden" name="nbuf_active_tab" value="tools">
+			<input type="hidden" name="nbuf_active_subtab" value="config-portability">
+			<!-- Declare checkboxes for proper unchecked handling -->
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_config_allow_import">
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_config_export_sensitive">
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_config_export_sensitive">Export Sensitive Data by Default</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_config_export_sensitive"
-								id="nbuf_config_export_sensitive"
-								value="1"
-								<?php checked( $nbuf_export_sensitive ); ?> />
-						Include sensitive data in exports by default
-					</label>
-					<p class="description">⚠️ Not recommended. Disable to exclude API keys and tokens.</p>
-				</td>
-			</tr>
-		</table>
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label for="nbuf_config_allow_import"><?php esc_html_e( 'Allow Configuration Import', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_config_allow_import"
+									id="nbuf_config_allow_import"
+									value="1"
+									<?php checked( $nbuf_allow_import ); ?> />
+							<?php esc_html_e( 'Enable configuration import functionality', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'For security, you can disable imports when not needed.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="nbuf_config_export_sensitive"><?php esc_html_e( 'Export Sensitive Data by Default', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_config_export_sensitive"
+									id="nbuf_config_export_sensitive"
+									value="1"
+									<?php checked( $nbuf_export_sensitive ); ?> />
+							<?php esc_html_e( 'Include sensitive data in exports by default', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( '⚠️ Not recommended. Disable to exclude API keys and tokens.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<?php submit_button( __( 'Save Settings', 'nobloat-user-foundry' ) ); ?>
+		</form>
 	</div>
 
 	<!-- Use Cases Documentation -->

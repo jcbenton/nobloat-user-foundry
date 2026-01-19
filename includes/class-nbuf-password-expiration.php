@@ -426,7 +426,7 @@ class NBUF_Password_Expiration {
 
 		/* Log the action */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log_event(
+			NBUF_Audit_Log::log(
 				$user_id,
 				'password_logout_all_devices',
 				'success',
@@ -495,8 +495,8 @@ class NBUF_Password_Expiration {
 			}
 
 			/* Validate password strength (if enabled) */
-			if ( class_exists( 'NBUF_Password_Strength' ) ) {
-				$strength_check = NBUF_Password_Strength::validate_password( $new_password, $user );
+			if ( class_exists( 'NBUF_Password_Validator' ) ) {
+				$strength_check = NBUF_Password_Validator::validate( $new_password, $user_id );
 				if ( is_wp_error( $strength_check ) ) {
 					$errors[] = $strength_check->get_error_message();
 				}

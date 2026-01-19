@@ -219,7 +219,7 @@ class NBUF_Login_Limiting {
 
 		/* Check username-based lockout (prevents distributed brute force) */
 		$max_attempts_per_username = NBUF_Options::get( 'nbuf_login_max_attempts_per_username', 10 );
-		$username_lockout_duration = 60; // 1 hour window for username-based limiting
+		$username_lockout_duration = NBUF_Options::get( 'nbuf_login_username_lockout_window', 60 );
 
 		$username_count = self::get_recent_attempt_count_by_username( $username, $username_lockout_duration );
 		if ( $username_count >= $max_attempts_per_username ) {

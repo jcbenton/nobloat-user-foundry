@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Abstract class Abstract_NBUF_Restriction
+ * Abstract class NBUF_Abstract_Restriction
  *
  * Base class for all restriction types.
  */
-abstract class Abstract_NBUF_Restriction {
+abstract class NBUF_Abstract_Restriction {
 
 
 	/**

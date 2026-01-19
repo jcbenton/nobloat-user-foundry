@@ -25,115 +25,128 @@ $nbuf_import_update_existing = NBUF_Options::get( 'nbuf_import_update_existing',
 
 	<!-- Import Settings -->
 	<div class="nbuf-card" style="margin-top: 20px;">
-		<h3>Import Settings</h3>
+		<h3><?php esc_html_e( 'Import Settings', 'nobloat-user-foundry' ); ?></h3>
 
-		<table class="form-table">
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_require_email">Require Email</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_import_require_email"
-								id="nbuf_import_require_email"
-								value="1"
-								<?php checked( $nbuf_import_require_email ); ?> />
-						All users must have valid email addresses
-					</label>
-					<p class="description">Rows without valid emails will be skipped.</p>
-				</td>
-			</tr>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php NBUF_Settings::settings_nonce_field(); ?>
+			<input type="hidden" name="nbuf_active_tab" value="tools">
+			<input type="hidden" name="nbuf_active_subtab" value="import">
+			<!-- Declare checkboxes for proper unchecked handling -->
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_import_require_email">
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_import_verify_emails">
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_import_send_welcome">
+			<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_import_update_existing">
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_verify_emails">Require Email Verification</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_import_verify_emails"
-								id="nbuf_import_verify_emails"
-								value="1"
-								<?php checked( $nbuf_import_verify_emails ); ?> />
-						Imported users must verify their email
-					</label>
-					<p class="description">Recommended: ON. Ensures all imported users verify their accounts.</p>
-				</td>
-			</tr>
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_require_email"><?php esc_html_e( 'Require Email', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_import_require_email"
+									id="nbuf_import_require_email"
+									value="1"
+									<?php checked( $nbuf_import_require_email ); ?> />
+							<?php esc_html_e( 'All users must have valid email addresses', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'Rows without valid emails will be skipped.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_send_welcome">Send Welcome Email</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_import_send_welcome"
-								id="nbuf_import_send_welcome"
-								value="1"
-								<?php checked( $nbuf_import_send_welcome ); ?> />
-						Send welcome email with login credentials
-					</label>
-					<p class="description">⚠️ Emails will include plain-text passwords. Use with caution.</p>
-				</td>
-			</tr>
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_verify_emails"><?php esc_html_e( 'Require Email Verification', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_import_verify_emails"
+									id="nbuf_import_verify_emails"
+									value="1"
+									<?php checked( $nbuf_import_verify_emails ); ?> />
+							<?php esc_html_e( 'Imported users must verify their email', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'Recommended: ON. Ensures all imported users verify their accounts.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_update_existing">Update Existing Users</label>
-				</th>
-				<td>
-					<label>
-						<input type="checkbox"
-								name="nbuf_import_update_existing"
-								id="nbuf_import_update_existing"
-								value="1"
-								<?php checked( $nbuf_import_update_existing ); ?> />
-						Update existing users if email/username matches
-					</label>
-					<p class="description">If disabled, duplicate users will be skipped.</p>
-				</td>
-			</tr>
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_send_welcome"><?php esc_html_e( 'Send Welcome Email', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_import_send_welcome"
+									id="nbuf_import_send_welcome"
+									value="1"
+									<?php checked( $nbuf_import_send_welcome ); ?> />
+							<?php esc_html_e( 'Send welcome email with login credentials', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( '⚠️ Emails will include plain-text passwords. Use with caution.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_default_role">Default Role</label>
-				</th>
-				<td>
-					<select name="nbuf_import_default_role" id="nbuf_import_default_role">
-						<?php
-						$nbuf_roles = wp_roles()->roles;
-						foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_data ) {
-							printf(
-								'<option value="%s" %s>%s</option>',
-								esc_attr( $nbuf_role_slug ),
-								selected( $nbuf_import_default_role, $nbuf_role_slug, false ),
-								esc_html( $nbuf_role_data['name'] )
-							);
-						}
-						?>
-					</select>
-					<p class="description">Role assigned to users if not specified in CSV.</p>
-				</td>
-			</tr>
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_update_existing"><?php esc_html_e( 'Update Existing Users', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox"
+									name="nbuf_import_update_existing"
+									id="nbuf_import_update_existing"
+									value="1"
+									<?php checked( $nbuf_import_update_existing ); ?> />
+							<?php esc_html_e( 'Update existing users if email/username matches', 'nobloat-user-foundry' ); ?>
+						</label>
+						<p class="description"><?php esc_html_e( 'If disabled, duplicate users will be skipped.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
 
-			<tr>
-				<th scope="row">
-					<label for="nbuf_import_batch_size">Batch Size</label>
-				</th>
-				<td>
-					<input type="number"
-							name="nbuf_import_batch_size"
-							id="nbuf_import_batch_size"
-							value="<?php echo esc_attr( $nbuf_import_batch_size ); ?>"
-							min="10"
-							max="500"
-							step="10" />
-					<p class="description">Users processed per batch (default: 50). Lower = safer, higher = faster.</p>
-				</td>
-			</tr>
-		</table>
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_default_role"><?php esc_html_e( 'Default Role', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<select name="nbuf_import_default_role" id="nbuf_import_default_role">
+							<?php
+							$nbuf_roles = wp_roles()->roles;
+							foreach ( $nbuf_roles as $nbuf_role_slug => $nbuf_role_data ) {
+								printf(
+									'<option value="%s" %s>%s</option>',
+									esc_attr( $nbuf_role_slug ),
+									selected( $nbuf_import_default_role, $nbuf_role_slug, false ),
+									esc_html( $nbuf_role_data['name'] )
+								);
+							}
+							?>
+						</select>
+						<p class="description"><?php esc_html_e( 'Role assigned to users if not specified in CSV.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="nbuf_import_batch_size"><?php esc_html_e( 'Batch Size', 'nobloat-user-foundry' ); ?></label>
+					</th>
+					<td>
+						<input type="number"
+								name="nbuf_import_batch_size"
+								id="nbuf_import_batch_size"
+								value="<?php echo esc_attr( $nbuf_import_batch_size ); ?>"
+								min="10"
+								max="500"
+								step="10" />
+						<p class="description"><?php esc_html_e( 'Users processed per batch (default: 50). Lower = safer, higher = faster.', 'nobloat-user-foundry' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<?php submit_button( __( 'Save Import Settings', 'nobloat-user-foundry' ) ); ?>
+		</form>
 	</div>
 
 	<!-- CSV Upload Form -->

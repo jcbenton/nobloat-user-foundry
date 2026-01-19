@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Handles taxonomy term visibility restrictions.
  */
-class NBUF_Restriction_Taxonomy extends Abstract_NBUF_Restriction {
+class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 
 
 	/**

@@ -11,6 +11,7 @@
  * - ajax_url: WordPress AJAX URL
  * - nonce: Security nonce for AJAX requests
  * - can_revert: Boolean indicating if user can revert versions
+ * - itemTemplate: HTML template for timeline items (with translated labels)
  * - i18n: Translated strings object
  */
 
@@ -105,7 +106,7 @@ jQuery(document).ready(function($) {
 		const $timeline = $viewer.find('.nbuf-vh-timeline');
 		$timeline.empty();
 
-		const template = $('#nbuf-vh-timeline-item-template').html();
+		const template = NBUF_VersionHistory.itemTemplate;
 
 		items.forEach(function(item, index) {
 			const fieldsChanged = item.fields_changed || [];

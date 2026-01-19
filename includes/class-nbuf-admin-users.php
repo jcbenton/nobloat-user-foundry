@@ -142,33 +142,7 @@ class NBUF_Admin_Users {
 
 			$can_revert = current_user_can( 'manage_options' );
 
-			wp_localize_script(
-				'nbuf-version-history',
-				'NBUF_VersionHistory',
-				array(
-					'ajax_url'   => admin_url( 'admin-ajax.php' ),
-					'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-					'can_revert' => $can_revert ? true : false,
-					'i18n'       => array(
-						'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
-						'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
-						'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
-						'import'         => __( 'Import', 'nobloat-user-foundry' ),
-						'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
-						'self'           => __( 'Self', 'nobloat-user-foundry' ),
-						'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
-						'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-						'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-						'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
-						'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
-						'before'         => __( 'Before:', 'nobloat-user-foundry' ),
-						'after'          => __( 'After:', 'nobloat-user-foundry' ),
-						'field'          => __( 'Field', 'nobloat-user-foundry' ),
-						'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
-						'after_value'    => __( 'After', 'nobloat-user-foundry' ),
-					),
-				)
-			);
+			wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', NBUF_Version_History::get_script_data( $can_revert ) );
 		}
 	}
 
@@ -998,14 +972,14 @@ class NBUF_Admin_Users {
 		/* Profile Fields Section */
 		$profile_data   = NBUF_Profile_Data::get( $user_id );
 		$enabled_fields = NBUF_Profile_Data::get_enabled_fields();
-		$field_registry = NBUF_Profile_Data::get_field_registry();
+		$field_registry = NBUF_Profile_Data::get_field_registry_with_labels();
 
 		if ( ! empty( $enabled_fields ) ) :
 			?>
 		<h2><?php esc_html_e( 'Profile Information', 'nobloat-user-foundry' ); ?></h2>
 		<table class="form-table">
 			<?php
-			/* Build flat field labels array from registry */
+			/* Build flat field labels array from registry (with custom labels) */
 			$field_labels = array();
 			foreach ( $field_registry as $category_data ) {
 				$field_labels = array_merge( $field_labels, $category_data['fields'] );

@@ -190,7 +190,7 @@ class NBUF_Admin_Audit_Log_Page {
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Admin Actions Log', 'nobloat-user-foundry' ); ?></h1>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nbuf-settings&tab=gdpr&subtab=logging' ) ); ?>" class="page-title-action">
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ); ?>" class="page-title-action">
 				<?php esc_html_e( 'Settings', 'nobloat-user-foundry' ); ?>
 			</a>
 			<hr class="wp-header-end">

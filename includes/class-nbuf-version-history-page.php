@@ -34,6 +34,87 @@ class NBUF_Version_History_Page {
 
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 16 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'wp_ajax_nbuf_search_users_extended', array( __CLASS__, 'ajax_search_users' ) );
+	}
+
+	/**
+	 * AJAX handler to search users by multiple fields
+	 *
+	 * Searches: username, email, display name, first name, last name
+	 */
+	public static function ajax_search_users() {
+		check_ajax_referer( 'nbuf_version_history_search', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'nobloat-user-foundry' ) ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above via check_ajax_referer().
+		$search = isset( $_REQUEST['search'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['search'] ) ) : '';
+
+		if ( strlen( $search ) < 2 ) {
+			wp_send_json_success( array( 'results' => array() ) );
+		}
+
+		global $wpdb;
+
+		/*
+		 * Search users by login, email, display_name (core table)
+		 * AND first_name, last_name (user meta)
+		 */
+		$like_search = '%' . $wpdb->esc_like( $search ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- AJAX user search with complex meta join.
+		$user_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT u.ID FROM {$wpdb->users} u
+				LEFT JOIN {$wpdb->usermeta} um_fn ON u.ID = um_fn.user_id AND um_fn.meta_key = 'first_name'
+				LEFT JOIN {$wpdb->usermeta} um_ln ON u.ID = um_ln.user_id AND um_ln.meta_key = 'last_name'
+				WHERE u.user_login LIKE %s
+				   OR u.user_email LIKE %s
+				   OR u.display_name LIKE %s
+				   OR um_fn.meta_value LIKE %s
+				   OR um_ln.meta_value LIKE %s
+				ORDER BY u.display_name ASC
+				LIMIT 20",
+				$like_search,
+				$like_search,
+				$like_search,
+				$like_search,
+				$like_search
+			)
+		);
+
+		$results = array();
+		foreach ( $user_ids as $user_id ) {
+			$user = get_userdata( $user_id );
+			if ( ! $user ) {
+				continue;
+			}
+
+			$name_parts = array();
+			if ( $user->first_name ) {
+				$name_parts[] = $user->first_name;
+			}
+			if ( $user->last_name ) {
+				$name_parts[] = $user->last_name;
+			}
+			$full_name = implode( ' ', $name_parts );
+
+			/* Build display text: "Display Name (username) - email" */
+			$text = $user->display_name;
+			if ( $full_name && $full_name !== $user->display_name ) {
+				$text .= ' (' . $full_name . ')';
+			}
+			$text .= ' - ' . $user->user_email;
+
+			$results[] = array(
+				'id'   => $user->ID,
+				'text' => $text,
+			);
+		}
+
+		wp_send_json_success( array( 'results' => $results ) );
 	}
 
 	/**
@@ -83,46 +164,51 @@ class NBUF_Version_History_Page {
 			true
 		);
 
-		wp_localize_script(
-			'nbuf-version-history',
-			'NBUF_VersionHistory',
-			array(
-				'ajax_url'   => admin_url( 'admin-ajax.php' ),
-				'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-				'can_revert' => $can_revert ? true : false,
-				'i18n'       => array(
-					'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
-					'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
-					'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
-					'import'         => __( 'Import', 'nobloat-user-foundry' ),
-					'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
-					'self'           => __( 'Self', 'nobloat-user-foundry' ),
-					'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
-					'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-					'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-					'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
-					'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
-					'before'         => __( 'Before:', 'nobloat-user-foundry' ),
-					'after'          => __( 'After:', 'nobloat-user-foundry' ),
-					'field'          => __( 'Field', 'nobloat-user-foundry' ),
-					'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
-					'after_value'    => __( 'After', 'nobloat-user-foundry' ),
-				),
-			)
-		);
+		wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', NBUF_Version_History::get_script_data( $can_revert ) );
 
 		/* Enqueue Select2 for searchable user dropdown */
 		wp_enqueue_style( 'nbuf-select2', NBUF_PLUGIN_URL . 'assets/vendor/select2/select2.min.css', array(), '4.0.13' );
 		wp_enqueue_script( 'nbuf-select2', NBUF_PLUGIN_URL . 'assets/vendor/select2/select2.min.js', array( 'jquery' ), '4.0.13', true );
 
-		/* Initialize Select2 on user dropdown */
+		/* Initialize Select2 with AJAX user search */
 		wp_add_inline_script(
 			'nbuf-select2',
 			'jQuery(document).ready(function($) {
 				$("#user_id").select2({
-					placeholder: "' . esc_js( __( 'Search for a user...', 'nobloat-user-foundry' ) ) . '",
+					placeholder: "' . esc_js( __( 'Type to search by name, email, or username...', 'nobloat-user-foundry' ) ) . '",
 					allowClear: true,
-					width: "300px"
+					width: "350px",
+					minimumInputLength: 2,
+					ajax: {
+						url: "' . esc_js( admin_url( 'admin-ajax.php' ) ) . '",
+						dataType: "json",
+						delay: 250,
+						data: function(params) {
+							return {
+								action: "nbuf_search_users_extended",
+								nonce: "' . esc_js( wp_create_nonce( 'nbuf_version_history_search' ) ) . '",
+								search: params.term
+							};
+						},
+						processResults: function(response) {
+							if (response.success && response.data.results) {
+								return { results: response.data.results };
+							}
+							return { results: [] };
+						},
+						cache: true
+					},
+					language: {
+						inputTooShort: function() {
+							return "' . esc_js( __( 'Type at least 2 characters to search...', 'nobloat-user-foundry' ) ) . '";
+						},
+						noResults: function() {
+							return "' . esc_js( __( 'No users found', 'nobloat-user-foundry' ) ) . '";
+						},
+						searching: function() {
+							return "' . esc_js( __( 'Searching...', 'nobloat-user-foundry' ) ) . '";
+						}
+					}
 				});
 			});'
 		);
@@ -201,17 +287,31 @@ class NBUF_Version_History_Page {
 		<?php esc_html_e( 'User:', 'nobloat-user-foundry' ); ?>
 						</label>
 
-		<?php
-		wp_dropdown_users(
-			array(
-				'name'             => 'user_id',
-				'id'               => 'user_id',
-				'selected'         => $selected_user_id,
-				'show_option_none' => __( '— Select User —', 'nobloat-user-foundry' ),
-				'class'            => 'regular-text',
-			)
-		);
-		?>
+						<select name="user_id" id="user_id" class="regular-text">
+		<?php if ( $selected_user_id > 0 ) : ?>
+			<?php
+			$selected_user = get_userdata( $selected_user_id );
+			if ( $selected_user ) :
+				$name_parts = array();
+				if ( $selected_user->first_name ) {
+					$name_parts[] = $selected_user->first_name;
+				}
+				if ( $selected_user->last_name ) {
+					$name_parts[] = $selected_user->last_name;
+				}
+				$full_name    = implode( ' ', $name_parts );
+				$display_text = $selected_user->display_name;
+				if ( $full_name && $full_name !== $selected_user->display_name ) {
+					$display_text .= ' (' . $full_name . ')';
+				}
+				$display_text .= ' - ' . $selected_user->user_email;
+				?>
+								<option value="<?php echo esc_attr( $selected_user_id ); ?>" selected>
+				<?php echo esc_html( $display_text ); ?>
+								</option>
+			<?php endif; ?>
+		<?php endif; ?>
+						</select>
 
 		<?php submit_button( __( 'View History', 'nobloat-user-foundry' ), 'primary', 'submit', false ); ?>
 					</div>

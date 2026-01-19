@@ -254,16 +254,14 @@ $nbuf_settings_fields = array(
 	),
 
 	array(
-		'id'       => 'nbuf_logging_user_deletion_action',
-		'title'    => __( 'On User Deletion', 'nobloat-user-foundry' ),
-		'type'     => 'select',
-		'default'  => 'anonymize',
-		'category' => 'logging',
-		'options'  => array(
-			'anonymize' => __( 'Anonymize user in logs (Recommended)', 'nobloat-user-foundry' ),
-			'delete'    => __( 'Delete user logs completely', 'nobloat-user-foundry' ),
+		'id'    => 'nbuf_logging_user_deletion_action_link',
+		'title' => __( 'On User Deletion', 'nobloat-user-foundry' ),
+		'type'  => 'html',
+		'html'  => sprintf(
+			/* translators: %s: Link to Privacy settings */
+			__( 'Configure log handling when users are deleted in %s.', 'nobloat-user-foundry' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nbuf-settings&tab=gdpr&subtab=privacy' ) ) . '">' . __( 'GDPR &raquo; Privacy', 'nobloat-user-foundry' ) . '</a>'
 		),
-		'desc'     => __( 'Anonymizing preserves audit trail while removing identifiable information apply to the User Activity Log only.', 'nobloat-user-foundry' ),
 	),
 );
 

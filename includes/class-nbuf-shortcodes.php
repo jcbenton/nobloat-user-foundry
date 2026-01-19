@@ -826,9 +826,9 @@ class NBUF_Shortcodes {
 				$magic_link = '<div class="nbuf-magic-link-divider">'
 					. '<span>' . esc_html__( 'or', 'nobloat-user-foundry' ) . '</span>'
 					. '</div>'
-					. '<a href="' . esc_url( $magic_link_url ) . '" class="nbuf-magic-link-button">'
+					. '<button type="button" class="nbuf-magic-link-button" onclick="window.location.href=\'' . esc_url( $magic_link_url ) . '\'">'
 					. esc_html__( 'Sign in with Magic Link', 'nobloat-user-foundry' )
-					. '</a>';
+					. '</button>';
 			}
 		}
 
@@ -1152,7 +1152,7 @@ class NBUF_Shortcodes {
 						<p>' . esc_html__( 'Your account has been created. You can now log in with your credentials.', 'nobloat-user-foundry' ) . '</p>
 					</div>
 					<p class="nbuf-registration-success-login">
-						<a href="' . esc_url( $login_url ) . '" class="nbuf-button">' . esc_html__( 'Login Now', 'nobloat-user-foundry' ) . '</a>
+						<button type="button" class="nbuf-button" onclick="window.location.href=\'' . esc_url( $login_url ) . '\'">' . esc_html__( 'Login Now', 'nobloat-user-foundry' ) . '</button>
 					</p>
 				</div>';
 			}
@@ -1536,6 +1536,28 @@ class NBUF_Shortcodes {
 			$messages = '<div class="nbuf-message ' . esc_attr( $class ) . '">' . esc_html( $flash['message'] ) . '</div>';
 		}
 
+		/* Check for weak password warning (grace period) */
+		$weak_password_warning = get_transient( 'nbuf_weak_password_warning_' . $user_id );
+		if ( $weak_password_warning && is_array( $weak_password_warning ) ) {
+			delete_transient( 'nbuf_weak_password_warning_' . $user_id );
+			$days_remaining = isset( $weak_password_warning['days_remaining'] ) ? (int) $weak_password_warning['days_remaining'] : 0;
+			$requirements   = isset( $weak_password_warning['requirements'] ) ? $weak_password_warning['requirements'] : array();
+
+			$messages .= '<div class="nbuf-message nbuf-message-warning nbuf-weak-password-warning">';
+			$messages .= '<strong>' . esc_html__( 'Password Update Required', 'nobloat-user-foundry' ) . '</strong><br>';
+			/* translators: %d: number of days remaining */
+			$messages .= '<p>' . sprintf( esc_html__( 'Your password does not meet the current security requirements. Please update it within %d days to avoid being locked out.', 'nobloat-user-foundry' ), $days_remaining ) . '</p>';
+			if ( ! empty( $requirements ) ) {
+				$messages .= '<p><strong>' . esc_html__( 'Requirements:', 'nobloat-user-foundry' ) . '</strong></p>';
+				$messages .= '<ul style="margin-left: 20px; list-style: disc;">';
+				foreach ( $requirements as $req ) {
+					$messages .= '<li>' . esc_html( $req ) . '</li>';
+				}
+				$messages .= '</ul>';
+			}
+			$messages .= '</div>';
+		}
+
 		/* Check for newly generated backup codes (special case - needs to display codes) */
 		$backup_codes = get_transient( 'nbuf_backup_codes_' . $user_id );
 		if ( $backup_codes && is_array( $backup_codes ) ) {
@@ -1734,33 +1756,7 @@ class NBUF_Shortcodes {
 				'1.4.0',
 				true
 			);
-			wp_localize_script(
-				'nbuf-version-history',
-				'NBUF_VersionHistory',
-				array(
-					'ajax_url'   => admin_url( 'admin-ajax.php' ),
-					'nonce'      => wp_create_nonce( 'nbuf_version_history' ),
-					'can_revert' => $allow_user_revert,
-					'i18n'       => array(
-						'registration'   => __( 'Registration', 'nobloat-user-foundry' ),
-						'profile_update' => __( 'Profile Update', 'nobloat-user-foundry' ),
-						'admin_update'   => __( 'Admin Update', 'nobloat-user-foundry' ),
-						'import'         => __( 'Import', 'nobloat-user-foundry' ),
-						'revert'         => __( 'Reverted', 'nobloat-user-foundry' ),
-						'self'           => __( 'Self', 'nobloat-user-foundry' ),
-						'admin'          => __( 'Admin', 'nobloat-user-foundry' ),
-						'confirm_revert' => __( 'Are you sure you want to revert to this version? This will create a new version entry.', 'nobloat-user-foundry' ),
-						'revert_success' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ),
-						'revert_failed'  => __( 'Revert failed.', 'nobloat-user-foundry' ),
-						'error'          => __( 'An error occurred.', 'nobloat-user-foundry' ),
-						'before'         => __( 'Before:', 'nobloat-user-foundry' ),
-						'after'          => __( 'After:', 'nobloat-user-foundry' ),
-						'field'          => __( 'Field', 'nobloat-user-foundry' ),
-						'before_value'   => __( 'Before', 'nobloat-user-foundry' ),
-						'after_value'    => __( 'After', 'nobloat-user-foundry' ),
-					),
-				)
-			);
+			wp_localize_script( 'nbuf-version-history', 'NBUF_VersionHistory', NBUF_Version_History::get_script_data( $allow_user_revert ) );
 
 			$history_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="history">' . esc_html__( 'History', 'nobloat-user-foundry' ) . '</button>';
 			$history_tab_content = '<div class="nbuf-tab-content" data-tab="history">' . $version_history_html . '</div>';
@@ -1900,6 +1896,21 @@ class NBUF_Shortcodes {
 					</p>';
 			}
 
+			/* Check for pending email change */
+			$pending_email        = get_user_meta( $user_id, 'nbuf_pending_email', true );
+			$pending_email_notice = '';
+			if ( $pending_email ) {
+				$pending_email_notice = '
+					<div class="nbuf-message nbuf-message-info nbuf-section-spacing">
+						<strong>' . esc_html__( 'Pending Email Change:', 'nobloat-user-foundry' ) . '</strong> ' .
+						sprintf(
+							/* translators: %s: pending email address */
+							esc_html__( 'A verification email has been sent to %s. Click the link in that email to complete the change.', 'nobloat-user-foundry' ),
+							'<strong>' . esc_html( $pending_email ) . '</strong>'
+						) . '
+					</div>';
+			}
+
 			$email_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="email">' . esc_html__( 'Email', 'nobloat-user-foundry' ) . '</button>';
 
 
@@ -1908,6 +1919,7 @@ class NBUF_Shortcodes {
 				<div class="nbuf-account-section">
 					<h3>' . esc_html__( 'Change Email Address', 'nobloat-user-foundry' ) . '</h3>
 					<p class="nbuf-method-description">' . esc_html__( 'Update your account email address. This email is used for account notifications and password recovery.', 'nobloat-user-foundry' ) . '</p>
+					' . $pending_email_notice . '
 					' . $verification_notice . '
 					<div class="nbuf-content-box">
 						<form method="post" action="' . esc_url( self::get_current_page_url() ) . '" class="nbuf-account-form nbuf-email-change-form">
@@ -2581,49 +2593,84 @@ class NBUF_Shortcodes {
 		/* Store old email for notification */
 		$old_email = $current_user->user_email;
 
-		/* Update email */
-		$result = wp_update_user(
-			array(
-				'ID'         => $user_id,
-				'user_email' => $new_email,
-			)
-		);
+		/* Check if verification is required for email changes */
+		$verify_email_change = NBUF_Options::get( 'nbuf_verify_email_change', true );
 
-		if ( is_wp_error( $result ) ) {
-			self::set_flash_message( $user_id, $result->get_error_message(), 'error' );
-			wp_safe_redirect( self::build_account_redirect() );
-			exit;
-		}
+		if ( $verify_email_change ) {
+			/*
+			 * PENDING EMAIL FLOW
+			 * Store new email as pending, send verification to new email.
+			 * Actual email change happens only after verification.
+			 */
+			update_user_meta( $user_id, 'nbuf_pending_email', $new_email );
 
-		/* Send notification to old email */
-		self::send_email_change_notification( $user_id, $old_email, $new_email );
+			/* Generate verification token */
+			$token   = bin2hex( random_bytes( 32 ) );
+			$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
-		/* Log email change */
-		NBUF_Audit_Log::log(
-			$user_id,
-			'email_changed',
-			'success',
-			'User changed email address via account page',
-			array(
-				'old_email' => $old_email,
-				'new_email' => $new_email,
-			)
-		);
+			/* Store token with pending email */
+			NBUF_Database::insert_token( $user_id, $new_email, $token, $expires, 0 );
 
-		/* Check if re-verification is required */
-		$reverify_on_change = NBUF_Options::get( 'nbuf_reverify_on_email_change', false );
-		if ( $reverify_on_change ) {
-			/* Mark user as unverified */
-			update_user_meta( $user_id, 'nbuf_verified', 0 );
-			delete_user_meta( $user_id, 'nbuf_verified_date' );
+			/* Send verification to the NEW email */
+			NBUF_Email::send_verification_email( $new_email, $token, $current_user );
 
-			/* Generate and send new verification email */
-			if ( class_exists( 'NBUF_Verifier' ) ) {
-				NBUF_Verifier::send_verification_email( $user_id );
+			/* Log pending email change */
+			NBUF_Audit_Log::log(
+				$user_id,
+				'email_change_pending',
+				'info',
+				'User requested email change, verification pending',
+				array(
+					'old_email' => $old_email,
+					'new_email' => $new_email,
+				)
+			);
+
+			self::set_flash_message(
+				$user_id,
+				__( 'A verification link has been sent to your new email address. Your email will be updated once you click the link to confirm.', 'nobloat-user-foundry' ),
+				'success'
+			);
+		} else {
+			/*
+			 * IMMEDIATE EMAIL CHANGE
+			 * No verification required, change email immediately.
+			 */
+
+			/* Disable WordPress's built-in email change notification - we send our own */
+			add_filter( 'send_email_change_email', '__return_false' );
+
+			$result = wp_update_user(
+				array(
+					'ID'         => $user_id,
+					'user_email' => $new_email,
+				)
+			);
+
+			/* Re-enable WordPress email change notification */
+			remove_filter( 'send_email_change_email', '__return_false' );
+
+			if ( is_wp_error( $result ) ) {
+				self::set_flash_message( $user_id, $result->get_error_message(), 'error' );
+				wp_safe_redirect( self::build_account_redirect() );
+				exit;
 			}
 
-			self::set_flash_message( $user_id, __( 'Email updated! Please check your new email to verify your account.', 'nobloat-user-foundry' ), 'success' );
-		} else {
+			/* Send notification to old email */
+			self::send_email_change_notification( $user_id, $old_email, $new_email );
+
+			/* Log email change */
+			NBUF_Audit_Log::log(
+				$user_id,
+				'email_changed',
+				'success',
+				'User changed email address via account page',
+				array(
+					'old_email' => $old_email,
+					'new_email' => $new_email,
+				)
+			);
+
 			self::set_flash_message( $user_id, __( 'Email address updated successfully!', 'nobloat-user-foundry' ), 'success' );
 		}
 
@@ -2647,7 +2694,7 @@ class NBUF_Shortcodes {
 	 * @param string $old_email Old email address.
 	 * @param string $new_email New email address.
 	 */
-	private static function send_email_change_notification( $user_id, $old_email, $new_email ) {
+	public static function send_email_change_notification( $user_id, $old_email, $new_email ) {
 		$user      = get_userdata( $user_id );
 		$site_name = get_bloginfo( 'name' );
 
@@ -3012,9 +3059,9 @@ Best regards,
 					<button type="submit" class="nbuf-button nbuf-button-primary">
 		<?php esc_html_e( 'Yes, Log Me Out', 'nobloat-user-foundry' ); ?>
 					</button>
-					<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="nbuf-button nbuf-button-secondary">
+					<button type="button" class="nbuf-button nbuf-button-secondary" onclick="window.location.href='<?php echo esc_url( home_url( '/' ) ); ?>'">
 		<?php esc_html_e( 'Cancel', 'nobloat-user-foundry' ); ?>
-					</a>
+					</button>
 				</form>
 			</div>
 		</div>
@@ -3114,7 +3161,7 @@ Best regards,
 				$account_page_id = NBUF_Options::get( 'nbuf_page_account', 0 );
 				if ( $account_page_id ) :
 					?>
-					<p><a href="<?php echo esc_url( get_permalink( $account_page_id ) ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a></p>
+					<p><button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href='<?php echo esc_url( get_permalink( $account_page_id ) ); ?>'"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></button></p>
 				<?php endif; ?>
 			<?php else : ?>
 				<?php
@@ -3155,12 +3202,14 @@ Best regards,
 				<?php endif; ?>
 
 				<?php
-				/* Generate new secret for setup */
-				$secret   = NBUF_TOTP::generate_secret();
-				$username = wp_get_current_user()->user_email;
-				$issuer   = get_bloginfo( 'name' );
-				$uri      = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer );
-				$qr_code  = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
+				/* Generate new secret for setup using settings from Security > Authenticator */
+				$secret      = NBUF_TOTP::generate_secret();
+				$username    = wp_get_current_user()->user_email;
+				$issuer      = get_bloginfo( 'name' );
+				$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+				$time_window = (int) NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+				$uri         = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer, $code_length, $time_window );
+				$qr_code     = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
 
 				/* Load template and replace placeholders directly (avoids shortcode quote issues) */
 				$template = NBUF_Template_Manager::load_template( '2fa-setup-totp' );
@@ -3231,22 +3280,23 @@ Best regards,
 			);
 		}
 
+		/* Get settings from Security > Authenticator tab */
+		$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+		$time_window = (int) NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+		$tolerance   = (int) NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
+
 		/* Validate code format */
 		$code = preg_replace( '/\s+/', '', $code ); // Remove any whitespace.
-		if ( ! preg_match( '/^\d{6}$/', $code ) ) {
+		if ( ! preg_match( '/^\d{' . $code_length . '}$/', $code ) ) {
 			return self::render_totp_setup_with_error(
 				$user_id,
-				__( 'Please enter a valid 6-digit code.', 'nobloat-user-foundry' )
+				/* translators: %d: number of digits required */
+				sprintf( __( 'Please enter a valid %d-digit code.', 'nobloat-user-foundry' ), $code_length )
 			);
 		}
 
-		/*
-		 * Verify the code against the submitted secret (not stored yet).
-		 * Use hardcoded defaults (6 digits, 30 seconds) to match what the
-		 * QR code was generated with. Use tolerance of 2 (±60 seconds) to
-		 * account for clock drift between server and device.
-		 */
-		$valid = NBUF_TOTP::verify_code( $secret, $code, 2, 6, 30 );
+		/* Verify the code against the submitted secret (not stored yet) */
+		$valid = NBUF_TOTP::verify_code( $secret, $code, $tolerance, $code_length, $time_window );
 
 		if ( ! $valid ) {
 			return self::render_totp_setup_with_error(
@@ -3323,7 +3373,7 @@ Best regards,
 						<button type="button" class="nbuf-button nbuf-button-secondary" onclick="navigator.clipboard.writeText('<?php echo esc_js( implode( "\n", $backup_codes ) ); ?>').then(function() { alert('<?php echo esc_js( __( 'Backup codes copied to clipboard!', 'nobloat-user-foundry' ) ); ?>'); });">
 							<?php esc_html_e( 'Copy Codes', 'nobloat-user-foundry' ); ?>
 						</button>
-						<a href="<?php echo esc_url( $account_url ); ?>" class="nbuf-button nbuf-button-primary"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></a>
+						<button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href='<?php echo esc_url( $account_url ); ?>'"><?php esc_html_e( 'Go to Account', 'nobloat-user-foundry' ); ?></button>
 					</div>
 				</div>
 				<?php endif; ?>
@@ -3344,12 +3394,14 @@ Best regards,
 		/* Enqueue CSS for 2FA pages */
 		self::enqueue_frontend_css( '2fa' );
 
-		/* Generate new secret for retry */
-		$secret   = NBUF_TOTP::generate_secret();
-		$username = wp_get_current_user()->user_email;
-		$issuer   = get_bloginfo( 'name' );
-		$uri      = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer );
-		$qr_code  = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
+		/* Generate new secret for retry using settings from Security > Authenticator */
+		$secret      = NBUF_TOTP::generate_secret();
+		$username    = wp_get_current_user()->user_email;
+		$issuer      = get_bloginfo( 'name' );
+		$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
+		$time_window = (int) NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
+		$uri         = NBUF_TOTP::get_provisioning_uri( $secret, $username, $issuer, $code_length, $time_window );
+		$qr_code     = NBUF_QR_Code::generate( $uri, NBUF_Options::get( 'nbuf_2fa_totp_qr_size', 200 ) );
 
 		/* Load template */
 		$template = NBUF_Template_Manager::load_template( '2fa-setup-totp' );
@@ -3427,25 +3479,40 @@ Best regards,
 				'logged_in' => '',
 				'verified'  => '',
 				'expired'   => '',
-				'message'   => __( 'This content is restricted.', 'nobloat-user-foundry' ),
+				'message'   => '',
 			),
 			$atts,
 			'nbuf_restrict'
 		);
+
+		/* Build restriction output - empty string hides content silently */
+		$restriction_output = '';
+		if ( '' !== $atts['message'] ) {
+			$restriction_output = '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+		}
 
 		/* Get current user */
 		$user         = wp_get_current_user();
 		$user_id      = $user->ID;
 		$is_logged_in = is_user_logged_in();
 
+		/*
+		 * If role, verified, or expired attributes are specified,
+		 * user must be logged in (these only apply to authenticated users).
+		 */
+		$requires_login = ! empty( $atts['role'] ) || ! empty( $atts['verified'] ) || ! empty( $atts['expired'] );
+		if ( $requires_login && ! $is_logged_in ) {
+			return $restriction_output;
+		}
+
 		/* Check logged_in requirement */
 		if ( ! empty( $atts['logged_in'] ) ) {
 			$required_logged_in = filter_var( $atts['logged_in'], FILTER_VALIDATE_BOOLEAN );
 			if ( $required_logged_in && ! $is_logged_in ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 			if ( ! $required_logged_in && $is_logged_in ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 		}
 
@@ -3457,7 +3524,7 @@ Best regards,
 			/* Check if user has any of the required roles */
 			$has_role = ! empty( array_intersect( $user_roles, $required_roles ) );
 			if ( ! $has_role ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 		}
 
@@ -3468,16 +3535,16 @@ Best regards,
 
 			/* SECURITY: Check if user_data exists */
 			if ( ! $user_data ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html__( 'User data not available.', 'nobloat-user-foundry' ) . '</p></div>';
+				return $restriction_output;
 			}
 
 			$is_verified = 1 === (int) $user_data->is_verified;
 
 			if ( $required_verified && ! $is_verified ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 			if ( ! $required_verified && $is_verified ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 		}
 
@@ -3488,16 +3555,16 @@ Best regards,
 
 			/* SECURITY: Check if user_data exists */
 			if ( ! $user_data ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html__( 'User data not available.', 'nobloat-user-foundry' ) . '</p></div>';
+				return $restriction_output;
 			}
 
 			$is_expired = NBUF_User_Data::is_expired( $user_id );
 
 			if ( $required_not_expired && $is_expired ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 			if ( ! $required_not_expired && ! $is_expired ) {
-				return '<div class="nbuf-restricted-content"><p>' . esc_html( $atts['message'] ) . '</p></div>';
+				return $restriction_output;
 			}
 		}
 
@@ -3754,9 +3821,9 @@ Best regards,
 			$account_page_id = NBUF_Options::get( 'nbuf_page_account' );
 			if ( $account_page_id ) {
 				$edit_profile_button = '<div class="nbuf-profile-actions">'
-					. '<a href="' . esc_url( get_permalink( $account_page_id ) ) . '" class="nbuf-button nbuf-button-primary">'
+					. '<button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href=\'' . esc_url( get_permalink( $account_page_id ) ) . '\'">'
 					. esc_html__( 'Edit Profile', 'nobloat-user-foundry' )
-					. '</a></div>';
+					. '</button></div>';
 			}
 		}
 
@@ -4079,7 +4146,7 @@ Best regards,
 		$html  = '<div class="nbuf-form-group nbuf-timezone-select-wrap">';
 		$html .= '<label for="' . esc_attr( $field_id ) . '" class="nbuf-form-label">' . esc_html( $label ) . $required_html . '</label>';
 		$html .= '<div class="nbuf-searchable-select">';
-		$html .= '<input type="text" class="nbuf-form-input nbuf-timezone-search" placeholder="' . esc_attr__( 'Search timezones...', 'nobloat-user-foundry' ) . '" autocomplete="off">';
+		$html .= '<input type="text" class="nbuf-form-input nbuf-timezone-search" placeholder="' . esc_attr__( 'Search', 'nobloat-user-foundry' ) . '" autocomplete="off">';
 		$html .= '<select id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $field_key ) . '" class="nbuf-form-input nbuf-timezone-select"' . $req_attr . '>';
 		$html .= $options_html;
 		$html .= '</select>';

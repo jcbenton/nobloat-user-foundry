@@ -48,32 +48,8 @@ class NBUF_Diagnostics {
 
 		check_admin_referer( 'nbuf_repair_tables' );
 
-		/* Run all table creation functions (safe - uses CREATE TABLE IF NOT EXISTS) */
-		NBUF_Database::create_table();
-		NBUF_Database::create_user_data_table();
-		NBUF_Database::create_options_table();
-		NBUF_Database::create_user_profile_table();
-		NBUF_Database::create_login_attempts_table();
-		NBUF_Database::create_user_2fa_table();
-		NBUF_Database::create_user_audit_log_table();
-		NBUF_Database::create_admin_audit_log_table();
-		NBUF_Database::create_user_notes_table();
-		NBUF_Database::create_import_history_table();
-		NBUF_Database::create_menu_restrictions_table();
-		NBUF_Database::create_content_restrictions_table();
-		NBUF_Database::create_user_roles_table();
-		NBUF_Database::create_profile_versions_table();
-
-		/* Run update functions for columns */
-		NBUF_Database::update_user_data_table_for_privacy();
-		NBUF_Database::update_user_data_table_for_photos();
-		NBUF_Database::update_user_data_table_for_password_expiration();
-		NBUF_Database::update_user_profile_table_for_account_merging();
-
-		/* Create security log table if class exists */
-		if ( class_exists( 'NBUF_Security_Log' ) ) {
-			NBUF_Security_Log::create_table();
-		}
+		/* Run all table creation and update functions via centralized method */
+		NBUF_Database::repair_all_tables();
 
 		/* Redirect back to the originating page with success message */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce already verified above.
@@ -129,31 +105,17 @@ class NBUF_Diagnostics {
 		$report[] = 'PHP Max Execution Time: ' . ini_get( 'max_execution_time' ) . ' seconds';
 		$report[] = '';
 
-		/* Database Tables */
+		/* Database Tables - use single source of truth from NBUF_Database */
 		$report[] = '-------------------------------------------';
 		$report[] = 'DATABASE HEALTH';
 		$report[] = '-------------------------------------------';
 
-		$tables = array(
-			'tokens'               => $wpdb->prefix . 'nbuf_tokens',
-			'user_data'            => $wpdb->prefix . 'nbuf_user_data',
-			'user_2fa'             => $wpdb->prefix . 'nbuf_user_2fa',
-			'user_passkeys'        => $wpdb->prefix . 'nbuf_user_passkeys',
-			'user_profile'         => $wpdb->prefix . 'nbuf_user_profile',
-			'profile_versions'     => $wpdb->prefix . 'nbuf_profile_versions',
-			'login_attempts'       => $wpdb->prefix . 'nbuf_login_attempts',
-			'options'              => $wpdb->prefix . 'nbuf_options',
-			'user_audit_log'       => $wpdb->prefix . 'nbuf_user_audit_log',
-			'admin_audit_log'      => $wpdb->prefix . 'nbuf_admin_audit_log',
-			'security_log'         => $wpdb->prefix . 'nbuf_security_log',
-			'user_notes'           => $wpdb->prefix . 'nbuf_user_notes',
-			'user_roles'           => $wpdb->prefix . 'nbuf_user_roles',
-			'import_history'       => $wpdb->prefix . 'nbuf_import_history',
-			'menu_restrictions'    => $wpdb->prefix . 'nbuf_menu_restrictions',
-			'content_restrictions' => $wpdb->prefix . 'nbuf_content_restrictions',
-		);
+		$table_data = NBUF_Database::get_all_tables();
+		$tables     = $table_data['expected']; /* For backward compatibility with table key references */
 
 		$total_size = 0;
+
+		/* Report expected tables */
 		foreach ( $tables as $key => $table_name ) {
 			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 			if ( $exists ) {
@@ -168,11 +130,32 @@ class NBUF_Diagnostics {
 					)
 				);
 				$total_size += (float) $size;
-				$report[]    = sprintf( '%-30s | Status: EXISTS | Rows: %s | Size: %s KB', $table_name, number_format( $count ), number_format( $size, 2 ) );
+				$report[]    = sprintf( '%-40s | Status: EXISTS | Rows: %s | Size: %s KB', $table_name, number_format( $count ), number_format( $size, 2 ) );
 			} else {
-				$report[] = sprintf( '%-30s | Status: MISSING', $table_name );
+				$report[] = sprintf( '%-40s | Status: MISSING', $table_name );
 			}
 		}
+
+		/* Report unexpected tables (exist in DB but not in expected list) */
+		if ( ! empty( $table_data['unexpected'] ) ) {
+			$report[] = '';
+			$report[] = 'UNEXPECTED TABLES (not in expected list):';
+			foreach ( $table_data['unexpected'] as $table_name ) {
+				$count       = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+				$size        = $wpdb->get_var(
+					$wpdb->prepare(
+						'SELECT ROUND((data_length + index_length) / 1024, 2)
+					FROM information_schema.TABLES
+					WHERE table_schema = %s AND table_name = %s',
+						DB_NAME,
+						$table_name
+					)
+				);
+				$total_size += (float) $size;
+				$report[]    = sprintf( '%-40s | Status: UNEXPECTED | Rows: %s | Size: %s KB', $table_name, number_format( $count ), number_format( $size, 2 ) );
+			}
+		}
+
 		$report[] = sprintf( 'Total Custom Tables Size: %s KB', number_format( $total_size, 2 ) );
 		$report[] = '';
 
@@ -184,9 +167,9 @@ class NBUF_Diagnostics {
 		$wp_usermeta_bloat = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key LIKE %s', $wpdb->usermeta, 'nbuf_%' ) );
 		$custom_options    = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $tables['options'] ) );
 
-		$report[] = 'wp_options bloat: ' . ( $wp_options_bloat < 10 ? '✓ ' . $wp_options_bloat . ' entries (minimal - OK)' : '⚠ ' . $wp_options_bloat . ' entries found (WARNING)' );
-		$report[] = 'wp_usermeta bloat: ' . ( 0 === $wp_usermeta_bloat ? '✓ ZERO entries (GOOD)' : '⚠ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
-		$report[] = 'Custom options table: ' . number_format( $custom_options ) . ' settings stored';
+		$report[] = $wpdb->options . ' (nbuf_ entries): ' . ( $wp_options_bloat < 10 ? '✓ ' . $wp_options_bloat . ' entries (minimal - OK)' : '⚠ ' . $wp_options_bloat . ' entries found (WARNING)' );
+		$report[] = $wpdb->usermeta . ' (nbuf_ entries): ' . ( 0 === $wp_usermeta_bloat ? '✓ ZERO entries (GOOD)' : '⚠ ' . $wp_usermeta_bloat . ' entries found (WARNING)' );
+		$report[] = $tables['options'] . ': ' . number_format( $custom_options ) . ' settings stored';
 		$report[] = '';
 
 		/* User Statistics - join with wp_users to exclude orphan records */

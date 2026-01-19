@@ -21,6 +21,152 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class NBUF_Registration {
 
+	/**
+	 * Reserved/blacklisted usernames that should not be allowed.
+	 * If email prefix matches any of these, falls back to random generation.
+	 *
+	 * @var array
+	 */
+	private static $reserved_usernames = array(
+		/* Administrative */
+		'admin',
+		'administrator',
+		'root',
+		'superuser',
+		'sysadmin',
+		'webmaster',
+		'hostmaster',
+		'postmaster',
+		'moderator',
+		'owner',
+
+		/* Support/Contact */
+		'support',
+		'help',
+		'helpdesk',
+		'contact',
+		'info',
+		'information',
+		'feedback',
+		'sales',
+		'billing',
+		'accounts',
+		'service',
+		'services',
+		'customer',
+		'customerservice',
+
+		/* Technical/System */
+		'www',
+		'web',
+		'mail',
+		'email',
+		'ftp',
+		'smtp',
+		'pop',
+		'imap',
+		'news',
+		'usenet',
+		'uucp',
+		'abuse',
+		'noc',
+		'security',
+		'mailer-daemon',
+		'nobody',
+		'noreply',
+		'no-reply',
+		'null',
+		'void',
+		'system',
+		'server',
+		'localhost',
+		'daemon',
+		'bin',
+
+		/* Generic/Test */
+		'test',
+		'testing',
+		'demo',
+		'guest',
+		'anonymous',
+		'anon',
+		'user',
+		'users',
+		'member',
+		'members',
+		'account',
+		'login',
+		'signup',
+		'register',
+		'subscribe',
+
+		/* WordPress specific */
+		'wordpress',
+		'developer',
+		'dev',
+		'api',
+		'blog',
+		'editor',
+		'author',
+		'contributor',
+		'subscriber',
+		'plugin',
+		'theme',
+		'wp',
+		'wpadmin',
+
+		/* Brand protection */
+		'official',
+		'staff',
+		'team',
+		'verified',
+		'ceo',
+		'founder',
+		'president',
+		'director',
+		'manager',
+		'hr',
+		'legal',
+		'marketing',
+		'media',
+		'press',
+		'pr',
+		'investor',
+		'investors',
+		'partner',
+		'partners',
+		'affiliate',
+		'affiliates',
+	);
+
+	/**
+	 * Check if a username is reserved/blacklisted.
+	 *
+	 * @param string $username Username to check.
+	 * @return bool True if reserved, false if allowed.
+	 */
+	public static function is_reserved_username( $username ) {
+		$username = strtolower( trim( $username ) );
+
+		/* Check against reserved list */
+		if ( in_array( $username, self::$reserved_usernames, true ) ) {
+			return true;
+		}
+
+		/* Also check with common number suffixes (admin1, support2, etc.) */
+		$base = preg_replace( '/\d+$/', '', $username );
+		if ( $base !== $username && in_array( $base, self::$reserved_usernames, true ) ) {
+			return true;
+		}
+
+		/**
+		 * Filter to add custom reserved usernames.
+		 *
+		 * @param bool   $is_reserved Whether username is reserved.
+		 * @param string $username    The username being checked.
+		 */
+		return apply_filters( 'nbuf_is_reserved_username', false, $username );
+	}
 
 	/**
 	 * Generate username based on settings.
@@ -39,6 +185,10 @@ class NBUF_Registration {
 				if ( empty( $username ) ) {
 					return new WP_Error( 'empty_username', __( 'Please provide a username.', 'nobloat-user-foundry' ) );
 				}
+				/* Check if username is reserved */
+				if ( self::is_reserved_username( $username ) ) {
+					return new WP_Error( 'reserved_username', __( 'This username is not available.', 'nobloat-user-foundry' ) );
+				}
 				/* Validate username */
 				if ( username_exists( $username ) ) {
 					return new WP_Error( 'username_exists', __( 'This username is already taken.', 'nobloat-user-foundry' ) );
@@ -48,6 +198,12 @@ class NBUF_Registration {
 			case 'auto_email':
 				/* Extract username from email prefix */
 				$base = sanitize_user( substr( $email, 0, strpos( $email, '@' ) ), true );
+
+				/* If email prefix is reserved, fall back to random generation */
+				if ( self::is_reserved_username( $base ) ) {
+					$base = 'user_' . bin2hex( random_bytes( 4 ) );
+				}
+
 				return self::ensure_unique_username( $base );
 
 			case 'auto_random':

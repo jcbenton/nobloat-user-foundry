@@ -37,28 +37,117 @@ class NBUF_Change_Notifications {
 	private static $pending_changes = array();
 
 	/**
+	 * Pending frontend updates (skip profile_update hook).
+	 *
+	 * @var array
+	 */
+	private $pending_frontend_updates = array();
+
+	/**
+	 * Register digest cron handlers (static, called unconditionally).
+	 *
+	 * Must be called even when notifications are disabled so that
+	 * any pending digests can still be sent.
+	 *
+	 * @since 1.5.0
+	 */
+	public static function register_cron_handlers() {
+		add_action( 'nbuf_send_change_digest_hourly', array( __CLASS__, 'static_send_hourly_digest' ) );
+		add_action( 'nbuf_send_change_digest_daily', array( __CLASS__, 'static_send_daily_digest' ) );
+	}
+
+	/**
+	 * Static wrapper for hourly digest (called by cron).
+	 *
+	 * @since 1.5.0
+	 */
+	public static function static_send_hourly_digest() {
+		$instance = new self();
+		$instance->send_hourly_digest();
+	}
+
+	/**
+	 * Static wrapper for daily digest (called by cron).
+	 *
+	 * @since 1.5.0
+	 */
+	public static function static_send_daily_digest() {
+		$instance = new self();
+		$instance->send_daily_digest();
+	}
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		$enabled = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
 
 		if ( ! $enabled ) {
+			/* Unschedule digest events if notifications disabled */
+			self::unschedule_digests();
 			return;
 		}
 
 		/* Hook into profile updates */
 		add_action( 'profile_update', array( $this, 'track_profile_update' ), 10, 2 );
+		add_action( 'nbuf_after_profile_update', array( $this, 'track_frontend_profile_update' ), 10, 1 );
 
 		/* Hook into user meta updates */
 		add_action( 'update_user_meta', array( $this, 'track_meta_update' ), 10, 4 );
 
-		/* Store original data before updates */
+		/* Store original data before updates (admin + frontend) */
 		add_action( 'personal_options_update', array( $this, 'store_original_data' ), 1 );
 		add_action( 'edit_user_profile_update', array( $this, 'store_original_data' ), 1 );
+		add_action( 'nbuf_before_profile_update', array( $this, 'store_original_data' ), 1 );
 
-		/* Schedule digest emails */
-		add_action( 'nbuf_send_change_digest_hourly', array( $this, 'send_hourly_digest' ) );
-		add_action( 'nbuf_send_change_digest_daily', array( $this, 'send_daily_digest' ) );
+		/* Schedule digest cron events based on setting */
+		$this->schedule_digest_cron();
+	}
+
+	/**
+	 * Schedule digest cron events based on notification timing setting
+	 */
+	private function schedule_digest_cron() {
+		$digest_mode = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
+
+		$hourly_scheduled = wp_next_scheduled( 'nbuf_send_change_digest_hourly' );
+		$daily_scheduled  = wp_next_scheduled( 'nbuf_send_change_digest_daily' );
+
+		if ( 'hourly' === $digest_mode ) {
+			/* Schedule hourly, unschedule daily */
+			if ( ! $hourly_scheduled ) {
+				wp_schedule_event( time(), 'hourly', 'nbuf_send_change_digest_hourly' );
+			}
+			if ( $daily_scheduled ) {
+				wp_unschedule_event( $daily_scheduled, 'nbuf_send_change_digest_daily' );
+			}
+		} elseif ( 'daily' === $digest_mode ) {
+			/* Schedule daily, unschedule hourly */
+			if ( ! $daily_scheduled ) {
+				wp_schedule_event( time(), 'daily', 'nbuf_send_change_digest_daily' );
+			}
+			if ( $hourly_scheduled ) {
+				wp_unschedule_event( $hourly_scheduled, 'nbuf_send_change_digest_hourly' );
+			}
+		} else {
+			/* Immediate mode - unschedule both */
+			self::unschedule_digests();
+		}
+	}
+
+	/**
+	 * Unschedule all digest cron events
+	 */
+	public static function unschedule_digests() {
+		$hourly_scheduled = wp_next_scheduled( 'nbuf_send_change_digest_hourly' );
+		$daily_scheduled  = wp_next_scheduled( 'nbuf_send_change_digest_daily' );
+
+		if ( $hourly_scheduled ) {
+			wp_unschedule_event( $hourly_scheduled, 'nbuf_send_change_digest_hourly' );
+		}
+		if ( $daily_scheduled ) {
+			wp_unschedule_event( $daily_scheduled, 'nbuf_send_change_digest_daily' );
+		}
 	}
 
 	/**
@@ -69,6 +158,16 @@ class NBUF_Change_Notifications {
 	public function store_original_data( $user_id ) {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
+			return;
+		}
+
+		/* Mark frontend updates to skip profile_update hook */
+		if ( doing_action( 'nbuf_before_profile_update' ) ) {
+			$this->pending_frontend_updates[ $user_id ] = true;
+		}
+
+		/* Don't overwrite if already captured */
+		if ( isset( $this->original_data[ $user_id ] ) ) {
 			return;
 		}
 
@@ -106,6 +205,11 @@ class NBUF_Change_Notifications {
 	 * @param object $old_user_data Old user object.
 	 */
 	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
+		/* Skip if this is a frontend update - nbuf_after_profile_update will handle it */
+		if ( isset( $this->pending_frontend_updates[ $user_id ] ) ) {
+			return;
+		}
+
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -203,6 +307,120 @@ class NBUF_Change_Notifications {
 	}
 
 	/**
+	 * Track frontend profile update
+	 *
+	 * Called via nbuf_after_profile_update hook after NBUF custom tables are updated.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public function track_frontend_profile_update( $user_id ) {
+		/* Clear the pending flag */
+		if ( isset( $this->pending_frontend_updates[ $user_id ] ) ) {
+			unset( $this->pending_frontend_updates[ $user_id ] );
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return;
+		}
+
+		$changes  = array();
+		$original = isset( $this->original_data[ $user_id ] ) ? $this->original_data[ $user_id ] : array();
+
+		/* Check monitored fields */
+		$monitored_fields = $this->get_monitored_fields();
+
+		/* Check core fields */
+		if ( in_array( 'user_email', $monitored_fields, true ) && isset( $original['user_email'] ) ) {
+			if ( $original['user_email'] !== $user->user_email ) {
+				$changes['user_email'] = array(
+					'old' => $original['user_email'],
+					'new' => $user->user_email,
+				);
+			}
+		}
+
+		if ( in_array( 'display_name', $monitored_fields, true ) && isset( $original['display_name'] ) ) {
+			if ( $original['display_name'] !== $user->display_name ) {
+				$changes['display_name'] = array(
+					'old' => $original['display_name'],
+					'new' => $user->display_name,
+				);
+			}
+		}
+
+		if ( in_array( 'first_name', $monitored_fields, true ) && isset( $original['first_name'] ) ) {
+			$new_first_name = get_user_meta( $user_id, 'first_name', true );
+			if ( $original['first_name'] !== $new_first_name ) {
+				$changes['first_name'] = array(
+					'old' => $original['first_name'],
+					'new' => $new_first_name,
+				);
+			}
+		}
+
+		if ( in_array( 'last_name', $monitored_fields, true ) && isset( $original['last_name'] ) ) {
+			$new_last_name = get_user_meta( $user_id, 'last_name', true );
+			if ( $original['last_name'] !== $new_last_name ) {
+				$changes['last_name'] = array(
+					'old' => $original['last_name'],
+					'new' => $new_last_name,
+				);
+			}
+		}
+
+		if ( in_array( 'description', $monitored_fields, true ) && isset( $original['description'] ) ) {
+			if ( $original['description'] !== $user->description ) {
+				$changes['description'] = array(
+					'old' => $original['description'],
+					'new' => $user->description,
+				);
+			}
+		}
+
+		/* Check profile fields (NBUF custom tables - now updated) */
+		if ( isset( $original['profile'] ) ) {
+			global $wpdb;
+			$table_name = $wpdb->prefix . 'nbuf_user_profile';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom profile table.
+			$new_profile = $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE user_id = %d',
+					$table_name,
+					$user_id
+				),
+				ARRAY_A
+			);
+
+			if ( $new_profile ) {
+				unset( $new_profile['user_id'] );
+
+				foreach ( $original['profile'] as $field => $old_value ) {
+					if ( in_array( $field, $monitored_fields, true ) ) {
+						$new_value = $new_profile[ $field ] ?? '';
+						if ( $old_value !== $new_value ) {
+							$changes[ $field ] = array(
+								'old' => $old_value,
+								'new' => $new_value,
+							);
+						}
+					}
+				}
+			}
+		}
+
+		/* Send notification if there are changes */
+		if ( ! empty( $changes ) ) {
+			$this->queue_notification( $user_id, $changes );
+		}
+
+		/* Clean up original data */
+		if ( isset( $this->original_data[ $user_id ] ) ) {
+			unset( $this->original_data[ $user_id ] );
+		}
+	}
+
+	/**
 	 * Track user meta updates (for specific fields)
 	 *
 	 * @param int    $meta_id    Meta ID.
@@ -254,26 +472,30 @@ class NBUF_Change_Notifications {
 			/* Send immediately */
 			$this->send_notification( $user_id, $changes );
 		} else {
-			/* Queue for digest */
-			if ( ! isset( self::$pending_changes[ $user_id ] ) ) {
-				self::$pending_changes[ $user_id ] = array();
+			/* Queue for digest - store directly in transient to persist across requests */
+			$transient_key = 'nbuf_pending_changes_' . $digest_mode;
+			$existing      = get_transient( $transient_key );
+
+			if ( ! is_array( $existing ) ) {
+				$existing = array();
 			}
 
-			self::$pending_changes[ $user_id ][] = array(
+			/* Initialize user's change array if not exists */
+			if ( ! isset( $existing[ $user_id ] ) || ! is_array( $existing[ $user_id ] ) ) {
+				$existing[ $user_id ] = array();
+			}
+
+			/* Append new change (don't overwrite previous changes) */
+			$existing[ $user_id ][] = array(
 				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- Intentionally using timestamp for date comparison
 				'timestamp' => current_time( 'timestamp' ),
 				'changes'   => $changes,
 			);
 
-			/* Store in transient */
-			$transient_key = 'nbuf_pending_changes_' . $digest_mode;
-			$existing      = get_transient( $transient_key );
-			if ( ! $existing ) {
-				$existing = array();
-			}
-
-			$existing[ $user_id ] = self::$pending_changes[ $user_id ];
 			set_transient( $transient_key, $existing, DAY_IN_SECONDS );
+
+			/* Also update static property for current request consistency */
+			self::$pending_changes = $existing;
 		}
 	}
 

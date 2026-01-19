@@ -178,7 +178,7 @@ $nbuf_impersonation_capability = NBUF_Options::get( 'nbuf_impersonation_capabili
 					<?php esc_html_e( 'Enable Terms of Service version tracking', 'nobloat-user-foundry' ); ?>
 				</label>
 				<p class="description">
-					<?php esc_html_e( 'When enabled, users must accept the Terms of Service. Manage ToS versions in Users > Terms of Service.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'When enabled, users must accept the Terms of Service. Manage ToS versions in User Foundry → Terms of Service.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

@@ -30,39 +30,40 @@ class NBUF_Field_Mapper {
 	/**
 	 * Field mappings (source_field => target_field)
 	 *
-	 * @var array
+	 * @var array<string, array{target: string|null, transform: string|null, priority?: int}>
 	 */
 	private $mappings = array();
 
 	/**
 	 * Field transformations (source_field => callback)
 	 *
-	 * @var array
+	 * @var array<string, callable>
 	 */
 	private $transformations = array();
 
 	/**
 	 * Unmapped fields (fields with no mapping)
 	 *
-	 * @var array
+	 * @var array<int, string>
 	 */
 	private $unmapped = array();
 
 	/**
 	 * Constructor
 	 *
-	 * @param array $mappings Initial field mappings.
+	 * @param array<string, string|array{target?: string, transform?: string, priority?: int}> $mappings Initial field mappings.
 	 */
-	public function __construct( $mappings = array() ) {
+	public function __construct( array $mappings = array() ) {
 		$this->set_mappings( $mappings );
 	}
 
 	/**
 	 * Set field mappings
 	 *
-	 * @param array $mappings Field mappings array.
+	 * @param array<string, string|array{target?: string, transform?: string, priority?: int}> $mappings Field mappings array.
+	 * @return void
 	 */
-	public function set_mappings( $mappings ) {
+	public function set_mappings( array $mappings ): void {
 		$this->mappings = array();
 
 		foreach ( $mappings as $source_field => $mapping ) {
@@ -86,11 +87,12 @@ class NBUF_Field_Mapper {
 	/**
 	 * Add single field mapping
 	 *
-	 * @param string $source_field Source field name.
-	 * @param string $target_field Target field name.
-	 * @param string $transform    Optional transformation function.
+	 * @param string      $source_field Source field name.
+	 * @param string      $target_field Target field name.
+	 * @param string|null $transform    Optional transformation function.
+	 * @return void
 	 */
-	public function add_mapping( $source_field, $target_field, $transform = null ) {
+	public function add_mapping( string $source_field, string $target_field, ?string $transform = null ): void {
 		$this->mappings[ $source_field ] = array(
 			'target'    => $target_field,
 			'transform' => $transform,
@@ -115,9 +117,9 @@ class NBUF_Field_Mapper {
 	 *
 	 * @param  string $source_field Source field name.
 	 * @param  mixed  $source_value Source field value.
-	 * @return array Array with 'target' and 'value' keys, or null if not mapped
+	 * @return array{target: string|null, value: mixed}|null Array with 'target' and 'value' keys, or null if not mapped
 	 */
-	public function map_field( $source_field, $source_value ) {
+	public function map_field( string $source_field, $source_value ) {
 		if ( ! isset( $this->mappings[ $source_field ] ) ) {
 			$this->unmapped[] = $source_field;
 			return null;
@@ -206,10 +208,10 @@ class NBUF_Field_Mapper {
 	 *
 	 * Returns list of source fields that don't have mappings.
 	 *
-	 * @param  array $source_fields All source field names.
-	 * @return array Unmapped field names
+	 * @param  array<int, string> $source_fields All source field names.
+	 * @return array<int, string> Unmapped field names
 	 */
-	public function get_unmapped_fields( $source_fields ) {
+	public function get_unmapped_fields( array $source_fields ): array {
 		$unmapped = array();
 
 		foreach ( $source_fields as $field ) {
@@ -227,9 +229,9 @@ class NBUF_Field_Mapper {
 	 * Uses fuzzy matching to suggest the best target field.
 	 *
 	 * @param  string $source_field Source field name.
-	 * @return array Suggested mappings with confidence scores
+	 * @return array<int, array{target: string, label: string, confidence: int}> Suggested mappings with confidence scores
 	 */
-	public function suggest_mapping( $source_field ) {
+	public function suggest_mapping( string $source_field ): array {
 		$suggestions      = array();
 		$available_fields = $this->get_available_target_fields();
 
@@ -303,9 +305,9 @@ class NBUF_Field_Mapper {
 	 *
 	 * Returns all NoBloat profile fields that can be mapped to (with custom labels).
 	 *
-	 * @return array Field keys => labels
+	 * @return array<string, string> Field keys => labels
 	 */
-	private function get_available_target_fields() {
+	private function get_available_target_fields(): array {
 		$registry = NBUF_Profile_Data::get_field_registry_with_labels();
 		$fields   = array();
 
@@ -359,9 +361,9 @@ class NBUF_Field_Mapper {
 	 * Get saved presets for plugin
 	 *
 	 * @param  string $plugin_slug Source plugin slug.
-	 * @return array Saved presets
+	 * @return array<string, array{name: string, mappings: array<string, array{target: string|null, transform: string|null, priority?: int}>, created: string}> Saved presets
 	 */
-	public function get_saved_presets( $plugin_slug ) {
+	public function get_saved_presets( string $plugin_slug ): array {
 		$presets = NBUF_Options::get( 'nbuf_field_mapping_presets', array() );
 
 		return isset( $presets[ $plugin_slug ] ) ? $presets[ $plugin_slug ] : array();
@@ -370,9 +372,9 @@ class NBUF_Field_Mapper {
 	/**
 	 * Get current mappings
 	 *
-	 * @return array Field mappings
+	 * @return array<string, array{target: string|null, transform: string|null, priority?: int}> Field mappings
 	 */
-	public function get_mappings() {
+	public function get_mappings(): array {
 		return $this->mappings;
 	}
 }

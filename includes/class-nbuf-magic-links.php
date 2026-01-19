@@ -558,7 +558,7 @@ class NBUF_Magic_Links {
 	 * Shortcode for magic link request form.
 	 *
 	 * @since  1.5.2
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Form HTML.
 	 */
 	public static function shortcode_form( $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Standard shortcode signature.

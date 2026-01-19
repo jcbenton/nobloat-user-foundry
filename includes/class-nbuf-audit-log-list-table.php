@@ -43,9 +43,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get columns
 	 *
-	 * @return array Columns array
+	 * @return array<string, string> Columns array
 	 */
-	public function get_columns() {
+	public function get_columns(): array {
 		return array(
 			'cb'            => '<input type="checkbox" />',
 			'created_at'    => __( 'Date/Time', 'nobloat-user-foundry' ),
@@ -61,9 +61,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get sortable columns
 	 *
-	 * @return array Sortable columns
+	 * @return array<string, array{0: string, 1: bool}> Sortable columns
 	 */
-	public function get_sortable_columns() {
+	public function get_sortable_columns(): array {
 		return array(
 			'created_at'   => array( 'created_at', true ), // true = already sorted.
 			'username'     => array( 'username', false ),
@@ -75,9 +75,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get bulk actions
 	 *
-	 * @return array Bulk actions
+	 * @return array<string, string> Bulk actions
 	 */
-	public function get_bulk_actions() {
+	public function get_bulk_actions(): array {
 		return array(
 			'delete' => __( 'Delete', 'nobloat-user-foundry' ),
 		);
@@ -113,6 +113,8 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Render username column
 	 *
+	 * Displays user's first/last name (if available), username with link, and ID.
+	 *
 	 * @param  object $item Log entry.
 	 * @return string Username with link
 	 */
@@ -120,9 +122,15 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		$user = get_user_by( 'id', $item->user_id );
 
 		if ( $user ) {
-			$edit_link = get_edit_user_link( $item->user_id );
+			$edit_link  = get_edit_user_link( $item->user_id );
+			$first_name = get_user_meta( $item->user_id, 'first_name', true );
+			$last_name  = get_user_meta( $item->user_id, 'last_name', true );
+			$full_name  = trim( $first_name . ' ' . $last_name );
+			$name_line  = ! empty( $full_name ) ? '<strong>' . esc_html( $full_name ) . '</strong><br>' : '';
+
 			return sprintf(
-				'<a href="%s">%s</a><br><small>ID: %d</small>',
+				'%s<a href="%s">%s</a><br><small>ID: %d</small>',
+				$name_line,
 				esc_url( $edit_link ),
 				esc_html( $item->username ),
 				$item->user_id
@@ -296,8 +304,10 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Prepare items for display
+	 *
+	 * @return void
 	 */
-	public function prepare_items() {
+	public function prepare_items(): void {
 		/* Set columns */
 		$this->_column_headers = array(
 			$this->get_columns(),
@@ -351,6 +361,18 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 		/* Get logs */
 		$this->items = NBUF_Audit_Log::get_logs( $filters, $per_page, $offset, $orderby, $order );
 
+		/*
+		 * Prime user caches to avoid N+1 queries in column_username().
+		 * cache_users() fetches all users + their meta in one query,
+		 * so subsequent get_user_by() and get_user_meta() calls hit cache.
+		 */
+		if ( ! empty( $this->items ) ) {
+			$user_ids = array_unique( array_filter( wp_list_pluck( $this->items, 'user_id' ) ) );
+			if ( ! empty( $user_ids ) ) {
+				cache_users( $user_ids );
+			}
+		}
+
 		/* Get total count for pagination */
 		$total_items = NBUF_Audit_Log::get_logs_count( $filters );
 
@@ -369,15 +391,19 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 *
 	 * Note: Bulk delete is handled by NBUF_Audit_Log_Page::handle_bulk_delete()
 	 * on admin_init to avoid "headers already sent" errors.
+	 *
+	 * @return void
 	 */
-	public function process_bulk_action() {
+	public function process_bulk_action(): void {
 		/* Bulk actions now handled by NBUF_Audit_Log_Page on admin_init */
 	}
 
 	/**
 	 * Display when no items found
+	 *
+	 * @return void
 	 */
-	public function no_items() {
+	public function no_items(): void {
 		esc_html_e( 'No audit log entries found.', 'nobloat-user-foundry' );
 	}
 
@@ -385,8 +411,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 	 * Extra table navigation (filters)
 	 *
 	 * @param string $which Top or bottom.
+	 * @return void
 	 */
-	public function extra_tablenav( $which ) {
+	public function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
 			return;
 		}
@@ -401,8 +428,10 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render event type dropdown filter
+	 *
+	 * @return void
 	 */
-	private function event_type_dropdown() {
+	private function event_type_dropdown(): void {
 		$event_types = array(
 			''                         => __( 'All Event Types', 'nobloat-user-foundry' ),
 			'login_success'            => __( 'Login Success', 'nobloat-user-foundry' ),
@@ -437,8 +466,10 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render event status dropdown filter
+	 *
+	 * @return void
 	 */
-	private function event_status_dropdown() {
+	private function event_status_dropdown(): void {
 		$statuses = array(
 			''        => __( 'All Statuses', 'nobloat-user-foundry' ),
 			'success' => __( 'Success', 'nobloat-user-foundry' ),

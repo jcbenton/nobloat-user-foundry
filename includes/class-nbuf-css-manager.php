@@ -349,8 +349,9 @@ class NBUF_CSS_Manager {
 	 * @param string $filename  Base filename (e.g., 'reset-page').
 	 * @param string $db_option Option name for DB fallback.
 	 * @param string $token_key Option name for write failure token.
+	 * @return void
 	 */
-	public static function enqueue_css( $handle, $filename, $db_option, $token_key = 'nbuf_css_write_failed' ) {
+	public static function enqueue_css( string $handle, string $filename, string $db_option, string $token_key = 'nbuf_css_write_failed' ): void {
 		/* If token exists, load from DB and inline it */
 		if ( NBUF_Options::get( $token_key ) ) {
 			$css = NBUF_Options::get( $db_option );
@@ -461,14 +462,15 @@ class NBUF_CSS_Manager {
 	}
 
 	/**
-	 * Clear write failure token
+	 * Clear write failure token.
 	 *
 	 * Manually clears the write failure token.
 	 * Useful for retry operations.
 	 *
 	 * @param string $token_key Option name for write failure token.
+	 * @return void
 	 */
-	public static function clear_write_failure_token( $token_key = 'nbuf_css_write_failed' ) {
+	public static function clear_write_failure_token( string $token_key = 'nbuf_css_write_failed' ): void {
 		NBUF_Options::delete( $token_key );
 	}
 
@@ -479,7 +481,7 @@ class NBUF_CSS_Manager {
 	 * Dynamically discovers templates from /templates/ directory.
 	 *
 	 * @since 1.5.3
-	 * @return array Array of template configurations.
+	 * @return array<string, array<string, string>> Array of template configurations.
 	 */
 	public static function get_css_templates(): array {
 		/* Static mapping of template file to DB option and token key */
@@ -565,7 +567,7 @@ class NBUF_CSS_Manager {
 	 * Useful for refreshing minified files after manual edits.
 	 *
 	 * @since 1.5.3
-	 * @return array Results with success/failure counts and details.
+	 * @return array{success: int, failed: int, details: array<string, array<string, string>>} Results with success/failure counts and details.
 	 */
 	public static function regenerate_all_css(): array {
 		$templates = self::get_css_templates();
@@ -621,7 +623,7 @@ class NBUF_CSS_Manager {
 	 * This overwrites any customizations.
 	 *
 	 * @since 1.5.3
-	 * @return array Results with success/failure counts and details.
+	 * @return array{success: int, failed: int, details: array<string, array<string, string>>} Results with success/failure counts and details.
 	 */
 	public static function reset_all_to_defaults(): array {
 		$templates = self::get_css_templates();

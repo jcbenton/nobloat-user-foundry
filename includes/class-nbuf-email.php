@@ -46,14 +46,37 @@ class NBUF_Email {
 			$sender_name = get_bloginfo( 'name' );
 		}
 
-		/* Create filter callbacks */
-		$from_callback         = function () use ( $sender_address ) {
+		/*
+		 * Create filter callbacks.
+		 *
+		 * Anonymous functions are used here to temporarily override wp_mail settings
+		 * for this specific email, then removed after sending.
+		 */
+
+		/**
+		 * Returns the sender email address for wp_mail_from filter.
+		 *
+		 * @return string Sender email address.
+		 */
+		$from_callback = function () use ( $sender_address ): string {
 			return $sender_address;
 		};
-		$name_callback         = function () use ( $sender_name ) {
+
+		/**
+		 * Returns the sender name for wp_mail_from_name filter.
+		 *
+		 * @return string Sender display name.
+		 */
+		$name_callback = function () use ( $sender_name ): string {
 			return $sender_name;
 		};
-		$content_type_callback = function () use ( $content_type ) {
+
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $content_type ): string {
 			return 'html' === $content_type ? 'text/html' : 'text/plain';
 		};
 

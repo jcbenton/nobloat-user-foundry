@@ -26,8 +26,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * Initialize profile photos
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		$profiles_enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
 		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
 
@@ -295,8 +297,9 @@ class NBUF_Profile_Photos {
 	 * Enqueue admin scripts for user profile pages
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_admin_scripts( $hook ) {
+	public static function enqueue_admin_scripts( string $hook ): void {
 		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -352,8 +355,9 @@ class NBUF_Profile_Photos {
 	 * Render photos section on admin user profile
 	 *
 	 * @param WP_User $user User object being edited.
+	 * @return void
 	 */
-	public static function render_admin_photos_section( $user ) {
+	public static function render_admin_photos_section( WP_User $user ): void {
 		$profile_photo_url = self::get_profile_photo( $user->ID, 96 );
 		$cover_photo_url   = self::get_cover_photo( $user->ID );
 		$user_data         = NBUF_User_Data::get( $user->ID );
@@ -517,8 +521,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Upload profile photo
+	 *
+	 * @return void
 	 */
-	public static function ajax_upload_profile_photo() {
+	public static function ajax_upload_profile_photo(): void {
 		/* SECURITY: Multi-layer CSRF protection */
 		check_ajax_referer( 'nbuf_upload_profile_photo', 'nonce' );
 
@@ -696,8 +702,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Upload cover photo
+	 *
+	 * @return void
 	 */
-	public static function ajax_upload_cover_photo() {
+	public static function ajax_upload_cover_photo(): void {
 		/* SECURITY: Multi-layer CSRF protection */
 		check_ajax_referer( 'nbuf_upload_cover_photo', 'nonce' );
 
@@ -874,8 +882,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Delete profile photo
+	 *
+	 * @return void
 	 */
-	public static function ajax_delete_profile_photo() {
+	public static function ajax_delete_profile_photo(): void {
 		/* Verify nonce */
 		check_ajax_referer( 'nbuf_delete_profile_photo', 'nonce' );
 
@@ -899,8 +909,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Delete cover photo
+	 *
+	 * @return void
 	 */
-	public static function ajax_delete_cover_photo() {
+	public static function ajax_delete_cover_photo(): void {
 		/* Verify nonce */
 		check_ajax_referer( 'nbuf_delete_cover_photo', 'nonce' );
 
@@ -924,8 +936,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Admin delete profile photo (moderation)
+	 *
+	 * @return void
 	 */
-	public static function ajax_admin_delete_profile_photo() {
+	public static function ajax_admin_delete_profile_photo(): void {
 		/* Verify nonce */
 		check_ajax_referer( 'nbuf_admin_delete_profile_photo', 'nonce' );
 
@@ -960,8 +974,10 @@ class NBUF_Profile_Photos {
 
 	/**
 	 * AJAX: Admin delete cover photo (moderation)
+	 *
+	 * @return void
 	 */
-	public static function ajax_admin_delete_cover_photo() {
+	public static function ajax_admin_delete_cover_photo(): void {
 		/* Verify nonce */
 		check_ajax_referer( 'nbuf_admin_delete_cover_photo', 'nonce' );
 
@@ -999,8 +1015,9 @@ class NBUF_Profile_Photos {
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $type    Photo type ('profile' or 'cover').
+	 * @return void
 	 */
-	private static function delete_user_photo( $user_id, $type = 'profile' ) {
+	private static function delete_user_photo( int $user_id, string $type = 'profile' ): void {
 		$user_data = NBUF_User_Data::get( $user_id );
 
 		$url_key  = $type . '_photo_url';
@@ -1127,8 +1144,9 @@ class NBUF_Profile_Photos {
 	 * Render Profile Photo sub-tab content
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function render_profile_photo_subtab( $user_id ) {
+	public static function render_profile_photo_subtab( int $user_id ): void {
 		$user_data          = NBUF_User_Data::get( $user_id );
 		$profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
 		$gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
@@ -1233,8 +1251,9 @@ class NBUF_Profile_Photos {
 	 * Render Cover Photo sub-tab content
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function render_cover_photo_subtab( $user_id ) {
+	public static function render_cover_photo_subtab( int $user_id ): void {
 		$user_data       = NBUF_User_Data::get( $user_id );
 		$cover_photo_url = self::get_cover_photo( $user_id );
 		$has_cover       = ! empty( $cover_photo_url );
@@ -1278,8 +1297,9 @@ class NBUF_Profile_Photos {
 	 * Render Profile Settings sub-tab content (consolidated visibility + directory)
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function render_profile_settings_subtab( $user_id ) {
+	public static function render_profile_settings_subtab( int $user_id ): void {
 		$user_data         = NBUF_User_Data::get( $user_id );
 		$profile_privacy   = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 		$show_in_directory = $user_data ? (int) $user_data->show_in_directory : 0;
@@ -1423,8 +1443,9 @@ class NBUF_Profile_Photos {
 	 *
 	 * @deprecated Use render_profile_settings_subtab()
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function render_visibility_subtab( $user_id ) {
+	public static function render_visibility_subtab( int $user_id ): void {
 		self::render_profile_settings_subtab( $user_id );
 	}
 }

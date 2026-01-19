@@ -27,14 +27,16 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	 * Loaded once per request to avoid duplicate queries when multiple
 	 * menus are rendered on the same page.
 	 *
-	 * @var array|null
+	 * @var array<int, object>|null
 	 */
 	private static $restrictions_cache = null;
 
 	/**
 	 * Initialize menu restrictions
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook into menu rendering */
 		add_filter( 'wp_nav_menu_objects', array( __CLASS__, 'filter_menu_items' ), 10, 2 );
 
@@ -48,11 +50,11 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	/**
 	 * Filter menu items based on restrictions
 	 *
-	 * @param  array $items Menu items.
-	 * @param  array $args  Menu arguments.
-	 * @return array Filtered items.
+	 * @param  array<int, object> $items Menu items.
+	 * @param  object             $args  Menu arguments.
+	 * @return array<int, object> Filtered items.
 	 */
-	public static function filter_menu_items( $items, $args ) {
+	public static function filter_menu_items( $items, $args ): array {
 		/* Get all menu item IDs */
 		$menu_item_ids = wp_list_pluck( $items, 'ID' );
 
@@ -110,7 +112,7 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	 * This avoids duplicate queries when multiple menus render.
 	 *
 	 * @since  1.5.0
-	 * @return array Restrictions keyed by menu_item_id.
+	 * @return array<int, object> Restrictions keyed by menu_item_id.
 	 */
 	private static function get_all_restrictions(): array {
 		/* Return cached if available. */
@@ -135,12 +137,13 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	/**
 	 * Add restriction fields to menu editor
 	 *
-	 * @param int    $item_id Menu item ID.
-	 * @param object $item    Menu item object.
-	 * @param int    $depth   Item depth.
-	 * @param array  $args    Menu arguments.
+	 * @param int                  $item_id Menu item ID.
+	 * @param object               $item    Menu item object.
+	 * @param int                  $depth   Item depth.
+	 * @param array<string, mixed> $args    Menu arguments.
+	 * @return void
 	 */
-	public static function add_menu_fields( $item_id, $item, $depth, $args ) {
+	public static function add_menu_fields( $item_id, $item, $depth, $args ): void {
 		/* Get existing restriction from cache. */
 		$restrictions = self::get_all_restrictions();
 		$restriction  = isset( $restrictions[ $item_id ] ) ? $restrictions[ $item_id ] : null;
@@ -204,11 +207,12 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	/**
 	 * Save menu restriction fields
 	 *
-	 * @param int   $menu_id      Menu ID.
-	 * @param int   $menu_item_id Menu item ID.
-	 * @param array $args         Menu item arguments.
+	 * @param int                  $menu_id      Menu ID.
+	 * @param int                  $menu_item_id Menu item ID.
+	 * @param array<string, mixed> $args         Menu item arguments.
+	 * @return void
 	 */
-	public static function save_menu_fields( $menu_id, $menu_item_id, $args ) {
+	public static function save_menu_fields( $menu_id, $menu_item_id, $args ): void {
 		/* Verify nonce */
 		$nonce_name = 'nbuf_menu_restriction_nonce_' . $menu_item_id;
 		if ( ! isset( $_POST[ $nonce_name ] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ $nonce_name ] ) ), 'nbuf_menu_restriction_' . $menu_item_id ) ) {

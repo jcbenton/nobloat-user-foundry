@@ -214,7 +214,7 @@ class NBUF_Transients {
 	/**
 	 * Get list of all active plugin transients (for debugging)
 	 *
-	 * @return array List of transient keys currently in database.
+	 * @return array<int, string> List of transient keys currently in database.
 	 */
 	public static function get_all_keys(): array {
 		global $wpdb;

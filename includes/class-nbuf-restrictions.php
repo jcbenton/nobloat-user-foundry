@@ -25,8 +25,10 @@ class NBUF_Restrictions {
 
 	/**
 	 * Initialize restrictions system
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Check if restrictions system is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_restrictions_enabled', false );
 		if ( ! $enabled ) {
@@ -65,8 +67,10 @@ class NBUF_Restrictions {
 
 	/**
 	 * Create database tables for restrictions
+	 *
+	 * @return void
 	 */
-	public static function create_tables() {
+	public static function create_tables(): void {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -137,9 +141,9 @@ class NBUF_Restrictions {
 	 *
 	 * @param  int    $content_id   Content ID.
 	 * @param  string $content_type Content type.
-	 * @return array|null Restriction data or null if no restrictions.
+	 * @return array<string, mixed>|null Restriction data or null if no restrictions.
 	 */
-	public static function get_content_restriction( $content_id, $content_type = 'post' ) {
+	public static function get_content_restriction( int $content_id, string $content_type = 'post' ): ?array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
@@ -177,9 +181,9 @@ class NBUF_Restrictions {
 	 * Get menu item restriction
 	 *
 	 * @param  int $menu_item_id Menu item ID.
-	 * @return array|null Restriction data or null if no restrictions.
+	 * @return array<string, mixed>|null Restriction data or null if no restrictions.
 	 */
-	public static function get_menu_restriction( $menu_item_id ) {
+	public static function get_menu_restriction( int $menu_item_id ): ?array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
@@ -214,8 +218,10 @@ class NBUF_Restrictions {
 
 	/**
 	 * Delete all restriction data (for uninstall)
+	 *
+	 * @return void
 	 */
-	public static function delete_all_data() {
+	public static function delete_all_data(): void {
 		global $wpdb;
 
 		$menu_table    = $wpdb->prefix . 'nbuf_menu_restrictions';

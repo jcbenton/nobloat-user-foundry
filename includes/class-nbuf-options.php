@@ -52,7 +52,7 @@ class NBUF_Options {
 	/**
 	 * In-memory cache for loaded options
 	 *
-	 * @var array
+	 * @var array<string, mixed>
 	 */
 	private static $cache = array();
 
@@ -351,7 +351,7 @@ class NBUF_Options {
 	/**
 	 * Get all options
 	 *
-	 * @return array All options.
+	 * @return array<string, mixed> All options.
 	 */
 	public static function get_all(): array {
 		/* Load all options if not loaded */
@@ -366,8 +366,8 @@ class NBUF_Options {
 	 * Get multiple options at once (batch query)
 	 * More efficient than calling get() multiple times
 	 *
-	 * @param  array $keys Array of option names.
-	 * @return array Associative array of option values (key => value).
+	 * @param  array<int, string> $keys Array of option names.
+	 * @return array<string, mixed> Associative array of option values (key => value).
 	 */
 	public static function get_multiple( array $keys ): array {
 		if ( empty( $keys ) ) {
@@ -405,7 +405,7 @@ class NBUF_Options {
 	 * Useful for loading all settings or all templates at once
 	 *
 	 * @param  string $group Option group: 'settings', 'templates', 'css', 'system'.
-	 * @return array Associative array of option values (key => value).
+	 * @return array<string, mixed> Associative array of option values (key => value).
 	 */
 	public static function get_group( string $group ): array {
 		global $wpdb;
@@ -456,10 +456,10 @@ class NBUF_Options {
 	 * round-trips and synchronization overhead.
 	 *
 	 * @since  1.5.0
-	 * @param  array  $options  Associative array of options (key => value).
-	 * @param  bool   $autoload Whether to autoload (default: false).
-	 * @param  string $group    Option group (default: 'settings').
-	 * @return int              Number of options inserted/updated.
+	 * @param  array<string, mixed> $options  Associative array of options (key => value).
+	 * @param  bool                 $autoload Whether to autoload (default: false).
+	 * @param  string               $group    Option group (default: 'settings').
+	 * @return int                            Number of options inserted/updated.
 	 */
 	public static function batch_insert( array $options, bool $autoload = false, string $group = 'settings' ): int {
 		if ( empty( $options ) ) {
@@ -519,8 +519,8 @@ class NBUF_Options {
 	 * Useful for determining which options need to be inserted.
 	 *
 	 * @since  1.5.0
-	 * @param  array $keys Array of option names to check.
-	 * @return array       Array of option names that exist.
+	 * @param  array<int, string> $keys Array of option names to check.
+	 * @return array<int, string>       Array of option names that exist.
 	 */
 	public static function get_existing_keys( array $keys ): array {
 		if ( empty( $keys ) ) {
@@ -561,7 +561,7 @@ class NBUF_Options {
 	/**
 	 * Get cache statistics (for debugging)
 	 *
-	 * @return array Cache stats.
+	 * @return array{cached_keys: array<int, string>, cache_count: int, cache_size_bytes: int} Cache stats.
 	 */
 	public static function get_cache_stats(): array {
 		return array(

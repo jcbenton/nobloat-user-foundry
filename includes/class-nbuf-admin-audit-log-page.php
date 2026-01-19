@@ -24,8 +24,10 @@ class NBUF_Admin_Audit_Log_Page {
 
 	/**
 	 * Initialize admin audit log page
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 14 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_early_actions' ) );
@@ -33,8 +35,10 @@ class NBUF_Admin_Audit_Log_Page {
 
 	/**
 	 * Handle export/purge/bulk actions early before any output
+	 *
+	 * @return void
 	 */
-	public static function handle_early_actions() {
+	public static function handle_early_actions(): void {
 		/*
 		 * Only process on our page.
 		 */
@@ -84,8 +88,10 @@ class NBUF_Admin_Audit_Log_Page {
 
 	/**
 	 * Handle bulk delete action
+	 *
+	 * @return void
 	 */
-	private static function handle_bulk_delete() {
+	private static function handle_bulk_delete(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-admin_audit_logs' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
@@ -136,8 +142,9 @@ class NBUF_Admin_Audit_Log_Page {
 	 * Enqueue admin scripts and styles for this page
 	 *
 	 * @param string $hook The current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_admin_scripts( $hook ) {
+	public static function enqueue_admin_scripts( string $hook ): void {
 		/* Only load on admin audit log page */
 		$allowed_hooks = array(
 			'nobloat-foundry_page_nobloat-foundry-admin-audit-log',
@@ -152,8 +159,10 @@ class NBUF_Admin_Audit_Log_Page {
 
 	/**
 	 * Add admin audit log menu page
+	 *
+	 * @return void
 	 */
-	public static function add_menu_page() {
+	public static function add_menu_page(): void {
 		add_submenu_page(
 			'nobloat-foundry',
 			__( 'Admin Actions Log', 'nobloat-user-foundry' ),
@@ -199,35 +208,28 @@ class NBUF_Admin_Audit_Log_Page {
 
 			<?php self::render_notices(); ?>
 
-			<!-- Statistics Dashboard -->
-			<div class="nbuf-log-stats-dashboard">
-				<h2><?php esc_html_e( 'Statistics', 'nobloat-user-foundry' ); ?></h2>
-				<div class="nbuf-stats-grid">
-					<div class="nbuf-stat-box">
-						<div class="nbuf-stat-label"><?php esc_html_e( 'Total Entries', 'nobloat-user-foundry' ); ?></div>
-						<div class="nbuf-stat-value"><?php echo esc_html( number_format_i18n( $stats['total'] ) ); ?></div>
-					</div>
-					<div class="nbuf-stat-box">
-						<div class="nbuf-stat-label"><?php esc_html_e( 'Today', 'nobloat-user-foundry' ); ?></div>
-						<div class="nbuf-stat-value"><?php echo esc_html( number_format_i18n( $stats['today'] ) ); ?></div>
-					</div>
-					<div class="nbuf-stat-box">
-						<div class="nbuf-stat-label"><?php esc_html_e( 'This Week', 'nobloat-user-foundry' ); ?></div>
-						<div class="nbuf-stat-value"><?php echo esc_html( number_format_i18n( $stats['week'] ) ); ?></div>
-					</div>
-					<div class="nbuf-stat-box">
-						<div class="nbuf-stat-label"><?php esc_html_e( 'This Month', 'nobloat-user-foundry' ); ?></div>
-						<div class="nbuf-stat-value"><?php echo esc_html( number_format_i18n( $stats['month'] ) ); ?></div>
+			<!-- Statistics -->
+			<div class="nbuf-log-stats">
+				<div class="nbuf-log-stats-header">
+					<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
+					<div class="nbuf-log-stats-actions">
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=export' ), 'nbuf_export_admin_logs' ) ); ?>" class="button button-secondary">
+							<span class="dashicons dashicons-download"></span>
+							<?php esc_html_e( 'Export', 'nobloat-user-foundry' ); ?>
+						</a>
+						<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=purge' ), 'nbuf_purge_admin_logs' ) ); ?>" class="button button-link-delete nbuf-purge-logs-btn">
+							<span class="dashicons dashicons-trash"></span>
+							<?php esc_html_e( 'Purge', 'nobloat-user-foundry' ); ?>
+						</a>
 					</div>
 				</div>
-
-				<div class="nbuf-stats-actions">
-					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=export' ), 'nbuf_export_admin_logs' ) ); ?>" class="button button-secondary">
-						<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
-					</a>
-					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=nobloat-foundry-admin-audit-log&action=purge' ), 'nbuf_purge_admin_logs' ) ); ?>" class="button button-link-delete nbuf-purge-logs-btn">
-						<span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
-					</a>
+				<div class="nbuf-log-stat-item">
+					<table class="nbuf-log-stat-table">
+						<tr><td><?php esc_html_e( 'Total Entries', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format_i18n( $stats['total'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Today', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format_i18n( $stats['today'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'This Week', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format_i18n( $stats['week'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'This Month', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format_i18n( $stats['month'] ) ); ?></td></tr>
+					</table>
 				</div>
 			</div>
 

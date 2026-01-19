@@ -842,8 +842,10 @@ class NBUF_2FA_Account {
 	 * Handle 2FA account actions.
 	 *
 	 * Process 2FA enable/disable and backup code generation.
+	 *
+	 * @return void
 	 */
-	public static function handle_actions() {
+	public static function handle_actions(): void {
 		/* Require logged in user */
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( wp_login_url() );
@@ -923,8 +925,10 @@ class NBUF_2FA_Account {
 	 * Initialize AJAX handlers.
 	 *
 	 * Register AJAX hooks for application password management.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Application password AJAX handlers (logged-in users only) */
 		add_action( 'wp_ajax_nbuf_create_app_password', array( __CLASS__, 'ajax_create_app_password' ) );
 		add_action( 'wp_ajax_nbuf_revoke_app_password', array( __CLASS__, 'ajax_revoke_app_password' ) );
@@ -932,8 +936,10 @@ class NBUF_2FA_Account {
 
 	/**
 	 * AJAX handler for creating an application password.
+	 *
+	 * @return void
 	 */
-	public static function ajax_create_app_password() {
+	public static function ajax_create_app_password(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'nbuf_app_passwords' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security verification failed.', 'nobloat-user-foundry' ) ) );
@@ -980,8 +986,10 @@ class NBUF_2FA_Account {
 
 	/**
 	 * AJAX handler for revoking an application password.
+	 *
+	 * @return void
 	 */
-	public static function ajax_revoke_app_password() {
+	public static function ajax_revoke_app_password(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'nbuf_app_passwords' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security verification failed.', 'nobloat-user-foundry' ) ) );

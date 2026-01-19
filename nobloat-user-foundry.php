@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.5.4
+ * Version: 1.5.5
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Jerry Benton
@@ -46,8 +46,9 @@ spl_autoload_register( 'nbuf_autoload' );
  * PSR-4 compliant autoloader for NBUF classes
  *
  * @param string $class_name Fully qualified class name.
+ * @return void
  */
-function nbuf_autoload( $class_name ) {
+function nbuf_autoload( string $class_name ): void {
 	// Only autoload NBUF_ prefixed classes.
 	if ( 0 !== strpos( $class_name, 'NBUF_' ) && 0 !== strpos( $class_name, 'Abstract_NBUF_' ) ) {
 		return;
@@ -117,8 +118,10 @@ add_filter(
  * Compares stored DB version with current and runs table creation
  * for any new tables added in updates. Uses dbDelta which is safe
  * to run on existing tables (only makes changes if needed).
+ *
+ * @return void
  */
-function nbuf_maybe_upgrade_database() {
+function nbuf_maybe_upgrade_database(): void {
 	$current_db_version = '1.5.2'; /* Update this when adding new tables - bumped for ToS */
 	$stored_db_version  = get_option( 'nbuf_db_version', '0' );
 
@@ -164,8 +167,10 @@ function nbuf_maybe_upgrade_database() {
  * Creates -live.min.css files from default templates if they don't exist.
  * Runs on every page load but checks are cheap (file_exists only).
  * This ensures users upgrading from older versions get minified CSS.
+ *
+ * @return void
  */
-function nbuf_ensure_live_css_files() {
+function nbuf_ensure_live_css_files(): void {
 	/* CSS files to create: filename => error token */
 	$css_files = array(
 		'reset-page'        => 'nbuf_css_write_failed_reset',

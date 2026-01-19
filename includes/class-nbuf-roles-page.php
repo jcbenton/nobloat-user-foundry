@@ -24,8 +24,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * Initialize roles page
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Add AJAX handlers */
 		add_action( 'wp_ajax_nbuf_save_role', array( __CLASS__, 'ajax_save_role' ) );
 		add_action( 'wp_ajax_nbuf_delete_role', array( __CLASS__, 'ajax_delete_role' ) );
@@ -36,8 +38,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * Render roles management page
+	 *
+	 * @return void
 	 */
-	public static function render_page() {
+	public static function render_page(): void {
 		/* Check user capabilities */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
@@ -82,8 +86,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * Render role list table
+	 *
+	 * @return void
 	 */
-	private static function render_role_list() {
+	private static function render_role_list(): void {
 		/* Get all roles (WordPress + custom) */
 		$wp_roles     = wp_roles()->roles;
 		$custom_roles = NBUF_Role_Manager::get_all_roles();
@@ -269,8 +275,9 @@ class NBUF_Roles_Page {
 	 * Render role editor (add/edit)
 	 *
 	 * @param string|null $role_key Role key for editing, null for new.
+	 * @return void
 	 */
-	private static function render_role_editor( $role_key ) {
+	private static function render_role_editor( ?string $role_key ): void {
 		$is_edit   = ! empty( $role_key );
 		$role_data = $is_edit ? NBUF_Role_Manager::get_role( $role_key ) : null;
 
@@ -437,8 +444,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * AJAX: Save role (create or update)
+	 *
+	 * @return void
 	 */
-	public static function ajax_save_role() {
+	public static function ajax_save_role(): void {
 		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -483,8 +492,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * AJAX: Delete role
+	 *
+	 * @return void
 	 */
-	public static function ajax_delete_role() {
+	public static function ajax_delete_role(): void {
 		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -503,8 +514,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * AJAX: Export role as JSON
+	 *
+	 * @return void
 	 */
-	public static function ajax_export_role() {
+	public static function ajax_export_role(): void {
 		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -526,8 +539,10 @@ class NBUF_Roles_Page {
 	 *
 	 * Imports an existing WordPress role into the NoBloat database
 	 * so it can be edited and managed.
+	 *
+	 * @return void
 	 */
-	public static function ajax_adopt_role() {
+	public static function ajax_adopt_role(): void {
 		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -586,8 +601,10 @@ class NBUF_Roles_Page {
 
 	/**
 	 * AJAX: Delete an orphaned role (exists in WP but not in NoBloat DB)
+	 *
+	 * @return void
 	 */
-	public static function ajax_delete_orphan_role() {
+	public static function ajax_delete_orphan_role(): void {
 		check_ajax_referer( 'nbuf_roles_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {

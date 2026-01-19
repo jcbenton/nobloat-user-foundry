@@ -25,7 +25,7 @@ class NBUF_Role_Manager {
 	/**
 	 * In-memory cache for current request
 	 *
-	 * @var array|null
+	 * @var array<string, array<string, mixed>>|null
 	 */
 	private static $roles_cache = null;
 
@@ -45,8 +45,10 @@ class NBUF_Role_Manager {
 
 	/**
 	 * Initialize role manager
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Register with WordPress roles system (early priority for better performance) */
 		add_action( 'wp_roles_init', array( __CLASS__, 'register_roles' ), 10 );
 	}
@@ -54,9 +56,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Get all custom roles with smart caching
 	 *
-	 * @return array Custom roles data.
+	 * @return array<string, array<string, mixed>> Custom roles data.
 	 */
-	public static function get_all_roles() {
+	public static function get_all_roles(): array {
 		/* Level 1: In-memory cache (zero cost) */
 		if ( null !== self::$roles_cache ) {
 			return self::$roles_cache;
@@ -105,9 +107,9 @@ class NBUF_Role_Manager {
 	 * Get single role - even more efficient
 	 *
 	 * @param  string $role_key Role key/slug.
-	 * @return array|null Role data or null if not found.
+	 * @return array<string, mixed>|null Role data or null if not found.
 	 */
-	public static function get_role( $role_key ) {
+	public static function get_role( string $role_key ): ?array {
 		/* Check object cache first */
 		$cached = wp_cache_get( "role_{$role_key}", self::$cache_group );
 		if ( false !== $cached ) {
@@ -129,14 +131,14 @@ class NBUF_Role_Manager {
 	/**
 	 * Create a new custom role
 	 *
-	 * @param  string $role_key     Role key/slug (e.g., 'team_manager').
-	 * @param  string $role_name    Display name (e.g., 'Team Manager').
-	 * @param  array  $capabilities Array of capabilities.
-	 * @param  string $parent_role  Optional parent role for inheritance.
-	 * @param  int    $priority     Priority for multiple roles (higher = more important).
+	 * @param  string              $role_key     Role key/slug (e.g., 'team_manager').
+	 * @param  string              $role_name    Display name (e.g., 'Team Manager').
+	 * @param  array<string, bool> $capabilities Array of capabilities.
+	 * @param  string|null         $parent_role  Optional parent role for inheritance.
+	 * @param  int                 $priority     Priority for multiple roles (higher = more important).
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function create_role( $role_key, $role_name, $capabilities = array(), $parent_role = null, $priority = 0 ) {
+	public static function create_role( string $role_key, string $role_name, array $capabilities = array(), ?string $parent_role = null, int $priority = 0 ) {
 		global $wpdb;
 
 		/* Validate role key */
@@ -212,11 +214,11 @@ class NBUF_Role_Manager {
 	/**
 	 * Update an existing role
 	 *
-	 * @param  string $role_key Role key.
-	 * @param  array  $updates  Array of fields to update.
+	 * @param  string               $role_key Role key.
+	 * @param  array<string, mixed> $updates  Array of fields to update.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	public static function update_role( $role_key, $updates ) {
+	public static function update_role( string $role_key, array $updates ) {
 		global $wpdb;
 
 		/* Check if role exists */
@@ -389,10 +391,10 @@ class NBUF_Role_Manager {
 	/**
 	 * Resolve capabilities with inheritance
 	 *
-	 * @param  array $role_data Role data with capabilities and parent_role.
-	 * @return array Final capabilities array.
+	 * @param  array<string, mixed> $role_data Role data with capabilities and parent_role.
+	 * @return array<string, bool> Final capabilities array.
 	 */
-	public static function resolve_capabilities( $role_data ) {
+	public static function resolve_capabilities( array $role_data ): array {
 		$capabilities = isset( $role_data['capabilities'] ) ? $role_data['capabilities'] : array();
 		$parent_role  = isset( $role_data['parent_role'] ) ? $role_data['parent_role'] : null;
 
@@ -416,8 +418,9 @@ class NBUF_Role_Manager {
 	 * Register custom roles with WordPress
 	 *
 	 * @param WP_Roles $roles WordPress roles object.
+	 * @return void
 	 */
-	public static function register_roles( $roles ) {
+	public static function register_roles( WP_Roles $roles ): void {
 		$custom_roles = self::get_all_roles(); // Cached!
 
 		foreach ( $custom_roles as $role_key => $role_data ) {
@@ -445,9 +448,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Get all WordPress capabilities (for UI)
 	 *
-	 * @return array Capabilities grouped by category.
+	 * @return array<string, array<int, string>> Capabilities grouped by category.
 	 */
-	public static function get_all_capabilities() {
+	public static function get_all_capabilities(): array {
 		$wp_roles = wp_roles()->roles;
 		$all_caps = array();
 
@@ -498,8 +501,10 @@ class NBUF_Role_Manager {
 
 	/**
 	 * Clear all role caches
+	 *
+	 * @return void
 	 */
-	public static function clear_cache() {
+	public static function clear_cache(): void {
 		/* Clear in-memory cache */
 		self::$roles_cache = null;
 
@@ -583,9 +588,9 @@ class NBUF_Role_Manager {
 	 * Finds all WordPress roles that are not native and not already
 	 * managed by NoBloat, and imports them into the database.
 	 *
-	 * @return array Results with counts and adopted roles list.
+	 * @return array{total: int, adopted: int, skipped: int, errors: array<int, string>, roles: array<int, array<string, mixed>>} Results with counts and adopted roles list.
 	 */
-	public static function adopt_all_orphaned_roles() {
+	public static function adopt_all_orphaned_roles(): array {
 		global $wpdb;
 
 		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
@@ -704,9 +709,9 @@ class NBUF_Role_Manager {
 	/**
 	 * Get list of orphaned roles for preview
 	 *
-	 * @return array List of orphaned roles with their details.
+	 * @return array<int, array{role_key: string, role_name: string, user_count: int, cap_count: int}> List of orphaned roles with their details.
 	 */
-	public static function get_orphaned_roles_preview() {
+	public static function get_orphaned_roles_preview(): array {
 		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
 		$custom_roles = self::get_all_roles();
 		$wp_roles     = wp_roles();

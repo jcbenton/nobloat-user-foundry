@@ -27,7 +27,7 @@ class NBUF_Migration {
 	 *
 	 * Maps plugin slugs to their mapper class names.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	private static $plugin_mappers = array(
 		'ultimate-member' => 'NBUF_Migration_Ultimate_Member',
@@ -42,14 +42,16 @@ class NBUF_Migration {
 	/**
 	 * Cached mapper instances
 	 *
-	 * @var array
+	 * @var array<string, NBUF_Abstract_Migration_Plugin>
 	 */
 	private static $mapper_instances = array();
 
 	/**
 	 * Initialize migration hooks
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Register AJAX handlers - OLD wizard-based handlers */
 		add_action( 'wp_ajax_nbuf_detect_plugins', array( __CLASS__, 'ajax_detect_plugins' ) );
 		add_action( 'wp_ajax_nbuf_get_field_mapping', array( __CLASS__, 'ajax_get_field_mapping' ) );
@@ -98,9 +100,9 @@ class NBUF_Migration {
 	/**
 	 * Detect installed user management plugins
 	 *
-	 * @return array List of detected plugins.
+	 * @return array<int, array<string, mixed>> List of detected plugins.
 	 */
-	public static function detect_installed_plugins() {
+	public static function detect_installed_plugins(): array {
 		$detected = array();
 
 		foreach ( self::$plugin_mappers as $plugin_slug => $class_name ) {
@@ -128,9 +130,9 @@ class NBUF_Migration {
 	 * Get field mapping for a plugin
 	 *
 	 * @param  string $plugin_slug Plugin slug.
-	 * @return array Field mappings.
+	 * @return array<string, mixed> Field mappings.
 	 */
-	public static function get_field_mapping( $plugin_slug ) {
+	public static function get_field_mapping( string $plugin_slug ): array {
 		$mapper = self::get_mapper( $plugin_slug );
 
 		if ( ! $mapper ) {
@@ -146,9 +148,9 @@ class NBUF_Migration {
 	 * Discover custom fields from plugin
 	 *
 	 * @param  string $plugin_slug Plugin slug.
-	 * @return array Custom fields with sample data.
+	 * @return array<string, mixed> Custom fields with sample data.
 	 */
-	public static function discover_custom_fields( $plugin_slug ) {
+	public static function discover_custom_fields( string $plugin_slug ): array {
 		$mapper = self::get_mapper( $plugin_slug );
 
 		if ( ! $mapper ) {
@@ -161,12 +163,12 @@ class NBUF_Migration {
 	/**
 	 * Preview import data
 	 *
-	 * @param  string $plugin_slug   Plugin slug.
-	 * @param  int    $limit         Number of users to preview.
-	 * @param  array  $field_mapping Optional custom field mapping.
-	 * @return array Preview data.
+	 * @param  string                $plugin_slug   Plugin slug.
+	 * @param  int                   $limit         Number of users to preview.
+	 * @param  array<string, string> $field_mapping Optional custom field mapping.
+	 * @return array<int, array<string, mixed>> Preview data.
 	 */
-	public static function preview_import( $plugin_slug, $limit = 10, $field_mapping = array() ) {
+	public static function preview_import( string $plugin_slug, int $limit = 10, array $field_mapping = array() ): array {
 		$mapper = self::get_mapper( $plugin_slug );
 
 		if ( ! $mapper ) {
@@ -179,12 +181,12 @@ class NBUF_Migration {
 	/**
 	 * Execute import from a plugin
 	 *
-	 * @param  string $plugin_slug   Plugin slug.
-	 * @param  array  $options       Import options.
-	 * @param  array  $field_mapping Optional custom field mapping.
-	 * @return array Import results.
+	 * @param  string                $plugin_slug   Plugin slug.
+	 * @param  array<string, mixed>  $options       Import options.
+	 * @param  array<string, string> $field_mapping Optional custom field mapping.
+	 * @return array<string, mixed> Import results.
 	 */
-	public static function execute_import( $plugin_slug, $options = array(), $field_mapping = array() ) {
+	public static function execute_import( string $plugin_slug, array $options = array(), array $field_mapping = array() ): array {
 		$mapper = self::get_mapper( $plugin_slug );
 
 		if ( ! $mapper ) {
@@ -212,11 +214,11 @@ class NBUF_Migration {
 	/**
 	 * Log import to history
 	 *
-	 * @param  string $plugin_slug Plugin slug.
-	 * @param  array  $results     Import results.
+	 * @param  string               $plugin_slug Plugin slug.
+	 * @param  array<string, mixed> $results     Import results.
 	 * @return int Import history ID.
 	 */
-	public static function log_import_history( $plugin_slug, $results ) {
+	public static function log_import_history( string $plugin_slug, array $results ): int {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_import_history';
@@ -242,9 +244,9 @@ class NBUF_Migration {
 	 * Get import history
 	 *
 	 * @param  int $limit Number of records to retrieve.
-	 * @return array Import history records.
+	 * @return array<int, object> Import history records.
 	 */
-	public static function get_import_history( $limit = 10 ) {
+	public static function get_import_history( int $limit = 10 ): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_import_history';
@@ -261,8 +263,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Detect installed plugins
+	 *
+	 * @return void
 	 */
-	public static function ajax_detect_plugins() {
+	public static function ajax_detect_plugins(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -276,8 +280,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Get field mapping
+	 *
+	 * @return void
 	 */
-	public static function ajax_get_field_mapping() {
+	public static function ajax_get_field_mapping(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -297,8 +303,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Preview import
+	 *
+	 * @return void
 	 */
-	public static function ajax_preview_import() {
+	public static function ajax_preview_import(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -318,8 +326,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Execute import
+	 *
+	 * @return void
 	 */
-	public static function ajax_execute_import() {
+	public static function ajax_execute_import(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -365,8 +375,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Discover custom fields
+	 *
+	 * @return void
 	 */
-	public static function ajax_discover_fields() {
+	public static function ajax_discover_fields(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -386,8 +398,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Suggest field mapping
+	 *
+	 * @return void
 	 */
-	public static function ajax_suggest_mapping() {
+	public static function ajax_suggest_mapping(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -410,8 +424,10 @@ class NBUF_Migration {
 
 	/**
 	 * AJAX: Rollback import
+	 *
+	 * @return void
 	 */
-	public static function ajax_rollback_import() {
+	public static function ajax_rollback_import(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -438,8 +454,10 @@ class NBUF_Migration {
 	 * AJAX: Load migration plugin data
 	 *
 	 * Returns plugin status, user count, field count, restrictions count
+	 *
+	 * @return void
 	 */
-	public static function ajax_load_migration_plugin() {
+	public static function ajax_load_migration_plugin(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -512,8 +530,10 @@ class NBUF_Migration {
 	 * AJAX: Get field mappings for plugin
 	 *
 	 * Returns array of source fields with auto-mapped targets and sample values
+	 *
+	 * @return void
 	 */
-	public static function ajax_get_field_mappings() {
+	public static function ajax_get_field_mappings(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -580,8 +600,13 @@ class NBUF_Migration {
 					continue;
 				}
 
-				/* Get sample value for display */
-				$sample_value = ! empty( $field_data['samples'][0] ) ? $field_data['samples'][0] : '';
+				/* Get sample value for display - handle both 'samples' array and 'sample' string */
+				$sample_value = '';
+				if ( ! empty( $field_data['samples'] ) && is_array( $field_data['samples'] ) ) {
+					$sample_value = $field_data['samples'][0] ?? '';
+				} elseif ( ! empty( $field_data['sample'] ) ) {
+					$sample_value = $field_data['sample'];
+				}
 
 				$mappings[ $field_key ] = array(
 					'target'      => '', /* No auto-mapping for custom fields */
@@ -624,8 +649,10 @@ class NBUF_Migration {
 	 * AJAX: Get restrictions preview
 	 *
 	 * Returns preview of content restrictions to be migrated
+	 *
+	 * @return void
 	 */
-	public static function ajax_get_restrictions_preview() {
+	public static function ajax_get_restrictions_preview(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -673,8 +700,10 @@ class NBUF_Migration {
 	 * AJAX: Execute migration
 	 *
 	 * Executes selected migration types (profile_data, restrictions)
+	 *
+	 * @return void
 	 */
-	public static function ajax_execute_migration() {
+	public static function ajax_execute_migration(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -760,8 +789,10 @@ class NBUF_Migration {
 	 * Returns progress data for real-time UI updates
 	 *
 	 * Security: Implements rate limiting, migration locking, input validation, and whitelisting
+	 *
+	 * @return void
 	 */
-	public static function ajax_execute_migration_batch() {
+	public static function ajax_execute_migration_batch(): void {
 		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {

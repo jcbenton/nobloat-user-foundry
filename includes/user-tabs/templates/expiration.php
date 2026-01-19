@@ -116,7 +116,7 @@ if ( empty( $nbuf_expiration_notice_text ) ) {
 				class="large-text code nbuf-template-editor"
 			><?php echo esc_textarea( $nbuf_expiration_notice_html ); ?></textarea>
 			<p class="description">
-				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {expiration_date}, {user_email}, {username}, {site_url}, {contact_url}', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {expiration_date}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
 				<button
@@ -137,7 +137,7 @@ if ( empty( $nbuf_expiration_notice_text ) ) {
 				class="large-text code nbuf-template-editor"
 			><?php echo esc_textarea( $nbuf_expiration_notice_text ); ?></textarea>
 			<p class="description">
-				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {expiration_date}, {user_email}, {username}, {site_url}, {contact_url}', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Available placeholders: {site_name}, {display_name}, {expiration_date}, {user_email}, {username}, {site_url}', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
 				<button

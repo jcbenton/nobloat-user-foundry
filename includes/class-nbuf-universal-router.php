@@ -23,7 +23,7 @@ class NBUF_Universal_Router {
 	/**
 	 * View configuration: view key => [method, title].
 	 *
-	 * @var array
+	 * @var array<string, array{method: string, title: string}>
 	 */
 	private static $views = array(
 		'login'           => array(
@@ -96,8 +96,10 @@ class NBUF_Universal_Router {
 
 	/**
 	 * Initialize the router.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( is_admin() ) {
 			return;
 		}
@@ -108,8 +110,10 @@ class NBUF_Universal_Router {
 
 	/**
 	 * Check if this is our request and handle it.
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_request() {
+	public static function maybe_handle_request(): void {
 		/* Parse URL to see if it's ours */
 		$parsed = self::parse_url();
 
@@ -169,8 +173,10 @@ class NBUF_Universal_Router {
 
 	/**
 	 * Render the full page.
+	 *
+	 * @return void
 	 */
-	private static function render_page() {
+	private static function render_page(): void {
 		$view = self::$current_view;
 
 		if ( ! $view || ! isset( self::$views[ $view ] ) ) {
@@ -263,8 +269,10 @@ class NBUF_Universal_Router {
 
 	/**
 	 * Enqueue CSS/JS for current view.
+	 *
+	 * @return void
 	 */
-	public static function enqueue_assets() {
+	public static function enqueue_assets(): void {
 		$view = self::$current_view;
 
 		/* Map views to CSS page types */
@@ -331,7 +339,7 @@ class NBUF_Universal_Router {
 	/**
 	 * Parse current URL to extract view and subview.
 	 *
-	 * @return array|false Array with view/subview or false if not our URL.
+	 * @return array{view: string, subview: string}|false Array with view/subview or false if not our URL.
 	 */
 	public static function parse_url() {
 		$base_slug = self::get_base_slug();
@@ -425,12 +433,12 @@ class NBUF_Universal_Router {
 	/**
 	 * Get URL for a view.
 	 *
-	 * @param  string $view    View key.
-	 * @param  string $subview Optional subview.
-	 * @param  array  $args    Optional query args.
+	 * @param  string               $view    View key.
+	 * @param  string               $subview Optional subview.
+	 * @param  array<string, mixed> $args    Optional query args.
 	 * @return string URL.
 	 */
-	public static function get_url( $view = '', $subview = '', $args = array() ) {
+	public static function get_url( string $view = '', string $subview = '', array $args = array() ): string {
 		$base_slug = self::get_base_slug();
 		$path      = $base_slug;
 
@@ -477,8 +485,10 @@ class NBUF_Universal_Router {
 	 * Flush rewrite rules (no-op for virtual pages).
 	 *
 	 * Kept for backward compatibility with activator.
+	 *
+	 * @return void
 	 */
-	public static function flush_rules() {
+	public static function flush_rules(): void {
 		/* Virtual pages don't use rewrite rules - nothing to flush */
 	}
 

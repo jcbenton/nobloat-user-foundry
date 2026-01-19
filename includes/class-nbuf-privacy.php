@@ -24,8 +24,10 @@ class NBUF_Privacy {
 
 	/**
 	 * Initialize privacy hooks
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Register exporters */
 		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'register_exporters' ) );
 
@@ -46,10 +48,10 @@ class NBUF_Privacy {
 	/**
 	 * Register personal data exporters
 	 *
-	 * @param  array $exporters Existing exporters.
-	 * @return array Modified exporters array.
+	 * @param  array<string, array{exporter_friendly_name: string, callback: callable}> $exporters Existing exporters.
+	 * @return array<string, array{exporter_friendly_name: string, callback: callable}> Modified exporters array.
 	 */
-	public static function register_exporters( $exporters ) {
+	public static function register_exporters( array $exporters ): array {
 		$exporters['nobloat-user-foundry-user-data'] = array(
 			'exporter_friendly_name' => __( 'NoBloat User Foundry - User Data', 'nobloat-user-foundry' ),
 			'callback'               => array( __CLASS__, 'export_user_data' ),
@@ -91,10 +93,10 @@ class NBUF_Privacy {
 	/**
 	 * Register personal data erasers
 	 *
-	 * @param  array $erasers Existing erasers.
-	 * @return array Modified erasers array.
+	 * @param  array<string, array{eraser_friendly_name: string, callback: callable}> $erasers Existing erasers.
+	 * @return array<string, array{eraser_friendly_name: string, callback: callable}> Modified erasers array.
 	 */
-	public static function register_erasers( $erasers ) {
+	public static function register_erasers( array $erasers ): array {
 		$erasers['nobloat-user-foundry-user-data'] = array(
 			'eraser_friendly_name' => __( 'NoBloat User Foundry - User Data', 'nobloat-user-foundry' ),
 			'callback'             => array( __CLASS__, 'erase_user_data' ),
@@ -113,9 +115,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_user_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
+	public static function export_user_data( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -211,9 +213,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_audit_logs( $email_address, $page = 1 ) {
+	public static function export_audit_logs( string $email_address, int $page = 1 ): array {
 		/* Check if audit logs should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_audit_logs', true ) ) {
 			return array(
@@ -289,9 +291,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_admin_audit_logs( $email_address, $page = 1 ) {
+	public static function export_admin_audit_logs( string $email_address, int $page = 1 ): array {
 		/* Check if admin audit logs should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_admin_audit_logs', true ) ) {
 			return array(
@@ -372,9 +374,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_security_logs( $email_address, $page = 1 ) {
+	public static function export_security_logs( string $email_address, int $page = 1 ): array {
 		/* Check if security logs should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_security_logs', true ) ) {
 			return array(
@@ -454,9 +456,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_2fa_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
+	public static function export_2fa_data( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
 		/* Check if 2FA data should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_2fa_data', true ) ) {
 			return array(
@@ -514,9 +516,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_profile_photos( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
+	public static function export_profile_photos( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -584,9 +586,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Export data.
+	 * @return array{data: array<int, array{group_id: string, group_label: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export data.
 	 */
-	public static function export_login_attempts( $email_address, $page = 1 ) {
+	public static function export_login_attempts( string $email_address, int $page = 1 ): array {
 		/* Check if login attempts should be included */
 		if ( ! NBUF_Options::get( 'nbuf_gdpr_include_login_attempts', false ) ) {
 			return array(
@@ -662,9 +664,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Erasure result.
+	 * @return array{items_removed: bool, items_retained: bool, messages: array<int, string>, done: bool} Erasure result.
 	 */
-	public static function erase_user_data( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
+	public static function erase_user_data( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -730,9 +732,9 @@ class NBUF_Privacy {
 	 *
 	 * @param  string $email_address User email address.
 	 * @param  int    $page          Page number.
-	 * @return array Erasure result.
+	 * @return array{items_removed: bool, items_retained: bool, messages: array<int, string>, done: bool} Erasure result.
 	 */
-	public static function erase_enterprise_logs( $email_address, $page = 1 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
+	public static function erase_enterprise_logs( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy eraser signature
 		$user = get_user_by( 'email', $email_address );
 
 		if ( ! $user ) {
@@ -819,8 +821,9 @@ class NBUF_Privacy {
 	 * 2. Handle logs per GDPR settings (delete, anonymize, or keep)
 	 *
 	 * @param int $user_id User ID being deleted.
+	 * @return void
 	 */
-	public static function handle_user_deletion( $user_id ) {
+	public static function handle_user_deletion( int $user_id ): void {
 		/*
 		 * ALWAYS clean up user data from plugin tables.
 		 * This is not affected by log deletion settings - user data must be removed.
@@ -894,8 +897,10 @@ class NBUF_Privacy {
 
 	/**
 	 * Add privacy policy content
+	 *
+	 * @return void
 	 */
-	public static function add_privacy_policy_content() {
+	public static function add_privacy_policy_content(): void {
 		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
 			return;
 		}
@@ -931,8 +936,10 @@ class NBUF_Privacy {
 	 * Enqueue custom styles for privacy confirmation page
 	 *
 	 * Improves the default WordPress privacy confirmation page appearance.
+	 *
+	 * @return void
 	 */
-	public static function enqueue_privacy_confirmation_styles() {
+	public static function enqueue_privacy_confirmation_styles(): void {
 		/* Only load on privacy confirmation pages */
 		if ( ! isset( $_GET['action'] ) || 'confirmaction' !== $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check for page identification.
 			return;

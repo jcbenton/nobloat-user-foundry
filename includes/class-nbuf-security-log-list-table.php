@@ -43,9 +43,9 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get columns
 	 *
-	 * @return array Columns array
+	 * @return array<string, string> Columns array
 	 */
-	public function get_columns() {
+	public function get_columns(): array {
 		return array(
 			'cb'               => '<input type="checkbox" />',
 			'timestamp'        => __( 'Last Seen', 'nobloat-user-foundry' ),
@@ -61,9 +61,9 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get sortable columns
 	 *
-	 * @return array Sortable columns
+	 * @return array<string, array{0: string, 1: bool}> Sortable columns
 	 */
-	public function get_sortable_columns() {
+	public function get_sortable_columns(): array {
 		return array(
 			'timestamp'        => array( 'timestamp', true ), // true = already sorted.
 			'occurrence_count' => array( 'occurrence_count', false ),
@@ -75,9 +75,9 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get bulk actions
 	 *
-	 * @return array Bulk actions
+	 * @return array<string, string> Bulk actions
 	 */
-	public function get_bulk_actions() {
+	public function get_bulk_actions(): array {
 		return array(
 			'delete'     => __( 'Delete', 'nobloat-user-foundry' ),
 			'unblock_ip' => __( 'Unblock IP', 'nobloat-user-foundry' ),
@@ -233,8 +233,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Prepare items for display
+	 *
+	 * @return void
 	 */
-	public function prepare_items() {
+	public function prepare_items(): void {
 		/* Set columns */
 		$this->_column_headers = array(
 			$this->get_columns(),
@@ -322,15 +324,19 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 *
 	 * Note: Bulk delete is handled by NBUF_Security_Log_Page::handle_bulk_delete()
 	 * on admin_init to avoid "headers already sent" errors.
+	 *
+	 * @return void
 	 */
-	public function process_bulk_action() {
+	public function process_bulk_action(): void {
 		/* Bulk actions now handled by NBUF_Security_Log_Page on admin_init */
 	}
 
 	/**
 	 * Display when no items found
+	 *
+	 * @return void
 	 */
-	public function no_items() {
+	public function no_items(): void {
 		esc_html_e( 'No security log entries found.', 'nobloat-user-foundry' );
 	}
 
@@ -338,8 +344,9 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 * Extra table navigation (filters)
 	 *
 	 * @param string $which Top or bottom.
+	 * @return void
 	 */
-	public function extra_tablenav( $which ) {
+	public function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
 			return;
 		}
@@ -356,8 +363,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render severity dropdown filter
+	 *
+	 * @return void
 	 */
-	private function severity_dropdown() {
+	private function severity_dropdown(): void {
 		$severities = array(
 			''         => __( 'All Severities', 'nobloat-user-foundry' ),
 			'critical' => __( 'Critical', 'nobloat-user-foundry' ),
@@ -382,8 +391,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render event type dropdown filter
+	 *
+	 * @return void
 	 */
-	private function event_type_dropdown() {
+	private function event_type_dropdown(): void {
 		$event_types = array(
 			''                                 => __( 'All Event Types', 'nobloat-user-foundry' ),
 			'login_failed'                     => __( 'Login Failed', 'nobloat-user-foundry' ),
@@ -414,8 +425,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render date from field
+	 *
+	 * @return void
 	 */
-	private function date_from_field() {
+	private function date_from_field(): void {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only date filter display
 		$value = isset( $_REQUEST['date_from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_from'] ) ) : '';
 
@@ -428,8 +441,10 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Render date to field
+	 *
+	 * @return void
 	 */
-	private function date_to_field() {
+	private function date_to_field(): void {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only date filter display
 		$value = isset( $_REQUEST['date_to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_to'] ) ) : '';
 

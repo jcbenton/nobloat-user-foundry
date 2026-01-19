@@ -22,16 +22,20 @@ class NBUF_Appearance {
 
 	/**
 	 * Initialize the class.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_submenu_page' ), 11 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_scripts' ) );
 	}
 
 	/**
 	 * Add the Appearance submenu page.
+	 *
+	 * @return void
 	 */
-	public static function add_submenu_page() {
+	public static function add_submenu_page(): void {
 		add_submenu_page(
 			'nobloat-foundry',
 			__( 'Appearance', 'nobloat-user-foundry' ),
@@ -46,8 +50,9 @@ class NBUF_Appearance {
 	 * Enqueue admin scripts and styles.
 	 *
 	 * @param string $hook The current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_admin_scripts( $hook ) {
+	public static function enqueue_admin_scripts( string $hook ): void {
 		/* Check for both possible hook variants (same pattern as Settings class) */
 		$allowed_hooks = array(
 			'nobloat-foundry_page_nobloat-foundry-appearance',
@@ -97,9 +102,9 @@ class NBUF_Appearance {
 	/**
 	 * Get the tab structure for the Appearance page.
 	 *
-	 * @return array Tab structure definition.
+	 * @return array<string, array{label: string, subtabs: array<string, string>}> Tab structure definition.
 	 */
-	public static function get_tab_structure() {
+	public static function get_tab_structure(): array {
 		return array(
 			'emails'   => array(
 				'label'   => __( 'Email Templates', 'nobloat-user-foundry' ),
@@ -209,8 +214,10 @@ class NBUF_Appearance {
 
 	/**
 	 * Render the Appearance page.
+	 *
+	 * @return void
 	 */
-	public static function render_page() {
+	public static function render_page(): void {
 		$structure     = self::get_tab_structure();
 		$active_tab    = self::get_active_tab();
 		$active_subtab = self::get_active_subtab();
@@ -281,8 +288,9 @@ class NBUF_Appearance {
 	 *
 	 * @param string $tab    The outer tab slug.
 	 * @param string $subtab The subtab slug.
+	 * @return void
 	 */
-	private static function load_subtab_content( $tab, $subtab ) {
+	private static function load_subtab_content( string $tab, string $subtab ): void {
 		/* Map tabs to file paths */
 		$file_map = array(
 			/* Email Templates */

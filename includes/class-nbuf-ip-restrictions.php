@@ -64,7 +64,7 @@ class NBUF_IP_Restrictions {
 	 * Get configured IP list.
 	 *
 	 * @since  1.5.2
-	 * @return array Array of IP addresses/ranges.
+	 * @return array<int, string> Array of IP addresses/ranges.
 	 */
 	public static function get_ip_list(): array {
 		$list_raw = NBUF_Options::get( 'nbuf_ip_restriction_list', '' );

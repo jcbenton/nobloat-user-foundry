@@ -49,7 +49,7 @@ class NBUF_Antibot {
 	/**
 	 * PoW difficulty levels (number of leading hex zeros required).
 	 *
-	 * @var array
+	 * @var array<string, int>
 	 */
 	const POW_DIFFICULTIES = array(
 		'low'    => 2,
@@ -61,8 +61,9 @@ class NBUF_Antibot {
 	 * Initialize anti-bot hooks.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( ! self::is_enabled() ) {
 			return;
 		}
@@ -84,8 +85,9 @@ class NBUF_Antibot {
 	 * Enqueue frontend JavaScript on registration pages.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function enqueue_scripts() {
+	public static function enqueue_scripts(): void {
 		self::debug_log( 'enqueue_scripts() called' );
 
 		if ( ! self::is_registration_page() ) {
@@ -110,9 +112,9 @@ class NBUF_Antibot {
 	 * Get client-side configuration for JavaScript.
 	 *
 	 * @since  1.5.0
-	 * @return array Configuration data.
+	 * @return array<string, mixed> Configuration data.
 	 */
-	private static function get_client_config() {
+	private static function get_client_config(): array {
 		$session_id   = self::get_or_create_session_id();
 		$js_seed_data = self::generate_js_seed( $session_id );
 
@@ -239,9 +241,9 @@ class NBUF_Antibot {
 	 * Generate honeypot field names (rotates hourly).
 	 *
 	 * @since  1.5.0
-	 * @return array Associative array of field keys to names.
+	 * @return array<string, string> Associative array of field keys to names.
 	 */
-	public static function get_honeypot_fields() {
+	public static function get_honeypot_fields(): array {
 		$rotation_key = floor( time() / self::HONEYPOT_ROTATION );
 		$site_salt    = wp_salt( 'auth' );
 
@@ -292,10 +294,10 @@ class NBUF_Antibot {
 	 * Validate honeypot fields are empty.
 	 *
 	 * @since  1.5.0
-	 * @param  array $data POST data.
+	 * @param  array<string, mixed> $data POST data.
 	 * @return bool True if valid (honeypots empty).
 	 */
-	public static function validate_honeypot( $data ) {
+	public static function validate_honeypot( array $data ): bool {
 		if ( ! NBUF_Options::get( 'nbuf_antibot_honeypot', true ) ) {
 			return true;
 		}
@@ -306,9 +308,9 @@ class NBUF_Antibot {
 		$prev_rotation_key = floor( ( time() - self::HONEYPOT_ROTATION ) / self::HONEYPOT_ROTATION );
 		$prev_base_hash    = hash( 'sha256', wp_salt( 'auth' ) . $prev_rotation_key );
 		$prev_fields       = array(
-			'contact_' . substr( $prev_base_hash, 0, 8 ),
-			'website_' . substr( $prev_base_hash, 8, 8 ),
-			'company_' . substr( $prev_base_hash, 16, 8 ),
+			'nbuf_hp_a_' . substr( $prev_base_hash, 0, 8 ),
+			'nbuf_hp_b_' . substr( $prev_base_hash, 8, 8 ),
+			'nbuf_hp_c_' . substr( $prev_base_hash, 16, 8 ),
 		);
 
 		$all_fields = array_merge( array_values( $fields ), $prev_fields );
@@ -424,9 +426,9 @@ class NBUF_Antibot {
 	 *
 	 * @since  1.5.0
 	 * @param  string $session_id Session ID.
-	 * @return array Array with 'seed' and 'timestamp' keys.
+	 * @return array{seed: string, timestamp: string} Array with 'seed' and 'timestamp' keys.
 	 */
-	public static function generate_js_seed( $session_id ) {
+	public static function generate_js_seed( string $session_id ): array {
 		if ( ! NBUF_Options::get( 'nbuf_antibot_js_token', true ) ) {
 			return array(
 				'seed'      => '',
@@ -661,10 +663,10 @@ class NBUF_Antibot {
 	 * Validate all anti-bot checks.
 	 *
 	 * @since  1.5.0
-	 * @param  array $post_data POST data from form submission.
+	 * @param  array<string, mixed> $post_data POST data from form submission.
 	 * @return true|WP_Error True if valid, WP_Error if blocked.
 	 */
-	public static function validate( $post_data ) {
+	public static function validate( array $post_data ) {
 		self::debug_log( '========== ANTIBOT VALIDATION START ==========' );
 
 		if ( ! self::is_enabled() ) {
@@ -759,10 +761,11 @@ class NBUF_Antibot {
 	 * Log blocked bot attempt to security log.
 	 *
 	 * @since 1.5.0
-	 * @param string $ip_address    Client IP address.
-	 * @param array  $failed_checks Array of failed check names.
+	 * @param string   $ip_address    Client IP address.
+	 * @param string[] $failed_checks Array of failed check names.
+	 * @return void
 	 */
-	private static function log_blocked_attempt( $ip_address, $failed_checks ) {
+	private static function log_blocked_attempt( string $ip_address, array $failed_checks ): void {
 		self::debug_log( 'log_blocked_attempt() called' );
 
 		if ( ! class_exists( 'NBUF_Security_Log' ) ) {
@@ -795,23 +798,8 @@ class NBUF_Antibot {
 	 * @since  1.5.0
 	 * @return string IP address.
 	 */
-	private static function get_client_ip() {
-		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] )
-			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
-			: '';
-
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
-			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-				if ( strpos( $ip, ',' ) !== false ) {
-					$ip = trim( explode( ',', $ip )[0] );
-				}
-				return $ip;
-			}
-		}
-
-		return $remote_addr;
+	private static function get_client_ip(): string {
+		return NBUF_IP::get_client_ip( false );
 	}
 
 	/**
@@ -853,8 +841,9 @@ class NBUF_Antibot {
 	 *
 	 * @since 1.5.0
 	 * @param string $message Message to log.
+	 * @return void
 	 */
-	private static function debug_log( $message ) {
+	private static function debug_log( string $message ): void {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[NBUF Antibot] ' . $message );

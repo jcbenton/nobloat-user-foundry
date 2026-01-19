@@ -70,7 +70,7 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	 * Returns array of source field → target field mappings.
 	 * These are automatically mapped without user intervention.
 	 *
-	 * @return array Field mappings
+	 * @return array<string, string|array{target?: string, transform?: string}> Field mappings
 	 */
 	abstract public function get_default_field_mapping();
 
@@ -81,25 +81,25 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	 * fields that are not in the default mapping. Returns fields with
 	 * sample values for manual mapping UI.
 	 *
-	 * @return array Custom fields with sample data
+	 * @return array<string, array<string, mixed>> Custom fields with sample data
 	 */
 	abstract public function discover_custom_fields();
 
 	/**
 	 * Get preview data for first N users
 	 *
-	 * @param  int   $limit         Number of users to preview.
-	 * @param  array $field_mapping Optional custom field mapping.
-	 * @return array Preview data
+	 * @param  int                                                              $limit         Number of users to preview.
+	 * @param  array<string, string|array{target?: string, transform?: string}> $field_mapping Optional custom field mapping.
+	 * @return array<int, array<string, mixed>> Preview data
 	 */
 	abstract public function preview_import( $limit = 10, $field_mapping = array() );
 
 	/**
 	 * Import single user data
 	 *
-	 * @param  int   $user_id       User ID to import.
-	 * @param  array $options       Import options.
-	 * @param  array $field_mapping Optional custom field mapping.
+	 * @param  int                                                              $user_id       User ID to import.
+	 * @param  array<string, mixed>                                             $options       Import options.
+	 * @param  array<string, string|array{target?: string, transform?: string}> $field_mapping Optional custom field mapping.
 	 * @return bool Success
 	 */
 	abstract public function import_user( $user_id, $options = array(), $field_mapping = array() );
@@ -107,11 +107,11 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Batch import users
 	 *
-	 * @param  array $options       Import options.
-	 * @param  array $field_mapping Optional custom field mapping.
-	 * @return array Import results
+	 * @param  array<string, mixed>                                             $options       Import options.
+	 * @param  array<string, string|array{target?: string, transform?: string}> $field_mapping Optional custom field mapping.
+	 * @return array{success: bool, total: int, imported: int, skipped: int, errors: array<int, string>, batch_complete: bool} Import results
 	 */
-	public function batch_import( $options = array(), $field_mapping = array() ) {
+	public function batch_import( array $options = array(), array $field_mapping = array() ): array {
 		global $wpdb;
 
 		$defaults = array(
@@ -181,7 +181,7 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @param  int $limit  Batch size.
 	 * @param  int $offset Batch offset.
-	 * @return array User IDs
+	 * @return array<int> User IDs
 	 */
 	abstract protected function get_user_ids_for_batch( $limit, $offset );
 
@@ -233,11 +233,11 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Get user metadata in batch for performance
 	 *
-	 * @param  array $user_ids  User IDs.
-	 * @param  array $meta_keys Meta keys to fetch.
-	 * @return array User metadata keyed by user_id => meta_key => meta_value
+	 * @param  array<int>    $user_ids  User IDs.
+	 * @param  array<string> $meta_keys Meta keys to fetch.
+	 * @return array<int, array<string, string>> User metadata keyed by user_id => meta_key => meta_value
 	 */
-	protected function get_user_meta_batch( $user_ids, $meta_keys = array() ) {
+	protected function get_user_meta_batch( array $user_ids, array $meta_keys = array() ): array {
 		global $wpdb;
 
 		if ( empty( $user_ids ) ) {

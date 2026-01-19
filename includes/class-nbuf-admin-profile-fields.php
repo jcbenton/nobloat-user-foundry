@@ -22,8 +22,10 @@ class NBUF_Admin_Profile_Fields {
 
 	/**
 	 * Initialize admin profile fields functionality
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( ! is_admin() ) {
 			return;
 		}
@@ -43,9 +45,10 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Enqueue assets for user profile pages
 	 *
-	 * @param string $hook Current admin page hook.
+	 * @param  string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( string $hook ): void {
 		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -214,9 +217,10 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Render the profile fields section
 	 *
-	 * @param WP_User $user User object being edited.
+	 * @param  WP_User $user User object being edited.
+	 * @return void
 	 */
-	public static function render_fields_section( $user ) {
+	public static function render_fields_section( WP_User $user ): void {
 		/* Get account fields that are enabled */
 		$account_fields = NBUF_Profile_Data::get_account_fields();
 
@@ -295,10 +299,11 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Render the appropriate input for a field
 	 *
-	 * @param string $field_key Field key.
-	 * @param mixed  $value     Current value.
+	 * @param  string $field_key Field key.
+	 * @param  mixed  $value     Current value.
+	 * @return void
 	 */
-	private static function render_field_input( $field_key, $value ) {
+	private static function render_field_input( string $field_key, $value ): void {
 		$field_id   = 'nbuf_field_' . $field_key;
 		$field_name = 'nbuf_profile_fields[' . $field_key . ']';
 
@@ -392,9 +397,10 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Save profile fields
 	 *
-	 * @param int $user_id User ID being updated.
+	 * @param  int $user_id User ID being updated.
+	 * @return void
 	 */
-	public static function save_fields( $user_id ) {
+	public static function save_fields( int $user_id ): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_admin_profile_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_admin_profile_nonce'] ) ), 'nbuf_admin_profile_fields' ) ) {
 			return;
@@ -421,11 +427,12 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Render searchable timezone select.
 	 *
-	 * @param string $field_id   Field ID attribute.
-	 * @param string $field_name Field name attribute.
-	 * @param string $value      Current selected value.
+	 * @param  string $field_id   Field ID attribute.
+	 * @param  string $field_name Field name attribute.
+	 * @param  string $value      Current selected value.
+	 * @return void
 	 */
-	private static function render_timezone_select( $field_id, $field_name, $value ) {
+	private static function render_timezone_select( string $field_id, string $field_name, string $value ): void {
 		/* Get all timezone identifiers grouped by region */
 		$timezones         = DateTimeZone::listIdentifiers();
 		$grouped_timezones = array();
@@ -467,9 +474,9 @@ class NBUF_Admin_Profile_Fields {
 	/**
 	 * Get list of countries
 	 *
-	 * @return array Country code => name pairs.
+	 * @return array<string, string> Country code => name pairs.
 	 */
-	private static function get_countries() {
+	private static function get_countries(): array {
 		return array(
 			'US' => 'United States',
 			'CA' => 'Canada',

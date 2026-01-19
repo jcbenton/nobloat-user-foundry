@@ -32,8 +32,10 @@ class NBUF_Login_Limiting {
 
 	/**
 	 * Initialize login limiting hooks.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/*
 		 * Priority 30: Must run AFTER WordPress's wp_authenticate_username_password (priority 20).
 		 * If we run earlier, WordPress's auth filter overwrites our lockout WP_Error
@@ -107,8 +109,9 @@ class NBUF_Login_Limiting {
 	 * Record a failed login attempt.
 	 *
 	 * @param string $username Username used in failed attempt.
+	 * @return void
 	 */
-	public static function record_failed_attempt( $username ) {
+	public static function record_failed_attempt( string $username ): void {
 		/* Check if login limiting is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
 		if ( ! $enabled ) {
@@ -178,8 +181,9 @@ class NBUF_Login_Limiting {
 	 *
 	 * @param string  $username Username.
 	 * @param WP_User $user     User object.
+	 * @return void
 	 */
-	public static function clear_attempts_on_success( $username, $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $user required by WordPress wp_login action signature
+	public static function clear_attempts_on_success( string $username, WP_User $user ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $user required by WordPress wp_login action signature
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
@@ -330,62 +334,8 @@ class NBUF_Login_Limiting {
 	 *
 	 * @return string IP address.
 	 */
-	private static function get_ip_address() {
-		$ip = '';
-
-		/*
-		* SECURITY: Prevent IP spoofing via X-Forwarded-For header
-		*
-		* Only trust proxy headers if request originates from a trusted proxy.
-		* This prevents attackers from bypassing rate limiting by sending fake
-		* X-Forwarded-For headers.
-		*
-		* To configure trusted proxies, add them to plugin settings (empty = don't trust proxies).
-		*/
-		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-
-		/* Only trust X-Forwarded-For if request comes from trusted proxy */
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
-			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			} elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-			}
-		}
-
-		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
-		if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Handle multiple IPs from proxy (take first one) */
-		if ( strpos( $ip, ',' ) !== false ) {
-			$ip_array = explode( ',', $ip );
-			$ip       = trim( $ip_array[0] );
-		}
-
-		/* Validate and normalize IP address */
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-			/* Invalid IP - use REMOTE_ADDR as fallback */
-			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-		}
-
-		/* Normalize IPv6 addresses to canonical form */
-		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
-			/*
-			 * SECURITY: Normalize IPv6 to canonical form.
-			 * Prevents rate limit bypass via IPv6 representation variations.
-			 * Example: 2001:0db8::1 and 2001:db8::1 and 2001:DB8::1 are the same address.
-			 */
-			$normalized = inet_ntop( inet_pton( $ip ) );
-			if ( false !== $normalized ) {
-				$ip = $normalized;
-			}
-		}
-
-		/* Lowercase for consistency */
-		return strtolower( $ip );
+	private static function get_ip_address(): string {
+		return NBUF_IP::get_client_ip( true );
 	}
 
 	/**

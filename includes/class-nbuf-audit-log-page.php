@@ -24,8 +24,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Initialize audit log page
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 15 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_purge' ) );
@@ -34,8 +36,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Add audit log menu page
+	 *
+	 * @return void
 	 */
-	public static function add_menu_page() {
+	public static function add_menu_page(): void {
 		add_submenu_page(
 			'nobloat-foundry',
 			__( 'User Audit Log', 'nobloat-user-foundry' ),
@@ -48,8 +52,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Render audit log page
+	 *
+	 * @return void
 	 */
-	public static function render_page() {
+	public static function render_page(): void {
 		/* Check user capabilities */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'nobloat-user-foundry' ) );
@@ -68,30 +74,10 @@ class NBUF_Audit_Log_Page {
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'User Audit Log', 'nobloat-user-foundry' ); ?></h1>
-
-		<?php if ( NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
-				<a href="<?php echo esc_url( self::get_export_url() ); ?>" class="page-title-action">
-			<?php esc_html_e( 'Export to CSV', 'nobloat-user-foundry' ); ?>
-				</a>
-				<a href="<?php echo esc_url( self::get_purge_url() ); ?>" class="page-title-action" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete ALL audit logs? This action cannot be undone.', 'nobloat-user-foundry' ); ?>');">
-			<?php esc_html_e( 'Purge All Logs', 'nobloat-user-foundry' ); ?>
-				</a>
-		<?php endif; ?>
-
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ); ?>" class="page-title-action">
+				<?php esc_html_e( 'Settings', 'nobloat-user-foundry' ); ?>
+			</a>
 			<hr class="wp-header-end">
-
-			<!-- Settings Link -->
-			<div class="notice notice-info nbuf-notice-margin">
-				<p>
-		<?php
-		printf(
-		/* translators: %s: Settings page URL */
-			esc_html__( 'Configure user audit log settings in %s', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=logging' ) ) . '">' . esc_html__( 'Settings → GDPR → Logging', 'nobloat-user-foundry' ) . '</a>'
-		);
-		?>
-				</p>
-			</div>
 
 		<?php if ( ! NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
 				<div class="notice notice-warning">
@@ -108,32 +94,30 @@ class NBUF_Audit_Log_Page {
 		<?php endif; ?>
 
 			<!-- Statistics -->
-			<div class="nbuf-stats-box nbuf-admin-card">
-				<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<table class="widefat nbuf-stats-table">
-					<tbody>
-						<tr>
-							<td><strong><?php esc_html_e( 'Total Entries:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td>
-						</tr>
-						<tr>
-							<td><strong><?php esc_html_e( 'Database Size:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['database_size'] ); ?></td>
-						</tr>
-						<tr>
-							<td><strong><?php esc_html_e( 'Oldest Entry:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['oldest_entry'] ); ?></td>
-						</tr>
-						<tr>
-							<td><strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( $stats['last_cleanup'] ); ?></td>
-						</tr>
-						<tr>
-							<td><strong><?php esc_html_e( 'Retention Period:', 'nobloat-user-foundry' ); ?></strong></td>
-							<td><?php echo esc_html( self::get_retention_label() ); ?></td>
-						</tr>
-					</tbody>
-				</table>
+			<div class="nbuf-log-stats">
+				<div class="nbuf-log-stats-header">
+					<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
+					<?php if ( NBUF_Options::get( 'nbuf_audit_log_enabled', true ) ) : ?>
+					<div class="nbuf-log-stats-actions">
+						<a href="<?php echo esc_url( self::get_export_url() ); ?>" class="button button-secondary">
+							<span class="dashicons dashicons-download"></span>
+							<?php esc_html_e( 'Export', 'nobloat-user-foundry' ); ?>
+						</a>
+						<a href="<?php echo esc_url( self::get_purge_url() ); ?>" class="button button-link-delete" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to delete ALL audit logs? This action cannot be undone.', 'nobloat-user-foundry' ); ?>');">
+							<span class="dashicons dashicons-trash"></span>
+							<?php esc_html_e( 'Purge', 'nobloat-user-foundry' ); ?>
+						</a>
+					</div>
+					<?php endif; ?>
+				</div>
+				<div class="nbuf-log-stat-item">
+					<table class="nbuf-log-stat-table">
+						<tr><td><?php esc_html_e( 'Total Entries', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format( $stats['total_entries'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Database Size', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( $stats['database_size'] ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Oldest Entry', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( $stats['oldest_entry'] ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Retention', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( self::get_retention_label() ); ?></td></tr>
+					</table>
+				</div>
 			</div>
 
 			<!-- List table -->
@@ -150,8 +134,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Display admin notices
+	 *
+	 * @return void
 	 */
-	private static function display_notices() {
+	private static function display_notices(): void {
 		/*
 		 * Success messages
 		 */
@@ -187,8 +173,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Handle CSV export
+	 *
+	 * @return void
 	 */
-	public static function handle_export() {
+	public static function handle_export(): void {
 		/* Only process on our page */
 		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-user-log' !== $_GET['page'] ) {
 			return;
@@ -237,8 +225,10 @@ class NBUF_Audit_Log_Page {
 
 	/**
 	 * Handle purge all logs
+	 *
+	 * @return void
 	 */
-	public static function handle_purge() {
+	public static function handle_purge(): void {
 		/* Only process on our page */
 		if ( ! isset( $_GET['page'] ) || 'nobloat-foundry-user-log' !== $_GET['page'] ) {
 			return;
@@ -283,8 +273,10 @@ class NBUF_Audit_Log_Page {
 	 * Handle bulk delete action
 	 *
 	 * Must run on admin_init before headers are sent.
+	 *
+	 * @return void
 	 */
-	public static function handle_bulk_delete() {
+	public static function handle_bulk_delete(): void {
 		/* Early bail if not in admin or no page specified */
 		if ( ! is_admin() || empty( $_REQUEST['page'] ) ) {
 			return;

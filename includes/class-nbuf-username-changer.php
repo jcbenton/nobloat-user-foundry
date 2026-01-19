@@ -22,8 +22,10 @@ class NBUF_Username_Changer {
 
 	/**
 	 * Initialize username changer functionality
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( ! is_admin() ) {
 			return;
 		}
@@ -42,8 +44,9 @@ class NBUF_Username_Changer {
 	 * Enqueue assets for user profile pages
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( $hook ): void {
 		if ( 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -121,8 +124,9 @@ class NBUF_Username_Changer {
 	 * Add nonce field to user edit form
 	 *
 	 * @param WP_User $user User being edited.
+	 * @return void
 	 */
-	public static function add_nonce_field( $user ) {
+	public static function add_nonce_field( $user ): void {
 		/* Only for admins editing other users */
 		if ( ! current_user_can( 'manage_options' ) || get_current_user_id() === $user->ID ) {
 			return;
@@ -135,8 +139,9 @@ class NBUF_Username_Changer {
 	 * Save username change
 	 *
 	 * @param int $user_id User ID being updated.
+	 * @return void
 	 */
-	public static function save_username( $user_id ) {
+	public static function save_username( $user_id ): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_username_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_username_nonce'] ) ), 'nbuf_username_change' ) ) {
 			return;

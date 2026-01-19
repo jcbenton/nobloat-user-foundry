@@ -27,7 +27,7 @@ class NBUF_Webhooks {
 	/**
 	 * Available webhook events.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	private static $available_events = array(
 		'user_registered'     => 'User Registered',
@@ -45,9 +45,9 @@ class NBUF_Webhooks {
 	/**
 	 * Get available webhook events.
 	 *
-	 * @return array Event types and labels.
+	 * @return array<string, string> Event types and labels.
 	 */
-	public static function get_available_events() {
+	public static function get_available_events(): array {
 		return self::$available_events;
 	}
 
@@ -55,9 +55,9 @@ class NBUF_Webhooks {
 	 * Get all webhooks.
 	 *
 	 * @param bool $enabled_only Only return enabled webhooks.
-	 * @return array Array of webhook objects.
+	 * @return array<int, object> Array of webhook objects.
 	 */
-	public static function get_all( $enabled_only = false ) {
+	public static function get_all( bool $enabled_only = false ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhooks';
 
@@ -129,10 +129,10 @@ class NBUF_Webhooks {
 	 *
 	 * Encrypts the secret before storing.
 	 *
-	 * @param array $data Webhook data (name, url, secret, events, enabled).
+	 * @param array<string, mixed> $data Webhook data (name, url, secret, events, enabled).
 	 * @return int|false Webhook ID or false on failure.
 	 */
-	public static function create( $data ) {
+	public static function create( array $data ) {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhooks';
 
@@ -156,11 +156,11 @@ class NBUF_Webhooks {
 	 *
 	 * Encrypts the secret before storing.
 	 *
-	 * @param int   $id   Webhook ID.
-	 * @param array $data Webhook data to update.
+	 * @param int                  $id   Webhook ID.
+	 * @param array<string, mixed> $data Webhook data to update.
 	 * @return bool True on success.
 	 */
-	public static function update( $id, $data ) {
+	public static function update( int $id, array $data ): bool {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhooks';
 
@@ -173,7 +173,7 @@ class NBUF_Webhooks {
 			$update_data['url'] = esc_url_raw( $data['url'] );
 		}
 		if ( isset( $data['secret'] ) ) {
-			$secret                 = sanitize_text_field( $data['secret'] );
+			$secret                = sanitize_text_field( $data['secret'] );
 			$update_data['secret'] = ! empty( $secret ) ? NBUF_Encryption::encrypt( $secret ) : '';
 		}
 		if ( isset( $data['events'] ) ) {
@@ -210,10 +210,11 @@ class NBUF_Webhooks {
 	/**
 	 * Trigger webhooks for a specific event.
 	 *
-	 * @param string $event   Event type (e.g., 'user_registered').
-	 * @param array  $payload Data to send with the webhook.
+	 * @param string               $event   Event type (e.g., 'user_registered').
+	 * @param array<string, mixed> $payload Data to send with the webhook.
+	 * @return void
 	 */
-	public static function trigger( $event, $payload ) {
+	public static function trigger( string $event, array $payload ): void {
 		/* Check if webhooks are enabled globally */
 		if ( ! NBUF_Options::get( 'nbuf_webhooks_enabled', false ) ) {
 			return;
@@ -236,12 +237,12 @@ class NBUF_Webhooks {
 	/**
 	 * Deliver a webhook.
 	 *
-	 * @param object $webhook Webhook object.
-	 * @param string $event   Event type.
-	 * @param array  $payload Event payload.
+	 * @param object               $webhook Webhook object.
+	 * @param string               $event   Event type.
+	 * @param array<string, mixed> $payload Event payload.
 	 * @return bool True on success (2xx response).
 	 */
-	public static function deliver( $webhook, $event, $payload ) {
+	public static function deliver( object $webhook, string $event, array $payload ): bool {
 		global $wpdb;
 		$table     = $wpdb->prefix . 'nbuf_webhooks';
 		$log_table = $wpdb->prefix . 'nbuf_webhook_log';
@@ -345,9 +346,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param int $webhook_id Webhook ID.
 	 * @param int $limit      Number of logs to retrieve.
-	 * @return array Array of log entries.
+	 * @return array<int, object> Array of log entries.
 	 */
-	public static function get_logs( $webhook_id, $limit = 20 ) {
+	public static function get_logs( int $webhook_id, int $limit = 20 ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhook_log';
 
@@ -384,9 +385,9 @@ class NBUF_Webhooks {
 	 * Test a webhook by sending a test payload.
 	 *
 	 * @param int $id Webhook ID.
-	 * @return array Result with 'success', 'code', and 'message'.
+	 * @return array<string, mixed> Result with 'success', 'code', and 'message'.
 	 */
-	public static function test( $id ) {
+	public static function test( int $id ): array {
 		$webhook = self::get( $id );
 
 		if ( ! $webhook ) {
@@ -425,8 +426,10 @@ class NBUF_Webhooks {
 	 * Initialize webhook event hooks.
 	 *
 	 * Hooks into WordPress and plugin events to trigger webhooks.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* User registration */
 		add_action( 'user_register', array( __CLASS__, 'on_user_register' ), 100 );
 
@@ -456,8 +459,9 @@ class NBUF_Webhooks {
 	 * Handle user registration event.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function on_user_register( $user_id ) {
+	public static function on_user_register( int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -480,8 +484,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param string $email   User email.
 	 * @param int    $user_id User ID.
+	 * @return void
 	 */
-	public static function on_user_verified( $email, $user_id ) {
+	public static function on_user_verified( string $email, int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -502,8 +507,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param string  $user_login Username.
 	 * @param WP_User $user       User object.
+	 * @return void
 	 */
-	public static function on_user_login( $user_login, $user ) {
+	public static function on_user_login( string $user_login, WP_User $user ): void {
 		self::trigger(
 			'user_login',
 			array(
@@ -518,8 +524,9 @@ class NBUF_Webhooks {
 	 * Handle user logout event.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function on_user_logout( $user_id ) {
+	public static function on_user_logout( int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -538,10 +545,11 @@ class NBUF_Webhooks {
 	/**
 	 * Handle profile update event.
 	 *
-	 * @param int   $user_id       User ID.
-	 * @param array $old_user_data Old user data.
+	 * @param int     $user_id       User ID.
+	 * @param WP_User $old_user_data Old user data.
+	 * @return void
 	 */
-	public static function on_profile_update( $user_id, $old_user_data ) {
+	public static function on_profile_update( int $user_id, WP_User $old_user_data ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -578,8 +586,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param WP_User $user     User object.
 	 * @param string  $new_pass New password (not sent in webhook).
+	 * @return void
 	 */
-	public static function on_password_reset( $user, $new_pass ) {
+	public static function on_password_reset( WP_User $user, string $new_pass ): void {
 		self::trigger(
 			'user_password_reset',
 			array(
@@ -595,8 +604,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $method  2FA method (totp, email).
+	 * @return void
 	 */
-	public static function on_2fa_enabled( $user_id, $method ) {
+	public static function on_2fa_enabled( int $user_id, string $method ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -617,8 +627,9 @@ class NBUF_Webhooks {
 	 * Handle 2FA disabled event.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function on_2fa_disabled( $user_id ) {
+	public static function on_2fa_disabled( int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -638,8 +649,9 @@ class NBUF_Webhooks {
 	 * Handle user approved event.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function on_user_approved( $user_id ) {
+	public static function on_user_approved( int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -660,8 +672,9 @@ class NBUF_Webhooks {
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $reason  Disable reason.
+	 * @return void
 	 */
-	public static function on_user_disabled( $user_id, $reason = '' ) {
+	public static function on_user_disabled( int $user_id, string $reason = '' ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;

@@ -31,7 +31,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @return string
 	 */
-	public function get_name() {
+	public function get_name(): string {
 		return 'Ultimate Member';
 	}
 
@@ -40,7 +40,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @return string
 	 */
-	public function get_slug() {
+	public function get_slug(): string {
 		return 'ultimate-member';
 	}
 
@@ -49,7 +49,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @return string
 	 */
-	public function get_plugin_file() {
+	public function get_plugin_file(): string {
 		return 'ultimate-member/ultimate-member.php';
 	}
 
@@ -58,7 +58,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @return int
 	 */
-	public function get_user_count() {
+	public function get_user_count(): int {
 		global $wpdb;
 
 		/*
@@ -79,9 +79,9 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * Returns automatic field mappings from UM → NoBloat.
 	 *
-	 * @return array
+	 * @return array<string, string|array<string, mixed>>
 	 */
-	public function get_default_field_mapping() {
+	public function get_default_field_mapping(): array {
 		return array(
 			/* Core UM fields */
 			'account_status'       => array(
@@ -170,9 +170,9 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * Scans UM forms and usermeta for custom fields not in default mapping.
 	 *
-	 * @return array Custom fields with sample data
+	 * @return array<string, array<string, mixed>> Custom fields with sample data
 	 */
-	public function discover_custom_fields() {
+	public function discover_custom_fields(): array {
 		global $wpdb;
 
 		$custom_fields   = array();
@@ -276,11 +276,11 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Preview import data
 	 *
-	 * @param  int   $limit         Number of users to preview.
-	 * @param  array $field_mapping Custom field mapping.
-	 * @return array
+	 * @param  int                                        $limit         Number of users to preview.
+	 * @param  array<string, string|array<string, mixed>> $field_mapping Custom field mapping.
+	 * @return array<int, array<string, mixed>>
 	 */
-	public function preview_import( $limit = 10, $field_mapping = array() ) {
+	public function preview_import( $limit = 10, $field_mapping = array() ): array {
 		global $wpdb;
 
 		$preview = array();
@@ -318,11 +318,11 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Get preview data for single user
 	 *
-	 * @param  int   $user_id       User ID.
-	 * @param  array $field_mapping Custom field mapping.
-	 * @return array
+	 * @param  int                                        $user_id       User ID.
+	 * @param  array<string, string|array<string, mixed>> $field_mapping Custom field mapping.
+	 * @return array<string, mixed>
 	 */
-	private function get_user_preview_data( $user_id, $field_mapping = array() ) {
+	private function get_user_preview_data( int $user_id, array $field_mapping = array() ): array {
 		$data = array();
 
 		/* Get account status and show mapping preview */
@@ -372,12 +372,12 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	/**
 	 * Import single user data
 	 *
-	 * @param  int   $user_id       User ID.
-	 * @param  array $options       Import options.
-	 * @param  array $field_mapping Custom field mapping.
+	 * @param  int                  $user_id       User ID.
+	 * @param  array<string, mixed> $options       Import options.
+	 * @param  array<string, mixed> $field_mapping Custom field mapping.
 	 * @return bool
 	 */
-	public function import_user( $user_id, $options = array(), $field_mapping = array() ) {
+	public function import_user( $user_id, $options = array(), $field_mapping = array() ): bool {
 		global $wpdb;
 
 		/* Merge default and custom mappings */
@@ -749,9 +749,9 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 	 *
 	 * @param  int $limit  Batch size.
 	 * @param  int $offset Batch offset.
-	 * @return array
+	 * @return array<int, int>
 	 */
-	protected function get_user_ids_for_batch( $limit, $offset ) {
+	protected function get_user_ids_for_batch( $limit, $offset ): array {
 		global $wpdb;
 
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

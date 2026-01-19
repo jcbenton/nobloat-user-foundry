@@ -24,8 +24,10 @@ class NBUF_Version_History_Page {
 
 	/**
 	 * Initialize version history page
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Only register if version history is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_version_history_enabled', true );
 		if ( ! $enabled ) {
@@ -41,8 +43,10 @@ class NBUF_Version_History_Page {
 	 * AJAX handler to search users by multiple fields
 	 *
 	 * Searches: username, email, display name, first name, last name
+	 *
+	 * @return void
 	 */
-	public static function ajax_search_users() {
+	public static function ajax_search_users(): void {
 		check_ajax_referer( 'nbuf_version_history_search', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -119,8 +123,10 @@ class NBUF_Version_History_Page {
 
 	/**
 	 * Add user profile log menu page
+	 *
+	 * @return void
 	 */
-	public static function add_menu_page() {
+	public static function add_menu_page(): void {
 		add_submenu_page(
 			'nobloat-foundry',
 			__( 'User Profile Log', 'nobloat-user-foundry' ),
@@ -135,8 +141,9 @@ class NBUF_Version_History_Page {
 	 * Enqueue page assets
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( $hook ): void {
 		$allowed_hooks = array(
 			'nobloat-foundry_page_nobloat-foundry-version-history',
 			'user-foundry_page_nobloat-foundry-version-history',
@@ -216,8 +223,10 @@ class NBUF_Version_History_Page {
 
 	/**
 	 * Render version history page
+	 *
+	 * @return void
 	 */
-	public static function render_page() {
+	public static function render_page(): void {
 		/* Check user capabilities */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'nobloat-user-foundry' ) );
@@ -234,46 +243,25 @@ class NBUF_Version_History_Page {
 
 		?>
 		<div class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Profile Version History', 'nobloat-user-foundry' ); ?></h1>
-
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'User Profile Log', 'nobloat-user-foundry' ); ?></h1>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=system&subtab=history' ) ); ?>" class="page-title-action">
+				<?php esc_html_e( 'Settings', 'nobloat-user-foundry' ); ?>
+			</a>
 			<hr class="wp-header-end">
 
-			<p class="description nbuf-page-description">
-		<?php esc_html_e( 'View complete profile change history for any user. Track all modifications, compare versions, and restore previous states.', 'nobloat-user-foundry' ); ?>
-			</p>
-
-			<!-- Statistics Dashboard -->
-			<div class="nbuf-stats-box nbuf-admin-card">
-				<h3><?php esc_html_e( 'System Statistics', 'nobloat-user-foundry' ); ?></h3>
-				<div class="nbuf-stats-grid-auto">
-					<div>
-						<div class="nbuf-stat-value-large"><?php echo esc_html( number_format( $stats['total_versions'] ) ); ?></div>
-						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Total Versions', 'nobloat-user-foundry' ); ?></div>
-					</div>
-					<div>
-						<div class="nbuf-stat-value-large"><?php echo esc_html( number_format( $stats['total_users'] ) ); ?></div>
-						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Users Tracked', 'nobloat-user-foundry' ); ?></div>
-					</div>
-					<div>
-						<div class="nbuf-stat-value-large"><?php echo esc_html( $stats['database_size'] ); ?></div>
-						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Database Size', 'nobloat-user-foundry' ); ?></div>
-					</div>
-					<div>
-						<div class="nbuf-stat-value-large"><?php echo esc_html( $stats['retention_days'] ); ?> <?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></div>
-						<div class="nbuf-stat-label-small"><?php esc_html_e( 'Retention Period', 'nobloat-user-foundry' ); ?></div>
-					</div>
+			<!-- Statistics -->
+			<div class="nbuf-log-stats">
+				<div class="nbuf-log-stats-header">
+					<h3><?php esc_html_e( 'Database Statistics', 'nobloat-user-foundry' ); ?></h3>
 				</div>
-
-		<?php if ( ! empty( $stats['last_cleanup'] ) ) : ?>
-					<p class="nbuf-stats-footer">
-						<strong><?php esc_html_e( 'Last Cleanup:', 'nobloat-user-foundry' ); ?></strong>
-			<?php echo esc_html( $stats['last_cleanup'] ); ?>
-			<?php if ( $stats['last_cleanup_count'] > 0 ) : ?>
-				<?php /* translators: %d: Number of deleted versions */ ?>
-						(<?php echo esc_html( sprintf( _n( '%d version deleted', '%d versions deleted', $stats['last_cleanup_count'], 'nobloat-user-foundry' ), $stats['last_cleanup_count'] ) ); ?>)
-			<?php endif; ?>
-					</p>
-		<?php endif; ?>
+				<div class="nbuf-log-stat-item">
+					<table class="nbuf-log-stat-table">
+						<tr><td><?php esc_html_e( 'Total Versions', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format( $stats['total_versions'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Users Tracked', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( number_format( $stats['total_users'] ) ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Database Size', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( $stats['database_size'] ); ?></td></tr>
+						<tr><td><?php esc_html_e( 'Retention', 'nobloat-user-foundry' ); ?></td><td><?php echo esc_html( $stats['retention_days'] ); ?> <?php esc_html_e( 'days', 'nobloat-user-foundry' ); ?></td></tr>
+					</table>
+				</div>
 			</div>
 
 			<!-- User Selector -->
@@ -344,7 +332,7 @@ class NBUF_Version_History_Page {
 					</div>
 				<?php endif; ?>
 			<?php else : ?>
-				<div class="notice notice-info">
+				<div class="nbuf-info-box">
 					<p><?php esc_html_e( 'Select a user above to view their profile version history.', 'nobloat-user-foundry' ); ?></p>
 				</div>
 			<?php endif; ?>
@@ -357,9 +345,9 @@ class NBUF_Version_History_Page {
 	/**
 	 * Get version history statistics
 	 *
-	 * @return array Statistics data.
+	 * @return array{total_versions: int, total_users: int, database_size: string, retention_days: int, last_cleanup: string, last_cleanup_count: int} Statistics data.
 	 */
-	private static function get_stats() {
+	private static function get_stats(): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';

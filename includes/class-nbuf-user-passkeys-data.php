@@ -40,7 +40,7 @@ class NBUF_User_Passkeys_Data {
 	 *
 	 * @since  1.5.0
 	 * @param  int $user_id User ID.
-	 * @return array Array of passkey objects (empty if none).
+	 * @return array<int, object> Array of passkey objects (empty if none).
 	 */
 	public static function get_all( int $user_id ): array {
 		global $wpdb;
@@ -136,14 +136,14 @@ class NBUF_User_Passkeys_Data {
 	 * Create a new passkey record.
 	 *
 	 * @since  1.5.0
-	 * @param  int   $user_id User ID.
-	 * @param  array $data    Passkey data with keys:
-	 *                        - credential_id: Raw binary credential ID (required).
-	 *                        - public_key: COSE public key blob (required).
-	 *                        - sign_count: Initial sign count (optional, default 0).
-	 *                        - transports: JSON string of transports (optional).
-	 *                        - aaguid: 16-byte AAGUID (optional).
-	 *                        - device_name: User-friendly device name (optional).
+	 * @param  int                  $user_id User ID.
+	 * @param  array<string, mixed> $data    Passkey data with keys:
+	 *                                        - credential_id: Raw binary credential ID (required).
+	 *                                        - public_key: COSE public key blob (required).
+	 *                                        - sign_count: Initial sign count (optional, default 0).
+	 *                                        - transports: JSON string of transports (optional).
+	 *                                        - aaguid: 16-byte AAGUID (optional).
+	 *                                        - device_name: User-friendly device name (optional).
 	 * @return int|false Inserted row ID or false on failure.
 	 */
 	public static function create( int $user_id, array $data ) {
@@ -380,7 +380,7 @@ class NBUF_User_Passkeys_Data {
 	 *
 	 * @since  1.5.0
 	 * @param  int $user_id User ID.
-	 * @return array Array of credential IDs (raw binary).
+	 * @return array<int, string> Array of credential IDs (raw binary).
 	 */
 	public static function get_credential_ids( int $user_id ): array {
 		global $wpdb;

@@ -24,8 +24,10 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 
 	/**
 	 * Initialize taxonomy restrictions
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook into taxonomy archive access */
 		add_action( 'template_redirect', array( __CLASS__, 'check_taxonomy_access' ), 1 );
 
@@ -57,8 +59,10 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 
 	/**
 	 * Check taxonomy archive access and handle restrictions
+	 *
+	 * @return void
 	 */
-	public static function check_taxonomy_access() {
+	public static function check_taxonomy_access(): void {
 		/* Only on taxonomy archives */
 		if ( ! is_tax() && ! is_category() && ! is_tag() ) {
 			return;
@@ -167,11 +171,11 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 	/**
 	 * Filter terms query to exclude restricted terms (optional)
 	 *
-	 * @param  array $args       Term query arguments.
-	 * @param  array $taxonomies Taxonomies being queried.
-	 * @return array Modified arguments.
+	 * @param  array<string, mixed> $args       Term query arguments.
+	 * @param  array<int, string>   $taxonomies Taxonomies being queried.
+	 * @return array<string, mixed> Modified arguments.
 	 */
-	public static function filter_terms_query( $args, $taxonomies ) {
+	public static function filter_terms_query( $args, $taxonomies ): array {
 		/* Skip in admin */
 		if ( is_admin() ) {
 			return $args;
@@ -193,10 +197,10 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 	/**
 	 * Get list of term IDs to exclude from queries
 	 *
-	 * @param  array $taxonomies Taxonomies being queried.
-	 * @return array Array of term IDs to exclude.
+	 * @param  array<int, string> $taxonomies Taxonomies being queried.
+	 * @return array<int>         Array of term IDs to exclude.
 	 */
-	private static function get_excluded_term_ids( $taxonomies ) {
+	private static function get_excluded_term_ids( $taxonomies ): array {
 		/*
 		 * Try to get from cache
 		 *
@@ -264,8 +268,9 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 	 * Add restriction fields to new term form
 	 *
 	 * @param string $taxonomy Current taxonomy slug.
+	 * @return void
 	 */
-	public static function add_term_fields_new( $taxonomy ) {
+	public static function add_term_fields_new( $taxonomy ): void {
 		wp_nonce_field( 'nbuf_term_restriction', 'nbuf_term_restriction_nonce' );
 		?>
 		<div class="form-field nbuf-term-restriction-wrap">
@@ -329,8 +334,9 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 	 *
 	 * @param WP_Term $term     Current term object.
 	 * @param string  $taxonomy Current taxonomy slug.
+	 * @return void
 	 */
-	public static function add_term_fields_edit( $term, $taxonomy ) {
+	public static function add_term_fields_edit( $term, $taxonomy ): void {
 		/* Get current values */
 		$visibility = get_term_meta( $term->term_id, '_nbuf_visibility', true );
 		$visibility = ! empty( $visibility ) ? $visibility : 'everyone';
@@ -425,8 +431,9 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 	 *
 	 * @param int    $term_id  Term ID.
 	 * @param string $taxonomy Taxonomy slug.
+	 * @return void
 	 */
-	public static function save_term_fields( $term_id, $taxonomy ) {
+	public static function save_term_fields( $term_id, $taxonomy ): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_term_restriction_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_term_restriction_nonce'] ) ), 'nbuf_term_restriction' ) ) {
 			return;

@@ -26,8 +26,10 @@ class NBUF_Member_Directory {
 
 	/**
 	 * Initialize directory
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Register shortcode */
 		add_shortcode( 'nbuf_members', array( __CLASS__, 'render_directory' ) );
 
@@ -41,8 +43,10 @@ class NBUF_Member_Directory {
 
 	/**
 	 * Enqueue directory scripts and styles
+	 *
+	 * @return void
 	 */
-	public static function enqueue_scripts() {
+	public static function enqueue_scripts(): void {
 		/* Check if on Universal Router members page */
 		if ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() ) {
 			if ( 'members' === NBUF_Universal_Router::get_current_view() ) {
@@ -60,8 +64,10 @@ class NBUF_Member_Directory {
 
 	/**
 	 * Enqueue the directory assets (CSS and JS)
+	 *
+	 * @return void
 	 */
-	private static function do_enqueue_assets() {
+	private static function do_enqueue_assets(): void {
 		/* Use CSS Manager for minified live CSS (same as other pages) */
 		$css_load = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
 		if ( $css_load && class_exists( 'NBUF_CSS_Manager' ) ) {
@@ -137,10 +143,10 @@ class NBUF_Member_Directory {
 	/**
 	 * Render member directory
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed>|string $atts Shortcode attributes.
 	 * @return string HTML output.
 	 */
-	public static function render_directory( $atts ) {
+	public static function render_directory( $atts ): string {
 		/* Check if enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_member_directory', false );
 		if ( ! $enabled ) {
@@ -299,13 +305,13 @@ class NBUF_Member_Directory {
 	/**
 	 * Build members content HTML (grid/list of member cards or empty message)
 	 *
-	 * @param  array  $members Array of member objects.
-	 * @param  bool   $is_list_view Whether this is list view.
-	 * @param  string $current_search Current search value.
-	 * @param  string $current_role Current role filter value.
+	 * @param  array<int, object> $members Array of member objects.
+	 * @param  bool               $is_list_view Whether this is list view.
+	 * @param  string             $current_search Current search value.
+	 * @param  string             $current_role Current role filter value.
 	 * @return string HTML.
 	 */
-	private static function build_members_html( $members, $is_list_view, $current_search, $current_role ) {
+	private static function build_members_html( array $members, bool $is_list_view, string $current_search, string $current_role ): string {
 		if ( empty( $members ) ) {
 			$html  = '<div class="nbuf-no-members">';
 			$html .= '<p>' . esc_html__( 'No members found.', 'nobloat-user-foundry' ) . '</p>';
@@ -436,10 +442,10 @@ class NBUF_Member_Directory {
 	/**
 	 * Get members for directory
 	 *
-	 * @param  array $args Query arguments.
-	 * @return array Members data with pagination.
+	 * @param  array<string, mixed> $args Query arguments.
+	 * @return array{members: array<int, object>, total: int, pages: float|int} Members data with pagination.
 	 */
-	public static function get_members( $args = array() ) {
+	public static function get_members( array $args = array() ): array {
 		global $wpdb;
 
 		$defaults = array(
@@ -586,8 +592,10 @@ class NBUF_Member_Directory {
 
 	/**
 	 * AJAX handler for directory search
+	 *
+	 * @return void
 	 */
-	public static function ajax_search() {
+	public static function ajax_search(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_directory_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );

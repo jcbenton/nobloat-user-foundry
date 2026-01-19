@@ -55,8 +55,9 @@ class NBUF_Passkeys {
 	 * Initialize passkeys functionality.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* AJAX handlers for registration */
 		add_action( 'wp_ajax_nbuf_passkey_registration_options', array( __CLASS__, 'ajax_registration_options' ) );
 		add_action( 'wp_ajax_nbuf_passkey_register', array( __CLASS__, 'ajax_register' ) );
@@ -134,47 +135,13 @@ class NBUF_Passkeys {
 	/**
 	 * Get client IP address for rate limiting.
 	 *
-	 * Uses same logic as login limiting for consistency.
+	 * Uses shared NBUF_IP utility for consistency across the plugin.
 	 *
 	 * @since  1.5.0
 	 * @return string Client IP address.
 	 */
 	private static function get_client_ip(): string {
-		$ip = '';
-
-		/*
-		 * SECURITY: Prevent IP spoofing via X-Forwarded-For header.
-		 * Only trust proxy headers if request originates from a trusted proxy.
-		 */
-		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-
-		/* Only trust X-Forwarded-For if request comes from trusted proxy */
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
-			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			} elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-			}
-		}
-
-		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
-		if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Handle multiple IPs from proxy (take first one) */
-		if ( strpos( $ip, ',' ) !== false ) {
-			$ip_array = explode( ',', $ip );
-			$ip       = trim( $ip_array[0] );
-		}
-
-		/* Validate IP address */
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-		}
-
-		return strtolower( $ip );
+		return NBUF_IP::get_client_ip( true );
 	}
 
 	/**
@@ -240,7 +207,7 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  int $user_id User ID.
-	 * @return array|WP_Error Registration options or error.
+	 * @return array<string, mixed>|WP_Error Registration options or error.
 	 */
 	public static function generate_registration_options( int $user_id ) {
 		if ( ! self::is_enabled() ) {
@@ -330,9 +297,9 @@ class NBUF_Passkeys {
 	 * Verify registration response and store credential.
 	 *
 	 * @since  1.5.0
-	 * @param  int    $user_id     User ID.
-	 * @param  array  $response    WebAuthn response from browser.
-	 * @param  string $device_name Optional device name.
+	 * @param  int                  $user_id     User ID.
+	 * @param  array<string, mixed> $response    WebAuthn response from browser.
+	 * @param  string               $device_name Optional device name.
 	 * @return int|WP_Error Passkey ID or error.
 	 */
 	public static function verify_registration( int $user_id, array $response, string $device_name = '' ) {
@@ -446,7 +413,7 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  string $username Optional username to pre-fill allowed credentials.
-	 * @return array|WP_Error Authentication options or error.
+	 * @return array<string, mixed>|WP_Error Authentication options or error.
 	 */
 	public static function generate_authentication_options( string $username = '' ) {
 		if ( ! self::is_enabled() ) {
@@ -525,7 +492,7 @@ class NBUF_Passkeys {
 	 * Verify authentication response.
 	 *
 	 * @since  1.5.0
-	 * @param  array $response WebAuthn response from browser.
+	 * @param  array<string, mixed> $response WebAuthn response from browser.
 	 * @return int|WP_Error User ID or error.
 	 */
 	public static function verify_authentication( array $response ) {
@@ -725,7 +692,7 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  string $data CBOR encoded data.
-	 * @return array|null Parsed data or null on error.
+	 * @return array<mixed>|null Parsed data or null on error.
 	 */
 	private static function parse_cbor( string $data ): ?array {
 		$offset = 0;
@@ -840,7 +807,7 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  string $auth_data Raw authenticator data.
-	 * @return array|null Parsed data or null on error.
+	 * @return array<string, mixed>|null Parsed data or null on error.
 	 */
 	private static function parse_authenticator_data( string $auth_data ): ?array {
 		if ( strlen( $auth_data ) < 37 ) {
@@ -894,7 +861,7 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  string $auth_data Raw authenticator data.
-	 * @return array|null Parsed data or null on error.
+	 * @return array{rpIdHash: string, flags: int, signCount: int}|null Parsed data or null on error.
 	 */
 	private static function parse_authenticator_data_minimal( string $auth_data ): ?array {
 		if ( strlen( $auth_data ) < 37 ) {
@@ -947,9 +914,9 @@ class NBUF_Passkeys {
 	 * Verify ES256 (ECDSA with P-256 and SHA-256) signature.
 	 *
 	 * @since  1.5.0
-	 * @param  array  $cose_key  Parsed COSE key.
-	 * @param  string $data      Data that was signed.
-	 * @param  string $signature Raw signature.
+	 * @param  array<int|string, mixed> $cose_key  Parsed COSE key.
+	 * @param  string                   $data      Data that was signed.
+	 * @param  string                   $signature Raw signature.
 	 * @return bool True if signature is valid.
 	 */
 	private static function verify_es256( array $cose_key, string $data, string $signature ): bool {
@@ -999,9 +966,9 @@ class NBUF_Passkeys {
 	 * Verify RS256 (RSASSA-PKCS1-v1_5 with SHA-256) signature.
 	 *
 	 * @since  1.5.0
-	 * @param  array  $cose_key  Parsed COSE key.
-	 * @param  string $data      Data that was signed.
-	 * @param  string $signature Raw signature.
+	 * @param  array<int|string, mixed> $cose_key  Parsed COSE key.
+	 * @param  string                   $data      Data that was signed.
+	 * @param  string                   $signature Raw signature.
 	 * @return bool True if signature is valid.
 	 */
 	private static function verify_rs256( array $cose_key, string $data, string $signature ): bool {
@@ -1142,8 +1109,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for registration options.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_registration_options() {
+	public static function ajax_registration_options(): void {
 		check_ajax_referer( 'nbuf_passkey_nonce', 'nonce' );
 
 		$user_id = get_current_user_id();
@@ -1165,8 +1133,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for registration.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_register() {
+	public static function ajax_register(): void {
 		check_ajax_referer( 'nbuf_passkey_nonce', 'nonce' );
 
 		$user_id = get_current_user_id();
@@ -1202,8 +1171,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for deleting a passkey.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_delete() {
+	public static function ajax_delete(): void {
 		check_ajax_referer( 'nbuf_passkey_nonce', 'nonce' );
 
 		$user_id    = get_current_user_id();
@@ -1235,8 +1205,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for renaming a passkey.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_rename() {
+	public static function ajax_rename(): void {
 		check_ajax_referer( 'nbuf_passkey_nonce', 'nonce' );
 
 		$user_id     = get_current_user_id();
@@ -1268,8 +1239,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for authentication options.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_auth_options() {
+	public static function ajax_auth_options(): void {
 		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
 		if ( self::is_rate_limited() ) {
 			self::send_rate_limit_error();
@@ -1295,8 +1267,9 @@ class NBUF_Passkeys {
 	 * AJAX handler for authentication.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_authenticate() {
+	public static function ajax_authenticate(): void {
 		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
 		if ( self::is_rate_limited() ) {
 			self::send_rate_limit_error();
@@ -1418,8 +1391,9 @@ class NBUF_Passkeys {
 	 * Used by two-step login flow to determine if passkey option should be shown.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_check_user_passkeys() {
+	public static function ajax_check_user_passkeys(): void {
 		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
 		if ( self::is_rate_limited() ) {
 			self::send_rate_limit_error();
@@ -1520,8 +1494,9 @@ class NBUF_Passkeys {
 	 *
 	 * @since 1.5.0
 	 * @param int $user_id User ID being deleted.
+	 * @return void
 	 */
-	public static function on_user_delete( int $user_id ) {
+	public static function on_user_delete( int $user_id ): void {
 		NBUF_User_Passkeys_Data::delete_all( $user_id );
 	}
 

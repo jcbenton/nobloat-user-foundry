@@ -54,7 +54,7 @@ class NBUF_Activity_Dashboard {
 	 * @param  int $user_id User ID.
 	 * @param  int $page    Page number (1-indexed).
 	 * @param  int $limit   Items per page.
-	 * @return array Array of activity items.
+	 * @return array<int, array<string, mixed>> Array of activity items.
 	 */
 	public static function get_user_activity( int $user_id, int $page = 1, int $limit = self::ITEMS_PER_PAGE ): array {
 		global $wpdb;
@@ -301,7 +301,7 @@ class NBUF_Activity_Dashboard {
 	 * Render a single activity item.
 	 *
 	 * @since  1.5.2
-	 * @param  array $activity Activity data.
+	 * @param  array<string, mixed> $activity Activity data.
 	 * @return string HTML for activity item.
 	 */
 	public static function render_activity_item( array $activity ): string {

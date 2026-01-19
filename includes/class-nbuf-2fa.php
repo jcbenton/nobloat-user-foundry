@@ -73,7 +73,8 @@ class NBUF_2FA {
 					return true;
 				}
 
-				/* For TOTP, check grace period */
+				/* For TOTP, ensure grace period has started and check remaining time */
+				self::ensure_grace_period_started( $user_id );
 				$grace_remaining = self::get_grace_period_remaining( $user_id );
 
 				/* If grace period expired, challenge anyway to force setup */
@@ -243,63 +244,79 @@ class NBUF_2FA {
 		}
 
 		/*
-		 * SECURITY: Rate limiting check.
-		 * MySQL GET_LOCK above provides atomicity. Check if rate limit transient exists.
+		 * Use try-finally to ensure lock is always released.
+		 * This prevents lock leakage if any operation fails with an exception.
 		 */
-		$rate_limit_key = 'nbuf_2fa_email_rate_limit_' . $user_id;
-		if ( false !== get_transient( $rate_limit_key ) ) {
-			/* Release lock before returning */
+		$result = null;
+		$code   = null;
+
+		try {
+			/*
+			 * SECURITY: Rate limiting check.
+			 * MySQL GET_LOCK above provides atomicity. Check if rate limit transient exists.
+			 */
+			$rate_limit_key = 'nbuf_2fa_email_rate_limit_' . $user_id;
+			if ( false !== get_transient( $rate_limit_key ) ) {
+				/* Transient already exists - user is rate limited */
+				$result = new WP_Error(
+					'nbuf_2fa_rate_limited',
+					__( 'Please wait before requesting another verification code.', 'nobloat-user-foundry' )
+				);
+				return $result;
+			}
+
+			/* Set rate limit transient */
+			set_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN );
+
+			/* Get settings */
+			$code_length        = NBUF_Options::get( 'nbuf_2fa_email_code_length', self::EMAIL_CODE_LENGTH );
+			$expiration_minutes = NBUF_Options::get( 'nbuf_2fa_email_expiration', self::EMAIL_CODE_EXPIRATION / 60 );
+			$expiration_seconds = $expiration_minutes * 60;
+
+			/* Generate cryptographically secure random code */
+			$code = self::generate_numeric_code( $code_length );
+
+			if ( false === $code ) {
+				$result = new WP_Error(
+					'nbuf_2fa_generation_failed',
+					__( 'Failed to generate verification code. Please try again.', 'nobloat-user-foundry' )
+				);
+				return $result;
+			}
+
+			/* SECURITY: Hash code before storage (defense-in-depth against database compromise) */
+			$hashed_code = wp_hash_password( $code );
+
+			if ( empty( $hashed_code ) || ! is_string( $hashed_code ) ) {
+				error_log( sprintf( 'NBUF 2FA: wp_hash_password() failed for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
+				$result = new WP_Error(
+					'nbuf_2fa_hash_failed',
+					__( 'Security error. Please try again.', 'nobloat-user-foundry' )
+				);
+				return $result;
+			}
+
+			/* Store hashed code in transient */
+			$transient_key = 'nbuf_2fa_email_code_' . $user_id;
+			$stored        = set_transient( $transient_key, $hashed_code, $expiration_seconds );
+
+			if ( ! $stored ) {
+				error_log( sprintf( 'NBUF 2FA: Failed to store code for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
+				$result = new WP_Error(
+					'nbuf_2fa_storage_failed',
+					__( 'Failed to store verification code. Please try again.', 'nobloat-user-foundry' )
+				);
+				return $result;
+			}
+		} finally {
+			/* Always release lock, even if an exception occurred */
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
-			/* Transient already exists - user is rate limited */
-			return new WP_Error(
-				'nbuf_2fa_rate_limited',
-				__( 'Please wait before requesting another verification code.', 'nobloat-user-foundry' )
-			);
 		}
 
-		/* Set rate limit transient */
-		set_transient( $rate_limit_key, time(), self::EMAIL_CODE_COOLDOWN );
-
-		/* Get settings */
-		$code_length        = NBUF_Options::get( 'nbuf_2fa_email_code_length', self::EMAIL_CODE_LENGTH );
-		$expiration_minutes = NBUF_Options::get( 'nbuf_2fa_email_expiration', self::EMAIL_CODE_EXPIRATION / 60 );
-		$expiration_seconds = $expiration_minutes * 60;
-
-		/* Generate cryptographically secure random code */
-		$code = self::generate_numeric_code( $code_length );
-
-		if ( false === $code ) {
-			return new WP_Error(
-				'nbuf_2fa_generation_failed',
-				__( 'Failed to generate verification code. Please try again.', 'nobloat-user-foundry' )
-			);
+		/* If we got an error result, return it (lock already released in finally) */
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
-
-		/* SECURITY: Hash code before storage (defense-in-depth against database compromise) */
-		$hashed_code = wp_hash_password( $code );
-
-		if ( empty( $hashed_code ) || ! is_string( $hashed_code ) ) {
-			error_log( sprintf( 'NBUF 2FA: wp_hash_password() failed for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
-			return new WP_Error(
-				'nbuf_2fa_hash_failed',
-				__( 'Security error. Please try again.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Store hashed code in transient */
-		$transient_key = 'nbuf_2fa_email_code_' . $user_id;
-		$stored        = set_transient( $transient_key, $hashed_code, $expiration_seconds );
-
-		if ( ! $stored ) {
-			error_log( sprintf( 'NBUF 2FA: Failed to store code for user %d', $user_id ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security-critical error logging.
-			return new WP_Error(
-				'nbuf_2fa_storage_failed',
-				__( 'Failed to store verification code. Please try again.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Release lock after successful generation */
-		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 
 		/* Send email with plain text code (user needs to read it) */
 		$subject = sprintf(
@@ -504,7 +521,7 @@ If you did not request this code, please ignore this email.
 	 *
 	 * @param  int      $user_id User ID.
 	 * @param  int|null $count   Number of codes to generate (null = use setting).
-	 * @return array Plain text codes (only shown once).
+	 * @return string[] Plain text codes (only shown once).
 	 */
 	public static function generate_backup_codes( int $user_id, ?int $count = null ): array {
 		/* Get settings from Security > Backup Codes tab */
@@ -794,9 +811,29 @@ If you did not request this code, please ignore this email.
 	}
 
 	/**
-	 * Get grace period remaining
+	 * Ensure grace period has started for a user.
+	 *
+	 * Sets the forced_at timestamp if the user is required to have 2FA
+	 * but hasn't set it up yet. This initializes the grace period countdown.
+	 * Call this before get_grace_period_remaining() when checking enforcement.
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	public static function ensure_grace_period_started( int $user_id ): void {
+		$forced_at = NBUF_User_2FA_Data::get_forced_at( $user_id );
+
+		if ( empty( $forced_at ) && self::is_required( $user_id ) && ! self::is_enabled( $user_id ) ) {
+			NBUF_User_2FA_Data::set_forced_at( $user_id, gmdate( 'Y-m-d H:i:s' ) );
+		}
+	}
+
+	/**
+	 * Get grace period remaining.
 	 *
 	 * Returns number of days remaining for user to set up required 2FA.
+	 * This is a read-only method - use ensure_grace_period_started() first
+	 * to initialize the grace period if needed.
 	 *
 	 * @param  int $user_id User ID.
 	 * @return int Days remaining (0 if expired or not applicable).
@@ -805,20 +842,14 @@ If you did not request this code, please ignore this email.
 		$forced_at = NBUF_User_2FA_Data::get_forced_at( $user_id );
 
 		if ( empty( $forced_at ) ) {
-			/* Set forced timestamp if this is first check */
-			if ( self::is_required( $user_id ) && ! self::is_enabled( $user_id ) ) {
-				$forced_at = current_time( 'mysql', true );
-				NBUF_User_2FA_Data::set_forced_at( $user_id, $forced_at );
-			} else {
-				return 0;
-			}
+			return 0;
 		}
 
 		$grace_days = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
 		$grace_end  = strtotime( $forced_at ) + ( $grace_days * DAY_IN_SECONDS );
 		$days_left  = ceil( ( $grace_end - time() ) / DAY_IN_SECONDS );
 
-		return max( 0, $days_left );
+		return max( 0, (int) $days_left );
 	}
 
 	/**

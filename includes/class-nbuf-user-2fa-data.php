@@ -42,7 +42,7 @@ class NBUF_User_2FA_Data {
 	 * helper methods are called for the same user. Cache is automatically
 	 * cleared at end of request (static property reset).
 	 *
-	 * @var array
+	 * @var array<int, object|null>
 	 */
 	private static $request_cache = array();
 
@@ -138,7 +138,7 @@ class NBUF_User_2FA_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
-	 * @return array                Array of backup codes (empty if none)
+	 * @return array<int, string> Array of backup codes (empty if none)
 	 */
 	public static function get_backup_codes( int $user_id ): array {
 		$data = self::get( $user_id );
@@ -155,7 +155,7 @@ class NBUF_User_2FA_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
-	 * @return array                Array of used indexes (empty if none)
+	 * @return array<int, int> Array of used indexes (empty if none)
 	 */
 	public static function get_backup_codes_used( int $user_id ): array {
 		$data = self::get( $user_id );
@@ -172,7 +172,7 @@ class NBUF_User_2FA_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
-	 * @return array                Array of trusted devices (empty if none)
+	 * @return array<string, mixed> Array of trusted devices (empty if none)
 	 */
 	public static function get_trusted_devices( int $user_id ): array {
 		$data = self::get( $user_id );
@@ -279,9 +279,9 @@ class NBUF_User_2FA_Data {
 	 * Set backup codes for user.
 	 *
 	 * @since  1.0.0
-	 * @param  int   $user_id User ID.
-	 * @param  array $codes   Array of backup codes.
-	 * @return bool                 True on success, false on failure
+	 * @param  int                $user_id User ID.
+	 * @param  array<int, string> $codes   Array of backup codes.
+	 * @return bool                        True on success, false on failure
 	 */
 	public static function set_backup_codes( int $user_id, array $codes ): bool {
 		return self::update(
@@ -317,10 +317,10 @@ class NBUF_User_2FA_Data {
 	 * Add trusted device for user.
 	 *
 	 * @since  1.0.0
-	 * @param  int    $user_id User ID.
-	 * @param  string $token   Device token.
-	 * @param  array  $device  Device data.
-	 * @return bool                   True on success, false on failure
+	 * @param  int                  $user_id User ID.
+	 * @param  string               $token   Device token.
+	 * @param  array<string, mixed> $device  Device data.
+	 * @return bool                           True on success, false on failure
 	 */
 	public static function add_trusted_device( int $user_id, string $token, array $device ): bool {
 		$devices           = self::get_trusted_devices( $user_id );
@@ -393,9 +393,9 @@ class NBUF_User_2FA_Data {
 	 * Update user 2FA data in table.
 	 *
 	 * @since  1.0.0
-	 * @param  int   $user_id User ID.
-	 * @param  array $data    Data to update (column => value).
-	 * @return bool                 True on success, false on failure
+	 * @param  int                  $user_id User ID.
+	 * @param  array<string, mixed> $data    Data to update (column => value).
+	 * @return bool                          True on success, false on failure
 	 */
 	public static function update( int $user_id, array $data ): bool {
 		global $wpdb;
@@ -489,9 +489,9 @@ class NBUF_User_2FA_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  string $method Optional method filter ('email', 'totp').
-	 * @return int                  User count
+	 * @return int            User count
 	 */
-	public static function get_count( $method = '' ) {
+	public static function get_count( string $method = '' ): int {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_2fa';
 

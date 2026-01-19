@@ -640,14 +640,14 @@ class NBUF_Asset_Minifier {
 	 * Use this instead of wp_enqueue_script() for plugin scripts.
 	 *
 	 * @since 1.5.0
-	 * @param string           $handle    Script handle.
-	 * @param string           $src       Relative path from plugin root (e.g., 'assets/js/frontend/account-page.js').
-	 * @param array            $deps      Script dependencies.
-	 * @param string|bool|null $ver       Version string. Default: NBUF_VERSION.
-	 * @param bool             $in_footer Whether to enqueue in footer.
+	 * @param string             $handle    Script handle.
+	 * @param string             $src       Relative path from plugin root (e.g., 'assets/js/frontend/account-page.js').
+	 * @param array<int, string> $deps    Script dependencies.
+	 * @param string|bool|null   $ver       Version string. Default: NBUF_VERSION.
+	 * @param bool               $in_footer Whether to enqueue in footer.
 	 * @return void
 	 */
-	public static function enqueue_script( $handle, $src, $deps = array(), $ver = null, $in_footer = true ) {
+	public static function enqueue_script( $handle, $src, $deps = array(), $ver = null, $in_footer = true ): void {
 		if ( null === $ver ) {
 			$ver = defined( 'NBUF_VERSION' ) ? NBUF_VERSION : '1.0.0';
 		}

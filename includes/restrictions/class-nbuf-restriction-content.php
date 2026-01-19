@@ -29,8 +29,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * query filtering to hide restricted content from listings.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Content filtering (high priority to run late) */
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 999999 );
 
@@ -138,8 +139,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * the appropriate action.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function handle_redirect() {
+	public static function handle_redirect(): void {
 		/* Only on singular posts/pages */
 		if ( ! is_singular() ) {
 			return;
@@ -244,8 +246,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @since 1.0.0
 	 *
 	 * @param WP_Query $query WordPress query object.
+	 * @return void
 	 */
-	public static function exclude_from_queries( $query ) {
+	public static function exclude_from_queries( $query ): void {
 		/* Skip for admin, singular, and non-main queries */
 		if ( is_admin() || $query->is_singular || ! $query->is_main_query() ) {
 			return;
@@ -280,9 +283,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @since 1.0.0
 	 *
 	 * @param  string $post_type Post type to check.
-	 * @return array Array of post IDs to exclude from queries.
+	 * @return array<int, int> Array of post IDs to exclude from queries.
 	 */
-	private static function get_excluded_post_ids( $post_type ) {
+	private static function get_excluded_post_ids( $post_type ): array {
 		/* Try to get from cache */
 		$cache_key = 'nbuf_excluded_posts_' . $post_type . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' );
 		$cached    = wp_cache_get( $cache_key, 'nbuf_restrictions' );

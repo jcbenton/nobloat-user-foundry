@@ -70,7 +70,7 @@ class NBUF_GDPR_Export {
 	 *
 	 * @since 1.4.0
 	 * @param int $user_id User ID.
-	 * @return array Array with 'can_export' bool and 'wait_minutes' int.
+	 * @return array{can_export: bool, wait_minutes: int} Array with 'can_export' bool and 'wait_minutes' int.
 	 */
 	public static function check_rate_limit( $user_id ) {
 		$last_export        = get_user_meta( $user_id, 'nbuf_last_data_export', true );
@@ -87,7 +87,7 @@ class NBUF_GDPR_Export {
 		$required_wait   = $rate_limit_minutes * 60;
 
 		if ( $elapsed_seconds < $required_wait ) {
-			$wait_minutes = ceil( ( $required_wait - $elapsed_seconds ) / 60 );
+			$wait_minutes = (int) ceil( ( $required_wait - $elapsed_seconds ) / 60 );
 			return array(
 				'can_export'   => false,
 				'wait_minutes' => $wait_minutes,
@@ -138,7 +138,7 @@ class NBUF_GDPR_Export {
 	 *
 	 * @since 1.4.0
 	 * @param int $user_id User ID.
-	 * @return array Array with counts.
+	 * @return array{nbuf_fields: int, woo_orders: int, edd_purchases: int, estimated_size: int} Array with counts.
 	 */
 	public static function get_data_counts( $user_id ) {
 		$counts = array(
@@ -399,8 +399,8 @@ class NBUF_GDPR_Export {
 	 * Create profile HTML file
 	 *
 	 * @since 1.4.0
-	 * @param string $dir    Directory path.
-	 * @param array  $data   Profile data.
+	 * @param string               $dir    Directory path.
+	 * @param array<string, mixed> $data   Profile data.
 	 * @return void
 	 */
 	private static function create_profile_html( $dir, $data ) {
@@ -512,7 +512,7 @@ class NBUF_GDPR_Export {
 	 * Get profile field names
 	 *
 	 * @since 1.4.0
-	 * @return array Array of field names.
+	 * @return array<int, string> Array of field names.
 	 */
 	private static function get_profile_field_names() {
 		return array(
@@ -645,8 +645,8 @@ class NBUF_GDPR_Export {
 	 * Create WooCommerce HTML file
 	 *
 	 * @since 1.4.0
-	 * @param string $dir  Directory path.
-	 * @param array  $data WooCommerce data.
+	 * @param string               $dir  Directory path.
+	 * @param array<string, mixed> $data WooCommerce data.
 	 * @return void
 	 */
 	private static function create_woocommerce_html( $dir, $data ) {
@@ -810,8 +810,8 @@ class NBUF_GDPR_Export {
 	 * Create EDD HTML file
 	 *
 	 * @since 1.4.0
-	 * @param string $dir  Directory path.
-	 * @param array  $data EDD data.
+	 * @param string               $dir  Directory path.
+	 * @param array<string, mixed> $data EDD data.
 	 * @return void
 	 */
 	private static function create_edd_html( $dir, $data ) {

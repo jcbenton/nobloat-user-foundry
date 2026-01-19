@@ -35,8 +35,9 @@ class NBUF_Shortcodes {
 	 * regardless of page ID settings.
 	 *
 	 * @param string $page_type Page type: 'login', 'registration', 'reset', 'account'.
+	 * @return void
 	 */
-	private static function enqueue_frontend_css( $page_type ) {
+	private static function enqueue_frontend_css( string $page_type ): void {
 		/* Check if CSS loading is enabled */
 		$css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
 		if ( ! $css_load_on_pages ) {
@@ -108,8 +109,10 @@ class NBUF_Shortcodes {
 
 	/**
 	 * Initialize shortcodes and form handlers.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Shortcodes */
 		add_shortcode( 'nbuf_reset_form', array( __CLASS__, 'sc_reset_form' ) );
 		add_shortcode( 'nbuf_request_reset_form', array( __CLASS__, 'sc_request_reset_form' ) );
@@ -147,10 +150,10 @@ class NBUF_Shortcodes {
 	 * Handles both display and processing of email verification.
 	 * If ?token= is present, delegates to verifier class.
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Shortcode output.
 	 */
-	public static function sc_verify_page( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_verify_page( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -189,10 +192,10 @@ class NBUF_Shortcodes {
 	 *
 	 * Render password reset form using template.
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Shortcode output.
 	 */
-	public static function sc_reset_form( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_reset_form( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -353,10 +356,10 @@ class NBUF_Shortcodes {
 	 * Render form to request a password reset link.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Form HTML.
 	 */
-	public static function sc_request_reset_form( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_request_reset_form( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -450,8 +453,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process POST from request reset form (forgot password).
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_request_reset() {
+	public static function maybe_handle_request_reset(): void {
 		if ( is_admin() ) {
 			return;
 		}
@@ -625,8 +630,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process POST from our reset form on the configured page.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_password_reset() {
+	public static function maybe_handle_password_reset(): void {
 		if ( is_admin() ) {
 			return;
 		}
@@ -714,10 +721,10 @@ class NBUF_Shortcodes {
 	 * Renders a customizable login form from database template.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Form HTML.
 	 */
-	public static function sc_login_form( $atts = array() ) {
+	public static function sc_login_form( array $atts = array() ): string {
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -925,8 +932,10 @@ class NBUF_Shortcodes {
 	 * Process POST from login form.
 	 * Checks verification status before allowing login.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_login() {
+	public static function maybe_handle_login(): void {
 		if ( is_admin() ) {
 			return;
 		}
@@ -1089,10 +1098,10 @@ class NBUF_Shortcodes {
 	 * Renders a customizable registration form with dynamic fields.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Form HTML.
 	 */
-	public static function sc_registration_form( $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_registration_form( array $atts ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -1284,37 +1293,8 @@ class NBUF_Shortcodes {
 		$email_value = isset( $preserved_data['email'] ) ? esc_attr( $preserved_data['email'] ) : '';
 
 		/* Build dynamic password requirements text */
-		$password_min_length     = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
-		$password_requirements   = array();
-		$password_requirements[] = sprintf(
-			/* translators: %d: minimum password length */
-			__( 'Minimum %d characters', 'nobloat-user-foundry' ),
-			$password_min_length
-		);
-
-		/* Add character type requirements if password strength is enabled */
-		if ( NBUF_Options::get( 'nbuf_password_requirements_enabled', true ) ) {
-			if ( NBUF_Options::get( 'nbuf_password_require_uppercase', false ) ) {
-				$password_requirements[] = __( 'uppercase letter', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_lowercase', false ) ) {
-				$password_requirements[] = __( 'lowercase letter', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_numbers', false ) ) {
-				$password_requirements[] = __( 'number', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_special', false ) ) {
-				$password_requirements[] = __( 'special character', 'nobloat-user-foundry' );
-			}
-		}
-
-		/* Format requirements text */
-		if ( count( $password_requirements ) > 1 ) {
-			$first_req                  = array_shift( $password_requirements );
-			$password_requirements_text = $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $password_requirements );
-		} else {
-			$password_requirements_text = $password_requirements[0];
-		}
+		$password_min_length        = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		$password_requirements_text = NBUF_Password_Validator::get_requirements_text();
 
 		$replacements = array(
 			'{action_url}'            => esc_url( self::get_current_page_url() ),
@@ -1350,8 +1330,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process registration form and create new user.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_registration() {
+	public static function maybe_handle_registration(): void {
 		if ( ! isset( $_POST['nbuf_register'] ) ) {
 			return;
 		}
@@ -1457,10 +1439,10 @@ class NBUF_Shortcodes {
 	 * and password change functionality.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Page HTML.
 	 */
-	public static function sc_account_page( $atts ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_account_page( array $atts ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -1792,37 +1774,7 @@ class NBUF_Shortcodes {
 		$nonce_field_visibility = ob_get_clean();
 
 		/* Build dynamic password requirements text */
-		$password_min_length     = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
-		$password_requirements   = array();
-		$password_requirements[] = sprintf(
-			/* translators: %d: minimum password length */
-			__( 'Minimum %d characters', 'nobloat-user-foundry' ),
-			$password_min_length
-		);
-
-		/* Add character type requirements if password strength is enabled */
-		if ( NBUF_Options::get( 'nbuf_password_requirements_enabled', true ) ) {
-			if ( NBUF_Options::get( 'nbuf_password_require_uppercase', false ) ) {
-				$password_requirements[] = __( 'uppercase letter', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_lowercase', false ) ) {
-				$password_requirements[] = __( 'lowercase letter', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_numbers', false ) ) {
-				$password_requirements[] = __( 'number', 'nobloat-user-foundry' );
-			}
-			if ( NBUF_Options::get( 'nbuf_password_require_special', false ) ) {
-				$password_requirements[] = __( 'special character', 'nobloat-user-foundry' );
-			}
-		}
-
-		/* Format requirements text */
-		if ( count( $password_requirements ) > 1 ) {
-			$first_req                  = array_shift( $password_requirements );
-			$password_requirements_text = $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $password_requirements );
-		} else {
-			$password_requirements_text = $password_requirements[0];
-		}
+		$password_requirements_text = NBUF_Password_Validator::get_requirements_text();
 
 		/* Build security tab content (always shown - contains Password and optional 2FA) */
 		$security_tab_html    = NBUF_2FA_Account::build_security_tab_html( $user_id, $password_requirements_text );
@@ -2088,11 +2040,11 @@ class NBUF_Shortcodes {
 	 * Generates HTML for profile edit fields based on settings.
 	 * ==========================================================
 	 *
-	 * @param  WP_User $user         User object.
-	 * @param  array   $profile_data Profile data.
+	 * @param  WP_User     $user         User object.
+	 * @param  object|null $profile_data Profile data object.
 	 * @return string HTML output.
 	 */
-	private static function build_profile_fields_html( $user, $profile_data ) {
+	private static function build_profile_fields_html( WP_User $user, ?object $profile_data ): string {
 		/* Get enabled account profile fields */
 		$enabled_fields   = NBUF_Profile_Data::get_account_fields();
 		$field_registry   = NBUF_Profile_Data::get_field_registry();
@@ -2229,8 +2181,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process profile updates and password changes.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_account_actions() {
+	public static function maybe_handle_account_actions(): void {
 		if ( is_admin() ) {
 			return;
 		}
@@ -2276,10 +2230,10 @@ class NBUF_Shortcodes {
 	 * Build redirect URL preserving active tab/subtab state.
 	 * ==========================================================
 	 *
-	 * @param  array $args Query args to add to URL.
+	 * @param  array<string, mixed> $args Query args to add to URL.
 	 * @return string Redirect URL with tab parameters.
 	 */
-	private static function build_account_redirect( $args = array() ) {
+	private static function build_account_redirect( array $args = array() ): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Tab/subtab values are only used for redirect URL, nonce verified by form handler.
 		$tab    = '';
 		$subtab = '';
@@ -2326,8 +2280,9 @@ class NBUF_Shortcodes {
 	 * @param int    $user_id User ID.
 	 * @param string $message Message text.
 	 * @param string $type    Message type: 'success' or 'error'.
+	 * @return void
 	 */
-	public static function set_flash_message( $user_id, $message, $type = 'success' ) {
+	public static function set_flash_message( int $user_id, string $message, string $type = 'success' ): void {
 		set_transient(
 			'nbuf_flash_' . $user_id,
 			array(
@@ -2346,9 +2301,9 @@ class NBUF_Shortcodes {
 	 * ==========================================================
 	 *
 	 * @param  int $user_id User ID.
-	 * @return array|false Message array with 'message' and 'type' keys, or false if none.
+	 * @return array{message: string, type: string}|false Message array with 'message' and 'type' keys, or false if none.
 	 */
-	private static function get_flash_message( $user_id ) {
+	private static function get_flash_message( int $user_id ) {
 		$flash = get_transient( 'nbuf_flash_' . $user_id );
 		if ( $flash ) {
 			delete_transient( 'nbuf_flash_' . $user_id );
@@ -2363,8 +2318,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process profile form submission.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_profile_update() {
+	private static function handle_profile_update(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_account_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_account_nonce'] ) ), 'nbuf_account_profile' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2476,8 +2433,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process password change form submission.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_password_change() {
+	private static function handle_password_change(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_password_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_password_nonce'] ) ), 'nbuf_account_password' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2555,8 +2514,10 @@ class NBUF_Shortcodes {
 	 * ----------------------------------------------------------
 	 * Process email change form submission.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_email_change() {
+	private static function handle_email_change(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_email_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_email_nonce'] ) ), 'nbuf_change_email' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2712,8 +2673,9 @@ class NBUF_Shortcodes {
 	 * @param int    $user_id   User ID.
 	 * @param string $old_email Old email address.
 	 * @param string $new_email New email address.
+	 * @return void
 	 */
-	public static function send_email_change_notification( $user_id, $old_email, $new_email ) {
+	public static function send_email_change_notification( int $user_id, string $old_email, string $new_email ): void {
 		$user      = get_userdata( $user_id );
 		$site_name = get_bloginfo( 'name' );
 
@@ -2755,8 +2717,10 @@ Best regards,
 	 * ----------------------------------------------------------
 	 * Process profile visibility form submission.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_visibility_update() {
+	private static function handle_visibility_update(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_visibility_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_visibility_nonce'] ) ), 'nbuf_account_visibility' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2797,8 +2761,10 @@ Best regards,
 	 * ----------------------------------------------------------
 	 * Process gravatar preference form submission.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_gravatar_update() {
+	private static function handle_gravatar_update(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_gravatar_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_gravatar_nonce'] ) ), 'nbuf_account_gravatar' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2835,8 +2801,10 @@ Best regards,
 	 * ----------------------------------------------------------
 	 * Process Profile tab form submission (visibility + photos).
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	private static function handle_profile_tab_update() {
+	private static function handle_profile_tab_update(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_profile_tab_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_profile_tab_nonce'] ) ), 'nbuf_account_profile_tab' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2894,8 +2862,10 @@ Best regards,
 
 	/**
 	 * Handle data export request from Privacy tab.
+	 *
+	 * @return void
 	 */
-	private static function handle_data_export() {
+	private static function handle_data_export(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_export_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_export_nonce'] ) ), 'nbuf_export_data' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -2993,10 +2963,10 @@ Best regards,
 	 * (immediate or confirmation) and redirect options.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Logout HTML or redirect.
 	 */
-	public static function sc_logout( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_logout( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -3100,10 +3070,10 @@ Best regards,
 	 * Displays form for entering 2FA code during login.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string 2FA verification form HTML.
 	 */
-	public static function sc_2fa_verify( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_2fa_verify( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -3130,10 +3100,10 @@ Best regards,
 	 * Used when Authenticator 2FA is required.
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string TOTP setup page HTML.
 	 */
-	public static function sc_totp_setup( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
+	public static function sc_totp_setup( array $atts = array() ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $atts required by WordPress shortcode API
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -3293,7 +3263,7 @@ Best regards,
 	 * @param  int $user_id User ID.
 	 * @return string HTML output (success message or form with error).
 	 */
-	private static function handle_totp_setup_submission( $user_id ) {
+	private static function handle_totp_setup_submission( int $user_id ): string {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_setup_totp' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
@@ -3499,11 +3469,11 @@ Best regards,
 	 * [nbuf_restrict verified="yes" message="Please verify your email"]...[/nbuf_restrict]
 	 * ==========================================================
 	 *
-	 * @param  array  $atts    Shortcode attributes.
-	 * @param  string $content Content to restrict.
+	 * @param  array<string, mixed> $atts    Shortcode attributes.
+	 * @param  string               $content Content to restrict.
 	 * @return string Restricted or allowed content.
 	 */
-	public static function sc_restrict( $atts, $content = '' ) {
+	public static function sc_restrict( array $atts, string $content = '' ): string {
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -3618,10 +3588,10 @@ Best regards,
 	 * - user: Username or user ID (required)
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Profile HTML.
 	 */
-	public static function sc_profile( $atts ) {
+	public static function sc_profile( array $atts ): string {
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -3892,10 +3862,10 @@ Best regards,
 	 * Delegates to NBUF_Member_Directory::render_directory().
 	 * ==========================================================
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string Member directory HTML.
 	 */
-	public static function sc_members( $atts = array() ) {
+	public static function sc_members( array $atts = array() ): string {
 		$disabled_notice = self::get_system_disabled_notice();
 		if ( $disabled_notice ) {
 			return $disabled_notice;
@@ -4418,10 +4388,10 @@ JS;
 	 * - [nbuf_universal view="login"] - Force specific view
 	 * - [nbuf_universal default="account"] - Set default view for base URL
 	 *
-	 * @param  array $atts Shortcode attributes.
+	 * @param  array<string, mixed> $atts Shortcode attributes.
 	 * @return string HTML content.
 	 */
-	public static function sc_universal( $atts = array() ) {
+	public static function sc_universal( array $atts = array() ): string {
 		$atts = shortcode_atts(
 			array(
 				'view'    => '',       /* Force specific view */
@@ -4500,8 +4470,9 @@ JS;
 	 * Enqueue CSS for Universal Page view.
 	 *
 	 * @param string $view View key.
+	 * @return void
 	 */
-	private static function enqueue_universal_view_css( $view ) {
+	private static function enqueue_universal_view_css( string $view ): void {
 		/* Map views to CSS page types */
 		$css_map = array(
 			'login'           => 'login',

@@ -36,8 +36,10 @@ class NBUF_Settings {
 	 * Initialize settings controller.
 	 *
 	 * Registers admin menus, hooks, AJAX handlers, and scripts.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'add_roles_submenu' ), 12 );
 		add_action( 'admin_menu', array( __CLASS__, 'add_users_submenu' ), 13 );
@@ -67,8 +69,10 @@ class NBUF_Settings {
 	 *
 	 * WordPress automatically creates a submenu item with the same slug as the parent.
 	 * This removes that duplicate since we have our own "Settings" submenu.
+	 *
+	 * @return void
 	 */
-	public static function remove_duplicate_submenu() {
+	public static function remove_duplicate_submenu(): void {
 		remove_submenu_page( 'nobloat-foundry', 'nobloat-foundry' );
 	}
 
@@ -80,9 +84,9 @@ class NBUF_Settings {
 	 * This replaces WordPress register_setting() to avoid wp_options bloat.
 	 * ==========================================================
 	 *
-	 * @return array Settings registry with sanitize callbacks.
+	 * @return array<string, callable|string> Settings registry with sanitize callbacks.
 	 */
-	public static function get_settings_registry() {
+	public static function get_settings_registry(): array {
 		return array(
 			/* General settings array */
 			'nbuf_settings'                           => array( __CLASS__, 'sanitize_settings' ),
@@ -669,8 +673,10 @@ class NBUF_Settings {
 	 * Custom handler for saving settings to custom options table.
 	 * Replaces WordPress Settings API to avoid wp_options bloat.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function handle_settings_save() {
+	public static function handle_settings_save(): void {
 		/* Verify user capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized access.', 'nobloat-user-foundry' ) );
@@ -822,8 +828,9 @@ class NBUF_Settings {
 	 *
 	 * @param string $action     The webhook action (create, update, delete, test).
 	 * @param int    $webhook_id The webhook ID (for update/delete/test).
+	 * @return void
 	 */
-	private static function handle_webhook_action( $action, $webhook_id ) {
+	private static function handle_webhook_action( string $action, int $webhook_id ): void {
 		$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=webhooks' );
 
 		switch ( $action ) {
@@ -909,8 +916,9 @@ class NBUF_Settings {
 	 * Handle custom tab CRUD actions.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	private static function handle_custom_tab_action() {
+	private static function handle_custom_tab_action(): void {
 		$redirect_url = admin_url( 'admin.php?page=nobloat-foundry-users&tab=integration&subtab=custom-tabs' );
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_settings_save.
@@ -972,8 +980,9 @@ class NBUF_Settings {
 	 * AJAX handler for reordering custom tabs.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_reorder_custom_tabs() {
+	public static function ajax_reorder_custom_tabs(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_reorder_custom_tabs', '_ajax_nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
@@ -1003,8 +1012,9 @@ class NBUF_Settings {
 	 * Must run on admin_init to redirect before headers are sent.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function handle_custom_tab_delete() {
+	public static function handle_custom_tab_delete(): void {
 		/*
 		 * Only process on our settings page.
 		 */
@@ -1045,8 +1055,10 @@ class NBUF_Settings {
 
 	/**
 	 * Display settings saved notice.
+	 *
+	 * @return void
 	 */
-	public static function display_settings_notices() {
+	public static function display_settings_notices(): void {
 		/*
 		 * Check if we're on a plugin settings page.
 		 */
@@ -1100,8 +1112,10 @@ class NBUF_Settings {
 	 * One-time migration of existing wp_options entries to
 	 * the custom nbuf_options table.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function maybe_migrate_wp_options() {
+	public static function maybe_migrate_wp_options(): void {
 		/* Check if migration already done */
 		if ( NBUF_Options::get( 'nbuf_wp_options_migrated', false ) ) {
 			return;
@@ -1156,8 +1170,10 @@ class NBUF_Settings {
 	/**
 	 * Output nonce field and action for settings forms.
 	 * Replaces settings_fields() for custom form handling.
+	 *
+	 * @return void
 	 */
-	public static function settings_nonce_field() {
+	public static function settings_nonce_field(): void {
 		wp_nonce_field( 'nbuf_save_settings', 'nbuf_settings_nonce' );
 		echo '<input type="hidden" name="action" value="nbuf_save_settings">';
 	}
@@ -1167,8 +1183,10 @@ class NBUF_Settings {
 	 *
 	 * Runs on admin_init to find existing pages by slug and save their IDs.
 	 * Does NOT create pages - only detects user-created pages with legacy shortcodes.
+	 *
+	 * @return void
 	 */
-	public static function auto_detect_pages() {
+	public static function auto_detect_pages(): void {
 		/* Only run page detection once per day to avoid overhead */
 		$last_check = NBUF_Options::get( 'nbuf_pages_auto_detected', 0 );
 		if ( $last_check && ( time() - $last_check ) < DAY_IN_SECONDS ) {
@@ -1217,8 +1235,10 @@ class NBUF_Settings {
 	 * Checks if pages exist at the configured slug paths.
 	 * Only runs on our settings page.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function check_required_pages() {
+	public static function check_required_pages(): void {
 		/* Only run on our settings page */
 		$screen = get_current_screen();
 		if ( ! $screen || 'nobloat-foundry_page_nobloat-foundry-users' !== $screen->id ) {
@@ -1275,8 +1295,10 @@ class NBUF_Settings {
 	 * Shared parent slug: 'nobloat-foundry'
 	 * This plugin's slug: 'nobloat-foundry-users'
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function add_menu_page() {
+	public static function add_menu_page(): void {
 		global $menu;
 
 		/* Check if User Foundry top-level menu already exists */
@@ -1316,8 +1338,10 @@ class NBUF_Settings {
 
 	/**
 	 * Redirect top-level menu click to WordPress Users page
+	 *
+	 * @return void
 	 */
-	public static function redirect_to_users() {
+	public static function redirect_to_users(): void {
 		wp_safe_redirect( admin_url( 'users.php' ) );
 		exit;
 	}
@@ -1326,8 +1350,10 @@ class NBUF_Settings {
 	 * Add Roles submenu page.
 	 *
 	 * Added separately at priority 12 to ensure it appears after Appearance (priority 11).
+	 *
+	 * @return void
 	 */
-	public static function add_roles_submenu() {
+	public static function add_roles_submenu(): void {
 		$enable_custom_roles = NBUF_Options::get( 'nbuf_enable_custom_roles', true );
 		if ( $enable_custom_roles ) {
 			add_submenu_page(
@@ -1347,8 +1373,10 @@ class NBUF_Settings {
 	 * - Adds "All Users" submenu under User Foundry
 	 * - Creates a "Users" top-level menu at position 31 (no submenus)
 	 * - Hides the native WordPress Users menu
+	 *
+	 * @return void
 	 */
-	public static function add_users_submenu() {
+	public static function add_users_submenu(): void {
 		/* Only modify menus if User Management System is enabled */
 		if ( ! NBUF_Options::get( 'nbuf_user_manager_enabled', false ) ) {
 			return;
@@ -1393,8 +1421,10 @@ class NBUF_Settings {
 	 * - Changes custom Users menu href to users.php (avoids 404)
 	 * - User Foundry menu expands on users.php (shows "All Users" submenu as current)
 	 * - Custom Users top-level menu highlights on all user pages
+	 *
+	 * @return void
 	 */
-	public static function highlight_users_menu() {
+	public static function highlight_users_menu(): void {
 		/* Only output menu JS if User Management System is enabled */
 		if ( ! NBUF_Options::get( 'nbuf_user_manager_enabled', false ) ) {
 			return;
@@ -1450,10 +1480,10 @@ class NBUF_Settings {
 	 * Cleans all fields in the settings array.
 	 * ==========================================================
 	 *
-	 * @param  array $input Raw input values.
-	 * @return array Sanitized output.
+	 * @param  array<string, mixed> $input Raw input values.
+	 * @return array<string, mixed> Sanitized output.
 	 */
-	public static function sanitize_settings( $input ) {
+	public static function sanitize_settings( array $input ): array {
 		/*
 		 * Only save if this setting was actually in the submitted form.
 		 * This prevents other tabs' settings from being overwritten.
@@ -1506,10 +1536,10 @@ class NBUF_Settings {
 	 * Cleans all registration field settings.
 	 * ==========================================================
 	 *
-	 * @param  array $input Raw input values.
-	 * @return array Sanitized output.
+	 * @param  array<string, mixed> $input Raw input values.
+	 * @return array<string, mixed> Sanitized output.
 	 */
-	public static function sanitize_registration_fields( $input ) {
+	public static function sanitize_registration_fields( array $input ): array {
 		/*
 		 * Only save if this setting was actually in the submitted form.
 		 * This prevents other tabs' settings from being overwritten.
@@ -1565,7 +1595,7 @@ class NBUF_Settings {
 	 * @param  mixed $input Raw input value.
 	 * @return bool Sanitized checkbox value.
 	 */
-	public static function sanitize_checkbox( $input ) {
+	public static function sanitize_checkbox( $input ): bool {
 		return ! empty( $input ) && '0' !== $input;
 	}
 
@@ -1578,9 +1608,9 @@ class NBUF_Settings {
 	 * ==========================================================
 	 *
 	 * @param  mixed $input Raw input value (array or other).
-	 * @return array Sanitized array with boolean values.
+	 * @return array<string, bool> Sanitized array with boolean values.
 	 */
-	public static function sanitize_checkbox_group( $input ) {
+	public static function sanitize_checkbox_group( $input ): array {
 		if ( ! is_array( $input ) ) {
 			return array();
 		}
@@ -1601,9 +1631,9 @@ class NBUF_Settings {
 	 * ==========================================================
 	 *
 	 * @param  mixed $input Raw input value.
-	 * @return array Sanitized array of strings.
+	 * @return string[] Sanitized array of strings.
 	 */
-	public static function sanitize_string_array( $input ) {
+	public static function sanitize_string_array( $input ): array {
 		if ( ! is_array( $input ) ) {
 			return array();
 		}
@@ -1619,9 +1649,9 @@ class NBUF_Settings {
 	 * ==========================================================
 	 *
 	 * @param  mixed $input Raw input value.
-	 * @return array Sanitized array of post type slugs.
+	 * @return string[] Sanitized array of post type slugs.
 	 */
-	public static function sanitize_post_type_array( $input ) {
+	public static function sanitize_post_type_array( $input ): array {
 		if ( ! is_array( $input ) ) {
 			return array( 'post', 'page' );
 		}
@@ -1647,9 +1677,9 @@ class NBUF_Settings {
 	 * ==========================================================
 	 *
 	 * @param  mixed $input Raw input value.
-	 * @return array Sanitized array of taxonomy slugs.
+	 * @return string[] Sanitized array of taxonomy slugs.
 	 */
-	public static function sanitize_taxonomy_array( $input ) {
+	public static function sanitize_taxonomy_array( $input ): array {
 		if ( ! is_array( $input ) ) {
 			return array( 'category', 'post_tag' );
 		}
@@ -1677,7 +1707,7 @@ class NBUF_Settings {
 	 * @param  mixed $input Raw input value.
 	 * @return int Sanitized page ID.
 	 */
-	public static function sanitize_page_id( $input ) {
+	public static function sanitize_page_id( $input ): int {
 		return absint( $input );
 	}
 
@@ -1691,7 +1721,7 @@ class NBUF_Settings {
 	 * @param  mixed $input Raw input value.
 	 * @return int Sanitized positive integer.
 	 */
-	public static function sanitize_positive_int( $input ) {
+	public static function sanitize_positive_int( $input ): int {
 		$value = absint( $input );
 		return max( 1, $value );
 	}
@@ -1703,9 +1733,9 @@ class NBUF_Settings {
 	 * Returns array of valid IPv4/IPv6 addresses only.
 	 *
 	 * @param  string $input Raw textarea input from admin form.
-	 * @return array Array of valid IP addresses.
+	 * @return string[] Array of valid IP addresses.
 	 */
-	public static function sanitize_trusted_proxies( $input ) {
+	public static function sanitize_trusted_proxies( $input ): array {
 		/* Handle empty input */
 		if ( empty( $input ) ) {
 			return array();
@@ -1743,12 +1773,13 @@ class NBUF_Settings {
 	 * Used by settings tabs that define fields programmatically.
 	 * ==========================================================
 	 *
-	 * @param array  $fields  Array of field definitions.
-	 * @param string $title   Form title.
-	 * @param string $tab     Active tab for form redirect.
-	 * @param string $subtab  Active subtab for form redirect.
+	 * @param array<int, array<string, mixed>> $fields  Array of field definitions.
+	 * @param string                           $title   Form title.
+	 * @param string                           $tab     Active tab for form redirect.
+	 * @param string                           $subtab  Active subtab for form redirect.
+	 * @return void
 	 */
-	public static function render_settings( array $fields, string $title = '', string $tab = 'system', string $subtab = '' ) {
+	public static function render_settings( array $fields, string $title = '', string $tab = 'system', string $subtab = '' ): void {
 		/* Collect checkbox and checkbox_group field IDs for unchecked state handling */
 		$checkbox_ids       = array();
 		$checkbox_group_ids = array();
@@ -1882,9 +1913,9 @@ class NBUF_Settings {
 	 * Returns the two-level tab structure definition.
 	 * ==========================================================
 	 *
-	 * @return array Tab structure definition.
+	 * @return array<string, array{label: string, subtabs: array<string, string>}> Tab structure definition.
 	 */
-	public static function get_tab_structure() {
+	public static function get_tab_structure(): array {
 		return array(
 			'system'      => array(
 				'label'   => __( 'System', 'nobloat-user-foundry' ),
@@ -1982,7 +2013,7 @@ class NBUF_Settings {
 	 *
 	 * @return string Active tab slug.
 	 */
-	public static function get_active_tab() {
+	public static function get_active_tab(): string {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection.
 		$tab       = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'system';
 		$structure = self::get_tab_structure();
@@ -2005,7 +2036,7 @@ class NBUF_Settings {
 	 *
 	 * @return string Active subtab slug.
 	 */
-	public static function get_active_subtab() {
+	public static function get_active_subtab(): string {
 		$active_tab = self::get_active_tab();
 		$structure  = self::get_tab_structure();
 		$subtabs    = array_keys( $structure[ $active_tab ]['subtabs'] );
@@ -2032,8 +2063,10 @@ class NBUF_Settings {
 	 * ----------------------------------------------------------
 	 * Outputs two-level tabbed layout with outer and inner tabs.
 	 * ==========================================================
+	 *
+	 * @return void
 	 */
-	public static function render_settings_page() {
+	public static function render_settings_page(): void {
 		$structure     = self::get_tab_structure();
 		$active_tab    = self::get_active_tab();
 		$active_subtab = self::get_active_subtab();
@@ -2122,8 +2155,10 @@ class NBUF_Settings {
 	 * AJAX template reset handler.
 	 *
 	 * Restores templates to defaults on request.
+	 *
+	 * @return void
 	 */
-	public static function ajax_reset_template() {
+	public static function ajax_reset_template(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'nobloat-user-foundry' ) );
 		}
@@ -2259,8 +2294,10 @@ class NBUF_Settings {
 	 * AJAX style reset handler.
 	 *
 	 * Restores CSS styles to defaults on request.
+	 *
+	 * @return void
 	 */
-	public static function ajax_reset_style() {
+	public static function ajax_reset_style(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( __( 'Unauthorized.', 'nobloat-user-foundry' ) );
 		}
@@ -2335,8 +2372,9 @@ class NBUF_Settings {
 	 * ==========================================================
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_admin_assets( $hook ) {
+	public static function enqueue_admin_assets( string $hook ): void {
 		/* Load on all NoBloat User Foundry admin pages */
 		if ( strpos( $hook, 'nobloat-foundry' ) === false && strpos( $hook, 'user-foundry' ) === false ) {
 			return;
@@ -2491,7 +2529,7 @@ class NBUF_Settings {
 	 * @param  int    $status   HTTP status code.
 	 * @return string Modified redirect URL.
 	 */
-	public static function preserve_active_tab_after_save( $location, $status ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $status required by WordPress wp_redirect filter signature
+	public static function preserve_active_tab_after_save( string $location, int $status ): string { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $status required by WordPress wp_redirect filter signature
 
 		/*
 		* Preserve outer tab.
@@ -2538,7 +2576,7 @@ class NBUF_Settings {
 	 *
 	 * @return bool True if on a plugin page.
 	 */
-	private static function is_plugin_page() {
+	private static function is_plugin_page(): bool {
 		$screen = get_current_screen();
 		if ( ! $screen ) {
 			return false;
@@ -2566,7 +2604,7 @@ class NBUF_Settings {
 	 * @param string $text Default footer text.
 	 * @return string Modified footer text.
 	 */
-	public static function admin_footer_text( $text ) {
+	public static function admin_footer_text( string $text ): string {
 		if ( ! self::is_plugin_page() ) {
 			return $text;
 		}
@@ -2584,7 +2622,7 @@ class NBUF_Settings {
 	 * @param string $text Default version text.
 	 * @return string Modified version text.
 	 */
-	public static function admin_footer_version( $text ) {
+	public static function admin_footer_version( string $text ): string {
 		if ( ! self::is_plugin_page() ) {
 			return $text;
 		}

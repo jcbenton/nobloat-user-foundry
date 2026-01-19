@@ -23,8 +23,10 @@ class NBUF_Account_Merger {
 
 	/**
 	 * Initialize hooks
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'wp_ajax_nbuf_load_merge_accounts', array( __CLASS__, 'ajax_load_accounts' ) );
 		add_action( 'wp_ajax_nbuf_search_users', array( __CLASS__, 'ajax_search_users' ) );
 		add_action( 'wp_ajax_nbuf_get_user_details', array( __CLASS__, 'ajax_get_user_details' ) );
@@ -33,8 +35,10 @@ class NBUF_Account_Merger {
 
 	/**
 	 * AJAX handler to search for users
+	 *
+	 * @return void
 	 */
-	public static function ajax_search_users() {
+	public static function ajax_search_users(): void {
 		check_ajax_referer( 'nbuf_merge_accounts', 'nonce' );
 
 		if ( ! current_user_can( 'delete_users' ) ) {
@@ -75,8 +79,10 @@ class NBUF_Account_Merger {
 
 	/**
 	 * AJAX handler to get full user details for merge comparison
+	 *
+	 * @return void
 	 */
-	public static function ajax_get_user_details() {
+	public static function ajax_get_user_details(): void {
 		check_ajax_referer( 'nbuf_merge_accounts', 'nonce' );
 
 		if ( ! current_user_can( 'delete_users' ) ) {
@@ -145,8 +151,10 @@ class NBUF_Account_Merger {
 
 	/**
 	 * AJAX handler to load account data for merge preview
+	 *
+	 * @return void
 	 */
-	public static function ajax_load_accounts() {
+	public static function ajax_load_accounts(): void {
 		check_ajax_referer( 'nbuf_merge_load', 'nonce' );
 
 		if ( ! current_user_can( 'delete_users' ) ) {
@@ -212,10 +220,10 @@ class NBUF_Account_Merger {
 	/**
 	 * Detect conflicts in profile fields across multiple accounts
 	 *
-	 * @param  array $account_ids Array of user IDs.
-	 * @return array Array of conflicts.
+	 * @param  int[] $account_ids Array of user IDs.
+	 * @return array<string, array<string, mixed>> Array of conflicts.
 	 */
-	private static function detect_conflicts( $account_ids ) {
+	private static function detect_conflicts( array $account_ids ): array {
 		global $wpdb;
 		$conflicts = array();
 
@@ -274,10 +282,10 @@ class NBUF_Account_Merger {
 	/**
 	 * Detect photo conflicts across multiple accounts
 	 *
-	 * @param  array $account_ids Array of user IDs.
-	 * @return array Array of photo conflicts.
+	 * @param  int[] $account_ids Array of user IDs.
+	 * @return array<string, array<string, mixed>> Array of photo conflicts.
 	 */
-	private static function detect_photo_conflicts( $account_ids ) {
+	private static function detect_photo_conflicts( array $account_ids ): array {
 		$conflicts = array();
 
 		if ( ! class_exists( 'NBUF_Profile_Photos' ) ) {
@@ -332,10 +340,10 @@ class NBUF_Account_Merger {
 	/**
 	 * Detect role conflicts across multiple accounts
 	 *
-	 * @param  array $account_ids Array of user IDs.
-	 * @return array Array of role conflicts.
+	 * @param  int[] $account_ids Array of user IDs.
+	 * @return array<string, array<string, mixed>> Array of role conflicts.
 	 */
-	private static function detect_role_conflicts( $account_ids ) {
+	private static function detect_role_conflicts( array $account_ids ): array {
 		$conflicts  = array();
 		$all_roles  = array();
 		$role_names = wp_roles()->get_names();
@@ -390,8 +398,10 @@ class NBUF_Account_Merger {
 
 	/**
 	 * Handle merge form submission
+	 *
+	 * @return void
 	 */
-	public static function handle_merge_submission() {
+	public static function handle_merge_submission(): void {
 		if ( ! isset( $_POST['nbuf_merge_nonce'] ) ) {
 			return;
 		}
@@ -492,11 +502,11 @@ class NBUF_Account_Merger {
 	/**
 	 * Execute account merge
 	 *
-	 * @param  array $args Merge parameters.
-	 * @return array Result array with success status and message.
+	 * @param  array<string, mixed> $args Merge parameters.
+	 * @return array{success: bool, message: string} Result array with success status and message.
 	 * @throws Exception When merge operations fail (caught internally and returned as error).
 	 */
-	public static function execute_merge( $args ) {
+	public static function execute_merge( array $args ): array {
 		$defaults = array(
 			'primary_id'          => 0,
 			'source_id'           => 0,
@@ -701,9 +711,10 @@ class NBUF_Account_Merger {
 	 * Consolidate email addresses from secondary accounts into primary
 	 *
 	 * @param int   $primary_id    Primary user ID.
-	 * @param array $secondary_ids Secondary user IDs.
+	 * @param int[] $secondary_ids Secondary user IDs.
+	 * @return void
 	 */
-	private static function consolidate_emails( $primary_id, $secondary_ids ) {
+	private static function consolidate_emails( int $primary_id, array $secondary_ids ): void {
 		$primary_user  = get_userdata( $primary_id );
 		$primary_email = $primary_user->user_email;
 
@@ -735,11 +746,12 @@ class NBUF_Account_Merger {
 	 *
 	 * Applies the selected field values to the target (primary) account based on admin's choices.
 	 *
-	 * @param int   $target_id     Target user ID (account being kept).
-	 * @param int   $source_id     Source user ID (account being merged).
-	 * @param array $field_choices Array of field => 'source' or 'target'.
+	 * @param int                   $target_id     Target user ID (account being kept).
+	 * @param int                   $source_id     Source user ID (account being merged).
+	 * @param array<string, string> $field_choices Array of field => 'source' or 'target'.
+	 * @return void
 	 */
-	private static function apply_field_choices( $target_id, $source_id, $field_choices ) {
+	private static function apply_field_choices( int $target_id, int $source_id, array $field_choices ): void {
 		$target_user = get_userdata( $target_id );
 		$source_user = get_userdata( $source_id );
 
@@ -842,9 +854,10 @@ class NBUF_Account_Merger {
 	 * Reassign all posts from secondary accounts to primary
 	 *
 	 * @param int   $primary_id    Primary user ID.
-	 * @param array $secondary_ids Secondary user IDs.
+	 * @param int[] $secondary_ids Secondary user IDs.
+	 * @return void
 	 */
-	private static function reassign_posts( $primary_id, $secondary_ids ) {
+	private static function reassign_posts( int $primary_id, array $secondary_ids ): void {
 		global $wpdb;
 
 		foreach ( $secondary_ids as $secondary_id ) {
@@ -863,9 +876,10 @@ class NBUF_Account_Merger {
 	 * Reassign all comments from secondary accounts to primary
 	 *
 	 * @param int   $primary_id    Primary user ID.
-	 * @param array $secondary_ids Secondary user IDs.
+	 * @param int[] $secondary_ids Secondary user IDs.
+	 * @return void
 	 */
-	private static function reassign_comments( $primary_id, $secondary_ids ) {
+	private static function reassign_comments( int $primary_id, array $secondary_ids ): void {
 		global $wpdb;
 
 		$primary_user = get_userdata( $primary_id );
@@ -890,9 +904,10 @@ class NBUF_Account_Merger {
 	 * Merge user meta from secondary accounts to primary
 	 *
 	 * @param int   $primary_id    Primary user ID.
-	 * @param array $secondary_ids Secondary user IDs.
+	 * @param int[] $secondary_ids Secondary user IDs.
+	 * @return void
 	 */
-	private static function merge_user_meta( $primary_id, $secondary_ids ) {
+	private static function merge_user_meta( int $primary_id, array $secondary_ids ): void {
 		/* Skip WordPress core and sensitive meta keys */
 		$skip_meta_keys = array(
 			'capabilities',
@@ -928,9 +943,10 @@ class NBUF_Account_Merger {
 	 * Send merge notification email
 	 *
 	 * @param int   $primary_id    Primary user ID.
-	 * @param array $secondary_ids Secondary user IDs.
+	 * @param int[] $secondary_ids Secondary user IDs.
+	 * @return void
 	 */
-	private static function send_merge_notification( $primary_id, $secondary_ids ) {
+	private static function send_merge_notification( int $primary_id, array $secondary_ids ): void {
 		$primary_user = get_userdata( $primary_id );
 
 		$subject = sprintf(
@@ -1031,12 +1047,13 @@ If you did not request this merge or have questions, please contact the site adm
 	 * Processes user photo selections from conflict resolution.
 	 * Copies selected photos to primary account or deletes all if requested.
 	 *
-	 * @param int   $primary_id          Primary user ID.
-	 * @param array $secondary_ids       Secondary user IDs.
-	 * @param array $conflict_selections Conflict resolution selections.
-	 * @param array &$copied_files       Array to track copied files for rollback cleanup (passed by reference).
+	 * @param int                  $primary_id          Primary user ID.
+	 * @param int[]                $secondary_ids       Secondary user IDs.
+	 * @param array<string, mixed> $conflict_selections Conflict resolution selections.
+	 * @param string[]             $copied_files        Array to track copied files for rollback cleanup (passed by reference).
+	 * @return void
 	 */
-	private static function handle_photo_conflicts( $primary_id, $secondary_ids, $conflict_selections, &$copied_files = array() ) {
+	private static function handle_photo_conflicts( int $primary_id, array $secondary_ids, array $conflict_selections, array &$copied_files = array() ): void {
 		if ( ! class_exists( 'NBUF_Profile_Photos' ) || ! class_exists( 'NBUF_Image_Processor' ) ) {
 			return;
 		}
@@ -1476,10 +1493,11 @@ If you did not request this merge or have questions, please contact the site adm
 	 * Assigns selected roles to primary account based on conflict resolution.
 	 * Includes security checks to prevent privilege escalation.
 	 *
-	 * @param int   $primary_id          Primary user ID.
-	 * @param array $conflict_selections Conflict resolution selections.
+	 * @param int                  $primary_id          Primary user ID.
+	 * @param array<string, mixed> $conflict_selections Conflict resolution selections.
+	 * @return void
 	 */
-	private static function handle_role_conflicts( $primary_id, $conflict_selections ) {
+	private static function handle_role_conflicts( int $primary_id, array $conflict_selections ): void {
 		if ( ! isset( $conflict_selections['user_roles'] ) ) {
 			return;
 		}

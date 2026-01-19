@@ -40,9 +40,9 @@ class NBUF_Profile_Data {
 	 * Get all available profile fields organized by category.
 	 *
 	 * @since  1.0.0
-	 * @return array    Field registry with categories, keys, and labels.
+	 * @return array<string, array{label: string, fields: array<string, string>}> Field registry with categories, keys, and labels.
 	 */
-	public static function get_field_registry() {
+	public static function get_field_registry(): array {
 		return array(
 			'basic_contact' => array(
 				'label'  => 'Basic Contact',
@@ -149,9 +149,9 @@ class NBUF_Profile_Data {
 	 * Merges any custom field labels from settings over the default labels.
 	 *
 	 * @since  1.6.0
-	 * @return array    Field registry with custom labels applied.
+	 * @return array<string, array{label: string, fields: array<string, string>}> Field registry with custom labels applied.
 	 */
-	public static function get_field_registry_with_labels() {
+	public static function get_field_registry_with_labels(): array {
 		$registry      = self::get_field_registry();
 		$custom_labels = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
 
@@ -175,9 +175,9 @@ class NBUF_Profile_Data {
 	 * Get flat array of all available field keys.
 	 *
 	 * @since  1.0.0
-	 * @return array    All field keys.
+	 * @return array<int, string> All field keys.
 	 */
-	public static function get_all_field_keys() {
+	public static function get_all_field_keys(): array {
 		$registry = self::get_field_registry();
 		$fields   = array();
 
@@ -192,9 +192,9 @@ class NBUF_Profile_Data {
 	 * Get enabled profile fields based on settings.
 	 *
 	 * @since  1.0.0
-	 * @return array    Enabled field keys.
+	 * @return array<int, string> Enabled field keys.
 	 */
-	public static function get_enabled_fields() {
+	public static function get_enabled_fields(): array {
 		$enabled = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
 
 		return apply_filters( 'nbuf_profile_enabled_fields', $enabled );
@@ -204,9 +204,9 @@ class NBUF_Profile_Data {
 	 * Get profile fields enabled for registration form.
 	 *
 	 * @since  1.5.0
-	 * @return array Enabled field keys for registration.
+	 * @return array<int, string> Enabled field keys for registration.
 	 */
-	public static function get_registration_fields() {
+	public static function get_registration_fields(): array {
 		$fields = NBUF_Options::get( 'nbuf_registration_profile_fields', array() );
 
 		/* Backward compatibility - fall back to old setting if new one is empty */
@@ -221,9 +221,9 @@ class NBUF_Profile_Data {
 	 * Get profile fields enabled for account page.
 	 *
 	 * @since  1.5.0
-	 * @return array Enabled field keys for account page.
+	 * @return array<int, string> Enabled field keys for account page.
 	 */
-	public static function get_account_fields() {
+	public static function get_account_fields(): array {
 		$fields = NBUF_Options::get( 'nbuf_account_profile_fields', array() );
 
 		/* Backward compatibility - fall back to old setting if new one is empty */
@@ -276,11 +276,11 @@ class NBUF_Profile_Data {
 	 * If all fields become empty, the entire row is deleted.
 	 *
 	 * @since  1.0.0
-	 * @param  int   $user_id User ID.
-	 * @param  array $fields  Associative array of field => value pairs.
+	 * @param  int                  $user_id User ID.
+	 * @param  array<string, mixed> $fields  Associative array of field => value pairs.
 	 * @return bool               True on success, false on failure.
 	 */
-	public static function update( $user_id, $fields ) {
+	public static function update( int $user_id, array $fields ): bool {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_profile';
 
@@ -402,9 +402,9 @@ class NBUF_Profile_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
-	 * @return array              Profile data as array.
+	 * @return array<string, string|null> Profile data as array.
 	 */
-	public static function get_all_fields( $user_id ) {
+	public static function get_all_fields( int $user_id ): array {
 		$data = self::get( $user_id );
 
 		if ( ! $data ) {

@@ -24,8 +24,10 @@ class NBUF_Restriction_Metabox {
 
 	/**
 	 * Initialize metabox
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Register metabox for enabled post types */
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_metabox' ) );
 
@@ -35,8 +37,10 @@ class NBUF_Restriction_Metabox {
 
 	/**
 	 * Register metabox for enabled post types
+	 *
+	 * @return void
 	 */
-	public static function add_metabox() {
+	public static function add_metabox(): void {
 		/* Get enabled post types from settings */
 		$post_types = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
 
@@ -61,8 +65,9 @@ class NBUF_Restriction_Metabox {
 	 * Render metabox (LEAN - only 4-5 fields)
 	 *
 	 * @param WP_Post $post Post object.
+	 * @return void
 	 */
-	public static function render_metabox( $post ) {
+	public static function render_metabox( $post ): void {
 		/* Check if content restrictions are enabled */
 		$content_enabled = NBUF_Options::get( 'nbuf_restrictions_content_enabled', false );
 		if ( ! $content_enabled ) {
@@ -174,8 +179,9 @@ class NBUF_Restriction_Metabox {
 	 *
 	 * @param int     $post_id Post ID.
 	 * @param WP_Post $post    Post object.
+	 * @return void
 	 */
-	public static function save_metabox( $post_id, $post ) {
+	public static function save_metabox( $post_id, $post ): void {
 		/* Security checks */
 		if ( ! isset( $_POST['nbuf_restriction_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_restriction_nonce'] ) ), 'nbuf_restriction_metabox' ) ) {
 			return;

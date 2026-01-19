@@ -412,6 +412,99 @@
 	letter-spacing: 0.5px;
 }
 
+/* ==============================================
+   Log Statistics Component (User/Admin/Security logs)
+   Wireframe styling matching Resources section in About
+   ============================================== */
+
+.nbuf-log-stats {
+	margin-bottom: 20px;
+}
+
+.nbuf-log-stats-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 14px;
+	padding-bottom: 10px;
+	border-bottom: 2px solid #2271b1;
+}
+
+.nbuf-log-stats-header h3 {
+	margin: 0;
+	font-size: 1.15em;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.nbuf-log-stats-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.nbuf-log-stats-actions .button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+}
+
+.nbuf-log-stats-actions .button .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+/* Wireframe stat box - matches Resources section styling */
+.nbuf-log-stat-item {
+	padding: 12px 16px;
+	background: #f6f7f7;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+}
+
+/* Stat table inside wireframe box */
+.nbuf-log-stat-table {
+	border-collapse: collapse;
+}
+
+.nbuf-log-stat-table td {
+	padding: 4px 0;
+}
+
+.nbuf-log-stat-table td:first-child {
+	font-size: 13px;
+	color: #50575e;
+	padding-right: 16px;
+}
+
+.nbuf-log-stat-table td:last-child {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+@media screen and (max-width: 600px) {
+	.nbuf-log-stats-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+}
+
+/* Info box - custom styling to avoid WordPress notice positioning */
+.nbuf-info-box {
+	background: #f0f6fc;
+	border-left: 4px solid #72aee6;
+	padding: 12px 16px;
+	margin: 20px 0;
+}
+
+.nbuf-info-box p {
+	margin: 0;
+	color: #1d2327;
+}
+
 .nbuf-status-item {
 	border: 1px solid var(--nbuf-border);
 }

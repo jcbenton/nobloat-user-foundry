@@ -23,8 +23,10 @@ class NBUF_Hooks {
 
 	/**
 	 * Initialize hooks handler.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'init', array( __CLASS__, 'register_hooks' ) );
 
 		/*
@@ -72,8 +74,10 @@ class NBUF_Hooks {
 	 * Register hooks dynamically based on settings.
 	 *
 	 * Dynamically attach verification triggers based on settings.
+	 *
+	 * @return void
 	 */
-	public static function register_hooks() {
+	public static function register_hooks(): void {
 		$settings = NBUF_Options::get( 'nbuf_settings', array() );
 		$hooks    = isset( $settings['hooks'] ) && ! empty( $settings['hooks'] ) ? (array) $settings['hooks'] : array();
 
@@ -101,7 +105,7 @@ class NBUF_Hooks {
 	/**
 	 * Track users who have already received verification emails in this request.
 	 *
-	 * @var array
+	 * @var int[]
 	 */
 	private static $verification_sent_to = array();
 
@@ -132,8 +136,9 @@ class NBUF_Hooks {
 	 * the user_register hook from sending a duplicate verification email.
 	 *
 	 * @param bool $value True if plugin registration is handling verification.
+	 * @return void
 	 */
-	public static function set_direct_registration( $value ) {
+	public static function set_direct_registration( bool $value ): void {
 		self::$direct_registration = (bool) $value;
 	}
 
@@ -153,8 +158,9 @@ class NBUF_Hooks {
 	 * to prevent the profile_update hook from triggering re-verification.
 	 *
 	 * @param bool $value True if applying pending email.
+	 * @return void
 	 */
-	public static function set_applying_pending_email( $value ) {
+	public static function set_applying_pending_email( bool $value ): void {
 		self::$applying_pending_email = (bool) $value;
 	}
 
@@ -164,8 +170,9 @@ class NBUF_Hooks {
 	 * Called by NBUF_Registration to prevent duplicate emails from hook.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function mark_verification_sent( $user_id ) {
+	public static function mark_verification_sent( int $user_id ): void {
 		if ( ! in_array( $user_id, self::$verification_sent_to, true ) ) {
 			self::$verification_sent_to[] = $user_id;
 		}
@@ -178,9 +185,10 @@ class NBUF_Hooks {
 	 * Never sends emails for admin-created users.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function trigger_verification_email( $user_id ) {
-		if ( empty( $user_id ) || ! is_numeric( $user_id ) ) {
+	public static function trigger_verification_email( int $user_id ): void {
+		if ( $user_id <= 0 ) {
 			return;
 		}
 
@@ -263,8 +271,9 @@ class NBUF_Hooks {
 	 *
 	 * @param int    $user_id       User ID.
 	 * @param object $old_user_data Old user data object.
+	 * @return void
 	 */
-	public static function handle_email_change( $user_id, $old_user_data ) {
+	public static function handle_email_change( int $user_id, object $old_user_data ): void {
 		/*
 		 * Skip if a pending email is being applied.
 		 * The email was already verified through the pending email flow.
@@ -401,7 +410,13 @@ class NBUF_Hooks {
 				 * Append 'GMT' to ensure strtotime() interprets correctly regardless of
 				 * server timezone settings.
 				 */
-				$flagged_timestamp   = strtotime( $weak_password_flagged . ' GMT' );
+				$flagged_timestamp = strtotime( $weak_password_flagged . ' GMT' );
+
+				/* If strtotime fails, skip the grace period check to avoid false positives */
+				if ( false === $flagged_timestamp ) {
+					return $user;
+				}
+
 				$grace_end_timestamp = $flagged_timestamp + ( $grace_period_days * DAY_IN_SECONDS );
 
 				if ( time() > $grace_end_timestamp ) {
@@ -428,12 +443,12 @@ class NBUF_Hooks {
 	 * replaces it with our custom template. Also replaces the
 	 * password reset link with our custom page URL.
 	 *
-	 * @param  array   $wp_new_user_notification_email Email notification array.
-	 * @param  WP_User $user                           User object.
-	 * @param  string  $blogname                       Blog name.
-	 * @return array Modified email notification array.
+	 * @param  array<string, mixed> $wp_new_user_notification_email Email notification array.
+	 * @param  WP_User              $user                           User object.
+	 * @param  string               $blogname                       Blog name.
+	 * @return array<string, mixed> Modified email notification array.
 	 */
-	public static function customize_welcome_email( $wp_new_user_notification_email, $user, $blogname ) {
+	public static function customize_welcome_email( array $wp_new_user_notification_email, WP_User $user, string $blogname ): array {
 		/* Get custom templates */
 		$html_template = NBUF_Options::get( 'nbuf_welcome_email_html', '' );
 		$text_template = NBUF_Options::get( 'nbuf_welcome_email_text', '' );
@@ -512,8 +527,9 @@ class NBUF_Hooks {
 	 * registers, if the setting is enabled.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function maybe_notify_admin_registration( $user_id ) {
+	public static function maybe_notify_admin_registration( int $user_id ): void {
 		/* Check if admin notification is enabled */
 		$notify_enabled = NBUF_Options::get( 'nbuf_notify_admin_registration', false );
 		if ( ! $notify_enabled ) {
@@ -564,8 +580,10 @@ class NBUF_Hooks {
 	 *
 	 * Redirects default WordPress login/registration/logout
 	 * pages to custom NoBloat pages when enabled.
+	 *
+	 * @return void
 	 */
-	public static function handle_default_wordpress_redirects() {
+	public static function handle_default_wordpress_redirects(): void {
 		/* Only run on wp-login.php */
 		if ( ! isset( $GLOBALS['pagenow'] ) || 'wp-login.php' !== $GLOBALS['pagenow'] ) {
 			return;
@@ -720,11 +738,12 @@ class NBUF_Hooks {
 	 * Checks password strength when user changes password in their profile.
 	 * Hooks into user_profile_update_errors action.
 	 *
-	 * @param WP_Error $errors WP_Error object for validation errors.
-	 * @param bool     $update Whether this is a user update.
-	 * @param WP_User  $user   User object being updated.
+	 * @param WP_Error         $errors WP_Error object for validation errors.
+	 * @param bool             $update Whether this is a user update.
+	 * @param WP_User|stdClass $user   User object being updated.
+	 * @return void
 	 */
-	public static function validate_profile_password( $errors, $update, $user ) {
+	public static function validate_profile_password( WP_Error $errors, bool $update, $user ): void {
 		if ( ! NBUF_Password_Validator::should_enforce( 'profile_change' ) ) {
 			return;
 		}
@@ -809,8 +828,9 @@ class NBUF_Hooks {
 	 *
 	 * @param WP_Error $errors WP_Error object.
 	 * @param WP_User  $user   User object.
+	 * @return void
 	 */
-	public static function validate_reset_password( $errors, $user ) {
+	public static function validate_reset_password( WP_Error $errors, WP_User $user ): void {
 		if ( ! NBUF_Password_Validator::should_enforce( 'reset' ) ) {
 			return;
 		}
@@ -866,8 +886,9 @@ class NBUF_Hooks {
 	 * AJAX requests are allowed for frontend functionality.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function restrict_admin_access() {
+	public static function restrict_admin_access(): void {
 		/* Check if restriction is enabled */
 		$restrict_enabled = NBUF_Options::get( 'nbuf_restrict_admin_access', false );
 		if ( ! $restrict_enabled ) {

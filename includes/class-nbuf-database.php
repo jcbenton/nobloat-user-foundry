@@ -40,13 +40,13 @@ class NBUF_Database {
 	private static $table_name;
 
 	/**
-	==========================================================
-	INIT
-	----------------------------------------------------------
-	Ensure the table name is initialized with the WP prefix.
-	==========================================================
+	 * Initialize database.
+	 *
+	 * Ensure the table name is initialized with the WP prefix.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		global $wpdb;
 		self::$table_name = $wpdb->prefix . 'nbuf_tokens';
 	}
@@ -85,13 +85,13 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE TABLE
-	----------------------------------------------------------
-	Runs on activation to ensure schema exists.
-	==========================================================
+	 * Create tokens table.
+	 *
+	 * Runs on activation to ensure schema exists.
+	 *
+	 * @return void
 	 */
-	public static function create_table() {
+	public static function create_table(): void {
 		global $wpdb;
 		self::init();
 
@@ -121,13 +121,13 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER DATA TABLE
-	----------------------------------------------------------
-	Creates table for user verification and expiration data.
-	==========================================================
+	 * Create user data table.
+	 *
+	 * Creates table for user verification and expiration data.
+	 *
+	 * @return void
 	 */
-	public static function create_user_data_table() {
+	public static function create_user_data_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_data';
@@ -163,15 +163,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE OPTIONS TABLE
-	----------------------------------------------------------
-	Creates custom options table to isolate plugin settings
-	from WordPress wp_options table. Only loads when plugin
-	is actively being used, reducing bloat on other pages.
-	==========================================================
+	 * Create options table.
+	 *
+	 * Creates custom options table to isolate plugin settings
+	 * from WordPress wp_options table. Only loads when plugin
+	 * is actively being used, reducing bloat on other pages.
+	 *
+	 * @return void
 	 */
-	public static function create_options_table() {
+	public static function create_options_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_options';
@@ -193,15 +193,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER PROFILE TABLE
-	----------------------------------------------------------
-	Creates table for extended user profile fields (phone,
-	company, address, etc.). Separate from user_data which
-	handles verification and expiration.
-	==========================================================
+	 * Create user profile table.
+	 *
+	 * Creates table for extended user profile fields (phone,
+	 * company, address, etc.). Separate from user_data which
+	 * handles verification and expiration.
+	 *
+	 * @return void
 	 */
-	public static function create_user_profile_table() {
+	public static function create_user_profile_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_profile';
@@ -299,14 +299,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE LOGIN ATTEMPTS TABLE
-	----------------------------------------------------------
-	Creates table to track failed login attempts for rate
-	limiting and account protection.
-	==========================================================
+	 * Create login attempts table.
+	 *
+	 * Creates table to track failed login attempts for rate
+	 * limiting and account protection.
+	 *
+	 * @return void
 	 */
-	public static function create_login_attempts_table() {
+	public static function create_login_attempts_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_login_attempts';
@@ -330,14 +330,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER 2FA TABLE
-	----------------------------------------------------------
-	Creates table for two-factor authentication data.
-	Replaces wp_usermeta storage to eliminate bloat.
-	==========================================================
+	 * Create user 2FA table.
+	 *
+	 * Creates table for two-factor authentication data.
+	 * Replaces wp_usermeta storage to eliminate bloat.
+	 *
+	 * @return void
 	 */
-	public static function create_user_2fa_table() {
+	public static function create_user_2fa_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_2fa';
@@ -366,15 +366,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER PASSKEYS TABLE
-	----------------------------------------------------------
-	Creates table for storing WebAuthn passkey credentials.
-	Enables passwordless authentication via biometrics or
-	security keys. Stores COSE public keys and credential IDs.
-	==========================================================
+	 * Create user passkeys table.
+	 *
+	 * Creates table for storing WebAuthn passkey credentials.
+	 * Enables passwordless authentication via biometrics or
+	 * security keys. Stores COSE public keys and credential IDs.
+	 *
+	 * @return void
 	 */
-	public static function create_user_passkeys_table() {
+	public static function create_user_passkeys_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_passkeys';
@@ -402,15 +402,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER AUDIT LOG TABLE
-	----------------------------------------------------------
-	Creates table for tracking user activity and security events.
-	Tracks authentication, verification, password changes, 2FA,
-	and other user-centric actions.
-	==========================================================
+	 * Create user audit log table.
+	 *
+	 * Creates table for tracking user activity and security events.
+	 * Tracks authentication, verification, password changes, 2FA,
+	 * and other user-centric actions.
+	 *
+	 * @return void
 	 */
-	public static function create_user_audit_log_table() {
+	public static function create_user_audit_log_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_audit_log';
@@ -445,14 +445,15 @@ class NBUF_Database {
 	}
 
 	/**
-	 * Create admin audit log table
+	 * Create admin audit log table.
 	 *
 	 * Separate table for admin actions on users and system settings.
 	 * GDPR: Different purpose and retention policy from user-initiated actions.
 	 *
 	 * @since 1.4.0
+	 * @return void
 	 */
-	public static function create_admin_audit_log_table() {
+	public static function create_admin_audit_log_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -631,20 +632,20 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CLEANUP EXPIRED
-	----------------------------------------------------------
-	Deletes expired or verified tokens (excluding test entries).
-	==========================================================
+	 * Cleanup expired tokens.
+	 *
+	 * Deletes expired or verified tokens (excluding test entries).
+	 *
+	 * @return void
 	 */
-	public static function cleanup_expired() {
+	public static function cleanup_expired(): void {
 		global $wpdb;
 		self::init();
 
 		$now = gmdate( 'Y-m-d H:i:s' );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
-		return (bool) $wpdb->query(
+		$wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE (expires_at < %s OR verified = 1) AND is_test = 0',
 				$wpdb->prefix . 'nbuf_tokens',
@@ -701,15 +702,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER NOTES TABLE
-	----------------------------------------------------------
-	Creates table for storing admin notes about users.
-	Allows admins to track important information, support
-	history, or other relevant details about each user.
-	==========================================================
+	 * Create user notes table.
+	 *
+	 * Creates table for storing admin notes about users.
+	 * Allows admins to track important information, support
+	 * history, or other relevant details about each user.
+	 *
+	 * @return void
 	 */
-	public static function create_user_notes_table() {
+	public static function create_user_notes_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_notes';
@@ -734,15 +735,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE IMPORT HISTORY TABLE
-	----------------------------------------------------------
-	Creates table for tracking migration/import history from
-	other plugins. Stores import statistics, errors, and
-	allows rollback functionality.
-	==========================================================
+	 * Create import history table.
+	 *
+	 * Creates table for tracking migration/import history from
+	 * other plugins. Stores import statistics, errors, and
+	 * allows rollback functionality.
+	 *
+	 * @return void
 	 */
-	public static function create_import_history_table() {
+	public static function create_import_history_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_import_history';
@@ -769,15 +770,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE MENU RESTRICTIONS TABLE
-	----------------------------------------------------------
-	Creates table for storing menu item visibility restrictions.
-	Controls which menu items are visible based on login status
-	and user roles.
-	==========================================================
+	 * Create menu restrictions table.
+	 *
+	 * Creates table for storing menu item visibility restrictions.
+	 * Controls which menu items are visible based on login status
+	 * and user roles.
+	 *
+	 * @return void
 	 */
-	public static function create_menu_restrictions_table() {
+	public static function create_menu_restrictions_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_menu_restrictions';
@@ -798,15 +799,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE CONTENT RESTRICTIONS TABLE
-	----------------------------------------------------------
-	Creates table for storing post/page access restrictions.
-	Controls who can view content and what happens when access
-	is denied (message, redirect, or 404).
-	==========================================================
+	 * Create content restrictions table.
+	 *
+	 * Creates table for storing post/page access restrictions.
+	 * Controls who can view content and what happens when access
+	 * is denied (message, redirect, or 404).
+	 *
+	 * @return void
 	 */
-	public static function create_content_restrictions_table() {
+	public static function create_content_restrictions_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_content_restrictions';
@@ -833,14 +834,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE USER ROLES TABLE
-	----------------------------------------------------------
-	Creates table for custom user roles with caching support.
-	Lightweight alternative to options table bloat.
-	==========================================================
+	 * Create user roles table.
+	 *
+	 * Creates table for custom user roles with caching support.
+	 * Lightweight alternative to options table bloat.
+	 *
+	 * @return void
 	 */
-	public static function create_user_roles_table() {
+	public static function create_user_roles_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_roles';
@@ -866,15 +867,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	UPDATE USER DATA TABLE FOR PRIVACY
-	----------------------------------------------------------
-	Adds privacy control columns to user_data table for
-	member directory and profile visibility features.
-	Adds: profile_privacy, show_in_directory, privacy_settings
-	==========================================================
+	 * Update user data table for privacy.
+	 *
+	 * Adds privacy control columns to user_data table for
+	 * member directory and profile visibility features.
+	 * Adds: profile_privacy, show_in_directory, privacy_settings
+	 *
+	 * @return void
 	 */
-	public static function update_user_data_table_for_privacy() {
+	public static function update_user_data_table_for_privacy(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
@@ -913,17 +914,17 @@ class NBUF_Database {
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_directory (show_in_directory, profile_privacy)', $table_name ) );
 			}
 		}
-
-		return true;
 	}
 
 	/**
-	 * Update user_data table for profile/cover photos
+	 * Update user_data table for profile/cover photos.
 	 *
 	 * Adds columns for profile photo, cover photo, and Gravatar preference.
 	 * Safe to run multiple times (only adds columns if they don't exist).
+	 *
+	 * @return void
 	 */
-	public static function update_user_data_table_for_photos() {
+	public static function update_user_data_table_for_photos(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
@@ -953,26 +954,18 @@ class NBUF_Database {
 		if ( ! self::column_exists( $table_name, 'use_gravatar' ) ) {
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN use_gravatar TINYINT(1) DEFAULT 0 AFTER cover_photo_path', $table_name ) );
 		}
-
-		return true;
 	}
 
 	/**
-	==========================================================
-	CREATE PROFILE VERSIONS TABLE
-	----------------------------------------------------------
-	Creates table for tracking profile change history.
-	Stores complete snapshots of user profiles over time
-	with metadata about who changed what and when.
-		Used for:
-	- Version history timeline
-	- Diff viewing (before/after comparison)
-	- Audit trail
-	- Revert capability
-	- GDPR compliance (export/erasure)
-	==========================================================
+	 * Create profile versions table.
+	 *
+	 * Creates table for tracking profile change history.
+	 * Stores complete snapshots of user profiles over time
+	 * with metadata about who changed what and when.
+	 *
+	 * @return void
 	 */
-	public static function create_profile_versions_table() {
+	public static function create_profile_versions_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_profile_versions';
@@ -1007,8 +1000,10 @@ class NBUF_Database {
 	 * - force_password_change: Flag for admin-forced password changes
 	 *
 	 * Safe to run multiple times (only adds columns if they don't exist).
+	 *
+	 * @return void
 	 */
-	public static function update_user_data_table_for_password_expiration() {
+	public static function update_user_data_table_for_password_expiration(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
@@ -1029,8 +1024,6 @@ class NBUF_Database {
 		if ( empty( $indexes ) ) {
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_password_expiration (password_expires_at, force_password_change)', $table_name ) );
 		}
-
-		return true;
 	}
 
 	/**
@@ -1045,8 +1038,10 @@ class NBUF_Database {
 	 * - Tertiary: tertiary_email (nbuf_user_profile) - NEW
 	 *
 	 * Safe to run multiple times (only adds column if it doesn't exist).
+	 *
+	 * @return void
 	 */
-	public static function update_user_profile_table_for_account_merging() {
+	public static function update_user_profile_table_for_account_merging(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_profile';
 
@@ -1056,8 +1051,6 @@ class NBUF_Database {
 		if ( ! self::column_exists( $table_name, 'tertiary_email' ) ) {
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN tertiary_email VARCHAR(255) DEFAULT NULL AFTER secondary_email', $table_name ) );
 		}
-
-		return true;
 	}
 
 	/**
@@ -1067,8 +1060,10 @@ class NBUF_Database {
 	 * Enables member directory sorting by last login and admin visibility.
 	 *
 	 * Safe to run multiple times (only adds column if it doesn't exist).
+	 *
+	 * @return void
 	 */
-	public static function update_user_data_table_for_last_login() {
+	public static function update_user_data_table_for_last_login(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
@@ -1082,8 +1077,6 @@ class NBUF_Database {
 		if ( empty( $indexes ) ) {
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD INDEX idx_last_login (last_login_at)', $table_name ) );
 		}
-
-		return true;
 	}
 
 	/**
@@ -1247,14 +1240,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	MIGRATE TOKENS TABLE TYPE COLUMN
-	----------------------------------------------------------
-	Adds type column to tokens table to support different
-	token types (verification, magic_link, etc.).
-	==========================================================
+	 * Migrate tokens table type column.
+	 *
+	 * Adds type column to tokens table to support different
+	 * token types (verification, magic_link, etc.).
+	 *
+	 * @return bool True on success or already migrated.
 	 */
-	public static function migrate_tokens_type_column() {
+	public static function migrate_tokens_type_column(): bool {
 		global $wpdb;
 		self::init();
 
@@ -1286,15 +1279,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE WEBHOOKS TABLE
-	----------------------------------------------------------
-	Creates table for storing webhook configurations.
-	Enables sending HTTP POST notifications to external
-	services when user events occur.
-	==========================================================
+	 * Create webhooks table.
+	 *
+	 * Creates table for storing webhook configurations.
+	 * Enables sending HTTP POST notifications to external
+	 * services when user events occur.
+	 *
+	 * @return void
 	 */
-	public static function create_webhooks_table() {
+	public static function create_webhooks_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_webhooks';
@@ -1322,14 +1315,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE WEBHOOK LOG TABLE
-	----------------------------------------------------------
-	Creates table for logging webhook delivery attempts.
-	Useful for debugging and monitoring webhook reliability.
-	==========================================================
+	 * Create webhook log table.
+	 *
+	 * Creates table for logging webhook delivery attempts.
+	 * Useful for debugging and monitoring webhook reliability.
+	 *
+	 * @return void
 	 */
-	public static function create_webhook_log_table() {
+	public static function create_webhook_log_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_webhook_log';
@@ -1356,14 +1349,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE TOS VERSIONS TABLE
-	----------------------------------------------------------
-	Creates table for storing Terms of Service version history.
-	Supports multiple versions with effective dates for compliance.
-	==========================================================
+	 * Create ToS versions table.
+	 *
+	 * Creates table for storing Terms of Service version history.
+	 * Supports multiple versions with effective dates for compliance.
+	 *
+	 * @return void
 	 */
-	public static function create_tos_versions_table() {
+	public static function create_tos_versions_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_tos_versions';
@@ -1390,14 +1383,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	CREATE TOS ACCEPTANCES TABLE
-	----------------------------------------------------------
-	Creates table for tracking user ToS acceptances.
-	Records which version each user accepted and when.
-	==========================================================
+	 * Create ToS acceptances table.
+	 *
+	 * Creates table for tracking user ToS acceptances.
+	 * Records which version each user accepted and when.
+	 *
+	 * @return void
 	 */
-	public static function create_tos_acceptances_table() {
+	public static function create_tos_acceptances_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_tos_acceptances';
@@ -1422,31 +1415,27 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	GET TABLE NAME
-	----------------------------------------------------------
-	Helper method to get full table name with WordPress prefix.
+	 * Get table name with WordPress prefix.
 	 *
-		@param  string $table Short table name (e.g., 'user_data').
-	@return string Full table name with prefix.
-	==========================================================
+	 * Helper method to get full table name with WordPress prefix.
+	 *
+	 * @param string $table Short table name (e.g., 'user_data').
+	 * @return string Full table name with prefix.
 	 */
-	public static function get_table_name( $table ) {
+	public static function get_table_name( string $table ): string {
 		global $wpdb;
 		return $wpdb->prefix . 'nbuf_' . $table;
 	}
 
 	/**
-	==========================================================
-	GET EXPECTED TABLES
-	----------------------------------------------------------
-	Returns table names that SHOULD exist (for repair/validation).
-	Used to identify missing tables that need to be created.
+	 * Get expected tables.
 	 *
-		@return array Associative array of table_key => full_table_name.
-	==========================================================
+	 * Returns table names that SHOULD exist (for repair/validation).
+	 * Used to identify missing tables that need to be created.
+	 *
+	 * @return array<string, string> Associative array of table_key => full_table_name.
 	 */
-	public static function get_expected_tables() {
+	public static function get_expected_tables(): array {
 		global $wpdb;
 
 		return array(
@@ -1474,16 +1463,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	GET ALL TABLES (DATABASE INTROSPECTION)
-	----------------------------------------------------------
-	Discovers all nbuf_ tables that actually exist in database.
-	Compares against expected tables to provide complete picture.
+	 * Get all tables (database introspection).
 	 *
-		@return array Array with 'expected', 'existing', 'missing', 'unexpected' keys.
-	==========================================================
+	 * Discovers all nbuf_ tables that actually exist in database.
+	 * Compares against expected tables to provide complete picture.
+	 *
+	 * @return array{expected: array<string, string>, existing: array<string, string>, missing: array<string, string>, unexpected: array<string, string>, all: array<string, string>} Array with 'expected', 'existing', 'missing', 'unexpected', 'all' keys.
 	 */
-	public static function get_all_tables() {
+	public static function get_all_tables(): array {
 		global $wpdb;
 
 		$expected_tables = self::get_expected_tables();
@@ -1533,15 +1520,15 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	REPAIR ALL TABLES
-	----------------------------------------------------------
-	Creates all missing database tables.
-	Safe to run multiple times (uses CREATE TABLE IF NOT EXISTS).
-	Called by diagnostics repair button.
-	==========================================================
+	 * Repair all tables.
+	 *
+	 * Creates all missing database tables.
+	 * Safe to run multiple times (uses CREATE TABLE IF NOT EXISTS).
+	 * Called by diagnostics repair button.
+	 *
+	 * @return void
 	 */
-	public static function repair_all_tables() {
+	public static function repair_all_tables(): void {
 		/* Create all core tables */
 		self::create_table();
 		self::create_user_data_table();

@@ -25,21 +25,21 @@ class NBUF_Change_Notifications {
 	/**
 	 * Original user data (before changes).
 	 *
-	 * @var array
+	 * @var array<int, array<string, mixed>>
 	 */
 	private $original_data = array();
 
 	/**
 	 * Pending changes (for digest mode).
 	 *
-	 * @var array
+	 * @var array<int, array<string, mixed>>
 	 */
 	private static $pending_changes = array();
 
 	/**
 	 * Pending frontend updates (skip profile_update hook).
 	 *
-	 * @var array
+	 * @var array<int, bool>
 	 */
 	private $pending_frontend_updates = array();
 
@@ -50,8 +50,9 @@ class NBUF_Change_Notifications {
 	 * any pending digests can still be sent.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function register_cron_handlers() {
+	public static function register_cron_handlers(): void {
 		add_action( 'nbuf_send_change_digest_hourly', array( __CLASS__, 'static_send_hourly_digest' ) );
 		add_action( 'nbuf_send_change_digest_daily', array( __CLASS__, 'static_send_daily_digest' ) );
 	}
@@ -60,8 +61,9 @@ class NBUF_Change_Notifications {
 	 * Static wrapper for hourly digest (called by cron).
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function static_send_hourly_digest() {
+	public static function static_send_hourly_digest(): void {
 		$instance = new self();
 		$instance->send_hourly_digest();
 	}
@@ -70,8 +72,9 @@ class NBUF_Change_Notifications {
 	 * Static wrapper for daily digest (called by cron).
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function static_send_daily_digest() {
+	public static function static_send_daily_digest(): void {
 		$instance = new self();
 		$instance->send_daily_digest();
 	}
@@ -106,8 +109,10 @@ class NBUF_Change_Notifications {
 
 	/**
 	 * Schedule digest cron events based on notification timing setting
+	 *
+	 * @return void
 	 */
-	private function schedule_digest_cron() {
+	private function schedule_digest_cron(): void {
 		$digest_mode = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
 		$hourly_scheduled = wp_next_scheduled( 'nbuf_send_change_digest_hourly' );
@@ -137,8 +142,10 @@ class NBUF_Change_Notifications {
 
 	/**
 	 * Unschedule all digest cron events
+	 *
+	 * @return void
 	 */
-	public static function unschedule_digests() {
+	public static function unschedule_digests(): void {
 		$hourly_scheduled = wp_next_scheduled( 'nbuf_send_change_digest_hourly' );
 		$daily_scheduled  = wp_next_scheduled( 'nbuf_send_change_digest_daily' );
 
@@ -153,9 +160,10 @@ class NBUF_Change_Notifications {
 	/**
 	 * Store original user data before update
 	 *
-	 * @param int $user_id User ID..
+	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function store_original_data( $user_id ) {
+	public function store_original_data( int $user_id ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -203,8 +211,9 @@ class NBUF_Change_Notifications {
 	 *
 	 * @param int    $user_id       User ID.
 	 * @param object $old_user_data Old user object.
+	 * @return void
 	 */
-	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
+	public function track_profile_update( int $user_id, object $old_user_data ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
 		/* Skip if this is a frontend update - nbuf_after_profile_update will handle it */
 		if ( isset( $this->pending_frontend_updates[ $user_id ] ) ) {
 			return;
@@ -312,8 +321,9 @@ class NBUF_Change_Notifications {
 	 * Called via nbuf_after_profile_update hook after NBUF custom tables are updated.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function track_frontend_profile_update( $user_id ) {
+	public function track_frontend_profile_update( int $user_id ): void {
 		/* Clear the pending flag */
 		if ( isset( $this->pending_frontend_updates[ $user_id ] ) ) {
 			unset( $this->pending_frontend_updates[ $user_id ] );
@@ -427,8 +437,9 @@ class NBUF_Change_Notifications {
 	 * @param int    $user_id    User ID.
 	 * @param string $meta_key   Meta key.
 	 * @param mixed  $meta_value Meta value.
+	 * @return void
 	 */
-	public function track_meta_update( $meta_id, $user_id, $meta_key, $meta_value ) {
+	public function track_meta_update( int $meta_id, int $user_id, string $meta_key, $meta_value ): void {
 		/* Track 2FA changes. */
 		if ( 'nbuf_2fa_enabled' === $meta_key ) {
 			$old_value = get_user_meta( $user_id, 'nbuf_2fa_enabled', true );
@@ -462,10 +473,11 @@ class NBUF_Change_Notifications {
 	/**
 	 * Queue notification for sending
 	 *
-	 * @param int   $user_id User ID.
-	 * @param array $changes Array of changes.
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $changes Array of changes.
+	 * @return void
 	 */
-	private function queue_notification( $user_id, $changes ) {
+	private function queue_notification( int $user_id, array $changes ): void {
 		$digest_mode = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
 		if ( 'immediate' === $digest_mode ) {
@@ -502,10 +514,11 @@ class NBUF_Change_Notifications {
 	/**
 	 * Send notification email
 	 *
-	 * @param int   $user_id User ID.
-	 * @param array $changes Array of changes.
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $changes Array of changes.
+	 * @return void
 	 */
-	private function send_notification( $user_id, $changes ) {
+	private function send_notification( int $user_id, array $changes ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -530,11 +543,11 @@ class NBUF_Change_Notifications {
 	/**
 	 * Build notification email content
 	 *
-	 * @param  WP_User $user    User object.
-	 * @param  array   $changes Array of changes.
+	 * @param  WP_User              $user    User object.
+	 * @param  array<string, mixed> $changes Array of changes.
 	 * @return string Email message.
 	 */
-	private function build_notification_email( $user, $changes ) {
+	private function build_notification_email( WP_User $user, array $changes ): string {
 		$message  = sprintf( "Profile changes detected for user: %s (%s)\n\n", $user->display_name, $user->user_login );
 		$message .= sprintf( "User ID: %d\n", $user->ID );
 		$message .= sprintf( "Email: %s\n", $user->user_email );
@@ -609,9 +622,9 @@ class NBUF_Change_Notifications {
 	/**
 	 * Get monitored fields
 	 *
-	 * @return array Field keys to monitor.
+	 * @return array<int, string> Field keys to monitor.
 	 */
-	private function get_monitored_fields() {
+	private function get_monitored_fields(): array {
 		$default_fields = array( 'user_email', 'display_name' );
 		$fields         = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', $default_fields );
 
@@ -625,9 +638,9 @@ class NBUF_Change_Notifications {
 	/**
 	 * Get notification recipients
 	 *
-	 * @return array Email addresses.
+	 * @return array<int, string> Email addresses.
 	 */
-	private function get_notification_recipients() {
+	private function get_notification_recipients(): array {
 		$recipients = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
 
 		if ( is_string( $recipients ) ) {
@@ -643,15 +656,19 @@ class NBUF_Change_Notifications {
 
 	/**
 	 * Send hourly digest
+	 *
+	 * @return void
 	 */
-	public function send_hourly_digest() {
+	public function send_hourly_digest(): void {
 		$this->send_digest( 'hourly' );
 	}
 
 	/**
 	 * Send daily digest
+	 *
+	 * @return void
 	 */
-	public function send_daily_digest() {
+	public function send_daily_digest(): void {
 		$this->send_digest( 'daily' );
 	}
 
@@ -659,8 +676,9 @@ class NBUF_Change_Notifications {
 	 * Send digest email
 	 *
 	 * @param string $frequency Digest frequency (hourly, daily).
+	 * @return void
 	 */
-	private function send_digest( $frequency ) {
+	private function send_digest( string $frequency ): void {
 		$transient_key = 'nbuf_pending_changes_' . $frequency;
 		$pending       = get_transient( $transient_key );
 
@@ -690,11 +708,11 @@ class NBUF_Change_Notifications {
 	/**
 	 * Build digest email content
 	 *
-	 * @param  array  $pending   Pending changes.
-	 * @param  string $frequency Digest frequency.
+	 * @param  array<int, array<int, array<string, mixed>>> $pending   Pending changes.
+	 * @param  string                                       $frequency Digest frequency.
 	 * @return string Email message.
 	 */
-	private function build_digest_email( $pending, $frequency ) {
+	private function build_digest_email( array $pending, string $frequency ): string {
 		$message  = sprintf( "Profile Changes Digest - %s\n", ucfirst( $frequency ) );
 		$message .= sprintf( "Generated: %s\n\n", current_time( 'mysql', true ) );
 		$message .= str_repeat( '=', 70 ) . "\n\n";

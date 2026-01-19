@@ -24,8 +24,10 @@ class NBUF_Restriction_Widget extends NBUF_Abstract_Restriction {
 
 	/**
 	 * Initialize widget restrictions
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook into widget display */
 		add_filter( 'widget_display_callback', array( __CLASS__, 'filter_widget_display' ), 10, 3 );
 
@@ -39,10 +41,10 @@ class NBUF_Restriction_Widget extends NBUF_Abstract_Restriction {
 	/**
 	 * Filter widget display based on restrictions
 	 *
-	 * @param  array     $instance Widget instance.
-	 * @param  WP_Widget $widget   Widget object.
-	 * @param  array     $args     Widget arguments.
-	 * @return array|false Widget instance or false to hide.
+	 * @param  array<string, mixed>            $instance Widget instance.
+	 * @param  WP_Widget<array<string, mixed>> $widget   Widget object.
+	 * @param  array<string, mixed>            $args     Widget arguments.
+	 * @return array<string, mixed>|false Widget instance or false to hide.
 	 */
 	public static function filter_widget_display( $instance, $widget, $args ) {
 		/* Skip if no visibility setting */
@@ -77,9 +79,9 @@ class NBUF_Restriction_Widget extends NBUF_Abstract_Restriction {
 	/**
 	 * Add restriction fields to widget form
 	 *
-	 * @param  WP_Widget $widget   Widget object.
-	 * @param  null      $return   Return value (not used).
-	 * @param  array     $instance Widget instance.
+	 * @param  WP_Widget<array<string, mixed>> $widget   Widget object.
+	 * @param  null                            $return   Return value (not used).
+	 * @param  array<string, mixed>            $instance Widget instance.
 	 * @return null
 	 */
 	public static function add_widget_fields( $widget, $return, $instance ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase, Universal.NamingConventions.NoReservedKeywordParameterNames.returnFound -- $return parameter required by WordPress in_widget_form filter hook signature.
@@ -172,13 +174,13 @@ class NBUF_Restriction_Widget extends NBUF_Abstract_Restriction {
 	/**
 	 * Save widget restriction fields
 	 *
-	 * @param  array     $instance     Current widget instance.
-	 * @param  array     $new_instance New widget instance.
-	 * @param  array     $old_instance Old widget instance.
-	 * @param  WP_Widget $widget       Widget object.
-	 * @return array Updated widget instance.
+	 * @param  array<string, mixed>            $instance     Current widget instance.
+	 * @param  array<string, mixed>            $new_instance New widget instance.
+	 * @param  array<string, mixed>            $old_instance Old widget instance.
+	 * @param  WP_Widget<array<string, mixed>> $widget       Widget object.
+	 * @return array<string, mixed> Updated widget instance.
 	 */
-	public static function save_widget_fields( $instance, $new_instance, $old_instance, $widget ) {
+	public static function save_widget_fields( array $instance, array $new_instance, array $old_instance, $widget ): array {
 		/* Save visibility */
 		if ( isset( $new_instance['nbuf_visibility'] ) ) {
 			$instance['nbuf_visibility'] = self::sanitize_visibility( $new_instance['nbuf_visibility'] );

@@ -34,8 +34,10 @@ class NBUF_Admin_Users {
 	 *
 	 * Registers user table columns, bulk actions, and row links.
 	 * ONLY if user management system is enabled.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Check if user management system is enabled */
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 
@@ -94,8 +96,9 @@ class NBUF_Admin_Users {
 	 * Loads scripts for user profile edit pages.
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_user_profile_scripts( $hook ) {
+	public static function enqueue_user_profile_scripts( string $hook ): void {
 		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -149,10 +152,10 @@ class NBUF_Admin_Users {
 	/**
 	 * Add custom columns to users table.
 	 *
-	 * @param  array $columns Existing columns.
-	 * @return array Modified columns.
+	 * @param  array<string, string> $columns Existing columns.
+	 * @return array<string, string> Modified columns.
 	 */
-	public static function add_columns( $columns ) {
+	public static function add_columns( array $columns ): array {
 		/* Note: nbuf_enabled and nbuf_verified are now part of the Status column in NBUF_Admin_User_Search */
 		$columns['nbuf_expires'] = __( 'Expires', 'nobloat-user-foundry' );
 		$columns['nbuf_2fa']     = __( '2FA', 'nobloat-user-foundry' );
@@ -226,11 +229,11 @@ class NBUF_Admin_Users {
 	/**
 	 * Add resend verification link for unverified users.
 	 *
-	 * @param  array   $actions User row actions.
-	 * @param  WP_User $user    User object.
-	 * @return array Modified actions.
+	 * @param  array<string, string> $actions User row actions.
+	 * @param  WP_User               $user    User object.
+	 * @return array<string, string> Modified actions.
 	 */
-	public static function add_resend_link( $actions, $user ) {
+	public static function add_resend_link( array $actions, WP_User $user ): array {
 		/* Don't show for admins */
 		if ( user_can( $user, 'manage_options' ) ) {
 			return $actions;
@@ -359,10 +362,10 @@ class NBUF_Admin_Users {
 	/**
 	 * Register custom bulk actions.
 	 *
-	 * @param  array $bulk_actions Existing bulk actions.
-	 * @return array Modified bulk actions.
+	 * @param  array<string, string> $bulk_actions Existing bulk actions.
+	 * @return array<string, string> Modified bulk actions.
 	 */
-	public static function register_bulk_actions( $bulk_actions ) {
+	public static function register_bulk_actions( array $bulk_actions ): array {
 		$bulk_actions['nbuf_bulk_verify']                = __( 'Mark as Verified', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_unverify']              = __( 'Remove Verification', 'nobloat-user-foundry' );
 		$bulk_actions['nbuf_bulk_approve']               = __( 'Approve Users', 'nobloat-user-foundry' );
@@ -381,12 +384,12 @@ class NBUF_Admin_Users {
 	/**
 	 * Handle custom bulk actions.
 	 *
-	 * @param  string $redirect_to Redirect URL.
-	 * @param  string $action      Bulk action name.
-	 * @param  array  $user_ids    Array of user IDs.
+	 * @param  string     $redirect_to Redirect URL.
+	 * @param  string     $action      Bulk action name.
+	 * @param  array<int> $user_ids    Array of user IDs.
 	 * @return string Modified redirect URL.
 	 */
-	public static function handle_bulk_actions( $redirect_to, $action, $user_ids ) {
+	public static function handle_bulk_actions( string $redirect_to, string $action, array $user_ids ): string {
 		$count = 0;
 
 		/* Mark as Verified */
@@ -538,8 +541,9 @@ class NBUF_Admin_Users {
 	 * Clears all 2FA data for a user (complete reset).
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	private static function reset_user_2fa( $user_id ) {
+	private static function reset_user_2fa( int $user_id ): void {
 		/* Delete all 2FA data from custom table */
 		NBUF_User_2FA_Data::disable( $user_id );
 
@@ -553,8 +557,10 @@ class NBUF_Admin_Users {
 	 * Handle resend verification link.
 	 *
 	 * Resends a verification email for a specific user.
+	 *
+	 * @return void
 	 */
-	public static function handle_resend_verification() {
+	public static function handle_resend_verification(): void {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
 		if ( ! isset( $_GET['action'] ) || 'nbuf_resend' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
@@ -599,8 +605,10 @@ class NBUF_Admin_Users {
 	 * Handle manual verify action.
 	 *
 	 * Allows admin to manually verify a user without email verification.
+	 *
+	 * @return void
 	 */
-	public static function handle_manual_verify() {
+	public static function handle_manual_verify(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
 		if ( ! isset( $_GET['action'] ) || 'nbuf_manual_verify' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
@@ -632,8 +640,10 @@ class NBUF_Admin_Users {
 	 * Handle approve user action.
 	 *
 	 * Approves a user account that requires admin approval.
+	 *
+	 * @return void
 	 */
-	public static function handle_approve_user() {
+	public static function handle_approve_user(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
 		if ( ! isset( $_GET['action'] ) || 'nbuf_approve' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
@@ -665,8 +675,10 @@ class NBUF_Admin_Users {
 	 * Handle reject user action.
 	 *
 	 * Rejects a user account that requires admin approval.
+	 *
+	 * @return void
 	 */
-	public static function handle_reject_user() {
+	public static function handle_reject_user(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin action verification via capability check.
 		if ( ! isset( $_GET['action'] ) || 'nbuf_reject' !== wp_unslash( $_GET['action'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
@@ -698,8 +710,10 @@ class NBUF_Admin_Users {
 	 * Handle 2FA admin actions.
 	 *
 	 * Handles admin actions for managing user 2FA settings.
+	 *
+	 * @return void
 	 */
-	public static function handle_2fa_admin_actions() {
+	public static function handle_2fa_admin_actions(): void {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin 2FA action, capability checked.
 		if ( ! isset( $_GET['action'] ) || ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -800,8 +814,10 @@ class NBUF_Admin_Users {
 	----------------------------------------------------------
 	Adds count badges to the filters (e.g., "Verified (23)").
 	==========================================================
+	 *
+	 * @return void
 	 */
-	public static function add_user_count_filters() {
+	public static function add_user_count_filters(): void {
 		global $pagenow, $wpdb;
 		if ( 'users.php' !== $pagenow ) {
 			return;
@@ -882,8 +898,9 @@ class NBUF_Admin_Users {
 	 * Displays NoBloat user options in the user profile screen.
 	 *
 	 * @param WP_User $user The user object being edited.
+	 * @return void
 	 */
-	public static function render_profile_section( $user ) {
+	public static function render_profile_section( WP_User $user ): void {
 		/* Only admins can modify these settings */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -1522,8 +1539,9 @@ class NBUF_Admin_Users {
 	 * Saves the NoBloat user options from profile screen.
 	 *
 	 * @param int $user_id The ID of the user being saved.
+	 * @return void
 	 */
-	public static function save_profile_section( $user_id ) {
+	public static function save_profile_section( int $user_id ): void {
 		/* Only admins can modify these settings */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -1611,8 +1629,10 @@ class NBUF_Admin_Users {
 	----------------------------------------------------------
 	Adds verification checkbox to new user creation form.
 	==========================================================
+	 *
+	 * @return void
 	 */
-	public static function render_new_user_field() {
+	public static function render_new_user_field(): void {
 		/* Only show to admins */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -1643,8 +1663,9 @@ class NBUF_Admin_Users {
 	 * Prevents verification emails from being sent.
 	 *
 	 * @param int $user_id The ID of the newly created user.
+	 * @return void
 	 */
-	public static function handle_new_user_verification( $user_id ) {
+	public static function handle_new_user_verification( int $user_id ): void {
 		/* Only process if user created via admin panel */
 		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -1673,8 +1694,9 @@ class NBUF_Admin_Users {
 	 * Shows recent changes, diff viewer, and revert capabilities.
 	 *
 	 * @param WP_User $user The user object being edited.
+	 * @return void
 	 */
-	public static function render_version_history_metabox( $user ) {
+	public static function render_version_history_metabox( WP_User $user ): void {
 		/* Only admins can view version history */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -1703,8 +1725,10 @@ class NBUF_Admin_Users {
 	 *
 	 * Immediately sets the force password change flag for a user.
 	 * Requires admin capabilities and valid nonce.
+	 *
+	 * @return void
 	 */
-	public static function ajax_force_password_change() {
+	public static function ajax_force_password_change(): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'nbuf_force_password_change' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );

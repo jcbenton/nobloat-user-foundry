@@ -49,7 +49,7 @@ class NBUF_Sessions {
 	 *
 	 * @since  1.5.2
 	 * @param  int $user_id User ID.
-	 * @return array Array of session data.
+	 * @return array<int, array<string, mixed>> Array of session data.
 	 */
 	public static function get_user_sessions( int $user_id ): array {
 		/*
@@ -97,7 +97,7 @@ class NBUF_Sessions {
 	 *
 	 * @since  1.5.2
 	 * @param  string $ua User agent string.
-	 * @return array Device info.
+	 * @return array<string, string> Device info.
 	 */
 	public static function parse_user_agent( string $ua ): array {
 		$browser  = __( 'Unknown Browser', 'nobloat-user-foundry' );

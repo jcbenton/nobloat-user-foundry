@@ -27,8 +27,9 @@ class NBUF_Passkeys_Login {
 	 * Initialize passkeys login functionality.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( ! NBUF_Passkeys::is_enabled() ) {
 			return;
 		}
@@ -89,9 +90,9 @@ class NBUF_Passkeys_Login {
 	 * Get common localization data for JavaScript.
 	 *
 	 * @since  1.5.0
-	 * @return array Localization data.
+	 * @return array<string, mixed> Localization data.
 	 */
-	private static function get_localize_data() {
+	private static function get_localize_data(): array {
 		return array(
 			'ajaxUrl'         => admin_url( 'admin-ajax.php' ),
 			'redirectUrl'     => self::get_redirect_url(),
@@ -117,8 +118,9 @@ class NBUF_Passkeys_Login {
 	 * Enqueue login scripts for wp-login.php.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function enqueue_login_scripts() {
+	public static function enqueue_login_scripts(): void {
 		if ( ! NBUF_Passkeys::is_enabled() ) {
 			return;
 		}
@@ -151,8 +153,9 @@ class NBUF_Passkeys_Login {
 	 * Enqueue frontend scripts.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function enqueue_frontend_scripts() {
+	public static function enqueue_frontend_scripts(): void {
 		if ( ! NBUF_Passkeys::is_enabled() ) {
 			return;
 		}

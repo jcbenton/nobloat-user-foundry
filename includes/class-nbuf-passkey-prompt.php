@@ -70,8 +70,9 @@ class NBUF_Passkey_Prompt {
 	 * Initialize passkey prompt functionality.
 	 *
 	 * @since 1.5.1
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook after login completion */
 		add_action( 'wp_login', array( __CLASS__, 'maybe_trigger_prompt' ), 20, 2 );
 
@@ -711,7 +712,7 @@ class NBUF_Passkey_Prompt {
 	 *
 	 * @since  1.5.1
 	 * @param  int $user_id User ID.
-	 * @return array Array of device IDs.
+	 * @return array<int, string> Array of device IDs.
 	 */
 	private static function get_dismissed_devices( int $user_id ): array {
 		$dismissed = get_user_meta( $user_id, self::DISMISSED_META_KEY, true );

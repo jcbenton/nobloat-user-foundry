@@ -43,9 +43,9 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get columns
 	 *
-	 * @return array Columns array.
+	 * @return array<string, string> Columns array.
 	 */
-	public function get_columns() {
+	public function get_columns(): array {
 		return array(
 			'cb'              => '<input type="checkbox" />',
 			'created_at'      => __( 'Date/Time', 'nobloat-user-foundry' ),
@@ -61,9 +61,9 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get sortable columns
 	 *
-	 * @return array Sortable columns.
+	 * @return array<string, array{0: string, 1: bool}> Sortable columns.
 	 */
-	public function get_sortable_columns() {
+	public function get_sortable_columns(): array {
 		return array(
 			'created_at'      => array( 'created_at', true ),
 			'admin_username'  => array( 'admin_username', false ),
@@ -76,9 +76,9 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	/**
 	 * Get bulk actions
 	 *
-	 * @return array Bulk actions.
+	 * @return array<string, string> Bulk actions.
 	 */
-	public function get_bulk_actions() {
+	public function get_bulk_actions(): array {
 		return array(
 			'delete' => __( 'Delete', 'nobloat-user-foundry' ),
 		);
@@ -255,8 +255,10 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 
 	/**
 	 * Prepare items for display
+	 *
+	 * @return void
 	 */
-	public function prepare_items() {
+	public function prepare_items(): void {
 		/* Set columns */
 		$columns               = $this->get_columns();
 		$hidden                = array();
@@ -320,8 +322,10 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	 *
 	 * Note: Bulk delete is handled early in NBUF_Admin_Audit_Log_Page::handle_early_actions()
 	 * to avoid "headers already sent" errors. This method is kept for WP_List_Table compatibility.
+	 *
+	 * @return void
 	 */
-	public function process_bulk_action() {
+	public function process_bulk_action(): void {
 		/* Bulk actions are handled in admin_init by NBUF_Admin_Audit_Log_Page::handle_early_actions() */
 	}
 
@@ -329,8 +333,9 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	 * Display filter controls
 	 *
 	 * @param string $which Top or bottom table navigation.
+	 * @return void
 	 */
-	public function extra_tablenav( $which ) {
+	public function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
 			return;
 		}

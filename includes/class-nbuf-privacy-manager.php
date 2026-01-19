@@ -39,8 +39,10 @@ class NBUF_Privacy_Manager {
 
 	/**
 	 * Initialize privacy manager
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook into profile save */
 		add_action( 'nbuf_after_profile_update', array( __CLASS__, 'save_privacy_settings' ), 10, 2 );
 
@@ -223,10 +225,11 @@ class NBUF_Privacy_Manager {
 	/**
 	 * Save privacy settings
 	 *
-	 * @param int   $user_id User ID.
-	 * @param array $data    Form data.
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $data    Form data.
+	 * @return void
 	 */
-	public static function save_privacy_settings( $user_id, $data ) {
+	public static function save_privacy_settings( int $user_id, array $data ): void {
 		/* Check if users are allowed to adjust privacy settings */
 		$allow_user_control = NBUF_Options::get( 'nbuf_allow_user_privacy_control', false );
 		if ( ! $allow_user_control ) {
@@ -288,8 +291,9 @@ class NBUF_Privacy_Manager {
 	 * Render privacy settings section
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function render_privacy_section( $user_id ) {
+	public static function render_privacy_section( int $user_id ): void {
 		global $wpdb;
 		$table = NBUF_Database::get_table_name( 'user_data' );
 
@@ -434,8 +438,9 @@ class NBUF_Privacy_Manager {
 	 * Invalidate all privacy caches for a user
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function clear_user_cache( $user_id ) {
+	public static function clear_user_cache( int $user_id ): void {
 		wp_cache_delete( "nbuf_privacy_level_{$user_id}", 'nbuf_privacy' );
 		wp_cache_delete( "nbuf_directory_show_{$user_id}", 'nbuf_privacy' );
 		wp_cache_delete( "nbuf_privacy_settings_{$user_id}", 'nbuf_privacy' );

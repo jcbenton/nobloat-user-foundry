@@ -29,8 +29,10 @@ class NBUF_Config_Exporter {
 
 	/**
 	 * AJAX: Export configuration
+	 *
+	 * @return void
 	 */
-	public function ajax_export_config() {
+	public function ajax_export_config(): void {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -88,9 +90,9 @@ class NBUF_Config_Exporter {
 	 * Export all settings
 	 *
 	 * @param  bool $include_sensitive Include sensitive data.
-	 * @return array Settings organized by category.
+	 * @return array<string, array<string, mixed>> Settings organized by category.
 	 */
-	private function export_settings( $include_sensitive = false ) {
+	private function export_settings( bool $include_sensitive = false ): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_options';
@@ -175,9 +177,9 @@ class NBUF_Config_Exporter {
 	/**
 	 * Export templates (CSS and Email)
 	 *
-	 * @return array Templates.
+	 * @return array<string, array<string, string>> Templates.
 	 */
-	private function export_templates() {
+	private function export_templates(): array {
 		$templates = array(
 			'css'   => array(),
 			'email' => array(),
@@ -329,9 +331,9 @@ class NBUF_Config_Exporter {
 	/**
 	 * Get export statistics
 	 *
-	 * @return array Statistics.
+	 * @return array<string, mixed> Statistics.
 	 */
-	public function get_export_stats() {
+	public function get_export_stats(): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_options';

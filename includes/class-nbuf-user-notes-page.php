@@ -29,8 +29,9 @@ class NBUF_User_Notes_Page {
 	 * Initialize the class.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'add_menu_page' ), 17 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_nbuf_search_users', array( __CLASS__, 'ajax_search_users' ) );
@@ -44,8 +45,9 @@ class NBUF_User_Notes_Page {
 	 * Add user notes menu page.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function add_menu_page() {
+	public static function add_menu_page(): void {
 		add_submenu_page(
 			'nobloat-foundry',
 			__( 'User Notes', 'nobloat-user-foundry' ),
@@ -61,8 +63,9 @@ class NBUF_User_Notes_Page {
 	 *
 	 * @since 1.0.0
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( $hook ): void {
 		/* Only load on user notes page */
 		if ( 'nobloat-foundry_page_nobloat-foundry-notes' !== $hook ) {
 			return;
@@ -194,8 +197,9 @@ class NBUF_User_Notes_Page {
 	 * Render the user notes page.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function render_page() {
+	public static function render_page(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
 		}
@@ -250,8 +254,9 @@ class NBUF_User_Notes_Page {
 	 * AJAX: Search users.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function ajax_search_users() {
+	public static function ajax_search_users(): void {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -309,8 +314,9 @@ class NBUF_User_Notes_Page {
 	 * AJAX: Get user notes.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function ajax_get_user_notes() {
+	public static function ajax_get_user_notes(): void {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -360,8 +366,9 @@ class NBUF_User_Notes_Page {
 	 * AJAX: Add note.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function ajax_add_note() {
+	public static function ajax_add_note(): void {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -394,8 +401,9 @@ class NBUF_User_Notes_Page {
 	 * AJAX: Update note.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function ajax_update_note() {
+	public static function ajax_update_note(): void {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -422,8 +430,9 @@ class NBUF_User_Notes_Page {
 	 * AJAX: Delete note.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function ajax_delete_note() {
+	public static function ajax_delete_note(): void {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {

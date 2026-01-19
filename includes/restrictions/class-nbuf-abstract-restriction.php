@@ -27,12 +27,12 @@ abstract class NBUF_Abstract_Restriction {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string $visibility    Visibility setting: 'everyone', 'logged_in', 'logged_out', 'role_based'.
-	 * @param  array  $allowed_roles Array of allowed role slugs (only used if visibility = 'role_based').
-	 * @param  int    $user_id       Optional user ID (defaults to current user).
+	 * @param  string             $visibility    Visibility setting: 'everyone', 'logged_in', 'logged_out', 'role_based'.
+	 * @param  array<int, string> $allowed_roles Array of allowed role slugs (only used if visibility = 'role_based').
+	 * @param  int|null           $user_id       Optional user ID (defaults to current user).
 	 * @return bool True if user has access, false otherwise.
 	 */
-	protected static function check_access( $visibility, $allowed_roles = array(), $user_id = null ) {
+	protected static function check_access( $visibility, $allowed_roles = array(), $user_id = null ): bool {
 		/* Get user */
 		if ( null === $user_id ) {
 			$user = wp_get_current_user();
@@ -106,10 +106,10 @@ abstract class NBUF_Abstract_Restriction {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array $roles Raw roles array.
-	 * @return array Sanitized roles array containing only valid WordPress roles.
+	 * @param  array<int, string> $roles Raw roles array.
+	 * @return array<int, string> Sanitized roles array containing only valid WordPress roles.
 	 */
-	protected static function sanitize_roles( $roles ) {
+	protected static function sanitize_roles( $roles ): array {
 		if ( ! is_array( $roles ) ) {
 			return array();
 		}
@@ -150,6 +150,7 @@ abstract class NBUF_Abstract_Restriction {
 	 * specific to each restriction type (menu, content, taxonomy, etc.).
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	abstract public static function init();
+	abstract public static function init(): void;
 }

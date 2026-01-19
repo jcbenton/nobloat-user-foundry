@@ -26,8 +26,10 @@ class NBUF_Activator {
 	 *
 	 * Creates database tables, loads templates, sets defaults,
 	 * and creates required pages.
+	 *
+	 * @return void
 	 */
-	public static function run() {
+	public static function run(): void {
 		$debug_timing = defined( 'NBUF_DEBUG_ACTIVATION' ) && NBUF_DEBUG_ACTIVATION;
 		$timings      = array();
 		$start_time   = microtime( true );
@@ -638,8 +640,10 @@ class NBUF_Activator {
 	 *
 	 * Uses batch processing for performance - reduces thousands of individual
 	 * queries to just a handful of batch queries.
+	 *
+	 * @return void
 	 */
-	private static function verify_all_existing_users() {
+	private static function verify_all_existing_users(): void {
 		if ( ! class_exists( 'NBUF_User_Data' ) ) {
 			return;
 		}
@@ -664,8 +668,10 @@ class NBUF_Activator {
 	 *
 	 * Ensures all users get minified CSS even if they never customize styles.
 	 * Creates -live.css and -live.min.css files in assets/css/frontend/.
+	 *
+	 * @return void
 	 */
-	private static function create_live_css_files() {
+	private static function create_live_css_files(): void {
 		if ( ! class_exists( 'NBUF_CSS_Manager' ) ) {
 			return;
 		}
@@ -705,8 +711,10 @@ class NBUF_Activator {
 	 *
 	 * Creates the /wp-content/uploads/nobloat/ directory structure
 	 * for storing user photos and other plugin uploads.
+	 *
+	 * @return void
 	 */
-	private static function create_upload_directories() {
+	private static function create_upload_directories(): void {
 		$upload_dir = wp_upload_dir();
 
 		if ( ! empty( $upload_dir['error'] ) ) {
@@ -743,12 +751,13 @@ class NBUF_Activator {
 	 * slug options until one succeeds. Checks for existing pages to
 	 * prevent duplicates on reactivation.
 	 *
-	 * @param string $option_key Option key to store page ID.
-	 * @param string $title      Page title.
-	 * @param array  $slugs      Array of slug options to try.
-	 * @param string $content    Page content (shortcode).
+	 * @param string   $option_key Option key to store page ID.
+	 * @param string   $title      Page title.
+	 * @param string[] $slugs      Array of slug options to try.
+	 * @param string   $content    Page content (shortcode).
+	 * @return void
 	 */
-	private static function create_page( $option_key, $title, $slugs, $content ) {
+	private static function create_page( string $option_key, string $title, array $slugs, string $content ): void {
 		$user_id = get_current_user_id() ? get_current_user_id() : 1;
 
 		/* Extract shortcode name from content for verification */
@@ -791,15 +800,16 @@ class NBUF_Activator {
 	}
 
 	/**
-	 * Migrate options from wp_options to custom nbuf_options table
+	 * Migrate options from wp_options to custom nbuf_options table.
 	 *
 	 * Runs once during plugin activation/upgrade. Moves all plugin
 	 * options from WordPress wp_options table to custom table to
 	 * eliminate bloat on non-plugin pages.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	private static function migrate_to_custom_options() {
+	private static function migrate_to_custom_options(): void {
 		/* Check if migration already completed */
 		if ( NBUF_Options::get( 'nbuf_options_migrated' ) ) {
 			return;

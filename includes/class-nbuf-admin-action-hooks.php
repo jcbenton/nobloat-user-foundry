@@ -89,9 +89,9 @@ class NBUF_Admin_Action_Hooks {
 	 * Tier 1 - Critical
 	 * Logs when an admin changes a user's role.
 	 *
-	 * @param int    $user_id   User ID whose role is being changed.
-	 * @param string $role      New role being assigned.
-	 * @param array  $old_roles Previous roles.
+	 * @param int                $user_id   User ID whose role is being changed.
+	 * @param string             $role      New role being assigned.
+	 * @param array<int, string> $old_roles Previous roles.
 	 * @return void
 	 */
 	public static function log_role_change( $user_id, $role, $old_roles ) {
@@ -189,47 +189,45 @@ class NBUF_Admin_Action_Hooks {
 			return;
 		}
 
-		/* Detect changed fields */
+		/* Detect changed fields - comprehensive list of WP_User properties */
 		$changes = array();
 
-		/* Check email change */
-		if ( $old_user_data->user_email !== $new_user_data->user_email ) {
-			$changes['email'] = array(
-				'old' => $old_user_data->user_email,
-				'new' => $new_user_data->user_email,
-			);
-		}
+		/* Core user fields to track */
+		$tracked_fields = array(
+			'user_email'   => 'email',
+			'display_name' => 'display_name',
+			'first_name'   => 'first_name',
+			'last_name'    => 'last_name',
+			'user_url'     => 'website',
+			'nickname'     => 'nickname',
+			'description'  => 'bio',
+			'user_login'   => 'username',
+			'user_pass'    => 'password',
+		);
 
-		/* Check display name change */
-		if ( $old_user_data->display_name !== $new_user_data->display_name ) {
-			$changes['display_name'] = array(
-				'old' => $old_user_data->display_name,
-				'new' => $new_user_data->display_name,
-			);
-		}
+		foreach ( $tracked_fields as $property => $label ) {
+			$old_value = isset( $old_user_data->$property ) ? $old_user_data->$property : '';
+			$new_value = isset( $new_user_data->$property ) ? $new_user_data->$property : '';
 
-		/* Check first name change */
-		if ( $old_user_data->first_name !== $new_user_data->first_name ) {
-			$changes['first_name'] = array(
-				'old' => $old_user_data->first_name,
-				'new' => $new_user_data->first_name,
-			);
-		}
+			/* Skip password comparison (hashes will always differ after any save) */
+			if ( 'user_pass' === $property ) {
+				continue;
+			}
 
-		/* Check last name change */
-		if ( $old_user_data->last_name !== $new_user_data->last_name ) {
-			$changes['last_name'] = array(
-				'old' => $old_user_data->last_name,
-				'new' => $new_user_data->last_name,
-			);
-		}
-
-		/* Check user URL change */
-		if ( $old_user_data->user_url !== $new_user_data->user_url ) {
-			$changes['user_url'] = array(
-				'old' => $old_user_data->user_url,
-				'new' => $new_user_data->user_url,
-			);
+			if ( $old_value !== $new_value ) {
+				/* Don't log actual values for sensitive fields */
+				if ( 'description' === $property ) {
+					$changes[ $label ] = array(
+						'old' => '(bio changed)',
+						'new' => '(bio changed)',
+					);
+				} else {
+					$changes[ $label ] = array(
+						'old' => $old_value,
+						'new' => $new_value,
+					);
+				}
+			}
 		}
 
 		/* Skip if no changes detected */
@@ -339,13 +337,13 @@ class NBUF_Admin_Action_Hooks {
 	 * Tier 2 - High Priority
 	 * Helper method for logging bulk operations on users.
 	 *
-	 * @param string $action   Action name (verify, delete, etc.).
-	 * @param array  $user_ids Array of affected user IDs.
-	 * @param string $status   'success' or 'failure'.
-	 * @param array  $results  Detailed results per user.
+	 * @param string               $action   Action name (verify, delete, etc.).
+	 * @param array<int, int>      $user_ids Array of affected user IDs.
+	 * @param string               $status   'success' or 'failure'.
+	 * @param array<string, mixed> $results  Detailed results per user.
 	 * @return void
 	 */
-	public static function log_bulk_action( $action, $user_ids, $status = 'success', $results = array() ) {
+	public static function log_bulk_action( $action, $user_ids, $status = 'success', $results = array() ): void {
 		$admin_id = get_current_user_id();
 		if ( ! $admin_id ) {
 			return;
@@ -446,9 +444,9 @@ class NBUF_Admin_Action_Hooks {
 	 *
 	 * Called when admin merges two user accounts.
 	 *
-	 * @param int   $primary_user_id   Primary user ID (kept).
-	 * @param int   $secondary_user_id Secondary user ID (merged and deleted).
-	 * @param array $merge_data      Data about what was merged.
+	 * @param int                  $primary_user_id   Primary user ID (kept).
+	 * @param int                  $secondary_user_id Secondary user ID (merged and deleted).
+	 * @param array<string, mixed> $merge_data      Data about what was merged.
 	 * @return void
 	 */
 	public static function log_account_merge( $primary_user_id, $secondary_user_id, $merge_data = array() ) {

@@ -23,8 +23,10 @@ class NBUF_Multi_Role {
 
 	/**
 	 * Initialize multi-role functionality
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Only for users who can promote users (typically administrators) */
 		if ( ! is_admin() ) {
 			return;
@@ -50,8 +52,9 @@ class NBUF_Multi_Role {
 	 * Enqueue assets for user profile pages
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( string $hook ): void {
 		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -177,8 +180,10 @@ class NBUF_Multi_Role {
 
 	/**
 	 * Hide default WordPress role selector
+	 *
+	 * @return void
 	 */
-	public static function hide_default_role_selector() {
+	public static function hide_default_role_selector(): void {
 		$screen = get_current_screen();
 		if ( ! $screen || ( 'profile' !== $screen->id && 'user-edit' !== $screen->id ) ) {
 			return;
@@ -196,8 +201,10 @@ class NBUF_Multi_Role {
 	 * Disable the default role field so it doesn't get submitted
 	 *
 	 * This prevents WordPress from overwriting our multi-role selection
+	 *
+	 * @return void
 	 */
-	public static function disable_default_role_field() {
+	public static function disable_default_role_field(): void {
 		$screen = get_current_screen();
 		if ( ! $screen || ( 'profile' !== $screen->id && 'user-edit' !== $screen->id ) ) {
 			return;
@@ -222,8 +229,9 @@ class NBUF_Multi_Role {
 	 * Render the multi-role selection section
 	 *
 	 * @param WP_User $user User object being edited.
+	 * @return void
 	 */
-	public static function render_roles_section( $user ) {
+	public static function render_roles_section( WP_User $user ): void {
 		/* Only show to users who can promote users */
 		if ( ! current_user_can( 'promote_users' ) ) {
 			return;
@@ -299,8 +307,9 @@ class NBUF_Multi_Role {
 	 * Save user roles on profile update
 	 *
 	 * @param int $user_id User ID being updated.
+	 * @return void
 	 */
-	public static function save_roles( $user_id ) {
+	public static function save_roles( int $user_id ): void {
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_multi_role_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_multi_role_nonce'] ) ), 'nbuf_multi_role_update' ) ) {
 			return;

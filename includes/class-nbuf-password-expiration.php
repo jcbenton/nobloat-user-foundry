@@ -46,8 +46,10 @@ class NBUF_Password_Expiration {
 	 * - Tracking password changes
 	 * - Login interception
 	 * - Enforcement
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Check if password expiration is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
 
@@ -77,8 +79,9 @@ class NBUF_Password_Expiration {
 	 *
 	 * @param WP_User $user     User object.
 	 * @param string  $new_pass New password.
+	 * @return void
 	 */
-	public static function track_password_change( $user, $new_pass ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_pass required by WordPress password_reset action signature
+	public static function track_password_change( $user, $new_pass ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_pass required by WordPress password_reset action signature
 		if ( $user instanceof WP_User ) {
 			self::update_password_changed_date( $user->ID );
 		}
@@ -91,8 +94,9 @@ class NBUF_Password_Expiration {
 	 *
 	 * @param int     $user_id       User ID.
 	 * @param WP_User $old_user_data Old user data object.
+	 * @return void
 	 */
-	public static function track_password_change_on_profile_update( $user_id, $old_user_data ) {
+	public static function track_password_change_on_profile_update( $user_id, $old_user_data ): void {
 		/* Get new user data */
 		$new_user = get_userdata( $user_id );
 
@@ -108,8 +112,9 @@ class NBUF_Password_Expiration {
 	 * Sets initial password_changed_at date for new users.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public static function track_password_change_on_registration( $user_id ) {
+	public static function track_password_change_on_registration( $user_id ): void {
 		self::update_password_changed_date( $user_id );
 	}
 
@@ -121,7 +126,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
-	public static function update_password_changed_date( $user_id ) {
+	public static function update_password_changed_date( int $user_id ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -232,7 +237,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool True if password is expired.
 	 */
-	public static function is_password_expired( $user_id ) {
+	public static function is_password_expired( int $user_id ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -261,7 +266,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool True if password change is forced.
 	 */
-	public static function is_password_change_forced( $user_id ) {
+	public static function is_password_change_forced( int $user_id ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -285,7 +290,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
-	public static function force_password_change( $user_id ) {
+	public static function force_password_change( int $user_id ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -333,7 +338,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
-	public static function clear_force_password_change( $user_id ) {
+	public static function clear_force_password_change( int $user_id ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -353,7 +358,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return int|null Password age in days, or null if never changed.
 	 */
-	public static function get_password_age( $user_id ) {
+	public static function get_password_age( int $user_id ): ?int {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -384,7 +389,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return int|null Days until expiration, negative if expired, null if no expiration.
 	 */
-	public static function get_days_until_expiration( $user_id ) {
+	public static function get_days_until_expiration( int $user_id ): ?int {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -417,7 +422,7 @@ class NBUF_Password_Expiration {
 	 * @param  int $user_id User ID.
 	 * @return bool Success.
 	 */
-	public static function force_logout_all_devices( $user_id ) {
+	public static function force_logout_all_devices( int $user_id ): bool {
 		/* Get user's session manager */
 		$sessions = WP_Session_Tokens::get_instance( $user_id );
 
@@ -441,8 +446,10 @@ class NBUF_Password_Expiration {
 	 * Handle password change form.
 	 *
 	 * Displays password change form and processes submission.
+	 *
+	 * @return void
 	 */
-	public static function handle_password_change_form() {
+	public static function handle_password_change_form(): void {
 		/* Check if user ID is in transient */
 		$user_id = get_current_user_id();
 
@@ -531,10 +538,11 @@ class NBUF_Password_Expiration {
 	/**
 	 * Render password change form.
 	 *
-	 * @param WP_User $user   User object.
-	 * @param array   $errors Array of error messages.
+	 * @param WP_User            $user   User object.
+	 * @param array<int, string> $errors Array of error messages.
+	 * @return void
 	 */
-	public static function render_password_change_form( $user, $errors = array() ) {
+	public static function render_password_change_form( WP_User $user, array $errors = array() ): void {
 		/* Load WordPress login header */
 		login_header( __( 'Password Change Required', 'nobloat-user-foundry' ), '', $errors );
 
@@ -593,8 +601,10 @@ class NBUF_Password_Expiration {
 	 * AJAX handler for force logout user.
 	 *
 	 * Called from user edit screen when admin clicks "Force Logout All Devices" button.
+	 *
+	 * @return void
 	 */
-	public static function ajax_force_logout_user() {
+	public static function ajax_force_logout_user(): void {
 		/* Verify nonce */
 		check_ajax_referer( 'nbuf_force_logout', 'nonce' );
 
@@ -628,7 +638,7 @@ class NBUF_Password_Expiration {
 	 *
 	 * @return int Number of users updated.
 	 */
-	public static function recalculate_all_expirations() {
+	public static function recalculate_all_expirations(): int {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'nbuf_user_data';

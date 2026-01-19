@@ -48,7 +48,7 @@ class NBUF_Email_Restrictions {
 	 * Get configured domain list.
 	 *
 	 * @since  1.5.2
-	 * @return array Array of domain patterns.
+	 * @return array<int, string> Array of domain patterns.
 	 */
 	public static function get_domains(): array {
 		$domains_raw = NBUF_Options::get( 'nbuf_email_restriction_domains', '' );

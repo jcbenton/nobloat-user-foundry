@@ -132,8 +132,7 @@ class NBUF_Encryption {
 		);
 
 		if ( false === $ciphertext ) {
-			/* Encryption failed - return original (logged for debugging) */
-			error_log( 'NBUF Encryption: openssl_encrypt failed' );
+			/* Encryption failed - return original */
 			return $plaintext;
 		}
 
@@ -164,7 +163,6 @@ class NBUF_Encryption {
 
 		/* Check if decryption is available */
 		if ( ! self::is_available() ) {
-			error_log( 'NBUF Encryption: OpenSSL not available for decryption' );
 			return '';
 		}
 
@@ -175,7 +173,6 @@ class NBUF_Encryption {
 		$combined = base64_decode( $encoded, true );
 
 		if ( false === $combined ) {
-			error_log( 'NBUF Encryption: base64_decode failed' );
 			return '';
 		}
 
@@ -184,7 +181,6 @@ class NBUF_Encryption {
 		$tag_length = 16;
 
 		if ( strlen( $combined ) < $iv_length + $tag_length + 1 ) {
-			error_log( 'NBUF Encryption: Invalid encrypted data length' );
 			return '';
 		}
 
@@ -203,7 +199,6 @@ class NBUF_Encryption {
 		);
 
 		if ( false === $plaintext ) {
-			error_log( 'NBUF Encryption: Decryption failed (authentication check failed or corrupted data)' );
 			return '';
 		}
 

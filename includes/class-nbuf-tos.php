@@ -121,7 +121,7 @@ class NBUF_ToS {
 	 * Get all ToS versions.
 	 *
 	 * @since  1.5.2
-	 * @return array Array of version rows.
+	 * @return array<int, object> Array of version rows.
 	 */
 	public static function get_all_versions(): array {
 		global $wpdb;
@@ -142,7 +142,7 @@ class NBUF_ToS {
 	 * Create a new ToS version.
 	 *
 	 * @since  1.5.2
-	 * @param  array $data Version data (version, title, content, effective_date, is_active).
+	 * @param  array<string, mixed> $data Version data (version, title, content, effective_date, is_active).
 	 * @return int|false Insert ID or false on failure.
 	 */
 	public static function create_version( array $data ) {
@@ -192,8 +192,8 @@ class NBUF_ToS {
 	 * Update a ToS version.
 	 *
 	 * @since  1.5.2
-	 * @param  int   $version_id Version ID.
-	 * @param  array $data       Version data.
+	 * @param  int                  $version_id Version ID.
+	 * @param  array<string, mixed> $data       Version data.
 	 * @return bool True on success.
 	 */
 	public static function update_version( int $version_id, array $data ): bool {
@@ -383,7 +383,7 @@ class NBUF_ToS {
 	 *
 	 * @since  1.5.2
 	 * @param  int $user_id User ID.
-	 * @return array Array of acceptance records.
+	 * @return array<int, object> Array of acceptance records.
 	 */
 	public static function get_user_acceptances( int $user_id ): array {
 		global $wpdb;
@@ -487,7 +487,7 @@ class NBUF_ToS {
 	 *
 	 * @since  1.5.2
 	 * @param  int $limit Limit results.
-	 * @return array Array of user IDs.
+	 * @return array<int, string> Array of user IDs.
 	 */
 	public static function get_users_pending_acceptance( int $limit = 100 ): array {
 		global $wpdb;
@@ -786,7 +786,7 @@ class NBUF_ToS {
 	 *
 	 * @since  1.5.2
 	 * @param  int|null $version_id Optional version ID to filter.
-	 * @return array Array of acceptance records with user data.
+	 * @return array<int, object> Array of acceptance records with user data.
 	 */
 	public static function get_acceptances_for_export( ?int $version_id = null ): array {
 		global $wpdb;

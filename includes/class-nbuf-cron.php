@@ -30,9 +30,9 @@ class NBUF_Cron {
 	 * - deactivate() for cleanup
 	 *
 	 * @since 1.5.0
-	 * @return array Array of cron job definitions keyed by hook name.
+	 * @return array<string, array{label: string, description: string, schedule: string}> Array of cron job definitions keyed by hook name.
 	 */
-	public static function get_cron_definitions() {
+	public static function get_cron_definitions(): array {
 		return array(
 			/* Core Maintenance */
 			'nbuf_cleanup_cron'                => array(
@@ -118,8 +118,9 @@ class NBUF_Cron {
 	 * Optimized to read cron array once instead of multiple wp_next_scheduled() calls.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function activate() {
+	public static function activate(): void {
 		/* Get all scheduled hooks in a single read */
 		$crons          = _get_cron_array();
 		$scheduled      = array();
@@ -158,8 +159,9 @@ class NBUF_Cron {
 	 * Called on plugin deactivation. Removes scheduled events.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function deactivate() {
+	public static function deactivate(): void {
 		wp_clear_scheduled_hook( 'nbuf_cleanup_cron' );
 		wp_clear_scheduled_hook( 'nbuf_audit_log_cleanup_cron' );
 		wp_clear_scheduled_hook( 'nbuf_cleanup_version_history' );
@@ -175,8 +177,9 @@ class NBUF_Cron {
 	 * Links the cron hook to the cleanup routine.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function register() {
+	public static function register(): void {
 		add_action( 'nbuf_cleanup_cron', array( __CLASS__, 'run_cleanup' ) );
 		add_action( 'nbuf_audit_log_cleanup_cron', array( __CLASS__, 'run_audit_log_cleanup' ) );
 		add_action( 'nbuf_cleanup_version_history', array( __CLASS__, 'run_version_history_cleanup' ) );
@@ -192,8 +195,9 @@ class NBUF_Cron {
 	 * Executes daily to remove expired and used tokens.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function run_cleanup() {
+	public static function run_cleanup(): void {
 		NBUF_Database::cleanup_expired();
 		self::cleanup_magic_link_transients();
 		NBUF_Options::update( 'nbuf_last_cleanup', current_time( 'mysql', true ), false, 'system' );
@@ -206,8 +210,9 @@ class NBUF_Cron {
 	 * Only needed for sites without object caching.
 	 *
 	 * @since 1.5.2
+	 * @return void
 	 */
-	private static function cleanup_magic_link_transients() {
+	private static function cleanup_magic_link_transients(): void {
 		global $wpdb;
 
 		/*
@@ -232,8 +237,9 @@ class NBUF_Cron {
 	 * Executes daily to remove old audit log entries based on retention settings.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function run_audit_log_cleanup() {
+	public static function run_audit_log_cleanup(): void {
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
 			NBUF_Audit_Log::cleanup_old_logs();
 		}
@@ -246,8 +252,9 @@ class NBUF_Cron {
 	 * Only runs if auto-cleanup is enabled in settings.
 	 *
 	 * @since 1.0.0
+	 * @return void
 	 */
-	public static function run_version_history_cleanup() {
+	public static function run_version_history_cleanup(): void {
 		/* Check if auto-cleanup is enabled */
 		$auto_cleanup = NBUF_Options::get( 'nbuf_version_history_auto_cleanup', true );
 
@@ -424,7 +431,7 @@ class NBUF_Cron {
 	}
 
 	/**
-	 * Run enterprise logging cleanup
+	 * Run enterprise logging cleanup.
 	 *
 	 * Executes daily to remove old log entries from all 3 enterprise logging tables
 	 * based on their individual retention settings. Supports GDPR-compliant data
@@ -436,9 +443,9 @@ class NBUF_Cron {
 	 * - Security Events Log (system security events)
 	 *
 	 * @since 1.4.0
-	 * @return array Array with counts of deleted entries per table.
+	 * @return array<string, int> Array with counts of deleted entries per table.
 	 */
-	public static function run_enterprise_logging_cleanup() {
+	public static function run_enterprise_logging_cleanup(): array {
 		$results = array(
 			'user_audit'   => 0,
 			'admin_audit'  => 0,

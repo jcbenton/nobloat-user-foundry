@@ -26,8 +26,10 @@ class NBUF_Password_Validator {
 	 *
 	 * Registers hooks for weak password migration feature.
 	 * Called from main plugin file during initialization.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Check if weak password migration is enabled */
 		$force_change = NBUF_Options::get( 'nbuf_password_force_weak_change', false );
 		if ( ! $force_change ) {
@@ -351,8 +353,9 @@ class NBUF_Password_Validator {
 	 * Used for weak password migration enforcement.
 	 *
 	 * @param int $user_id User ID to flag.
+	 * @return void
 	 */
-	public static function flag_weak_password( $user_id ) {
+	public static function flag_weak_password( int $user_id ): void {
 		NBUF_User_Data::flag_weak_password( $user_id );
 	}
 
@@ -362,9 +365,50 @@ class NBUF_Password_Validator {
 	 * Removes the weak password flag after user changes password.
 	 *
 	 * @param int $user_id User ID to clear flag.
+	 * @return void
 	 */
-	public static function clear_weak_password_flag( $user_id ) {
+	public static function clear_weak_password_flag( int $user_id ): void {
 		NBUF_User_Data::set_password_changed( $user_id );
+	}
+
+	/**
+	 * Get password requirements as formatted text string.
+	 *
+	 * Returns a single-line text description of password requirements
+	 * suitable for inline display (e.g., "Minimum 12 characters. Must include: uppercase letter, number").
+	 *
+	 * @return string Formatted requirements text.
+	 */
+	public static function get_requirements_text(): string {
+		$min_length   = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		$requirements = array();
+
+		/* translators: %d: minimum password length */
+		$requirements[] = sprintf( __( 'Minimum %d characters', 'nobloat-user-foundry' ), $min_length );
+
+		/* Add character type requirements if password strength is enabled */
+		if ( NBUF_Options::get( 'nbuf_password_requirements_enabled', true ) ) {
+			if ( NBUF_Options::get( 'nbuf_password_require_uppercase', false ) ) {
+				$requirements[] = __( 'uppercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_lowercase', false ) ) {
+				$requirements[] = __( 'lowercase letter', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_numbers', false ) ) {
+				$requirements[] = __( 'number', 'nobloat-user-foundry' );
+			}
+			if ( NBUF_Options::get( 'nbuf_password_require_special', false ) ) {
+				$requirements[] = __( 'special character', 'nobloat-user-foundry' );
+			}
+		}
+
+		/* Format requirements text */
+		if ( count( $requirements ) > 1 ) {
+			$first_req = array_shift( $requirements );
+			return $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $requirements );
+		}
+
+		return $requirements[0];
 	}
 
 	/**
@@ -373,9 +417,9 @@ class NBUF_Password_Validator {
 	 * Returns human-readable list of current password requirements
 	 * for display to users.
 	 *
-	 * @return array List of requirement strings.
+	 * @return array<int, string> List of requirement strings.
 	 */
-	public static function get_requirements_list() {
+	public static function get_requirements_list(): array {
 		$enabled = NBUF_Options::get( 'nbuf_password_requirements_enabled', true );
 		if ( ! $enabled ) {
 			return array();

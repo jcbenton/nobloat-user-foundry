@@ -33,14 +33,14 @@ class NBUF_Version_History {
 	/**
 	 * Original user data (before changes).
 	 *
-	 * @var array
+	 * @var array<int, array<string, mixed>>
 	 */
 	private $original_data = array();
 
 	/**
 	 * Users already processed in this request (prevents duplicate entries).
 	 *
-	 * @var array
+	 * @var array<int, bool>
 	 */
 	private $processed_users = array();
 
@@ -51,7 +51,7 @@ class NBUF_Version_History {
 	 * track_profile_update to skip processing, allowing track_frontend_profile_update
 	 * to capture the final state after ALL updates (including NBUF custom tables).
 	 *
-	 * @var array
+	 * @var array<int, bool>
 	 */
 	private $pending_frontend_updates = array();
 
@@ -95,8 +95,9 @@ class NBUF_Version_History {
 	 * intermediate states during a single profile update operation.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function store_original_data( $user_id ) {
+	public function store_original_data( int $user_id ): void {
 		/* Skip if already processed a version for this user in this request */
 		if ( isset( $this->processed_users[ $user_id ] ) ) {
 			return;
@@ -137,8 +138,9 @@ class NBUF_Version_History {
 	 *
 	 * @param int    $user_id       User ID.
 	 * @param object $old_user_data Old user object (WP_User).
+	 * @return void
 	 */
-	public function track_profile_update( $user_id, $old_user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
+	public function track_profile_update( int $user_id, object $old_user_data ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $old_user_data required by WordPress profile_update action signature
 		/* Skip if already processed in this request (prevents duplicate entries) */
 		if ( isset( $this->processed_users[ $user_id ] ) ) {
 			return;
@@ -193,8 +195,9 @@ class NBUF_Version_History {
 	 * Track user registration (initial snapshot)
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function track_user_registration( $user_id ) {
+	public function track_user_registration( int $user_id ): void {
 		$snapshot = $this->get_user_snapshot( $user_id );
 
 		/* Get all field names as "changed" for registration */
@@ -216,8 +219,9 @@ class NBUF_Version_History {
 	 * changes made via update_user_meta() that don't trigger profile_update.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function track_frontend_profile_update( $user_id ) {
+	public function track_frontend_profile_update( int $user_id ): void {
 		/* Skip if already processed in this request (prevents duplicate entries) */
 		if ( isset( $this->processed_users[ $user_id ] ) ) {
 			return;
@@ -273,9 +277,9 @@ class NBUF_Version_History {
 	 * Get complete user profile snapshot
 	 *
 	 * @param  int $user_id User ID.
-	 * @return array Complete profile data
+	 * @return array<string, mixed> Complete profile data
 	 */
-	private function get_user_snapshot( $user_id ) {
+	private function get_user_snapshot( int $user_id ): array {
 		global $wpdb;
 
 		$user = get_userdata( $user_id );
@@ -349,11 +353,11 @@ class NBUF_Version_History {
 	/**
 	 * Detect which fields changed between two snapshots
 	 *
-	 * @param  array $before Before snapshot.
-	 * @param  array $after  After snapshot.
-	 * @return array Changed field names
+	 * @param  array<string, mixed> $before Before snapshot.
+	 * @param  array<string, mixed> $after  After snapshot.
+	 * @return array<int, string> Changed field names
 	 */
-	private function detect_changed_fields( $before, $after ) {
+	private function detect_changed_fields( array $before, array $after ): array {
 		$changed = array();
 
 		/* Compare all keys from both snapshots */
@@ -379,14 +383,14 @@ class NBUF_Version_History {
 	/**
 	 * Save a version snapshot to the database
 	 *
-	 * @param  int    $user_id        User ID.
-	 * @param  array  $snapshot       Profile snapshot data.
-	 * @param  array  $changed_fields Changed field names.
-	 * @param  string $change_type    Type of change (registration, profile_update, admin_update, import, revert).
-	 * @param  int    $changed_by     User ID who made the change (null = self).
+	 * @param  int                  $user_id        User ID.
+	 * @param  array<string, mixed> $snapshot       Profile snapshot data.
+	 * @param  array<int, string>   $changed_fields Changed field names.
+	 * @param  string               $change_type    Type of change (registration, profile_update, admin_update, import, revert).
+	 * @param  int|null             $changed_by     User ID who made the change (null = self).
 	 * @return bool Success
 	 */
-	private function save_version( $user_id, $snapshot, $changed_fields, $change_type, $changed_by = null ) {
+	private function save_version( int $user_id, array $snapshot, array $changed_fields, string $change_type, ?int $changed_by = null ): bool {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
@@ -518,9 +522,9 @@ class NBUF_Version_History {
 	 * @param  int $user_id User ID.
 	 * @param  int $limit   Number of versions to retrieve (default: 50).
 	 * @param  int $offset  Offset for pagination.
-	 * @return array Version history records.
+	 * @return array<int, object> Version history records.
 	 */
-	public function get_user_versions( $user_id, $limit = 50, $offset = 0 ) {
+	public function get_user_versions( int $user_id, int $limit = 50, int $offset = 0 ): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_profile_versions';
@@ -599,9 +603,9 @@ class NBUF_Version_History {
 	 *
 	 * @param  int $version_id_1 First version ID (older).
 	 * @param  int $version_id_2 Second version ID (newer).
-	 * @return array Diff data.
+	 * @return array<string, array<string, mixed>> Diff data.
 	 */
-	public function compare_versions( $version_id_1, $version_id_2 ) {
+	public function compare_versions( int $version_id_1, int $version_id_2 ): array {
 		$version1 = $this->get_version_by_id( $version_id_1 );
 		$version2 = $this->get_version_by_id( $version_id_2 );
 
@@ -765,8 +769,9 @@ class NBUF_Version_History {
 	 * Enforce maximum versions per user
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	private function enforce_max_versions( $user_id ) {
+	private function enforce_max_versions( int $user_id ): void {
 		global $wpdb;
 
 		$max_versions = (int) NBUF_Options::get( 'nbuf_version_history_max_versions', 50 );
@@ -795,8 +800,10 @@ class NBUF_Version_History {
 
 	/**
 	 * Cleanup old versions based on retention period
+	 *
+	 * @return int Number of deleted records.
 	 */
-	public function cleanup_old_versions() {
+	public function cleanup_old_versions(): int {
 		global $wpdb;
 
 		$retention_days = (int) NBUF_Options::get( 'nbuf_version_history_retention_days', 365 );
@@ -831,8 +838,10 @@ class NBUF_Version_History {
 
 	/**
 	 * AJAX: Get version timeline
+	 *
+	 * @return void
 	 */
-	public function ajax_get_version_timeline() {
+	public function ajax_get_version_timeline(): void {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
 		/* Rate limiting: 30 requests per minute per user */
@@ -878,8 +887,10 @@ class NBUF_Version_History {
 
 	/**
 	 * AJAX: Get version diff
+	 *
+	 * @return void
 	 */
-	public function ajax_get_version_diff() {
+	public function ajax_get_version_diff(): void {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
 		$version_id_1 = isset( $_POST['version_id_1'] ) ? absint( $_POST['version_id_1'] ) : 0;
@@ -914,8 +925,10 @@ class NBUF_Version_History {
 
 	/**
 	 * AJAX: Revert to version
+	 *
+	 * @return void
 	 */
-	public function ajax_revert_version() {
+	public function ajax_revert_version(): void {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
 		$version_id = isset( $_POST['version_id'] ) ? absint( $_POST['version_id'] ) : 0;
@@ -1007,8 +1020,9 @@ class NBUF_Version_History {
 	 * Render version history section on account page
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	public function render_account_section( $user_id ) {
+	public function render_account_section( int $user_id ): void {
 		/* Only show for current user */
 		if ( get_current_user_id() !== $user_id ) {
 			return;
@@ -1058,9 +1072,9 @@ class NBUF_Version_History {
 	 *
 	 * @since 1.4.1
 	 * @param bool $can_revert Whether the current user can revert versions.
-	 * @return array Localization data for wp_localize_script.
+	 * @return array<string, mixed> Localization data for wp_localize_script.
 	 */
-	public static function get_script_data( $can_revert = false ) {
+	public static function get_script_data( bool $can_revert = false ): array {
 		return array(
 			'ajax_url'     => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( 'nbuf_version_history' ),

@@ -23,11 +23,11 @@ class NBUF_URL {
 	/**
 	 * Get URL for a specific view.
 	 *
-	 * @param  string $view View key (login, register, account, etc.).
-	 * @param  array  $args Optional query args to append.
+	 * @param  string               $view View key (login, register, account, etc.).
+	 * @param  array<string, mixed> $args Optional query args to append.
 	 * @return string Full URL.
 	 */
-	public static function get( $view, $args = array() ) {
+	public static function get( string $view, array $args = array() ): string {
 		$base_slug = self::get_base_slug();
 		$url       = home_url( '/' . $base_slug . '/' . $view . '/' );
 
@@ -37,12 +37,12 @@ class NBUF_URL {
 	/**
 	 * Get URL for account page with specific tab/subtab.
 	 *
-	 * @param  string $tab    Tab name (profile, security, email, etc.).
-	 * @param  string $subtab Optional subtab name.
-	 * @param  array  $args   Additional query args.
+	 * @param  string               $tab    Tab name (profile, security, email, etc.).
+	 * @param  string               $subtab Optional subtab name.
+	 * @param  array<string, mixed> $args   Additional query args.
 	 * @return string Full URL.
 	 */
-	public static function get_account( $tab = '', $subtab = '', $args = array() ) {
+	public static function get_account( string $tab = '', string $subtab = '', array $args = array() ): string {
 		$base_slug = self::get_base_slug();
 		$path      = '/' . $base_slug . '/account/';
 
@@ -61,11 +61,11 @@ class NBUF_URL {
 	/**
 	 * Get URL for public profile page.
 	 *
-	 * @param  string $username Username or user slug.
-	 * @param  array  $args     Additional query args.
+	 * @param  string               $username Username or user slug.
+	 * @param  array<string, mixed> $args     Additional query args.
 	 * @return string Full URL.
 	 */
-	public static function get_profile( $username, $args = array() ) {
+	public static function get_profile( string $username, array $args = array() ): string {
 		$base_slug = self::get_base_slug();
 		$url       = home_url( '/' . $base_slug . '/profile/' . sanitize_title( $username ) . '/' );
 
@@ -77,7 +77,7 @@ class NBUF_URL {
 	 *
 	 * @return string Base slug (default: 'user-foundry').
 	 */
-	public static function get_base_slug() {
+	public static function get_base_slug(): string {
 		return sanitize_title( NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry' ) );
 	}
 
@@ -86,16 +86,16 @@ class NBUF_URL {
 	 *
 	 * @return string Default view key (default: 'account').
 	 */
-	public static function get_default_view() {
+	public static function get_default_view(): string {
 		return sanitize_key( NBUF_Options::get( 'nbuf_universal_default_view', 'account' ) );
 	}
 
 	/**
 	 * Get all available views.
 	 *
-	 * @return array Array of view key => label.
+	 * @return array<string, string> Array of view key => label.
 	 */
-	public static function get_available_views() {
+	public static function get_available_views(): array {
 		return array(
 			'login'           => __( 'Login', 'nobloat-user-foundry' ),
 			'register'        => __( 'Registration', 'nobloat-user-foundry' ),
@@ -116,7 +116,7 @@ class NBUF_URL {
 	 *
 	 * @return bool True if on a plugin virtual page.
 	 */
-	public static function is_plugin_page() {
+	public static function is_plugin_page(): bool {
 		return class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request();
 	}
 
@@ -125,7 +125,7 @@ class NBUF_URL {
 	 *
 	 * @return string View key or empty string.
 	 */
-	public static function get_current_view() {
+	public static function get_current_view(): string {
 		if ( class_exists( 'NBUF_Universal_Router' ) ) {
 			return NBUF_Universal_Router::get_current_view();
 		}

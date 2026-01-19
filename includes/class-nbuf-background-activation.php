@@ -37,8 +37,10 @@ class NBUF_Background_Activation {
 
 	/**
 	 * Initialize hooks.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_notices', array( __CLASS__, 'show_activation_notice' ) );
 		add_action( 'wp_ajax_nbuf_activation_process', array( __CLASS__, 'ajax_process_batch' ) );
 		add_action( 'wp_ajax_nbuf_activation_status', array( __CLASS__, 'ajax_get_status' ) );
@@ -51,10 +53,10 @@ class NBUF_Background_Activation {
 	 *
 	 * Called from activator after immediate tasks complete.
 	 *
-	 * @param array $tasks Array of deferred tasks to process.
+	 * @param array<int, string> $tasks Array of deferred tasks to process.
 	 * @return bool True if background processing started, false if not needed.
 	 */
-	public static function start_if_needed( $tasks = array() ) {
+	public static function start_if_needed( $tasks = array() ): bool {
 		/* Check if already processing */
 		$state = self::get_state();
 		if ( $state && 'processing' === $state['status'] ) {
@@ -106,7 +108,7 @@ class NBUF_Background_Activation {
 	/**
 	 * Get current activation state.
 	 *
-	 * @return array|false State array or false if not processing.
+	 * @return array<string, mixed>|false State array or false if not processing.
 	 */
 	public static function get_state() {
 		return get_transient( self::STATE_TRANSIENT );
@@ -162,9 +164,10 @@ class NBUF_Background_Activation {
 	/**
 	 * Process all tasks immediately (for small user counts).
 	 *
-	 * @param array $tasks Tasks to process.
+	 * @param array<int, string> $tasks Tasks to process.
+	 * @return void
 	 */
-	private static function process_all_immediately( $tasks ) {
+	private static function process_all_immediately( $tasks ): void {
 		foreach ( $tasks as $task ) {
 			if ( 'verify_users' === $task ) {
 				self::verify_users_batch( 0, PHP_INT_MAX );
@@ -210,8 +213,10 @@ class NBUF_Background_Activation {
 
 	/**
 	 * AJAX handler to process a batch.
+	 *
+	 * @return void
 	 */
-	public static function ajax_process_batch() {
+	public static function ajax_process_batch(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
@@ -272,8 +277,10 @@ class NBUF_Background_Activation {
 
 	/**
 	 * AJAX handler to get current status.
+	 *
+	 * @return void
 	 */
-	public static function ajax_get_status() {
+	public static function ajax_get_status(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
@@ -312,8 +319,10 @@ class NBUF_Background_Activation {
 
 	/**
 	 * AJAX handler to dismiss the completion notice.
+	 *
+	 * @return void
 	 */
-	public static function ajax_dismiss_notice() {
+	public static function ajax_dismiss_notice(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
@@ -332,8 +341,10 @@ class NBUF_Background_Activation {
 
 	/**
 	 * Show admin notice for activation progress.
+	 *
+	 * @return void
 	 */
-	public static function show_activation_notice() {
+	public static function show_activation_notice(): void {
 		/* Only show to admins */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -455,8 +466,9 @@ class NBUF_Background_Activation {
 	 * Enqueue admin scripts for activation notice.
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_admin_scripts( $hook ) {
+	public static function enqueue_admin_scripts( $hook ): void {
 		/* Only load if activation is in progress */
 		$state = self::get_state();
 		if ( ! $state ) {

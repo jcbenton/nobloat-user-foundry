@@ -51,8 +51,10 @@ class NBUF_Security_Log {
 	 * Initialize security log
 	 *
 	 * Sets up database table and cron jobs.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Create database table on activation */
 		register_activation_hook( NBUF_PLUGIN_FILE, array( __CLASS__, 'create_table' ) );
 
@@ -70,8 +72,10 @@ class NBUF_Security_Log {
 
 	/**
 	 * Check and run schema upgrades if needed
+	 *
+	 * @return void
 	 */
-	public static function maybe_upgrade_schema() {
+	public static function maybe_upgrade_schema(): void {
 		$current_version = get_option( 'nbuf_security_log_schema_version', 0 );
 
 		if ( $current_version < self::SCHEMA_VERSION ) {
@@ -84,8 +88,10 @@ class NBUF_Security_Log {
 	 * Create security log database table
 	 *
 	 * Uses InnoDB engine for data integrity and proper indexing.
+	 *
+	 * @return void
 	 */
-	public static function create_table() {
+	public static function create_table(): void {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . self::TABLE_NAME;
@@ -125,8 +131,10 @@ class NBUF_Security_Log {
 	 * Migrate existing table schema and records
 	 *
 	 * Adds missing columns and migrates data for upgrades.
+	 *
+	 * @return void
 	 */
-	private static function migrate_existing_records() {
+	private static function migrate_existing_records(): void {
 		global $wpdb;
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 
@@ -241,14 +249,14 @@ class NBUF_Security_Log {
 	/**
 	 * Log security event to database
 	 *
-	 * @param string $event_type Event type slug (e.g., 'file_validation_failed').
-	 * @param string $severity   Severity level: 'info', 'warning', or 'critical'.
-	 * @param string $message    Human-readable message.
-	 * @param array  $context    Additional context data (stored as JSON).
-	 * @param int    $user_id    User ID (optional, defaults to current user).
+	 * @param string               $event_type Event type slug (e.g., 'file_validation_failed').
+	 * @param string               $severity   Severity level: 'info', 'warning', or 'critical'.
+	 * @param string               $message    Human-readable message.
+	 * @param array<string, mixed> $context    Additional context data (stored as JSON).
+	 * @param int|null             $user_id    User ID (optional, defaults to current user).
 	 * @return bool True on success, false on failure.
 	 */
-	public static function log( $event_type, $severity, $message, $context = array(), $user_id = null ) {
+	public static function log( string $event_type, string $severity, string $message, array $context = array(), ?int $user_id = null ): bool {
 		global $wpdb;
 
 		/* Check if logging is enabled */
@@ -313,14 +321,14 @@ class NBUF_Security_Log {
 	 * updates an existing record instead of creating duplicates. This reduces
 	 * log pollution while maintaining accurate occurrence counts.
 	 *
-	 * @param string $event_type Event type slug (e.g., 'login_failed').
-	 * @param string $severity   Severity level: 'info', 'warning', or 'critical'.
-	 * @param string $message    Human-readable message.
-	 * @param array  $context    Additional context data (stored as JSON).
-	 * @param int    $user_id    User ID (optional, defaults to current user).
+	 * @param string               $event_type Event type slug (e.g., 'login_failed').
+	 * @param string               $severity   Severity level: 'info', 'warning', or 'critical'.
+	 * @param string               $message    Human-readable message.
+	 * @param array<string, mixed> $context    Additional context data (stored as JSON).
+	 * @param int|null             $user_id    User ID (optional, defaults to current user).
 	 * @return bool True on success, false on failure.
 	 */
-	public static function log_or_update( $event_type, $severity, $message, $context = array(), $user_id = null ) {
+	public static function log_or_update( string $event_type, string $severity, string $message, array $context = array(), ?int $user_id = null ): bool {
 		global $wpdb;
 
 		/* Check if logging is enabled */
@@ -443,10 +451,10 @@ class NBUF_Security_Log {
 	 * Limits the size and depth of context arrays to prevent memory exhaustion
 	 * and database bloat from maliciously large context data.
 	 *
-	 * @param array $context Raw context data.
-	 * @return array Sanitized context data.
+	 * @param array<string, mixed> $context Raw context data.
+	 * @return array<string, mixed> Sanitized context data.
 	 */
-	private static function sanitize_context( $context ) {
+	private static function sanitize_context( array $context ): array {
 		if ( ! is_array( $context ) ) {
 			return array();
 		}
@@ -550,12 +558,12 @@ class NBUF_Security_Log {
 	 * Removes or redacts sensitive information like file paths, hashes,
 	 * and other data that should not be transmitted via email.
 	 *
-	 * @param array $context   Raw context data.
-	 * @param int   $depth     Current recursion depth (for protection against stack overflow).
-	 * @param int   $max_depth Maximum nesting depth allowed.
-	 * @return array Filtered context safe for email transmission.
+	 * @param array<string, mixed> $context   Raw context data.
+	 * @param int                  $depth     Current recursion depth (for protection against stack overflow).
+	 * @param int                  $max_depth Maximum nesting depth allowed.
+	 * @return array<string, mixed> Filtered context safe for email transmission.
 	 */
-	private static function filter_sensitive_context( $context, $depth = 0, $max_depth = 10 ) {
+	private static function filter_sensitive_context( array $context, int $depth = 0, int $max_depth = 10 ): array {
 		if ( ! is_array( $context ) ) {
 			return array();
 		}
@@ -615,13 +623,13 @@ class NBUF_Security_Log {
 	/**
 	 * Send critical security alert email
 	 *
-	 * @param string $event_type Event type.
-	 * @param string $message    Alert message.
-	 * @param array  $context    Event context.
-	 * @param int    $user_id    User ID.
+	 * @param string               $event_type Event type.
+	 * @param string               $message    Alert message.
+	 * @param array<string, mixed> $context    Event context.
+	 * @param int|null             $user_id    User ID.
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	private static function send_critical_alert( $event_type, $message, $context, $user_id ) {
+	private static function send_critical_alert( string $event_type, string $message, array $context, ?int $user_id ) {
 		/* Check if critical alerts are enabled */
 		if ( ! NBUF_Options::get( 'nbuf_security_log_alerts_enabled', false ) ) {
 			return new WP_Error( 'alerts_disabled', __( 'Security alerts are currently disabled.', 'nobloat-user-foundry' ) );
@@ -851,10 +859,10 @@ class NBUF_Security_Log {
 	/**
 	 * Get log entries with filtering and pagination
 	 *
-	 * @param array $args Query arguments.
-	 * @return array Array of log entries.
+	 * @param array<string, mixed> $args Query arguments.
+	 * @return array<int, object> Array of log entries.
 	 */
-	public static function get_logs( $args = array() ) {
+	public static function get_logs( array $args = array() ): array {
 		global $wpdb;
 
 		$defaults = array(
@@ -978,10 +986,10 @@ class NBUF_Security_Log {
 	/**
 	 * Get total log count with filtering
 	 *
-	 * @param array $args Query arguments (same as get_logs).
+	 * @param array<string, mixed> $args Query arguments (same as get_logs).
 	 * @return int Total count.
 	 */
-	public static function get_log_count( $args = array() ) {
+	public static function get_log_count( array $args = array() ): int {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
@@ -1047,9 +1055,9 @@ class NBUF_Security_Log {
 	/**
 	 * Get log statistics
 	 *
-	 * @return array Statistics array.
+	 * @return array<string, int> Statistics array.
 	 */
-	public static function get_statistics() {
+	public static function get_statistics(): array {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_security_log';
 
@@ -1082,9 +1090,9 @@ class NBUF_Security_Log {
 	/**
 	 * Get log statistics for admin page
 	 *
-	 * @return array Statistics array with additional database info.
+	 * @return array<string, mixed> Statistics array with additional database info.
 	 */
-	public static function get_stats() {
+	public static function get_stats(): array {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
@@ -1150,10 +1158,10 @@ class NBUF_Security_Log {
 	/**
 	 * Export security logs to CSV
 	 *
-	 * @param array $filters Optional filters to apply.
+	 * @param array<string, mixed> $filters Optional filters to apply.
 	 * @return string CSV content.
 	 */
-	public static function export_to_csv( $filters = array() ) {
+	public static function export_to_csv( array $filters = array() ): string {
 		// Get logs with filters (up to MAX_EXPORT_LIMIT).
 		$filters['limit']  = self::MAX_EXPORT_LIMIT;
 		$filters['offset'] = 0;
@@ -1212,10 +1220,10 @@ class NBUF_Security_Log {
 	/**
 	 * Delete specific security logs by IDs
 	 *
-	 * @param array $log_ids Array of log IDs to delete.
+	 * @param array<int> $log_ids Array of log IDs to delete.
 	 * @return int|false Number of deleted logs, or false on failure.
 	 */
-	public static function delete_logs( $log_ids ) {
+	public static function delete_logs( array $log_ids ) {
 		if ( empty( $log_ids ) || ! is_array( $log_ids ) ) {
 			return false;
 		}
@@ -1241,10 +1249,10 @@ class NBUF_Security_Log {
 	/**
 	 * Get IP addresses from log IDs
 	 *
-	 * @param  array $log_ids Array of log entry IDs.
-	 * @return array Array of unique IP addresses.
+	 * @param  array<int> $log_ids Array of log entry IDs.
+	 * @return array<int, string> Array of unique IP addresses.
 	 */
-	public static function get_ips_from_log_ids( $log_ids ) {
+	public static function get_ips_from_log_ids( array $log_ids ): array {
 		if ( empty( $log_ids ) || ! is_array( $log_ids ) ) {
 			return array();
 		}

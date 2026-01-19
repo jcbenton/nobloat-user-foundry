@@ -24,8 +24,10 @@ class NBUF_Admin_User_Search {
 
 	/**
 	 * Initialize admin user search enhancements
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Add custom columns to users list */
 		add_filter( 'manage_users_columns', array( __CLASS__, 'add_custom_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'render_custom_column' ), 10, 3 );
@@ -54,10 +56,10 @@ class NBUF_Admin_User_Search {
 	 * Order: username, name, email, verified, expiration, role
 	 * Optional columns (off by default): posts, company, location
 	 *
-	 * @param  array $columns Existing columns.
-	 * @return array Modified columns.
+	 * @param  array<string, string> $columns Existing columns.
+	 * @return array<string, string> Modified columns.
 	 */
-	public static function add_custom_columns( $columns ) {
+	public static function add_custom_columns( array $columns ): array {
 		/* Get optional column settings */
 		$show_posts    = NBUF_Options::get( 'nbuf_users_column_posts', false );
 		$show_company  = NBUF_Options::get( 'nbuf_users_column_company', false );
@@ -218,10 +220,10 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Make custom columns sortable
 	 *
-	 * @param  array $columns Sortable columns.
-	 * @return array Modified columns.
+	 * @param  array<string, string> $columns Sortable columns.
+	 * @return array<string, string> Modified columns.
 	 */
-	public static function make_columns_sortable( $columns ) {
+	public static function make_columns_sortable( array $columns ): array {
 		/* Always sortable */
 		$columns['nbuf_status'] = 'nbuf_status';
 
@@ -238,8 +240,10 @@ class NBUF_Admin_User_Search {
 
 	/**
 	 * Add filter dropdowns above users list
+	 *
+	 * @return void
 	 */
-	public static function add_filter_dropdowns() {
+	public static function add_filter_dropdowns(): void {
 		global $pagenow;
 
 		if ( 'users.php' !== $pagenow ) {
@@ -322,8 +326,9 @@ class NBUF_Admin_User_Search {
 	 * Uses proper WP_User_Query API by querying user IDs first then using 'include'.
 	 *
 	 * @param WP_User_Query $query User query object.
+	 * @return void
 	 */
-	public static function filter_users_query( $query ) {
+	public static function filter_users_query( WP_User_Query $query ): void {
 		global $pagenow, $wpdb;
 
 		if ( 'users.php' !== $pagenow || ! is_admin() ) {
@@ -512,12 +517,12 @@ class NBUF_Admin_User_Search {
 	/**
 	 * Add profile fields to searchable columns
 	 *
-	 * @param  array         $search_columns Columns to search.
-	 * @param  string        $search         Search term.
-	 * @param  WP_User_Query $query          User query.
-	 * @return array Modified search columns.
+	 * @param  array<int, string> $search_columns Columns to search.
+	 * @param  string             $search         Search term.
+	 * @param  WP_User_Query      $query          User query.
+	 * @return array<int, string> Modified search columns.
 	 */
-	public static function add_search_columns( $search_columns, $search, $query ) {
+	public static function add_search_columns( array $search_columns, string $search, WP_User_Query $query ): array {
 		global $wpdb;
 
      /* phpcs:disable WordPress.Security.NonceVerification.Recommended -- Search enhancement only */
@@ -578,8 +583,10 @@ class NBUF_Admin_User_Search {
 
 	/**
 	 * Add export to CSV button
+	 *
+	 * @return void
 	 */
-	public static function add_export_button() {
+	public static function add_export_button(): void {
 		?>
 		<script type="text/javascript">
 		jQuery(document).ready(function($) {
@@ -608,8 +615,10 @@ class NBUF_Admin_User_Search {
 
 	/**
 	 * Handle CSV export
+	 *
+	 * @return void
 	 */
-	public static function handle_csv_export() {
+	public static function handle_csv_export(): void {
 		if ( ! isset( $_GET['nbuf_export_csv'] ) || ! current_user_can( 'list_users' ) ) {
 			return;
 		}
@@ -802,8 +811,9 @@ class NBUF_Admin_User_Search {
 	 * Enqueue admin styles
 	 *
 	 * @param string $hook Current admin page.
+	 * @return void
 	 */
-	public static function enqueue_admin_styles( $hook ) {
+	public static function enqueue_admin_styles( string $hook ): void {
 		if ( 'users.php' !== $hook ) {
 			return;
 		}

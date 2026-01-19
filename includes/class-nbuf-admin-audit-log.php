@@ -50,15 +50,15 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param int    $admin_id        Admin who performed action.
-	 * @param string $action_type     Action type constant.
-	 * @param string $action_status   'success' or 'failure'.
-	 * @param string $action_message  Human-readable message.
-	 * @param int    $target_user_id  User affected (NULL for settings).
-	 * @param array  $metadata        Additional data (old_value, new_value, etc.).
+	 * @param int                  $admin_id        Admin who performed action.
+	 * @param string               $action_type     Action type constant.
+	 * @param string               $action_status   'success' or 'failure'.
+	 * @param string               $action_message  Human-readable message.
+	 * @param int|null             $target_user_id  User affected (NULL for settings).
+	 * @param array<string, mixed> $metadata        Additional data (old_value, new_value, etc.).
 	 * @return bool True on success, false on failure.
 	 */
-	public static function log( $admin_id, $action_type, $action_status, $action_message, $target_user_id = null, $metadata = array() ) {
+	public static function log( $admin_id, $action_type, $action_status, $action_message, $target_user_id = null, $metadata = array() ): bool {
 		global $wpdb;
 
 		/* Check if admin audit logging is enabled */
@@ -122,9 +122,9 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @param int $admin_id Admin user ID.
 	 * @param int $limit    Number of logs to retrieve.
-	 * @return array Array of log entries.
+	 * @return array<int, array<string, mixed>> Array of log entries.
 	 */
-	public static function get_admin_actions( $admin_id, $limit = 100 ) {
+	public static function get_admin_actions( $admin_id, $limit = 100 ): array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -149,9 +149,9 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @param int $user_id Target user ID.
 	 * @param int $limit   Number of logs to retrieve.
-	 * @return array Array of log entries.
+	 * @return array<int, array<string, mixed>> Array of log entries.
 	 */
-	public static function get_user_modifications( $user_id, $limit = 100 ) {
+	public static function get_user_modifications( $user_id, $limit = 100 ): array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -174,12 +174,12 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param array $filters Array of filters (date_from, date_to, admin_id, target_user_id, action_type, action_status).
-	 * @param int   $limit   Number of logs to retrieve.
-	 * @param int   $offset  Offset for pagination.
-	 * @return array Array of log entries.
+	 * @param array<string, mixed> $filters Array of filters (date_from, date_to, admin_id, target_user_id, action_type, action_status).
+	 * @param int                  $limit   Number of logs to retrieve.
+	 * @param int                  $offset  Offset for pagination.
+	 * @return array<int, array<string, mixed>> Array of log entries.
 	 */
-	public static function get_logs( $filters = array(), $limit = 100, $offset = 0 ) {
+	public static function get_logs( $filters = array(), $limit = 100, $offset = 0 ): array {
 		global $wpdb;
 
 		$table  = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -243,10 +243,10 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param array $filters Array of filters.
+	 * @param array<string, mixed> $filters Array of filters.
 	 * @return int Total count.
 	 */
-	public static function get_log_count( $filters = array() ) {
+	public static function get_log_count( $filters = array() ): int {
 		global $wpdb;
 
 		$table  = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -298,10 +298,10 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param array $filters Array of filters.
+	 * @param array<string, mixed> $filters Array of filters.
 	 * @return void Outputs CSV file.
 	 */
-	public static function export_csv( $filters = array() ) {
+	public static function export_csv( $filters = array() ): void {
 		/* Capability check */
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized', 'nobloat-user-foundry' ) );
@@ -426,9 +426,9 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @return array Result with count of deleted rows.
+	 * @return array{success: bool, count: int, message: string} Result with count of deleted rows.
 	 */
-	public static function purge_all() {
+	public static function purge_all(): array {
 		global $wpdb;
 
 		/* Double-check capability */
@@ -529,9 +529,9 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @return array Statistics array.
+	 * @return array<string, mixed> Statistics array.
 	 */
-	public static function get_stats() {
+	public static function get_stats(): array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_admin_audit_log';
@@ -617,13 +617,13 @@ class NBUF_Admin_Audit_Log {
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param string $action   Action name.
-	 * @param array  $user_ids Affected user IDs.
-	 * @param string $status   'success' or 'failure'.
-	 * @param array  $results  Detailed results.
+	 * @param string               $action   Action name.
+	 * @param array<int>           $user_ids Affected user IDs.
+	 * @param string               $status   'success' or 'failure'.
+	 * @param array<string, mixed> $results  Detailed results.
 	 * @return bool True on success, false on failure.
 	 */
-	public static function log_bulk_action( $action, $user_ids, $status, $results = array() ) {
+	public static function log_bulk_action( $action, $user_ids, $status, $results = array() ): bool {
 		return self::log(
 			get_current_user_id(),
 			self::EVENT_BULK_ACTION,
@@ -648,18 +648,28 @@ class NBUF_Admin_Audit_Log {
 	 * @return bool True if should log, false otherwise.
 	 */
 	private static function should_log_action( $action_type ) {
-		$categories = NBUF_Options::get(
-			'nbuf_logging_admin_audit_categories',
-			array(
-				'user_deletion'        => true,
-				'role_changes'         => true,
-				'settings_changes'     => true,
-				'bulk_actions'         => true,
-				'manual_verifications' => true,
-				'password_resets'      => true,
-				'profile_edits'        => true,
-			)
+		/* Default categories - all enabled (used for fresh installs) */
+		$defaults = array(
+			'user_deletion'        => true,
+			'role_changes'         => true,
+			'settings_changes'     => true,
+			'bulk_actions'         => true,
+			'manual_verifications' => true,
+			'password_resets'      => true,
+			'profile_edits'        => true,
 		);
+
+		/*
+		 * Get saved categories. Note: checkbox_group only saves checked items,
+		 * so missing keys mean the checkbox was unchecked (disabled).
+		 * We pass $defaults so fresh installs get all categories enabled.
+		 */
+		$categories = NBUF_Options::get( 'nbuf_logging_admin_audit_categories', $defaults );
+
+		/* Handle corrupted value (not an array) - use defaults */
+		if ( ! is_array( $categories ) ) {
+			$categories = $defaults;
+		}
 
 		/* Map action types to categories */
 		$action_category_map = array(
@@ -686,8 +696,13 @@ class NBUF_Admin_Audit_Log {
 			return true;
 		}
 
-		/* Check if category is enabled */
-		return isset( $categories[ $category ] ) && $categories[ $category ];
+		/*
+		 * Check if category is enabled.
+		 * - If key exists and is truthy: enabled
+		 * - If key exists and is falsy: disabled (user explicitly unchecked)
+		 * - If key doesn't exist: disabled (checkbox_group omits unchecked items)
+		 */
+		return ! empty( $categories[ $category ] );
 	}
 
 	/**

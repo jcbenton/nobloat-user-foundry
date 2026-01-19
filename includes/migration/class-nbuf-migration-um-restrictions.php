@@ -25,9 +25,9 @@ class NBUF_Migration_UM_Restrictions {
 	/**
 	 * Migrate Ultimate Member content restrictions to NBUF
 	 *
-	 * @return array Migration results with counts and errors
+	 * @return array{total: int, migrated: int, skipped: int, errors: array<int, string>, menu_migrated: int} Migration results with counts and errors
 	 */
-	public static function migrate_restrictions() {
+	public static function migrate_restrictions(): array {
 		global $wpdb;
 
 		$results = array(
@@ -162,9 +162,9 @@ class NBUF_Migration_UM_Restrictions {
 	 * UM stores all restriction data in a serialized array under 'um_content_restriction' meta key.
 	 *
 	 * @param  int $post_id Post ID.
-	 * @return array NBUF restriction data.
+	 * @return array{visibility: string, allowed_roles: array<int, string>, restriction_action: string, custom_message: string, redirect_url: string} NBUF restriction data.
 	 */
-	private static function map_um_to_nbuf( $post_id ) {
+	private static function map_um_to_nbuf( $post_id ): array {
 		$nbuf = array(
 			'visibility'         => 'everyone',
 			'allowed_roles'      => array(),
@@ -253,9 +253,9 @@ class NBUF_Migration_UM_Restrictions {
 	 * Get migration preview (first N items)
 	 *
 	 * @param  int $limit Number of items to preview.
-	 * @return array Preview data.
+	 * @return array<int, array<string, mixed>> Preview data.
 	 */
-	public static function get_migration_preview( $limit = 10 ) {
+	public static function get_migration_preview( $limit = 10 ): array {
 		global $wpdb;
 
 		/*
@@ -347,9 +347,9 @@ class NBUF_Migration_UM_Restrictions {
 	/**
 	 * Rollback migration (delete migrated restrictions)
 	 *
-	 * @return array Results with count of deleted restrictions
+	 * @return array{success: bool, deleted: int} Results with count of deleted restrictions
 	 */
-	public static function rollback_migration() {
+	public static function rollback_migration(): array {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';

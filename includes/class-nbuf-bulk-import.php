@@ -23,7 +23,7 @@ class NBUF_Bulk_Import {
 	/**
 	 * Import results storage
 	 *
-	 * @var array
+	 * @var array{success: int, skipped: int, errors: array<int, array{line: int, message: string}>}
 	 */
 	private $results = array(
 		'success' => 0,
@@ -34,7 +34,7 @@ class NBUF_Bulk_Import {
 	/**
 	 * Valid profile field keys
 	 *
-	 * @var array
+	 * @var array<int, string>
 	 */
 	private $valid_profile_fields = array();
 
@@ -52,8 +52,10 @@ class NBUF_Bulk_Import {
 
 	/**
 	 * Initialize valid profile field keys
+	 *
+	 * @return void
 	 */
-	private function init_valid_fields() {
+	private function init_valid_fields(): void {
 		/* Core WordPress fields */
 		$core_fields = array(
 			'user_login',
@@ -237,8 +239,10 @@ class NBUF_Bulk_Import {
 
 	/**
 	 * AJAX: Upload and validate CSV file
+	 *
+	 * @return void
 	 */
-	public function ajax_upload_csv() {
+	public function ajax_upload_csv(): void {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -300,9 +304,9 @@ class NBUF_Bulk_Import {
 	 * Parse CSV file
 	 *
 	 * @param  string $file_path Path to CSV file.
-	 * @return array|WP_Error Parsed data or error.
+	 * @return array{headers: array<int, string>, rows: array<int, array{line: int, data: array<string, string>, raw: array<int, string>}>}|WP_Error Parsed data or error.
 	 */
-	private function parse_csv( $file_path ) {
+	private function parse_csv( string $file_path ) {
 		if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
 			return new WP_Error( 'file_error', 'Cannot read CSV file' );
 		}
@@ -353,10 +357,10 @@ class NBUF_Bulk_Import {
 	/**
 	 * Validate CSV structure
 	 *
-	 * @param  array $csv_data Parsed CSV data.
+	 * @param  array{headers: array<int, string>, rows: array<int, array{line: int, data: array<string, string>, raw: array<int, string>}>} $csv_data Parsed CSV data.
 	 * @return true|WP_Error True if valid, error otherwise.
 	 */
-	private function validate_csv_structure( $csv_data ) {
+	private function validate_csv_structure( array $csv_data ) {
 		/* Check if CSV has data */
 		if ( empty( $csv_data['rows'] ) ) {
 			return new WP_Error( 'empty_csv', 'CSV file contains no data rows' );
@@ -378,10 +382,10 @@ class NBUF_Bulk_Import {
 	/**
 	 * Dry-run validation (preview without importing)
 	 *
-	 * @param  array $csv_data Parsed CSV data.
-	 * @return array Validation results.
+	 * @param  array{headers: array<int, string>, rows: array<int, array{line: int, data: array<string, string>, raw: array<int, string>}>} $csv_data Parsed CSV data.
+	 * @return array{valid: int, invalid: int, errors: array<int, array{line: int, message: string}>, samples: array<int, array{line: int, data: array<string, string>}>} Validation results.
 	 */
-	private function dry_run_validation( $csv_data ) {
+	private function dry_run_validation( array $csv_data ): array {
 		$preview = array(
 			'valid'   => 0,
 			'invalid' => 0,
@@ -421,11 +425,11 @@ class NBUF_Bulk_Import {
 	/**
 	 * Validate single row
 	 *
-	 * @param  array $row         Row data.
-	 * @param  int   $line_number Line number.
-	 * @return array|WP_Error Validated data or error.
+	 * @param  array<string, string> $row         Row data.
+	 * @param  int                   $line_number Line number.
+	 * @return array<string, string>|WP_Error Validated data or error.
 	 */
-	private function validate_row( $row, $line_number ) {
+	private function validate_row( array $row, int $line_number ) {
 		$validated = array();
 		$errors    = array();
 
@@ -532,8 +536,10 @@ class NBUF_Bulk_Import {
 
 	/**
 	 * AJAX: Import users from CSV
+	 *
+	 * @return void
 	 */
-	public function ajax_import_users() {
+	public function ajax_import_users(): void {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -588,10 +594,11 @@ class NBUF_Bulk_Import {
 	/**
 	 * Import single user
 	 *
-	 * @param array $data        User data.
-	 * @param int   $line_number Line number.
+	 * @param array<string, string> $data        User data.
+	 * @param int                   $line_number Line number.
+	 * @return void
 	 */
-	private function import_user( $data, $line_number ) {
+	private function import_user( array $data, int $line_number ): void {
 		/* Validate row */
 		$validated = $this->validate_row( $data, $line_number );
 
@@ -683,10 +690,11 @@ class NBUF_Bulk_Import {
 	/**
 	 * Save profile data for user
 	 *
-	 * @param int   $user_id      User ID.
-	 * @param array $profile_data Profile field data.
+	 * @param int                   $user_id      User ID.
+	 * @param array<string, string> $profile_data Profile field data.
+	 * @return void
 	 */
-	private function save_profile_data( $user_id, $profile_data ) {
+	private function save_profile_data( int $user_id, array $profile_data ): void {
 		global $wpdb;
 
 		/* Check if profile row exists */
@@ -729,8 +737,9 @@ class NBUF_Bulk_Import {
 	 *
 	 * @param int  $user_id  User ID.
 	 * @param bool $verified Verified status.
+	 * @return void
 	 */
-	private function set_user_verified( $user_id, $verified ) {
+	private function set_user_verified( int $user_id, bool $verified ): void {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
@@ -777,8 +786,9 @@ class NBUF_Bulk_Import {
 	 *
 	 * @param int    $user_id  User ID.
 	 * @param string $password Plain text password.
+	 * @return void
 	 */
-	private function send_welcome_email( $user_id, $password ) {
+	private function send_welcome_email( int $user_id, string $password ): void {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
@@ -798,8 +808,10 @@ class NBUF_Bulk_Import {
 
 	/**
 	 * AJAX: Download error report
+	 *
+	 * @return void
 	 */
-	public function ajax_download_error_report() {
+	public function ajax_download_error_report(): void {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {

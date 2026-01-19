@@ -4,9 +4,7 @@ Hello {display_name},
 
 Your account at {site_name} has expired as of {expiration_date}.
 
-Your access to certain features may now be restricted. If you believe this is an error or would like to renew your account, please contact us.
-
-Contact us: {contact_url}
+Your access to certain features may now be restricted. If you believe this is an error or would like to renew your account, please contact the site administrator.
 
 ---
 This email was sent from {site_name}

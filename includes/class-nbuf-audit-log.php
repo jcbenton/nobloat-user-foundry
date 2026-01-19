@@ -58,11 +58,11 @@ class NBUF_Audit_Log {
 	/**
 	 * Log a user activity event
 	 *
-	 * @param  int    $user_id      User ID.
-	 * @param  string $event_type   Event type (e.g., 'login_success', 'password_changed').
-	 * @param  string $event_status Event status ('success', 'failure', 'pending', 'warning').
-	 * @param  string $message      Event description.
-	 * @param  array  $metadata     Optional additional data (stored as JSON).
+	 * @param  int                  $user_id      User ID.
+	 * @param  string               $event_type   Event type (e.g., 'login_success', 'password_changed').
+	 * @param  string               $event_status Event status ('success', 'failure', 'pending', 'warning').
+	 * @param  string               $message      Event description.
+	 * @param  array<string, mixed> $metadata     Optional additional data (stored as JSON).
 	 * @return bool  True on success, false on failure.
 	 */
 	public static function log( int $user_id, string $event_type, string $event_status, string $message = '', array $metadata = array() ): bool {
@@ -205,12 +205,12 @@ class NBUF_Audit_Log {
 	/**
 	 * Get audit logs with optional filters
 	 *
-	 * @param  array  $filters Filters (user_id, event_type, event_status, date_from, date_to, search).
-	 * @param  int    $limit   Number of results to return.
-	 * @param  int    $offset  Offset for pagination.
-	 * @param  string $orderby Column to order by.
-	 * @param  string $order   Order direction (ASC or DESC).
-	 * @return array Array of log entries.
+	 * @param  array<string, mixed> $filters Filters (user_id, event_type, event_status, date_from, date_to, search).
+	 * @param  int                  $limit   Number of results to return.
+	 * @param  int                  $offset  Offset for pagination.
+	 * @param  string               $orderby Column to order by.
+	 * @param  string               $order   Order direction (ASC or DESC).
+	 * @return array<int, object>   Array of log entries.
 	 */
 	public static function get_logs( array $filters = array(), int $limit = 25, int $offset = 0, string $orderby = 'created_at', string $order = 'DESC' ): array {
 		global $wpdb;
@@ -248,19 +248,21 @@ class NBUF_Audit_Log {
 			$where_values[]  = $filters['date_to'];
 		}
 
-		/* Filter by search (username, message, IP) */
+		/* Filter by search (username, first/last name, message, IP) */
 		if ( ! empty( $filters['search'] ) ) {
 			/*
 			* PERFORMANCE: Use FULLTEXT search for event_message (100x+ faster on large datasets)
 			* FULLTEXT index was added in Session #30 (HIGH-6 fix)
 			* BOOLEAN MODE with '*' allows prefix matching similar to LIKE '%term%'
+			* Name search uses subquery on wp_usermeta for first_name/last_name
 			*/
-			$where_clauses[] = '(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s)';
+			$where_clauses[] = "(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
 			$search_term     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
 			$search_boolean  = $wpdb->esc_like( $filters['search'] ) . '*';
 			$where_values[]  = $search_term;    // for username LIKE.
 			$where_values[]  = $search_boolean; // for FULLTEXT MATCH...AGAINST.
 			$where_values[]  = $search_term;    // for ip_address LIKE.
+			$where_values[]  = $search_term;    // for first/last name LIKE.
 		}
 
 		/* Build WHERE clause */
@@ -297,7 +299,7 @@ class NBUF_Audit_Log {
 	/**
 	 * Get total count of logs matching filters
 	 *
-	 * @param  array $filters Filters (same as get_logs).
+	 * @param  array<string, mixed> $filters Filters (same as get_logs).
 	 * @return int Total count.
 	 */
 	public static function get_logs_count( array $filters = array() ): int {
@@ -336,15 +338,19 @@ class NBUF_Audit_Log {
 			$where_values[]  = $filters['date_to'];
 		}
 
-		/* Filter by search */
+		/* Filter by search (username, first/last name, message, IP) */
 		if ( ! empty( $filters['search'] ) ) {
-			/* PERFORMANCE: Use FULLTEXT search for event_message (100x+ faster) */
-			$where_clauses[] = '(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s)';
+			/*
+			 * PERFORMANCE: Use FULLTEXT search for event_message (100x+ faster)
+			 * Name search uses subquery on wp_usermeta for first_name/last_name
+			 */
+			$where_clauses[] = "(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
 			$search_term     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
 			$search_boolean  = $wpdb->esc_like( $filters['search'] ) . '*';
 			$where_values[]  = $search_term;    // for username LIKE.
 			$where_values[]  = $search_boolean; // for FULLTEXT MATCH...AGAINST.
 			$where_values[]  = $search_term;    // for ip_address LIKE.
+			$where_values[]  = $search_term;    // for first/last name LIKE.
 		}
 
 		/* Build WHERE clause - $where_sql is built from placeholders with validated values */
@@ -367,7 +373,7 @@ class NBUF_Audit_Log {
 	/**
 	 * Delete specific log entries
 	 *
-	 * @param  array $ids Array of log IDs to delete.
+	 * @param  array<int> $ids Array of log IDs to delete.
 	 * @return bool True on success.
 	 */
 	public static function delete_logs( array $ids ): bool {
@@ -413,7 +419,7 @@ class NBUF_Audit_Log {
 	/**
 	 * Get audit log statistics
 	 *
-	 * @return array Statistics array.
+	 * @return array{total_entries: int, database_size: string, oldest_entry: string, last_cleanup: string} Statistics array.
 	 */
 	public static function get_stats(): array {
 		global $wpdb;
@@ -457,7 +463,7 @@ class NBUF_Audit_Log {
 	/**
 	 * Export logs to CSV
 	 *
-	 * @param  array $filters Filters (same as get_logs).
+	 * @param  array<string, mixed> $filters Filters (same as get_logs).
 	 * @return string CSV content.
 	 */
 	public static function export_to_csv( array $filters = array() ): string {
@@ -621,7 +627,7 @@ class NBUF_Audit_Log {
 	 *
 	 * @param int $user_id User ID.
 	 * @param int $limit   Number of logs to retrieve.
-	 * @return array Array of log entries.
+	 * @return array<int, array<string, mixed>> Array of log entries.
 	 */
 	public static function get_user_logs( int $user_id, int $limit = 1000 ): array {
 		global $wpdb;

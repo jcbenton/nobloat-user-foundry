@@ -26,8 +26,10 @@ class NBUF_Verifier {
 	 * Initialize verifier.
 	 *
 	 * Kept for future extension; no front-end hijacking here.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		// Intentionally empty: verification is invoked by shortcode.
 	}
 
@@ -91,6 +93,7 @@ class NBUF_Verifier {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( ! $entry ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 			$wpdb->query( 'ROLLBACK' );
 			/* Log failed verification - invalid token (cannot log user_id since entry doesn't exist) */
 			return self::wrap_notice(
@@ -114,6 +117,7 @@ class NBUF_Verifier {
 			}
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token update.
 			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 			$wpdb->query( 'COMMIT' );
 			return self::wrap_notice(
 				__( 'This verification link has expired. Please request a new one.', 'nobloat-user-foundry' ),
@@ -125,6 +129,7 @@ class NBUF_Verifier {
 		if ( ! empty( $entry->is_test ) && 1 === (int) $entry->is_test ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token deletion.
 			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 			$wpdb->query( 'COMMIT' );
 			return self::wrap_notice(
 				__( 'Test verification successful. The plugin is functioning correctly.', 'nobloat-user-foundry' ),
@@ -211,6 +216,7 @@ class NBUF_Verifier {
 		// One-time token: delete after use.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural auto-login update.
 		$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 		$wpdb->query( 'COMMIT' );
 
 		/**

@@ -42,9 +42,9 @@ class NBUF_User_Notes {
 	 * @param  int    $user_id  User ID.
 	 * @param  string $order_by Order by column (default: 'created_at').
 	 * @param  string $order    Sort order (ASC or DESC, default: DESC).
-	 * @return array               Array of note objects.
+	 * @return array<int, object> Array of note objects.
 	 */
-	public static function get_user_notes( $user_id, $order_by = 'created_at', $order = 'DESC' ) {
+	public static function get_user_notes( int $user_id, string $order_by = 'created_at', string $order = 'DESC' ): array {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_notes';
 
@@ -282,9 +282,9 @@ class NBUF_User_Notes {
 	 * @since  1.0.0
 	 * @param  string $search_term Search term.
 	 * @param  int    $limit       Maximum results (default: 50).
-	 * @return array                   Array of user IDs with matching notes.
+	 * @return array<int, string>  Array of user IDs with matching notes.
 	 */
-	public static function search_notes( $search_term, $limit = 50 ) {
+	public static function search_notes( string $search_term, int $limit = 50 ): array {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_notes';
 
@@ -305,9 +305,10 @@ class NBUF_User_Notes {
 	 *
 	 * Adds the notes tab to the WordPress user editor.
 	 *
-	 * @since 1.0.0
+	 * @since  1.0.0
+	 * @return void
 	 */
-	public static function init_profile_link() {
+	public static function init_profile_link(): void {
 		if ( is_admin() ) {
 			add_action( 'show_user_profile', array( __CLASS__, 'render_notes_section' ), 99 );
 			add_action( 'edit_user_profile', array( __CLASS__, 'render_notes_section' ), 99 );
@@ -320,10 +321,11 @@ class NBUF_User_Notes {
 	/**
 	 * Enqueue assets for user profile notes section.
 	 *
-	 * @since 1.5.0
-	 * @param string $hook Current admin page hook.
+	 * @since  1.5.0
+	 * @param  string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_profile_assets( $hook ) {
+	public static function enqueue_profile_assets( string $hook ): void {
 		if ( 'profile.php' !== $hook && 'user-edit.php' !== $hook ) {
 			return;
 		}
@@ -384,10 +386,11 @@ class NBUF_User_Notes {
 	/**
 	 * Render full notes section in user profile.
 	 *
-	 * @since 1.5.0
-	 * @param WP_User $user User object.
+	 * @since  1.5.0
+	 * @param  WP_User $user User object.
+	 * @return void
 	 */
-	public static function render_notes_section( $user ) {
+	public static function render_notes_section( WP_User $user ): void {
 		if ( ! current_user_can( 'edit_users' ) ) {
 			return;
 		}
@@ -537,9 +540,10 @@ class NBUF_User_Notes {
 	/**
 	 * AJAX: Add note from profile page.
 	 *
-	 * @since 1.5.0
+	 * @since  1.5.0
+	 * @return void
 	 */
-	public static function ajax_profile_add_note() {
+	public static function ajax_profile_add_note(): void {
 		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'edit_users' ) ) {
@@ -570,9 +574,10 @@ class NBUF_User_Notes {
 	/**
 	 * AJAX: Delete note from profile page.
 	 *
-	 * @since 1.5.0
+	 * @since  1.5.0
+	 * @return void
 	 */
-	public static function ajax_profile_delete_note() {
+	public static function ajax_profile_delete_note(): void {
 		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'edit_users' ) ) {

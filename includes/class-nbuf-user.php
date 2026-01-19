@@ -41,7 +41,7 @@ class NBUF_User {
 	/**
 	 * Cache groups for granular caching (BuddyPress pattern)
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	const CACHE_GROUPS = array(
 		'user_data' => 'nbuf_user_data',
@@ -94,11 +94,11 @@ class NBUF_User {
 	 * Performs a single JOIN query across all custom tables and caches the result.
 	 * This is the primary method for retrieving user data.
 	 *
-	 * @param  int   $user_id User ID.
-	 * @param  array $args    Optional arguments:
-	 *                        - 'refresh' => Force refresh cache (default: false)
-	 *                        - 'fields'  => Array of field groups to include (default: all)
-	 *                        Options: 'user_data', 'profile', '2fa', 'notes_count'.
+	 * @param  int                                           $user_id User ID.
+	 * @param  array{refresh?: bool, fields?: array<string>} $args    Optional arguments:
+	 *                                                                - 'refresh' => Force refresh cache (default: false)
+	 *                                                                - 'fields'  => Array of field groups to include (default: all)
+	 *                                                                Options: 'user_data', 'profile', '2fa', 'notes_count'.
 	 * @return NBUF_User|null User object or null if not found.
 	 */
 	public static function get( int $user_id, array $args = array() ): ?self {
@@ -144,9 +144,9 @@ class NBUF_User {
 	 * Optimized for admin lists and bulk operations. Significantly faster
 	 * than calling get() in a loop.
 	 *
-	 * @param  array $user_ids Array of user IDs.
-	 * @param  array $args     Optional arguments (same as get()).
-	 * @return array Array of NBUF_User objects keyed by user ID.
+	 * @param  array<int>                                    $user_ids Array of user IDs.
+	 * @param  array{refresh?: bool, fields?: array<string>} $args     Optional arguments (same as get()).
+	 * @return array<int, NBUF_User> Array of NBUF_User objects keyed by user ID.
 	 */
 	public static function get_many( array $user_ids, array $args = array() ): array {
 		$user_ids = array_map( 'absint', $user_ids );
@@ -216,7 +216,7 @@ class NBUF_User {
 	/**
 	 * Build SELECT clause for user queries
 	 *
-	 * @param  array $fields Field groups to include.
+	 * @param  array<string> $fields Field groups to include.
 	 * @return string SELECT clause.
 	 */
 	private static function build_select_clause( array $fields ): string {
@@ -326,7 +326,7 @@ class NBUF_User {
 	/**
 	 * Build FROM/JOIN clause for user queries
 	 *
-	 * @param  array $fields Field groups to include.
+	 * @param  array<string> $fields Field groups to include.
 	 * @return string FROM clause with JOINs.
 	 */
 	private static function build_from_clause( array $fields ): string {
@@ -356,8 +356,8 @@ class NBUF_User {
 	/**
 	 * Fetch user data from database with JOINs
 	 *
-	 * @param  int   $user_id User ID.
-	 * @param  array $fields  Field groups to include.
+	 * @param  int           $user_id User ID.
+	 * @param  array<string> $fields  Field groups to include.
 	 * @return object|null User data object.
 	 */
 	private static function fetch_user_data( int $user_id, array $fields = array() ): ?object {
@@ -389,9 +389,9 @@ class NBUF_User {
 	/**
 	 * Fetch multiple users in batch
 	 *
-	 * @param  array $user_ids Array of user IDs.
-	 * @param  array $fields   Field groups to include.
-	 * @return array Array of user data objects.
+	 * @param  array<int>    $user_ids Array of user IDs.
+	 * @param  array<string> $fields   Field groups to include.
+	 * @return array<int, object> Array of user data objects.
 	 */
 	private static function fetch_users_batch( array $user_ids, array $fields = array() ): array {
 		global $wpdb;
@@ -535,7 +535,8 @@ class NBUF_User {
 	/**
 	 * Invalidate cache for multiple users
 	 *
-	 * @param array $user_ids Array of user IDs.
+	 * @param array<int> $user_ids Array of user IDs.
+	 * @return void
 	 */
 	public static function invalidate_cache_many( array $user_ids ): void {
 		foreach ( $user_ids as $user_id ) {
@@ -619,7 +620,7 @@ class NBUF_User {
 	 *
 	 * Useful for JSON responses or debugging.
 	 *
-	 * @return array User data array.
+	 * @return array<string, mixed> User data array.
 	 */
 	public function to_array(): array {
 		return (array) $this->data;

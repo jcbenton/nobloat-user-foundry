@@ -126,7 +126,7 @@ class NBUF_Impersonation {
 	 * Get current impersonation data.
 	 *
 	 * @since  1.5.2
-	 * @return array|false Impersonation data or false if not impersonating.
+	 * @return array<string, mixed>|false Impersonation data or false if not impersonating.
 	 */
 	public static function get_impersonation_data() {
 		$session_token = wp_get_session_token();
@@ -185,9 +185,9 @@ class NBUF_Impersonation {
 	 * Add "Login as User" link to Users list row actions.
 	 *
 	 * @since  1.5.2
-	 * @param  array   $actions Row actions.
-	 * @param  WP_User $user    User object.
-	 * @return array Modified actions.
+	 * @param  array<string, string> $actions Row actions.
+	 * @param  WP_User               $user    User object.
+	 * @return array<string, string> Modified actions.
 	 */
 	public static function add_user_row_action( array $actions, WP_User $user ): array {
 		if ( ! self::can_impersonate_user( $user->ID ) ) {
@@ -305,9 +305,9 @@ class NBUF_Impersonation {
 		 * Store impersonation data using the token we created.
 		 * SECURITY: Bind to IP address and user agent to prevent session hijacking.
 		 */
-		$client_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		$user_agent  = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-		$expiration  = 2 * HOUR_IN_SECONDS; /* Shorter expiration for security (2 hours instead of 1 day) */
+		$client_ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$expiration = 2 * HOUR_IN_SECONDS; /* Shorter expiration for security (2 hours instead of 1 day) */
 
 		$transient_key = self::TRANSIENT_PREFIX . hash( 'sha256', $session_token );
 		set_transient(

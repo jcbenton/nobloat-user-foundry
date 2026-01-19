@@ -24,14 +24,14 @@ class NBUF_Template_Manager {
 	/**
 	 * Runtime cache for loaded templates.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	private static $cache = array();
 
 	/**
 	 * Template types and their database option keys.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	private static $template_map = array(
 		// Email templates - option names must match UI form field names.
@@ -85,7 +85,7 @@ class NBUF_Template_Manager {
 	/**
 	 * File name mappings for default templates.
 	 *
-	 * @var array
+	 * @var array<string, string>
 	 */
 	private static $file_map = array(
 		'email-verification-html'     => 'email-verification.html',
@@ -846,8 +846,9 @@ class NBUF_Template_Manager {
 	 * Clear runtime template cache (useful for testing).
 	 *
 	 * @param string|null $template_name Optional template to clear, or null for all.
+	 * @return void
 	 */
-	public static function clear_cache( $template_name = null ) {
+	public static function clear_cache( ?string $template_name = null ): void {
 		if ( $template_name ) {
 			unset( self::$cache[ $template_name ] );
 		} else {
@@ -856,13 +857,13 @@ class NBUF_Template_Manager {
 	}
 
 	/**
-	==========================================================
-	GET TEMPLATE LIST
-	----------------------------------------------------------
-	Get all available templates (for admin UI).
-	==========================================================
+	 * GET TEMPLATE LIST.
+	 *
+	 * Get all available templates (for admin UI).
+	 *
+	 * @return array<int, string> List of template names.
 	 */
-	public static function get_template_list() {
+	public static function get_template_list(): array {
 		return array_keys( self::$template_map );
 	}
 
@@ -872,9 +873,9 @@ class NBUF_Template_Manager {
 	 * Get available placeholders for each template type.
 	 *
 	 * @param  string $template_name Template identifier.
-	 * @return array Array of placeholder descriptions.
+	 * @return string Comma-separated list of placeholder descriptions.
 	 */
-	public static function get_placeholders( $template_name ) {
+	public static function get_placeholders( string $template_name ): string {
 		$placeholders = array(
 			// Email verification.
 			'email-verification-html'     => '{site_name}, {display_name}, {verify_link}, {user_email}, {username}, {site_url}, {verification_url}',
@@ -885,8 +886,8 @@ class NBUF_Template_Manager {
 			'welcome-email-text'          => '{site_name}, {display_name}, {password_reset_link}, {user_email}, {username}, {site_url}',
 
 			// Expiration warning.
-			'expiration-warning-html'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}, {contact_url}',
-			'expiration-warning-text'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}, {contact_url}',
+			'expiration-warning-html'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}',
+			'expiration-warning-text'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}',
 
 			// 2FA email code.
 			'2fa-email-code-html'         => '{site_name}, {display_name}, {code}, {user_email}',

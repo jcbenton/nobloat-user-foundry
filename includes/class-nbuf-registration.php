@@ -25,7 +25,7 @@ class NBUF_Registration {
 	 * Reserved/blacklisted usernames that should not be allowed.
 	 * If email prefix matches any of these, falls back to random generation.
 	 *
-	 * @var array
+	 * @var array<int, string>
 	 */
 	private static $reserved_usernames = array(
 		/* Administrative */
@@ -233,8 +233,8 @@ class NBUF_Registration {
 	 * @return string      Unique username.
 	 */
 	private static function ensure_unique_username( $base ) {
-		$username    = $base;
-		$counter     = 1;
+		$username     = $base;
+		$counter      = 1;
 		$max_attempts = 1000; /* Safety limit to prevent infinite loops */
 
 		/* Keep incrementing until we find a unique username */
@@ -254,10 +254,10 @@ class NBUF_Registration {
 	/**
 	 * Validate registration fields based on settings.
 	 *
-	 * @param  array $data Posted form data.
+	 * @param  array<string, mixed> $data Posted form data.
 	 * @return WP_Error|true  WP_Error on failure, true on success.
 	 */
-	public static function validate_registration_data( $data ) {
+	public static function validate_registration_data( array $data ) {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 		/* Validate email (always required) */
@@ -363,10 +363,10 @@ class NBUF_Registration {
 	/**
 	 * Register new user and save profile data.
 	 *
-	 * @param  array $data Registration form data.
+	 * @param  array<string, mixed> $data Registration form data.
 	 * @return int|WP_Error  User ID on success, WP_Error on failure.
 	 */
-	public static function register_user( $data ) {
+	public static function register_user( array $data ) {
 		/* Validate data first */
 		$validation = self::validate_registration_data( $data );
 		if ( is_wp_error( $validation ) ) {
@@ -493,9 +493,9 @@ class NBUF_Registration {
 	 * - Required column: which fields are required
 	 * - Custom Label column: field label overrides
 	 *
-	 * @return array Array of enabled fields with their settings.
+	 * @return array<string, array<string, mixed>> Array of enabled fields with their settings.
 	 */
-	public static function get_enabled_fields() {
+	public static function get_enabled_fields(): array {
 		/* Get profile fields enabled for registration (from Profile Fields tab) */
 		$profile_reg_fields = NBUF_Profile_Data::get_registration_fields();
 		$required_fields    = NBUF_Options::get( 'nbuf_required_profile_fields', array() );

@@ -22,8 +22,10 @@ class NBUF_User_Profile_Tabs {
 
 	/**
 	 * Initialize user profile tabs functionality
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		if ( ! is_admin() ) {
 			return;
 		}
@@ -35,8 +37,9 @@ class NBUF_User_Profile_Tabs {
 	 * Enqueue assets for user profile pages
 	 *
 	 * @param string $hook Current admin page hook.
+	 * @return void
 	 */
-	public static function enqueue_assets( $hook ) {
+	public static function enqueue_assets( $hook ): void {
 		/* Only on user edit pages */
 		if ( 'user-edit.php' !== $hook && 'profile.php' !== $hook ) {
 			return;
@@ -165,7 +168,7 @@ class NBUF_User_Profile_Tabs {
 	 *
 	 * @return string JavaScript code.
 	 */
-	private static function get_tabs_javascript() {
+	private static function get_tabs_javascript(): string {
 		return "
 		jQuery(document).ready(function($) {
 			var \$form = $('#your-profile');

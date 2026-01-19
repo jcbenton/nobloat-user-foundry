@@ -71,11 +71,11 @@ class NBUF_Image_Processor {
 	 * Main entry point for image processing. Handles conversion, optimization,
 	 * and saving to the nobloat directory.
 	 *
-	 * @param  string $source_path   Full path to source image.
-	 * @param  int    $user_id       User ID.
-	 * @param  string $type          Image type (profile or cover).
-	 * @param  array  $options       Optional processing options.
-	 * @return array|WP_Error Success with file info or WP_Error on failure.
+	 * @param  string               $source_path   Full path to source image.
+	 * @param  int                  $user_id       User ID.
+	 * @param  string               $type          Image type (profile or cover).
+	 * @param  array<string, mixed> $options       Optional processing options.
+	 * @return array{path: string, url: string, format: string, optimized: bool}|WP_Error Success with file info or WP_Error on failure.
 	 */
 	public static function process_image( $source_path, $user_id, $type, $options = array() ) {
 		/* Validate input */
@@ -777,7 +777,7 @@ class NBUF_Image_Processor {
 	 * Creates /wp-content/uploads/nobloat/users/{user_id}/ directory.
 	 *
 	 * @param  int $user_id User ID.
-	 * @return array|WP_Error Array with 'path' and 'url' keys, or WP_Error.
+	 * @return array{path: string, url: string}|WP_Error Array with 'path' and 'url' keys, or WP_Error.
 	 */
 	public static function get_upload_directory( $user_id ) {
 		$upload_dir = wp_upload_dir();

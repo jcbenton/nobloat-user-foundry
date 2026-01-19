@@ -22,8 +22,10 @@ class NBUF_Test {
 
 	/**
 	 * Initialize test utility.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_post_nbuf_send_test_email', array( __CLASS__, 'handle_test_email' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notice' ) );
 		add_action( 'wp_ajax_nbuf_test_change_notification', array( __CLASS__, 'ajax_test_change_notification' ) );
@@ -32,8 +34,10 @@ class NBUF_Test {
 
 	/**
 	 * Handle test email submission.
+	 *
+	 * @return void
 	 */
-	public static function handle_test_email() {
+	public static function handle_test_email(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'nobloat-user-foundry' ) );
 		}
@@ -49,11 +53,26 @@ class NBUF_Test {
 			exit;
 		}
 
-		/* Store callbacks for proper removal */
-		$from_callback = function () use ( $sender ) {
+		/*
+		 * Store callbacks for proper removal.
+		 * Anonymous functions temporarily override wp_mail settings for test emails.
+		 */
+
+		/**
+		 * Returns the sender email for wp_mail_from filter.
+		 *
+		 * @return string Sender email address.
+		 */
+		$from_callback = function () use ( $sender ): string {
 			return $sender;
 		};
-		$name_callback = function () {
+
+		/**
+		 * Returns the sender name with "(Test)" suffix for wp_mail_from_name filter.
+		 *
+		 * @return string Sender display name.
+		 */
+		$name_callback = function (): string {
 			return get_bloginfo( 'name' ) . ' (Test)';
 		};
 
@@ -146,7 +165,12 @@ class NBUF_Test {
 		/* translators: %s: Site name */
 		$subject = sprintf( __( 'Welcome to %s!', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -214,11 +238,7 @@ class NBUF_Test {
 		$message .= __( 'Unfortunately, your account was not approved at this time.', 'nobloat-user-foundry' ) . "\n\n";
 		$message .= __( 'Reason:', 'nobloat-user-foundry' ) . "\n";
 		$message .= __( 'Sample rejection reason for testing purposes.', 'nobloat-user-foundry' ) . "\n\n";
-		$message .= sprintf(
-			/* translators: %s: Site contact URL */
-			__( 'If you have questions, please contact us: %s', 'nobloat-user-foundry' ),
-			home_url( '/contact' )
-		) . "\n\n";
+		$message .= __( 'If you have questions, please contact the site administrator.', 'nobloat-user-foundry' ) . "\n\n";
 		$message .= __( '(This is a test email - no actual account was rejected)', 'nobloat-user-foundry' );
 
 		return wp_mail( $recipient, $subject, $message );
@@ -244,14 +264,18 @@ class NBUF_Test {
 			'{expires_date}'          => gmdate( 'F j, Y', strtotime( '+7 days' ) ),
 			'{expiration_date}'       => gmdate( 'F j, Y', strtotime( '+7 days' ) ),
 			'{login_url}'             => wp_login_url(),
-			'{contact_url}'           => home_url( '/contact' ),
 		);
 
 		$message = strtr( $template, $replacements );
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account is expiring soon', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -281,14 +305,18 @@ class NBUF_Test {
 			'{username}'        => 'testuser',
 			'{expires_date}'    => gmdate( 'F j, Y' ),
 			'{expiration_date}' => gmdate( 'F j, Y' ),
-			'{contact_url}'     => home_url( '/contact' ),
 		);
 
 		$message = strtr( $template, $replacements );
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Your account has expired', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -327,7 +355,12 @@ class NBUF_Test {
 		/* translators: %s: Site name */
 		$subject = sprintf( __( 'Your verification code for %s', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -362,7 +395,12 @@ class NBUF_Test {
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] Password Reset', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -441,7 +479,12 @@ class NBUF_Test {
 		/* translators: %s: Site name */
 		$subject = sprintf( __( '[%s] New User Registration', 'nobloat-user-foundry' ), get_bloginfo( 'name' ) );
 
-		$content_type_callback = function () use ( $mode ) {
+		/**
+		 * Returns the content type for wp_mail_content_type filter.
+		 *
+		 * @return string Content type (text/html or text/plain).
+		 */
+		$content_type_callback = function () use ( $mode ): string {
 			return 'html' === $mode ? 'text/html' : 'text/plain';
 		};
 		add_filter( 'wp_mail_content_type', $content_type_callback );
@@ -553,8 +596,10 @@ class NBUF_Test {
 
 	/**
 	 * Handle AJAX test for profile change notification.
+	 *
+	 * @return void
 	 */
-	public static function ajax_test_change_notification() {
+	public static function ajax_test_change_notification(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
 		}
@@ -643,8 +688,9 @@ class NBUF_Test {
 	 * AJAX handler for testing a webhook.
 	 *
 	 * @since 1.5.0
+	 * @return void
 	 */
-	public static function ajax_test_webhook() {
+	public static function ajax_test_webhook(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
 		}
@@ -686,8 +732,9 @@ class NBUF_Test {
 	 * Redirect with status code.
 	 *
 	 * @param string $code Status code (success, failed, missing).
+	 * @return void
 	 */
-	private static function redirect_with( $code ) {
+	private static function redirect_with( string $code ): void {
 		$url = add_query_arg(
 			array(
 				'page'      => 'nobloat-foundry-users',
@@ -703,8 +750,10 @@ class NBUF_Test {
 
 	/**
 	 * Display admin notice.
+	 *
+	 * @return void
 	 */
-	public static function admin_notice() {
+	public static function admin_notice(): void {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display parameter for admin notice
 		if ( ! isset( $_GET['nbuf_test'] ) ) {
 			return;

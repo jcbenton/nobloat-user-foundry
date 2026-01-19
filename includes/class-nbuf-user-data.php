@@ -39,7 +39,7 @@ class NBUF_User_Data {
 	 * Request-level cache for user data.
 	 * Prevents multiple database queries for the same user within a single request.
 	 *
-	 * @var array
+	 * @var array<int, object|null>
 	 */
 	private static $cache = array();
 
@@ -500,7 +500,7 @@ class NBUF_User_Data {
 	 * Uses INSERT ... ON DUPLICATE KEY UPDATE for efficiency.
 	 *
 	 * @since  1.5.0
-	 * @param  array $user_ids Array of user IDs to verify.
+	 * @param  array<int, int> $user_ids Array of user IDs to verify.
 	 * @return int             Number of users processed.
 	 */
 	public static function batch_verify_users( array $user_ids ): int {
@@ -561,8 +561,8 @@ class NBUF_User_Data {
 	 * Update user data in table.
 	 *
 	 * @since  1.0.0
-	 * @param  int   $user_id User ID.
-	 * @param  array $data    Data to update (column => value).
+	 * @param  int                  $user_id User ID.
+	 * @param  array<string, mixed> $data    Data to update (column => value).
 	 * @return bool                 True on success, false on failure.
 	 */
 	public static function update( int $user_id, array $data ): bool {
@@ -631,7 +631,7 @@ class NBUF_User_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  string $before_date MySQL datetime.
-	 * @return array                     Array of user IDs.
+	 * @return array<int, string>  Array of user IDs.
 	 */
 	public static function get_expiring_before( string $before_date ): array {
 		global $wpdb;
@@ -657,9 +657,9 @@ class NBUF_User_Data {
 	 *
 	 * @since  1.0.0
 	 * @param  string $warning_date MySQL datetime for warning threshold.
-	 * @return array                      Array of user IDs.
+	 * @return array<int, string>   Array of user IDs.
 	 */
-	public static function get_needing_warning( $warning_date ) {
+	public static function get_needing_warning( string $warning_date ): array {
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
@@ -686,7 +686,7 @@ class NBUF_User_Data {
 	 * @param  string $filter Filter type: 'verified', 'unverified', 'disabled', 'enabled', 'has_expiration', 'no_expiration', 'expired'.
 	 * @return int                  User count.
 	 */
-	public static function get_count( $filter = '' ) {
+	public static function get_count( string $filter = '' ): int {
 		global $wpdb;
 		$table_name  = NBUF_Database::get_table_name( 'user_data' );
 		$users_table = $wpdb->prefix . 'users';
@@ -741,7 +741,7 @@ class NBUF_User_Data {
 	 * @param  int $user_id User ID.
 	 * @return string|null                Flagged datetime or null.
 	 */
-	public static function get_weak_password_flagged_at( $user_id ) {
+	public static function get_weak_password_flagged_at( int $user_id ): ?string {
 		$data = self::get( $user_id );
 		return $data ? $data->weak_password_flagged_at : null;
 	}
@@ -753,7 +753,7 @@ class NBUF_User_Data {
 	 * @param  int $user_id User ID.
 	 * @return string|null                Changed datetime or null.
 	 */
-	public static function get_password_changed_at( $user_id ) {
+	public static function get_password_changed_at( int $user_id ): ?string {
 		$data = self::get( $user_id );
 		return $data ? $data->password_changed_at : null;
 	}
@@ -765,7 +765,7 @@ class NBUF_User_Data {
 	 * @param  int $user_id User ID.
 	 * @return bool                True on success, false on failure.
 	 */
-	public static function flag_weak_password( $user_id ) {
+	public static function flag_weak_password( int $user_id ): bool {
 		return self::update(
 			$user_id,
 			array(
@@ -781,7 +781,7 @@ class NBUF_User_Data {
 	 * @param  int $user_id User ID.
 	 * @return bool                True on success, false on failure.
 	 */
-	public static function clear_weak_password_flag( $user_id ) {
+	public static function clear_weak_password_flag( int $user_id ): bool {
 		return self::update(
 			$user_id,
 			array(
@@ -797,7 +797,7 @@ class NBUF_User_Data {
 	 * @param  int $user_id User ID.
 	 * @return bool                True on success, false on failure.
 	 */
-	public static function set_password_changed( $user_id ) {
+	public static function set_password_changed( int $user_id ): bool {
 		return self::update(
 			$user_id,
 			array(

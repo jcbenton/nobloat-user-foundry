@@ -31,7 +31,7 @@ class NBUF_Custom_Tabs {
 	/**
 	 * Reserved slugs that cannot be used for custom tabs.
 	 *
-	 * @var array
+	 * @var array<int, string>
 	 */
 	const RESERVED_SLUGS = array(
 		'account',
@@ -57,7 +57,7 @@ class NBUF_Custom_Tabs {
 	 * Get all custom tabs sorted by priority.
 	 *
 	 * @since  1.5.0
-	 * @return array Array of custom tab configurations.
+	 * @return array<int, array{id?: string, name: string, slug: string, content: string, roles: array<int, string>, icon: string, priority: int, enabled: bool}> Array of custom tab configurations.
 	 */
 	public static function get_all(): array {
 		$tabs = NBUF_Options::get( self::OPTION_NAME, array() );
@@ -84,7 +84,7 @@ class NBUF_Custom_Tabs {
 	 *
 	 * @since  1.5.0
 	 * @param  string $id Tab ID.
-	 * @return array|null Tab configuration or null if not found.
+	 * @return array{id?: string, name: string, slug: string, content: string, roles: array<int, string>, icon: string, priority: int, enabled: bool}|null Tab configuration or null if not found.
 	 */
 	public static function get( string $id ): ?array {
 		$tabs = self::get_all();
@@ -105,7 +105,7 @@ class NBUF_Custom_Tabs {
 	 *
 	 * @since  1.5.0
 	 * @param  int $user_id User ID.
-	 * @return array Array of visible tab configurations.
+	 * @return array<int, array{id?: string, name: string, slug: string, content: string, roles: array<int, string>, icon: string, priority: int, enabled: bool}> Array of visible tab configurations.
 	 */
 	public static function get_for_user( int $user_id ): array {
 		$user = get_userdata( $user_id );
@@ -145,7 +145,7 @@ class NBUF_Custom_Tabs {
 	 * @since  1.5.0
 	 * @param  string      $slug       Slug to validate.
 	 * @param  string|null $exclude_id Tab ID to exclude from uniqueness check (for updates).
-	 * @return array Array of error messages, empty if valid.
+	 * @return array<int, string> Array of error messages, empty if valid.
 	 */
 	public static function validate_slug( string $slug, ?string $exclude_id = null ): array {
 		$errors = array();
@@ -178,8 +178,8 @@ class NBUF_Custom_Tabs {
 	 * Create a new custom tab.
 	 *
 	 * @since  1.5.0
-	 * @param  array $data Tab data.
-	 * @return array The created tab configuration.
+	 * @param  array<string, mixed> $data Tab data.
+	 * @return array{id: string, name: string, slug: string, content: string, roles: array<int, string>, icon: string, priority: int, enabled: bool} The created tab configuration.
 	 */
 	public static function create( array $data ): array {
 		$tabs = self::get_all();
@@ -197,8 +197,8 @@ class NBUF_Custom_Tabs {
 	 * Update an existing custom tab.
 	 *
 	 * @since  1.5.0
-	 * @param  string $id   Tab ID.
-	 * @param  array  $data Updated tab data.
+	 * @param  string               $id   Tab ID.
+	 * @param  array<string, mixed> $data Updated tab data.
 	 * @return bool True if updated, false if tab not found.
 	 */
 	public static function update( string $id, array $data ): bool {
@@ -248,7 +248,8 @@ class NBUF_Custom_Tabs {
 	 * Reorder tabs based on an array of IDs.
 	 *
 	 * @since 1.5.0
-	 * @param array $ordered_ids Array of tab IDs in desired order.
+	 * @param array<int, string> $ordered_ids Array of tab IDs in desired order.
+	 * @return void
 	 */
 	public static function reorder( array $ordered_ids ): void {
 		$tabs = self::get_all();
@@ -289,8 +290,8 @@ class NBUF_Custom_Tabs {
 	 * Sanitize tab data.
 	 *
 	 * @since  1.5.0
-	 * @param  array $data Raw tab data.
-	 * @return array Sanitized tab data.
+	 * @param  array<string, mixed> $data Raw tab data.
+	 * @return array{name: string, slug: string, content: string, roles: array<int, string>, icon: string, priority: int, enabled: bool} Sanitized tab data.
 	 */
 	private static function sanitize_tab_data( array $data ): array {
 		/* Validate roles against actual WordPress roles */
@@ -313,7 +314,7 @@ class NBUF_Custom_Tabs {
 	 * Get reserved slugs.
 	 *
 	 * @since  1.5.0
-	 * @return array Array of reserved slug strings.
+	 * @return array<int, string> Array of reserved slug strings.
 	 */
 	public static function get_reserved_slugs(): array {
 		return self::RESERVED_SLUGS;

@@ -30,8 +30,10 @@ class NBUF_Diagnostics {
 
 	/**
 	 * Initialize diagnostics export.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		add_action( 'admin_post_nbuf_export_diagnostics', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_post_nbuf_repair_tables', array( __CLASS__, 'handle_repair_tables' ) );
 	}
@@ -40,8 +42,10 @@ class NBUF_Diagnostics {
 	 * Handle database table repair.
 	 *
 	 * Creates any missing database tables.
+	 *
+	 * @return void
 	 */
-	public static function handle_repair_tables() {
+	public static function handle_repair_tables(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'nobloat-user-foundry' ) );
 		}
@@ -67,8 +71,10 @@ class NBUF_Diagnostics {
 
 	/**
 	 * Handle diagnostic report export.
+	 *
+	 * @return void
 	 */
-	public static function handle_export() {
+	public static function handle_export(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'nobloat-user-foundry' ) );
 		}

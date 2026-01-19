@@ -25,10 +25,10 @@ class NBUF_Migration_BP_Profile {
 	/**
 	 * Migrate BuddyPress XProfile data to NBUF
 	 *
-	 * @param  array $options Migration options (backup_unmapped, field_mapping_override).
-	 * @return array Migration results with counts and errors.
+	 * @param  array<string, mixed> $options Migration options (backup_unmapped, field_mapping_override).
+	 * @return array<string, mixed> Migration results with counts and errors.
 	 */
-	public static function migrate_profile_data( $options = array() ) {
+	public static function migrate_profile_data( array $options = array() ): array {
 		global $wpdb;
 
 		$results = array(
@@ -216,10 +216,10 @@ class NBUF_Migration_BP_Profile {
 	/**
 	 * Build field mapping from BP field names to NBUF field keys
 	 *
-	 * @param  array $bp_fields BuddyPress field objects.
-	 * @return array Field mapping (bp_field_id => nbuf_field_key).
+	 * @param  array<int, object> $bp_fields BuddyPress field objects.
+	 * @return array<int, string> Field mapping (bp_field_id => nbuf_field_key).
 	 */
-	private static function build_field_mapping( $bp_fields ) {
+	private static function build_field_mapping( array $bp_fields ): array {
 		$mapping = array();
 
 		/* Get NBUF field registry */
@@ -292,7 +292,7 @@ class NBUF_Migration_BP_Profile {
 	 * @param  string $name Field name.
 	 * @return string Normalized name.
 	 */
-	private static function normalize_field_name( $name ) {
+	private static function normalize_field_name( string $name ): string {
 		/* Remove special characters and extra spaces */
 		$normalized = preg_replace( '/[^a-z0-9\s]/', '', strtolower( $name ) );
 		$normalized = preg_replace( '/\s+/', '', $normalized );
@@ -303,9 +303,9 @@ class NBUF_Migration_BP_Profile {
 	/**
 	 * Get common field name aliases
 	 *
-	 * @return array Aliases (alias => nbuf_field_key)
+	 * @return array<string, string> Aliases (alias => nbuf_field_key)
 	 */
-	private static function get_field_aliases() {
+	private static function get_field_aliases(): array {
 		return array(
 			'tel'              => 'phone',
 			'telephone'        => 'phone',
@@ -379,7 +379,7 @@ class NBUF_Migration_BP_Profile {
 	 * @param  string $nbuf_field NBUF field key.
 	 * @return string Converted value.
 	 */
-	private static function convert_field_value( $value, $nbuf_field ) {
+	private static function convert_field_value( $value, string $nbuf_field ): string {
 		/* Handle serialized arrays from BP (selectbox, checkbox, etc.) */
 		if ( is_serialized( $value ) ) {
 			$unserialized = maybe_unserialize( $value );
@@ -426,9 +426,9 @@ class NBUF_Migration_BP_Profile {
 	 * Get migration preview (first N users)
 	 *
 	 * @param  int $limit Number of users to preview.
-	 * @return array Preview data.
+	 * @return array<int, array<string, mixed>> Preview data.
 	 */
-	public static function get_migration_preview( $limit = 10 ) {
+	public static function get_migration_preview( int $limit = 10 ): array {
 		global $wpdb;
 
 		if ( ! function_exists( 'buddypress' ) ) {
@@ -535,7 +535,7 @@ class NBUF_Migration_BP_Profile {
 	 *
 	 * @return int Number of users
 	 */
-	public static function get_user_count() {
+	public static function get_user_count(): int {
 		global $wpdb;
 
 		if ( ! function_exists( 'buddypress' ) ) {
@@ -563,9 +563,9 @@ class NBUF_Migration_BP_Profile {
 	/**
 	 * Get BuddyPress field statistics
 	 *
-	 * @return array Field statistics
+	 * @return array<string, mixed> Field statistics
 	 */
-	public static function get_field_statistics() {
+	public static function get_field_statistics(): array {
 		global $wpdb;
 
 		if ( ! function_exists( 'buddypress' ) ) {

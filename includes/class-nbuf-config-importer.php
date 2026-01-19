@@ -23,7 +23,7 @@ class NBUF_Config_Importer {
 	/**
 	 * Import results
 	 *
-	 * @var array
+	 * @var array{settings_imported: int, settings_skipped: int, templates_imported: int, errors: array<int, string>}
 	 */
 	private $results = array(
 		'settings_imported'  => 0,
@@ -42,8 +42,10 @@ class NBUF_Config_Importer {
 
 	/**
 	 * AJAX: Validate configuration file
+	 *
+	 * @return void
 	 */
-	public function ajax_validate_config() {
+	public function ajax_validate_config(): void {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -119,7 +121,7 @@ class NBUF_Config_Importer {
 	/**
 	 * Validate configuration structure
 	 *
-	 * @param  array $config_data Configuration data.
+	 * @param  array<string, mixed> $config_data Configuration data.
 	 * @return true|WP_Error True if valid, error otherwise.
 	 */
 	private function validate_config_structure( $config_data ) {
@@ -162,10 +164,10 @@ class NBUF_Config_Importer {
 	/**
 	 * Generate preview of import
 	 *
-	 * @param  array $config_data Configuration data.
-	 * @return array Preview data.
+	 * @param  array<string, mixed> $config_data Configuration data.
+	 * @return array<string, mixed> Preview data.
 	 */
-	private function generate_preview( $config_data ) {
+	private function generate_preview( $config_data ): array {
 		$preview = array(
 			'plugin_version' => $config_data['plugin_version'] ?? 'Unknown',
 			'exported_at'    => $config_data['exported_at'] ?? 'Unknown',
@@ -198,8 +200,10 @@ class NBUF_Config_Importer {
 
 	/**
 	 * AJAX: Import configuration
+	 *
+	 * @return void
 	 */
-	public function ajax_import_config() {
+	public function ajax_import_config(): void {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -247,10 +251,11 @@ class NBUF_Config_Importer {
 	/**
 	 * Import settings
 	 *
-	 * @param array  $settings Settings data.
-	 * @param string $mode     Import mode (overwrite, merge).
+	 * @param array<string, array<string, mixed>> $settings Settings data.
+	 * @param string                              $mode     Import mode (overwrite, merge).
+	 * @return void
 	 */
-	private function import_settings( $settings, $mode = 'overwrite' ) {
+	private function import_settings( $settings, $mode = 'overwrite' ): void {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'nbuf_options';
@@ -336,10 +341,11 @@ class NBUF_Config_Importer {
 	/**
 	 * Import templates
 	 *
-	 * @param array  $templates Template data.
-	 * @param string $mode      Import mode (overwrite, merge).
+	 * @param array<string, array<string, mixed>> $templates Template data.
+	 * @param string                              $mode      Import mode (overwrite, merge).
+	 * @return void
 	 */
-	private function import_templates( $templates, $mode = 'overwrite' ) {
+	private function import_templates( $templates, $mode = 'overwrite' ): void {
 		foreach ( $templates as $type => $type_templates ) {
 			foreach ( $type_templates as $option_name => $option_value ) {
 				/* Skip if merge mode and option already exists */

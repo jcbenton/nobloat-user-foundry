@@ -28,8 +28,10 @@ class NBUF_Public_Profiles {
 
 	/**
 	 * Initialize public profiles
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Profile URLs are now handled by NBUF_Universal_Router at /user-foundry/profile/{username}/ */
 
 		/* Enqueue profile page CSS */
@@ -68,8 +70,9 @@ class NBUF_Public_Profiles {
 	 * Render profile page
 	 *
 	 * @param WP_User $user User object.
+	 * @return void
 	 */
-	public static function render_profile_page( $user ) {
+	public static function render_profile_page( WP_User $user ): void {
 		// Get user data.
 		$user_data = NBUF_User_Data::get( $user->ID );
 
@@ -283,8 +286,10 @@ class NBUF_Public_Profiles {
 
 	/**
 	 * Enqueue profile page CSS
+	 *
+	 * @return void
 	 */
-	public static function enqueue_profile_css() {
+	public static function enqueue_profile_css(): void {
 		$username = get_query_var( 'nbuf_profile_user' );
 
 		if ( empty( $username ) ) {

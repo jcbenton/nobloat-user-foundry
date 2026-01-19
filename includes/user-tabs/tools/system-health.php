@@ -112,8 +112,8 @@ foreach ( $nbuf_templates as $nbuf_group => $nbuf_group_templates ) {
 <?php
 $nbuf_scheduled_count   = 0;
 $nbuf_unscheduled_count = 0;
-foreach ( $nbuf_cron_status as $cron_item ) {
-	if ( $cron_item['scheduled'] ) {
+foreach ( $nbuf_cron_status as $nbuf_cron_item ) {
+	if ( $nbuf_cron_item['scheduled'] ) {
 		++$nbuf_scheduled_count;
 	} else {
 		++$nbuf_unscheduled_count;
@@ -206,8 +206,8 @@ foreach ( $nbuf_cron_status as $cron_item ) {
 <?php
 $nbuf_templates_ok     = 0;
 $nbuf_templates_failed = 0;
-foreach ( $nbuf_template_status as $tpl_item ) {
-	if ( $tpl_item['loaded'] ) {
+foreach ( $nbuf_template_status as $nbuf_tpl_item ) {
+	if ( $nbuf_tpl_item['loaded'] ) {
 		++$nbuf_templates_ok;
 	} else {
 		++$nbuf_templates_failed;

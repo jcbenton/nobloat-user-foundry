@@ -31,9 +31,11 @@ class NBUF_2FA_Login {
 	const TRANSIENT_EXPIRATION = 300;
 
 	/**
-	 * Initialize hooks
+	 * Initialize hooks.
+	 *
+	 * @return void
 	 */
-	public static function init() {
+	public static function init(): void {
 		/* Hook into authentication after password validation */
 		add_filter( 'authenticate', array( __CLASS__, 'intercept_login' ), 30, 3 );
 
@@ -52,8 +54,10 @@ class NBUF_2FA_Login {
 	 *
 	 * This catches users who logged in without going through 2FA flow
 	 * (e.g., trusted devices, no 2FA configured yet).
+	 *
+	 * @return void
 	 */
-	public static function check_totp_setup_required() {
+	public static function check_totp_setup_required(): void {
 		/* Only for logged-in users */
 		if ( ! is_user_logged_in() ) {
 			return;
@@ -174,11 +178,12 @@ class NBUF_2FA_Login {
 	}
 
 	/**
-	 * Redirect to 2FA verification page
+	 * Redirect to 2FA verification page.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	private static function redirect_to_2fa_page( $user_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $user_id parameter kept for potential future use in redirect customization
+	private static function redirect_to_2fa_page( int $user_id ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- $user_id parameter kept for potential future use in redirect customization
 		/* Prefer Universal Router URL (respects base slug setting) */
 		if ( class_exists( 'NBUF_Universal_Router' ) ) {
 			$redirect_url = NBUF_Universal_Router::get_url( '2fa' );
@@ -197,11 +202,13 @@ class NBUF_2FA_Login {
 	}
 
 	/**
-	 * Handle 2FA code verification POST
+	 * Handle 2FA code verification POST.
 	 *
 	 * Processes the verification form submission on the 2FA page.
+	 *
+	 * @return void
 	 */
-	public static function maybe_handle_2fa_verification() {
+	public static function maybe_handle_2fa_verification(): void {
 		/* Early exit for non-POST requests - no need to check anything else */
 		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 			return;
@@ -354,14 +361,15 @@ class NBUF_2FA_Login {
 	}
 
 	/**
-	 * Complete login after successful 2FA
+	 * Complete login after successful 2FA.
 	 *
 	 * Sets up the WordPress session and redirects to intended destination.
 	 * Re-checks user status before completing login to prevent bypass.
 	 *
 	 * @param int $user_id User ID.
+	 * @return void
 	 */
-	private static function complete_login( $user_id ) {
+	private static function complete_login( int $user_id ): void {
 		/*
 		 * SECURITY: Re-verify user status before completing login.
 		 * Status could have changed between initial auth and 2FA completion.
@@ -526,11 +534,13 @@ class NBUF_2FA_Login {
 	}
 
 	/**
-	 * Clear 2FA transient data
+	 * Clear 2FA transient data.
 	 *
 	 * Removes temporary transient and cookie used during 2FA process.
+	 *
+	 * @return void
 	 */
-	public static function clear_2fa_transient() {
+	public static function clear_2fa_transient(): void {
 		/* Get token from cookie */
 		if ( isset( $_COOKIE[ self::COOKIE_NAME ] ) ) {
 			$token = sanitize_text_field( wp_unslash( $_COOKIE[ self::COOKIE_NAME ] ) );
@@ -592,6 +602,7 @@ class NBUF_2FA_Login {
 
 		/* Check for TOTP setup required (email can be auto-applied, TOTP cannot) */
 		if ( 'totp' === $method && ! NBUF_2FA::is_enabled( $user_id ) ) {
+			NBUF_2FA::ensure_grace_period_started( $user_id );
 			$grace_days = NBUF_2FA::get_grace_period_remaining( $user_id );
 
 			if ( $grace_days <= 0 ) {

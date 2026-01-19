@@ -355,9 +355,8 @@ If you did not request this code, please ignore this email.
 			);
 		}
 
-		/* Get stored hashed code */
+		/* Transient key for stored hashed code */
 		$transient_key = 'nbuf_2fa_email_code_' . $user_id;
-		$stored_hash   = get_transient( $transient_key );
 
 		/*
 		 * SECURITY: Sanitize and normalize input for constant-time comparison.
@@ -687,9 +686,15 @@ If you did not request this code, please ignore this email.
 	 * @return bool True on success.
 	 */
 	public static function trust_device( int $user_id, int $duration = self::DEVICE_TRUST_DURATION ): bool {
-		/* SECURITY: 2FA cookies should only be used over HTTPS */
+		/*
+		 * SECURITY: Refuse to set device trust on non-HTTPS connections.
+		 * The secure cookie flag means the cookie won't be sent over HTTP anyway,
+		 * but refusing entirely prevents confusion and potential security issues
+		 * on sites with partial HTTPS coverage.
+		 */
 		if ( ! is_ssl() ) {
-			error_log( 'NBUF Warning: 2FA device trust should only be used over HTTPS connections' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security warning for HTTPS requirement.
+			error_log( 'NBUF Security: Device trust rejected - HTTPS required' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security logging for blocked operation.
+			return false;
 		}
 
 		/* Generate secure token */

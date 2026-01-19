@@ -189,7 +189,7 @@ class NBUF_Password_Validator {
 
 		/* Minimum length */
 		$min_length = NBUF_Options::get( 'nbuf_password_min_length', 12 );
-		if ( strlen( $password ) < $min_length ) {
+		if ( mb_strlen( $password, 'UTF-8' ) < $min_length ) {
 			/* translators: %d: minimum password length */
 			$errors[] = sprintf( __( 'Password must be at least %d characters long.', 'nobloat-user-foundry' ), $min_length );
 		}

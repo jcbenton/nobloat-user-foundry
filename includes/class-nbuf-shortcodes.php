@@ -2519,7 +2519,7 @@ class NBUF_Shortcodes {
 				wp_safe_redirect( self::build_account_redirect() );
 				exit;
 			}
-		} elseif ( strlen( $new_password ) < 8 ) {
+		} elseif ( mb_strlen( $new_password, 'UTF-8' ) < 8 ) {
 			/* Fallback: Basic length check if validator not available */
 			self::set_flash_message( $user_id, __( 'New password must be at least 8 characters.', 'nobloat-user-foundry' ), 'error' );
 			wp_safe_redirect( self::build_account_redirect() );

@@ -118,13 +118,19 @@ class NBUF_User_2FA_Data {
 	/**
 	 * Get TOTP secret for user.
 	 *
+	 * Decrypts the stored secret before returning.
+	 *
 	 * @since  1.0.0
 	 * @param  int $user_id User ID.
 	 * @return string|null                TOTP secret or null
 	 */
 	public static function get_totp_secret( int $user_id ): ?string {
 		$data = self::get( $user_id );
-		return $data ? $data->totp_secret : null;
+		if ( ! $data || empty( $data->totp_secret ) ) {
+			return null;
+		}
+		/* Decrypt the TOTP secret */
+		return NBUF_Encryption::decrypt( $data->totp_secret );
 	}
 
 	/**
@@ -217,6 +223,8 @@ class NBUF_User_2FA_Data {
 	/**
 	 * Enable 2FA for user.
 	 *
+	 * Encrypts TOTP secret before storing.
+	 *
 	 * @since  1.0.0
 	 * @param  int    $user_id     User ID.
 	 * @param  string $method      Method ('email' or 'totp').
@@ -231,7 +239,7 @@ class NBUF_User_2FA_Data {
 		);
 
 		if ( 'totp' === $method && $totp_secret ) {
-			$data['totp_secret'] = $totp_secret;
+			$data['totp_secret'] = NBUF_Encryption::encrypt( $totp_secret );
 		}
 
 		return self::update( $user_id, $data );
@@ -251,6 +259,8 @@ class NBUF_User_2FA_Data {
 	/**
 	 * Set TOTP secret for user.
 	 *
+	 * Encrypts the secret before storing.
+	 *
 	 * @since  1.0.0
 	 * @param  int    $user_id User ID.
 	 * @param  string $secret  TOTP secret.
@@ -260,7 +270,7 @@ class NBUF_User_2FA_Data {
 		return self::update(
 			$user_id,
 			array(
-				'totp_secret' => $secret,
+				'totp_secret' => NBUF_Encryption::encrypt( $secret ),
 			)
 		);
 	}

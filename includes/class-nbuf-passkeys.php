@@ -1481,8 +1481,17 @@ class NBUF_Passkeys {
 			}
 		}
 
+		/*
+		 * SECURITY: Timing attack protection.
+		 * Always perform a database query to ensure consistent response times
+		 * regardless of whether the user exists. This prevents user enumeration
+		 * via timing analysis.
+		 */
 		if ( ! $user ) {
-			/* Don't reveal if user exists - just say no passkeys (security) */
+			/* Perform dummy query to match timing of real user lookup */
+			NBUF_User_Passkeys_Data::has_passkeys( 0 );
+
+			/* Don't reveal if user exists - just say no passkeys */
 			wp_send_json_success(
 				array(
 					'has_passkeys'  => false,

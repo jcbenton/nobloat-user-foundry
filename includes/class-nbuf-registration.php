@@ -153,10 +153,22 @@ class NBUF_Registration {
 			return true;
 		}
 
-		/* Also check with common number suffixes (admin1, support2, etc.) */
-		$base = preg_replace( '/\d+$/', '', $username );
-		if ( $base !== $username && in_array( $base, self::$reserved_usernames, true ) ) {
+		/* Strip common separators and numbers for bypass detection */
+		$normalized = preg_replace( '/[_\-.\d]+/', '', $username );
+		if ( $normalized !== $username && in_array( $normalized, self::$reserved_usernames, true ) ) {
 			return true;
+		}
+
+		/* Check if username starts with reserved word followed by separator/number */
+		foreach ( self::$reserved_usernames as $reserved ) {
+			/* Match patterns like: admin123, admin_user, admin-test, admin.foo */
+			if ( preg_match( '/^' . preg_quote( $reserved, '/' ) . '[\d_\-.]/', $username ) ) {
+				return true;
+			}
+			/* Match patterns like: theadmin, my_admin (reserved word at end) */
+			if ( preg_match( '/[\d_\-.]' . preg_quote( $reserved, '/' ) . '$/', $username ) ) {
+				return true;
+			}
 		}
 
 		/**
@@ -221,13 +233,19 @@ class NBUF_Registration {
 	 * @return string      Unique username.
 	 */
 	private static function ensure_unique_username( $base ) {
-		$username = $base;
-		$counter  = 1;
+		$username    = $base;
+		$counter     = 1;
+		$max_attempts = 1000; /* Safety limit to prevent infinite loops */
 
 		/* Keep incrementing until we find a unique username */
-		while ( username_exists( $username ) ) {
+		while ( username_exists( $username ) && $counter < $max_attempts ) {
 			$username = $base . $counter;
 			++$counter;
+		}
+
+		/* If we've hit the safety limit, append random suffix for uniqueness */
+		if ( $counter >= $max_attempts && username_exists( $username ) ) {
+			$username = $base . '_' . bin2hex( random_bytes( 4 ) );
 		}
 
 		return $username;
@@ -285,7 +303,7 @@ class NBUF_Registration {
 		}
 
 		$min_length = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
-		if ( strlen( $data['password'] ) < $min_length ) {
+		if ( mb_strlen( $data['password'], 'UTF-8' ) < $min_length ) {
 			return new WP_Error(
 				'weak_password',
 				sprintf(

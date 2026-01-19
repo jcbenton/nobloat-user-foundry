@@ -141,6 +141,33 @@ class NBUF_Impersonation {
 			return false;
 		}
 
+		/*
+		 * SECURITY: Validate IP address binding to prevent session hijacking.
+		 * If the IP address doesn't match, invalidate the impersonation session.
+		 */
+		if ( isset( $data['ip_address'] ) && ! empty( $data['ip_address'] ) ) {
+			$current_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+			if ( $current_ip !== $data['ip_address'] ) {
+				/* IP mismatch - log security event and invalidate session */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'impersonation_ip_mismatch',
+						'warning',
+						'Impersonation session invalidated due to IP change',
+						array(
+							'original_ip' => $data['ip_address'],
+							'current_ip'  => $current_ip,
+							'admin_id'    => $data['original_user_id'] ?? 0,
+							'target_id'   => $data['target_user_id'] ?? 0,
+						)
+					);
+				}
+				/* Delete the transient to end the impersonation */
+				delete_transient( $transient_key );
+				return false;
+			}
+		}
+
 		return $data;
 	}
 
@@ -274,7 +301,14 @@ class NBUF_Impersonation {
 		wp_set_auth_cookie( $target_user_id, false, '', $session_token );
 		wp_set_current_user( $target_user_id );
 
-		/* Store impersonation data using the token we created */
+		/*
+		 * Store impersonation data using the token we created.
+		 * SECURITY: Bind to IP address and user agent to prevent session hijacking.
+		 */
+		$client_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$user_agent  = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		$expiration  = 2 * HOUR_IN_SECONDS; /* Shorter expiration for security (2 hours instead of 1 day) */
+
 		$transient_key = self::TRANSIENT_PREFIX . hash( 'sha256', $session_token );
 		set_transient(
 			$transient_key,
@@ -284,8 +318,10 @@ class NBUF_Impersonation {
 				'target_user_id'    => $target_user_id,
 				'target_username'   => $target_user->user_login,
 				'started_at'        => time(),
+				'ip_address'        => $client_ip,
+				'user_agent'        => $user_agent,
 			),
-			DAY_IN_SECONDS
+			$expiration
 		);
 
 		/* Redirect to frontend (home page) */

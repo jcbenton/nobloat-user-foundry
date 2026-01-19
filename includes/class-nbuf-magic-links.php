@@ -403,7 +403,8 @@ class NBUF_Magic_Links {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$token_data = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table_name} WHERE token = %s AND type = %s AND verified = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is trusted constant.
+				'SELECT * FROM %i WHERE token = %s AND type = %s AND verified = 0',
+				$table_name,
 				$token,
 				self::TOKEN_TYPE
 			)
@@ -698,10 +699,11 @@ class NBUF_Magic_Links {
 	public static function cleanup_expired_tokens(): void {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is trusted constant.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->prefix}nbuf_tokens WHERE type = %s AND (expires_at < %s OR verified = 1)",
+				'DELETE FROM %i WHERE type = %s AND (expires_at < %s OR verified = 1)',
+				$wpdb->prefix . 'nbuf_tokens',
 				self::TOKEN_TYPE,
 				gmdate( 'Y-m-d H:i:s' )
 			)

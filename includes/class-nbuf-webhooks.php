@@ -79,10 +79,14 @@ class NBUF_Webhooks {
 			);
 		}
 
-		/* Decode events JSON for each webhook */
+		/* Decode events JSON and decrypt secrets for each webhook */
 		foreach ( $results as $webhook ) {
 			$decoded_events  = json_decode( $webhook->events, true );
 			$webhook->events = $decoded_events ? $decoded_events : array();
+			/* Decrypt the webhook secret */
+			if ( ! empty( $webhook->secret ) ) {
+				$webhook->secret = NBUF_Encryption::decrypt( $webhook->secret );
+			}
 		}
 
 		return $results;
@@ -90,6 +94,8 @@ class NBUF_Webhooks {
 
 	/**
 	 * Get a single webhook by ID.
+	 *
+	 * Decrypts the secret before returning.
 	 *
 	 * @param int $id Webhook ID.
 	 * @return object|null Webhook object or null.
@@ -109,6 +115,10 @@ class NBUF_Webhooks {
 		if ( $webhook ) {
 			$decoded_events  = json_decode( $webhook->events, true );
 			$webhook->events = $decoded_events ? $decoded_events : array();
+			/* Decrypt the webhook secret */
+			if ( ! empty( $webhook->secret ) ) {
+				$webhook->secret = NBUF_Encryption::decrypt( $webhook->secret );
+			}
 		}
 
 		return $webhook;
@@ -117,6 +127,8 @@ class NBUF_Webhooks {
 	/**
 	 * Create a new webhook.
 	 *
+	 * Encrypts the secret before storing.
+	 *
 	 * @param array $data Webhook data (name, url, secret, events, enabled).
 	 * @return int|false Webhook ID or false on failure.
 	 */
@@ -124,10 +136,12 @@ class NBUF_Webhooks {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhooks';
 
+		$secret = sanitize_text_field( $data['secret'] ?? '' );
+
 		$insert_data = array(
 			'name'    => sanitize_text_field( $data['name'] ?? '' ),
 			'url'     => esc_url_raw( $data['url'] ?? '' ),
-			'secret'  => sanitize_text_field( $data['secret'] ?? '' ),
+			'secret'  => ! empty( $secret ) ? NBUF_Encryption::encrypt( $secret ) : '',
 			'events'  => wp_json_encode( $data['events'] ?? array() ),
 			'enabled' => ! empty( $data['enabled'] ) ? 1 : 0,
 		);
@@ -139,6 +153,8 @@ class NBUF_Webhooks {
 
 	/**
 	 * Update an existing webhook.
+	 *
+	 * Encrypts the secret before storing.
 	 *
 	 * @param int   $id   Webhook ID.
 	 * @param array $data Webhook data to update.
@@ -157,7 +173,8 @@ class NBUF_Webhooks {
 			$update_data['url'] = esc_url_raw( $data['url'] );
 		}
 		if ( isset( $data['secret'] ) ) {
-			$update_data['secret'] = sanitize_text_field( $data['secret'] );
+			$secret                 = sanitize_text_field( $data['secret'] );
+			$update_data['secret'] = ! empty( $secret ) ? NBUF_Encryption::encrypt( $secret ) : '';
 		}
 		if ( isset( $data['events'] ) ) {
 			$update_data['events'] = wp_json_encode( $data['events'] );

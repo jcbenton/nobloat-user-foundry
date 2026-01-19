@@ -643,10 +643,11 @@ class NBUF_Database {
 
 		$now = gmdate( 'Y-m-d H:i:s' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is trusted constant.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
 		return (bool) $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->prefix}nbuf_tokens WHERE (expires_at < %s OR verified = 1) AND is_test = 0",
+				'DELETE FROM %i WHERE (expires_at < %s OR verified = 1) AND is_test = 0',
+				$wpdb->prefix . 'nbuf_tokens',
 				$now
 			)
 		);

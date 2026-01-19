@@ -280,7 +280,8 @@ class NBUF_Bulk_Import {
 		}
 
 		/* Store CSV data in transient for processing */
-		$transient_key = 'nbuf_import_' . get_current_user_id() . '_' . time();
+		$random_token  = bin2hex( random_bytes( 16 ) );
+		$transient_key = 'nbuf_import_' . get_current_user_id() . '_' . $random_token;
 		set_transient( $transient_key, $csv_data, HOUR_IN_SECONDS );
 
 		/* Run dry-run validation */

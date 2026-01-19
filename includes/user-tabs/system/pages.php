@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$nbuf_base_slug   = NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry' );
+$nbuf_base_slug    = NBUF_Options::get( 'nbuf_universal_base_slug', 'user-foundry' );
 $nbuf_default_view = NBUF_Options::get( 'nbuf_universal_default_view', 'account' );
 
 /* Default view options */

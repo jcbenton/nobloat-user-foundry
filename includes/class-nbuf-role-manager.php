@@ -588,17 +588,17 @@ class NBUF_Role_Manager {
 	public static function adopt_all_orphaned_roles() {
 		global $wpdb;
 
-		$native_roles  = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
-		$custom_roles  = self::get_all_roles();
-		$wp_roles      = wp_roles();
-		$table         = $wpdb->prefix . 'nbuf_user_roles';
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		$custom_roles = self::get_all_roles();
+		$wp_roles     = wp_roles();
+		$table        = $wpdb->prefix . 'nbuf_user_roles';
 
 		$results = array(
-			'total'    => 0,
-			'adopted'  => 0,
-			'skipped'  => 0,
-			'errors'   => array(),
-			'roles'    => array(),
+			'total'   => 0,
+			'adopted' => 0,
+			'skipped' => 0,
+			'errors'  => array(),
+			'roles'   => array(),
 		);
 
 		foreach ( $wp_roles->roles as $role_key => $role_data ) {
@@ -625,7 +625,9 @@ class NBUF_Role_Manager {
 				continue;
 			}
 
-			/* Insert into NBUF database */
+			/*
+			 * Insert into NBUF database.
+			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$inserted = $wpdb->insert(
 				$table,

@@ -123,7 +123,7 @@ class NBUF_Activator {
 		);
 
 		/* Check which templates already exist in a single query */
-		$existing_templates = NBUF_Options::get_existing_keys( array_keys( $templates ) );
+		$existing_templates  = NBUF_Options::get_existing_keys( array_keys( $templates ) );
 		$templates_to_insert = array();
 
 		/* Load only missing templates from disk */
@@ -156,7 +156,7 @@ class NBUF_Activator {
 		);
 
 		/* Check which CSS templates already exist in a single query */
-		$existing_css = NBUF_Options::get_existing_keys( array_keys( $css_templates ) );
+		$existing_css  = NBUF_Options::get_existing_keys( array_keys( $css_templates ) );
 		$css_to_insert = array();
 
 		/* Load only missing CSS from disk */
@@ -192,8 +192,8 @@ class NBUF_Activator {
 		}
 		$is_first_install = ! NBUF_Options::get( 'nbuf_settings' );
 		if ( $debug_timing ) {
-			$timings['5b_check_done']    = round( microtime( true ) - $start_time, 3 );
-			$timings['5c_is_first']      = $is_first_install ? 'YES' : 'NO';
+			$timings['5b_check_done'] = round( microtime( true ) - $start_time, 3 );
+			$timings['5c_is_first']   = $is_first_install ? 'YES' : 'NO';
 		}
 
 		if ( $is_first_install ) {
@@ -418,9 +418,9 @@ class NBUF_Activator {
 
 			/* Logging group - Admin Audit Log */
 			$logging_defaults = array(
-				'nbuf_logging_admin_audit_enabled'     => true,
-				'nbuf_logging_admin_audit_retention'   => 'forever',
-				'nbuf_logging_admin_audit_categories'  => array(
+				'nbuf_logging_admin_audit_enabled'    => true,
+				'nbuf_logging_admin_audit_retention'  => 'forever',
+				'nbuf_logging_admin_audit_categories' => array(
 					'user_deletion'        => true,
 					'role_changes'         => true,
 					'settings_changes'     => true,
@@ -429,39 +429,39 @@ class NBUF_Activator {
 					'password_resets'      => true,
 					'profile_edits'        => true,
 				),
-				'nbuf_logging_anonymize_ip'            => false,
-				'nbuf_logging_store_user_agent'        => true,
+				'nbuf_logging_anonymize_ip'           => false,
+				'nbuf_logging_store_user_agent'       => true,
 			);
 			NBUF_Options::batch_insert( $logging_defaults, true, 'logging' );
 
 			/* Security Log group */
 			$security_log_defaults = array(
-				'nbuf_security_log_enabled'            => true,
-				'nbuf_security_log_retention'          => '365days',
-				'nbuf_security_log_alerts_enabled'     => false,
-				'nbuf_security_log_recipient_type'     => 'admin',
-				'nbuf_security_log_custom_email'       => '',
+				'nbuf_security_log_enabled'        => true,
+				'nbuf_security_log_retention'      => '365days',
+				'nbuf_security_log_alerts_enabled' => false,
+				'nbuf_security_log_recipient_type' => 'admin',
+				'nbuf_security_log_custom_email'   => '',
 			);
 			NBUF_Options::batch_insert( $security_log_defaults, true, 'security_log' );
 
 			/* GDPR group */
 			$gdpr_defaults = array(
-				'nbuf_gdpr_delete_user_photos'           => true,
-				'nbuf_gdpr_delete_audit_logs'            => 'anonymize',
-				'nbuf_gdpr_include_audit_logs'           => true,
-				'nbuf_gdpr_include_2fa_data'             => true,
-				'nbuf_gdpr_include_login_attempts'       => false,
-				'nbuf_policy_login_enabled'              => true,
-				'nbuf_policy_login_position'             => 'right',
-				'nbuf_policy_registration_enabled'       => true,
-				'nbuf_policy_registration_position'      => 'right',
-				'nbuf_policy_verify_enabled'             => false,
-				'nbuf_policy_verify_position'            => 'right',
-				'nbuf_policy_request_reset_enabled'      => false,
-				'nbuf_policy_request_reset_position'     => 'right',
-				'nbuf_policy_reset_enabled'              => false,
-				'nbuf_policy_reset_position'             => 'right',
-				'nbuf_policy_account_tab_enabled'        => false,
+				'nbuf_gdpr_delete_user_photos'       => true,
+				'nbuf_gdpr_delete_audit_logs'        => 'anonymize',
+				'nbuf_gdpr_include_audit_logs'       => true,
+				'nbuf_gdpr_include_2fa_data'         => true,
+				'nbuf_gdpr_include_login_attempts'   => false,
+				'nbuf_policy_login_enabled'          => true,
+				'nbuf_policy_login_position'         => 'right',
+				'nbuf_policy_registration_enabled'   => true,
+				'nbuf_policy_registration_position'  => 'right',
+				'nbuf_policy_verify_enabled'         => false,
+				'nbuf_policy_verify_position'        => 'right',
+				'nbuf_policy_request_reset_enabled'  => false,
+				'nbuf_policy_request_reset_position' => 'right',
+				'nbuf_policy_reset_enabled'          => false,
+				'nbuf_policy_reset_position'         => 'right',
+				'nbuf_policy_account_tab_enabled'    => false,
 			);
 			NBUF_Options::batch_insert( $gdpr_defaults, true, 'gdpr' );
 
@@ -482,14 +482,14 @@ class NBUF_Activator {
 
 			/* Profiles group */
 			$profiles_defaults = array(
-				'nbuf_enable_profiles'           => false,
-				'nbuf_enable_public_profiles'    => false,
-				'nbuf_profile_enable_gravatar'   => false,
-				'nbuf_profile_default_privacy'   => 'private',
+				'nbuf_enable_profiles'            => false,
+				'nbuf_enable_public_profiles'     => false,
+				'nbuf_profile_enable_gravatar'    => false,
+				'nbuf_profile_default_privacy'    => 'private',
 				'nbuf_profile_allow_cover_photos' => true,
-				'nbuf_profile_max_photo_size'    => 5,
-				'nbuf_profile_max_cover_size'    => 10,
-				'nbuf_profile_custom_css'        => '',
+				'nbuf_profile_max_photo_size'     => 5,
+				'nbuf_profile_max_cover_size'     => 10,
+				'nbuf_profile_custom_css'         => '',
 			);
 			NBUF_Options::batch_insert( $profiles_defaults, true, 'profiles' );
 
@@ -509,14 +509,14 @@ class NBUF_Activator {
 
 			/* Tools group */
 			$tools_defaults = array(
-				'nbuf_import_require_email'     => true,
-				'nbuf_import_send_welcome'      => false,
-				'nbuf_import_verify_emails'     => true,
-				'nbuf_import_default_role'      => 'subscriber',
-				'nbuf_import_batch_size'        => 50,
-				'nbuf_import_update_existing'   => false,
-				'nbuf_config_allow_import'      => true,
-				'nbuf_config_export_sensitive'  => false,
+				'nbuf_import_require_email'    => true,
+				'nbuf_import_send_welcome'     => false,
+				'nbuf_import_verify_emails'    => true,
+				'nbuf_import_default_role'     => 'subscriber',
+				'nbuf_import_batch_size'       => 50,
+				'nbuf_import_update_existing'  => false,
+				'nbuf_config_allow_import'     => true,
+				'nbuf_config_export_sensitive' => false,
 			);
 			NBUF_Options::batch_insert( $tools_defaults, true, 'tools' );
 
@@ -531,13 +531,13 @@ class NBUF_Activator {
 
 			/* Version history group */
 			$version_history_defaults = array(
-				'nbuf_version_history_enabled'          => true,
-				'nbuf_version_history_user_visible'     => false,
+				'nbuf_version_history_enabled'           => true,
+				'nbuf_version_history_user_visible'      => false,
 				'nbuf_version_history_allow_user_revert' => false,
-				'nbuf_version_history_retention_days'   => 365,
-				'nbuf_version_history_max_versions'     => 50,
-				'nbuf_version_history_ip_tracking'      => 'anonymized',
-				'nbuf_version_history_auto_cleanup'     => true,
+				'nbuf_version_history_retention_days'    => 365,
+				'nbuf_version_history_max_versions'      => 50,
+				'nbuf_version_history_ip_tracking'       => 'anonymized',
+				'nbuf_version_history_auto_cleanup'      => true,
 			);
 			NBUF_Options::batch_insert( $version_history_defaults, true, 'version_history' );
 
@@ -813,616 +813,616 @@ class NBUF_Activator {
 		/* Define options to migrate with their groups and autoload settings */
 		$options_to_migrate = array(
 			/* Settings (autoload=1, small, frequently used) */
-			'nbuf_user_manager_enabled'             => array(
+			'nbuf_user_manager_enabled'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_settings'                         => array(
+			'nbuf_settings'                          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_password_reset'              => array(
+			'nbuf_page_password_reset'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_verification'                => array(
+			'nbuf_page_verification'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_login'                       => array(
+			'nbuf_page_login'                        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_registration'                => array(
+			'nbuf_page_registration'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_account'                     => array(
+			'nbuf_page_account'                      => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_logout'                      => array(
+			'nbuf_page_logout'                       => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_request_reset'               => array(
+			'nbuf_page_request_reset'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_require_verification'             => array(
+			'nbuf_require_verification'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_enable_login'                     => array(
+			'nbuf_enable_login'                      => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_enable_registration'              => array(
+			'nbuf_enable_registration'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_notify_admin_registration'        => array(
+			'nbuf_notify_admin_registration'         => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_enable_password_reset'            => array(
+			'nbuf_enable_password_reset'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_allow_email_change'               => array(
+			'nbuf_allow_email_change'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_verify_email_change'              => array(
+			'nbuf_verify_email_change'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_enable_login_limiting'            => array(
+			'nbuf_enable_login_limiting'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_login_max_attempts'               => array(
+			'nbuf_login_max_attempts'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_login_lockout_duration'           => array(
+			'nbuf_login_lockout_duration'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_logout_behavior'                  => array(
+			'nbuf_logout_behavior'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_logout_redirect'                  => array(
+			'nbuf_logout_redirect'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_logout_redirect_custom'           => array(
+			'nbuf_logout_redirect_custom'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_css_load_on_pages'                => array(
+			'nbuf_css_load_on_pages'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_css_use_minified'                 => array(
+			'nbuf_css_use_minified'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_css_combine_files'                => array(
+			'nbuf_css_combine_files'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_redirect_default_login'           => array(
+			'nbuf_redirect_default_login'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_redirect_default_register'        => array(
+			'nbuf_redirect_default_register'         => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_redirect_default_logout'          => array(
+			'nbuf_redirect_default_logout'           => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_redirect_default_lostpassword'    => array(
+			'nbuf_redirect_default_lostpassword'     => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_redirect_default_resetpass'       => array(
+			'nbuf_redirect_default_resetpass'        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_enable_expiration'                => array(
+			'nbuf_enable_expiration'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_expiration_warning_days'          => array(
+			'nbuf_expiration_warning_days'           => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_wc_require_verification'          => array(
+			'nbuf_wc_require_verification'           => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_wc_prevent_active_subs'           => array(
+			'nbuf_wc_prevent_active_subs'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_wc_prevent_recent_orders'         => array(
+			'nbuf_wc_prevent_recent_orders'          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_wc_recent_order_days'             => array(
+			'nbuf_wc_recent_order_days'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_email_restriction_mode'           => array(
+			'nbuf_email_restriction_mode'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_email_restriction_domains'        => array(
+			'nbuf_email_restriction_domains'         => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_email_restriction_message'        => array(
+			'nbuf_email_restriction_message'         => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_registration_fields'              => array(
+			'nbuf_registration_fields'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
 
 			/* Profile Fields configuration */
-			'nbuf_registration_profile_fields'      => array(
+			'nbuf_registration_profile_fields'       => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_required_profile_fields'          => array(
+			'nbuf_required_profile_fields'           => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_account_profile_fields'           => array(
+			'nbuf_account_profile_fields'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_profile_field_labels'             => array(
+			'nbuf_profile_field_labels'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_show_description_field'           => array(
+			'nbuf_show_description_field'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
 
-			'nbuf_antibot_enabled'                  => array(
+			'nbuf_antibot_enabled'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_honeypot'                 => array(
+			'nbuf_antibot_honeypot'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_time_check'               => array(
+			'nbuf_antibot_time_check'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_min_time'                 => array(
+			'nbuf_antibot_min_time'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_js_token'                 => array(
+			'nbuf_antibot_js_token'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_interaction'              => array(
+			'nbuf_antibot_interaction'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_min_interactions'         => array(
+			'nbuf_antibot_min_interactions'          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_pow'                      => array(
+			'nbuf_antibot_pow'                       => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_antibot_pow_difficulty'           => array(
+			'nbuf_antibot_pow_difficulty'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_requirements_enabled'    => array(
+			'nbuf_password_requirements_enabled'     => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_min_length'              => array(
+			'nbuf_password_min_length'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_require_uppercase'       => array(
+			'nbuf_password_require_uppercase'        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_require_lowercase'       => array(
+			'nbuf_password_require_lowercase'        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_require_numbers'         => array(
+			'nbuf_password_require_numbers'          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_require_special'         => array(
+			'nbuf_password_require_special'          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_enforce_registration'    => array(
+			'nbuf_password_enforce_registration'     => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_enforce_profile_change'  => array(
+			'nbuf_password_enforce_profile_change'   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_enforce_reset'           => array(
+			'nbuf_password_enforce_reset'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_admin_bypass'            => array(
+			'nbuf_password_admin_bypass'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_force_weak_change'       => array(
+			'nbuf_password_force_weak_change'        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_check_timing'            => array(
+			'nbuf_password_check_timing'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_grace_period'            => array(
+			'nbuf_password_grace_period'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
 
 			/* Password Expiration settings */
-			'nbuf_password_expiration_enabled'      => array(
+			'nbuf_password_expiration_enabled'       => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_expiration_days'         => array(
+			'nbuf_password_expiration_days'          => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_expiration_admin_bypass' => array(
+			'nbuf_password_expiration_admin_bypass'  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_password_expiration_warning_days' => array(
+			'nbuf_password_expiration_warning_days'  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
 
 			/* Two-Factor Authentication settings */
-			'nbuf_2fa_email_method'                 => array(
+			'nbuf_2fa_email_method'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_email_code_length'            => array(
+			'nbuf_2fa_email_code_length'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_email_expiration'             => array(
+			'nbuf_2fa_email_expiration'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_email_rate_limit'             => array(
+			'nbuf_2fa_email_rate_limit'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_email_rate_window'            => array(
+			'nbuf_2fa_email_rate_window'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_totp_method'                  => array(
+			'nbuf_2fa_totp_method'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_totp_code_length'             => array(
+			'nbuf_2fa_totp_code_length'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_totp_time_window'             => array(
+			'nbuf_2fa_totp_time_window'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_totp_tolerance'               => array(
+			'nbuf_2fa_totp_tolerance'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_totp_qr_size'                 => array(
+			'nbuf_2fa_totp_qr_size'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_backup_enabled'               => array(
+			'nbuf_2fa_backup_enabled'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_backup_count'                 => array(
+			'nbuf_2fa_backup_count'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_backup_length'                => array(
+			'nbuf_2fa_backup_length'                 => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_app_passwords_enabled'            => array(
+			'nbuf_app_passwords_enabled'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkeys_enabled'                 => array(
+			'nbuf_passkeys_enabled'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkey_prompt_enabled'           => array(
+			'nbuf_passkey_prompt_enabled'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkeys_max_per_user'            => array(
+			'nbuf_passkeys_max_per_user'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkeys_user_verification'       => array(
+			'nbuf_passkeys_user_verification'        => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkeys_attestation'             => array(
+			'nbuf_passkeys_attestation'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_passkeys_timeout'                 => array(
+			'nbuf_passkeys_timeout'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_magic_links_enabled'              => array(
+			'nbuf_magic_links_enabled'               => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_magic_links_expiration'           => array(
+			'nbuf_magic_links_expiration'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_magic_links_rate_limit'           => array(
+			'nbuf_magic_links_rate_limit'            => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_device_trust'                 => array(
+			'nbuf_2fa_device_trust'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_admin_bypass'                 => array(
+			'nbuf_2fa_admin_bypass'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_lockout_attempts'             => array(
+			'nbuf_2fa_lockout_attempts'              => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_grace_period'                 => array(
+			'nbuf_2fa_grace_period'                  => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_notify_lockout'               => array(
+			'nbuf_2fa_notify_lockout'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_2fa_notify_disable'               => array(
+			'nbuf_2fa_notify_disable'                => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_2fa_verify'                  => array(
+			'nbuf_page_2fa_verify'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_totp_setup'                  => array(
+			'nbuf_page_totp_setup'                   => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
-			'nbuf_page_member_directory'            => array(
+			'nbuf_page_member_directory'             => array(
 				'group'    => 'settings',
 				'autoload' => true,
 			),
 
 			/* Member Directory settings */
-			'nbuf_enable_member_directory'          => array(
+			'nbuf_enable_member_directory'           => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_default_view'           => array(
+			'nbuf_directory_default_view'            => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_per_page'               => array(
+			'nbuf_directory_per_page'                => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_show_search'            => array(
+			'nbuf_directory_show_search'             => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_show_filters'           => array(
+			'nbuf_directory_show_filters'            => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_default_privacy'        => array(
+			'nbuf_directory_default_privacy'         => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_allow_user_privacy_control'       => array(
+			'nbuf_allow_user_privacy_control'        => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_display_privacy_when_disabled'    => array(
+			'nbuf_display_privacy_when_disabled'     => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
-			'nbuf_directory_roles'                  => array(
+			'nbuf_directory_roles'                   => array(
 				'group'    => 'member_directory',
 				'autoload' => true,
 			),
 
 			/* Logging settings - User Audit Log */
-			'nbuf_audit_log_enabled'                => array(
+			'nbuf_audit_log_enabled'                 => array(
 				'group'    => 'audit_log',
 				'autoload' => true,
 			),
-			'nbuf_audit_log_retention'              => array(
+			'nbuf_audit_log_retention'               => array(
 				'group'    => 'audit_log',
 				'autoload' => true,
 			),
-			'nbuf_audit_log_events'                 => array(
+			'nbuf_audit_log_events'                  => array(
 				'group'    => 'audit_log',
 				'autoload' => true,
 			),
 
 			/* Logging settings - Admin Audit Log */
-			'nbuf_logging_admin_audit_enabled'      => array(
+			'nbuf_logging_admin_audit_enabled'       => array(
 				'group'    => 'logging',
 				'autoload' => true,
 			),
-			'nbuf_logging_admin_audit_retention'    => array(
+			'nbuf_logging_admin_audit_retention'     => array(
 				'group'    => 'logging',
 				'autoload' => true,
 			),
-			'nbuf_logging_admin_audit_categories'   => array(
+			'nbuf_logging_admin_audit_categories'    => array(
 				'group'    => 'logging',
 				'autoload' => true,
 			),
 
 			/* Logging settings - Security Log */
-			'nbuf_security_log_enabled'             => array(
+			'nbuf_security_log_enabled'              => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),
-			'nbuf_security_log_retention'           => array(
+			'nbuf_security_log_retention'            => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),
-			'nbuf_security_log_alerts_enabled'      => array(
+			'nbuf_security_log_alerts_enabled'       => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),
-			'nbuf_security_log_recipient_type'      => array(
+			'nbuf_security_log_recipient_type'       => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),
-			'nbuf_security_log_custom_email'        => array(
+			'nbuf_security_log_custom_email'         => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),
 
 			/* Logging settings - Privacy */
-			'nbuf_logging_anonymize_ip'             => array(
+			'nbuf_logging_anonymize_ip'              => array(
 				'group'    => 'logging',
 				'autoload' => true,
 			),
-			'nbuf_logging_store_user_agent'         => array(
+			'nbuf_logging_store_user_agent'          => array(
 				'group'    => 'logging',
 				'autoload' => true,
 			),
 
 			/* GDPR settings */
-			'nbuf_gdpr_delete_user_photos'          => array(
+			'nbuf_gdpr_delete_user_photos'           => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_gdpr_delete_audit_logs'           => array(
+			'nbuf_gdpr_delete_audit_logs'            => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_gdpr_include_audit_logs'          => array(
+			'nbuf_gdpr_include_audit_logs'           => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_gdpr_include_2fa_data'            => array(
+			'nbuf_gdpr_include_2fa_data'             => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_gdpr_include_login_attempts'      => array(
+			'nbuf_gdpr_include_login_attempts'       => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
 
 			/* GDPR Policy Notice settings */
-			'nbuf_policy_login_enabled'             => array(
+			'nbuf_policy_login_enabled'              => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_login_position'            => array(
+			'nbuf_policy_login_position'             => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_registration_enabled'      => array(
+			'nbuf_policy_registration_enabled'       => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_registration_position'     => array(
+			'nbuf_policy_registration_position'      => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_verify_enabled'            => array(
+			'nbuf_policy_verify_enabled'             => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_verify_position'           => array(
+			'nbuf_policy_verify_position'            => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_request_reset_enabled'     => array(
+			'nbuf_policy_request_reset_enabled'      => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_request_reset_position'    => array(
+			'nbuf_policy_request_reset_position'     => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_reset_enabled'             => array(
+			'nbuf_policy_reset_enabled'              => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_reset_position'            => array(
+			'nbuf_policy_reset_position'             => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_policy_account_tab_enabled'       => array(
+			'nbuf_policy_account_tab_enabled'        => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
 
 			/* GDPR Notification settings */
-			'nbuf_notify_profile_changes'           => array(
+			'nbuf_notify_profile_changes'            => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_notify_profile_changes_to'        => array(
+			'nbuf_notify_profile_changes_to'         => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_notify_profile_changes_fields'    => array(
+			'nbuf_notify_profile_changes_fields'     => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_notify_profile_changes_digest'    => array(
+			'nbuf_notify_profile_changes_digest'     => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
 
 			/* GDPR Version History settings */
-			'nbuf_version_history_enabled'          => array(
+			'nbuf_version_history_enabled'           => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_version_history_user_visible'     => array(
+			'nbuf_version_history_user_visible'      => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
@@ -1430,117 +1430,117 @@ class NBUF_Activator {
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_version_history_retention_days'   => array(
+			'nbuf_version_history_retention_days'    => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_version_history_max_versions'     => array(
+			'nbuf_version_history_max_versions'      => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_version_history_ip_tracking'      => array(
+			'nbuf_version_history_ip_tracking'       => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
-			'nbuf_version_history_auto_cleanup'     => array(
+			'nbuf_version_history_auto_cleanup'      => array(
 				'group'    => 'gdpr',
 				'autoload' => true,
 			),
 
 			/* Templates (autoload=0, large, load on-demand) */
-			'nbuf_email_template_html'              => array(
+			'nbuf_email_template_html'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_email_template_text'              => array(
+			'nbuf_email_template_text'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_welcome_email_html'               => array(
+			'nbuf_welcome_email_html'                => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_welcome_email_text'               => array(
+			'nbuf_welcome_email_text'                => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_expiration_warning_html'          => array(
+			'nbuf_expiration_warning_html'           => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_expiration_warning_text'          => array(
+			'nbuf_expiration_warning_text'           => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_login_form_template'              => array(
+			'nbuf_login_form_template'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_registration_form_template'       => array(
+			'nbuf_registration_form_template'        => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_account_page_template'            => array(
+			'nbuf_account_page_template'             => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_request_reset_form_template'      => array(
+			'nbuf_request_reset_form_template'       => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_reset_form_template'              => array(
+			'nbuf_reset_form_template'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_2fa_email_code_html'              => array(
+			'nbuf_2fa_email_code_html'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_2fa_email_code_text'              => array(
+			'nbuf_2fa_email_code_text'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_2fa_verify_template'              => array(
+			'nbuf_2fa_verify_template'               => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_2fa_setup_totp_template'          => array(
+			'nbuf_2fa_setup_totp_template'           => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
-			'nbuf_2fa_backup_codes_template'        => array(
+			'nbuf_2fa_backup_codes_template'         => array(
 				'group'    => 'templates',
 				'autoload' => false,
 			),
 
 			/* CSS (autoload=0, load on-demand) */
-			'nbuf_reset_page_css'                   => array(
+			'nbuf_reset_page_css'                    => array(
 				'group'    => 'css',
 				'autoload' => false,
 			),
-			'nbuf_login_page_css'                   => array(
+			'nbuf_login_page_css'                    => array(
 				'group'    => 'css',
 				'autoload' => false,
 			),
-			'nbuf_registration_page_css'            => array(
+			'nbuf_registration_page_css'             => array(
 				'group'    => 'css',
 				'autoload' => false,
 			),
-			'nbuf_account_page_css'                 => array(
+			'nbuf_account_page_css'                  => array(
 				'group'    => 'css',
 				'autoload' => false,
 			),
 
 			/* System tokens (autoload=0, context-specific) */
-			'nbuf_last_cleanup'                     => array(
+			'nbuf_last_cleanup'                      => array(
 				'group'    => 'system',
 				'autoload' => false,
 			),
-			'nbuf_css_write_failed'                 => array(
+			'nbuf_css_write_failed'                  => array(
 				'group'    => 'system',
 				'autoload' => false,
 			),
-			'nbuf_template_write_failed'            => array(
+			'nbuf_template_write_failed'             => array(
 				'group'    => 'system',
 				'autoload' => false,
 			),

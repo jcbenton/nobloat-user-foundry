@@ -347,34 +347,38 @@ class NBUF_Admin_User_Search {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$all_users = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$verified  = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = 1', $user_data_table ) );
-				$user_ids  = array_diff( $all_users, $verified );
+				$verified = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_verified = 1', $user_data_table ) );
+				$user_ids = array_diff( $all_users, $verified );
 			}
 		}
 
 		/* Expiration filter */
 		if ( ! empty( $_GET['nbuf_expiration'] ) ) {
-			$expiration  = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
-			$seven_days  = gmdate( 'Y-m-d H:i:s', strtotime( '+7 days' ) );
-			$filter_ids  = null;
+			$expiration = sanitize_text_field( wp_unslash( $_GET['nbuf_expiration'] ) );
+			$seven_days = gmdate( 'Y-m-d H:i:s', strtotime( '+7 days' ) );
+			$filter_ids = null;
 
 			switch ( $expiration ) {
 				case 'expired':
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$filter_ids = $wpdb->get_col( $wpdb->prepare(
-						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
-						$user_data_table,
-						$now
-					) );
+					$filter_ids = $wpdb->get_col(
+						$wpdb->prepare(
+							"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
+							$user_data_table,
+							$now
+						)
+					);
 					break;
 
 				case 'active':
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$expired    = $wpdb->get_col( $wpdb->prepare(
-						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
-						$user_data_table,
-						$now
-					) );
+					$expired = $wpdb->get_col(
+						$wpdb->prepare(
+							"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at < %s",
+							$user_data_table,
+							$now
+						)
+					);
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 					$filter_ids = array_diff( $all_users, $expired );
@@ -382,20 +386,24 @@ class NBUF_Admin_User_Search {
 
 				case 'expiring_soon':
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$filter_ids = $wpdb->get_col( $wpdb->prepare(
-						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at BETWEEN %s AND %s",
-						$user_data_table,
-						$now,
-						$seven_days
-					) );
+					$filter_ids = $wpdb->get_col(
+						$wpdb->prepare(
+							"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00' AND expires_at BETWEEN %s AND %s",
+							$user_data_table,
+							$now,
+							$seven_days
+						)
+					);
 					break;
 
 				case 'no_expiration':
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-					$has_exp    = $wpdb->get_col( $wpdb->prepare(
-						"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00'",
-						$user_data_table
-					) );
+					$has_exp = $wpdb->get_col(
+						$wpdb->prepare(
+							"SELECT user_id FROM %i WHERE expires_at IS NOT NULL AND expires_at != '0000-00-00 00:00:00'",
+							$user_data_table
+						)
+					);
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 					$filter_ids = array_diff( $all_users, $has_exp );
@@ -417,7 +425,7 @@ class NBUF_Admin_User_Search {
 				$filter_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE show_in_directory = 1', $user_data_table ) );
 			} elseif ( 'not_in_directory' === $directory ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$in_dir     = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE show_in_directory = 1', $user_data_table ) );
+				$in_dir = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE show_in_directory = 1', $user_data_table ) );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 				$filter_ids = array_diff( $all_users, $in_dir );
@@ -438,7 +446,7 @@ class NBUF_Admin_User_Search {
 				$filter_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = 1', $user_data_table ) );
 			} elseif ( 'enabled' === $account ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$disabled   = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = 1', $user_data_table ) );
+				$disabled = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE is_disabled = 1', $user_data_table ) );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 				$filter_ids = array_diff( $all_users, $disabled );
@@ -456,26 +464,32 @@ class NBUF_Admin_User_Search {
 
 			if ( 'enabled' === $twofa ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$filter_ids = $wpdb->get_col( $wpdb->prepare(
-					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
-					$wpdb->usermeta
-				) );
+				$filter_ids = $wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
+						$wpdb->usermeta
+					)
+				);
 			} elseif ( 'disabled' === $twofa ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$enabled    = $wpdb->get_col( $wpdb->prepare(
-					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
-					$wpdb->usermeta
-				) );
+				$enabled = $wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
+						$wpdb->usermeta
+					)
+				);
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$all_users  = $wpdb->get_col( "SELECT ID FROM {$wpdb->users}" );
 				$filter_ids = array_diff( $all_users, $enabled );
 			} elseif ( in_array( $twofa, array( 'email', 'totp', 'both' ), true ) ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$filter_ids = $wpdb->get_col( $wpdb->prepare(
-					"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value = %s",
-					$wpdb->usermeta,
-					$twofa
-				) );
+				$filter_ids = $wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value = %s",
+						$wpdb->usermeta,
+						$twofa
+					)
+				);
 			}
 
 			if ( null !== $filter_ids ) {
@@ -520,7 +534,7 @@ class NBUF_Admin_User_Search {
 		/* Join profile table */
 		add_filter(
 			'users_search',
-			function ( $search_sql ) use ( $wpdb, $profile_table, $search_term ) {
+			function ( $search_sql ) use ( $wpdb, $search_term ) {
 				if ( empty( $search_sql ) ) {
 					return $search_sql;
 				}

@@ -14,11 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* Get current settings */
-$nbuf_directory_enabled       = NBUF_Options::get( 'nbuf_enable_member_directory', false );
-$nbuf_directory_view          = NBUF_Options::get( 'nbuf_directory_default_view', 'grid' );
-$nbuf_directory_per_page      = NBUF_Options::get( 'nbuf_directory_per_page', 20 );
-$nbuf_directory_show_search   = NBUF_Options::get( 'nbuf_directory_show_search', true );
-$nbuf_directory_show_filters  = NBUF_Options::get( 'nbuf_directory_show_filters', true );
+$nbuf_directory_enabled        = NBUF_Options::get( 'nbuf_enable_member_directory', false );
+$nbuf_directory_view           = NBUF_Options::get( 'nbuf_directory_default_view', 'grid' );
+$nbuf_directory_per_page       = NBUF_Options::get( 'nbuf_directory_per_page', 20 );
+$nbuf_directory_show_search    = NBUF_Options::get( 'nbuf_directory_show_search', true );
+$nbuf_directory_show_filters   = NBUF_Options::get( 'nbuf_directory_show_filters', true );
 $nbuf_directory_privacy        = NBUF_Options::get( 'nbuf_directory_default_privacy', 'private' );
 $nbuf_allow_privacy_control    = NBUF_Options::get( 'nbuf_allow_user_privacy_control', false );
 $nbuf_display_privacy_disabled = NBUF_Options::get( 'nbuf_display_privacy_when_disabled', false );

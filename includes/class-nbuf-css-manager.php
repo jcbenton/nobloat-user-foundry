@@ -108,10 +108,10 @@ class NBUF_CSS_Manager {
 		}
 
 		/* Check if CSS actually changed (hash comparison with stored version) */
-		$new_hash        = md5( $css );
-		$version_key     = 'nbuf_css_version_' . $filename;
-		$stored_version  = NBUF_Options::get( $version_key );
-		$old_hash        = '';
+		$new_hash       = md5( $css );
+		$version_key    = 'nbuf_css_version_' . $filename;
+		$stored_version = NBUF_Options::get( $version_key );
+		$old_hash       = '';
 
 		if ( $stored_version ) {
 			$old_path = $ui_dir . $filename . '.' . $stored_version . '.min.css';
@@ -138,7 +138,9 @@ class NBUF_CSS_Manager {
 		/* Clean up old versions before writing new ones */
 		self::cleanup_old_css_versions( $filename, $timestamp );
 
-		/* Write unminified file */
+		/*
+		 * Write unminified file.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		$wrote_css = file_put_contents( $live_path, $css );
 

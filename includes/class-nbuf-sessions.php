@@ -63,21 +63,21 @@ class NBUF_Sessions {
 			return array();
 		}
 
-		$sessions        = array();
-		$current_token   = wp_get_session_token();
+		$sessions           = array();
+		$current_token      = wp_get_session_token();
 		$current_token_hash = $current_token ? hash( 'sha256', $current_token ) : '';
 
 		foreach ( $tokens as $token_hash => $session ) {
 			$token_hash_str = (string) $token_hash;
-			$is_current = $current_token_hash && hash_equals( $current_token_hash, $token_hash_str );
-			$sessions[] = array(
-				'token_hash'   => $token_hash_str,
-				'is_current'   => $is_current,
-				'login_time'   => isset( $session['login'] ) ? $session['login'] : 0,
-				'expiration'   => isset( $session['expiration'] ) ? $session['expiration'] : 0,
-				'ip'           => isset( $session['ip'] ) ? $session['ip'] : '',
-				'user_agent'   => isset( $session['ua'] ) ? $session['ua'] : '',
-				'device_info'  => self::parse_user_agent( isset( $session['ua'] ) ? $session['ua'] : '' ),
+			$is_current     = $current_token_hash && hash_equals( $current_token_hash, $token_hash_str );
+			$sessions[]     = array(
+				'token_hash'  => $token_hash_str,
+				'is_current'  => $is_current,
+				'login_time'  => isset( $session['login'] ) ? $session['login'] : 0,
+				'expiration'  => isset( $session['expiration'] ) ? $session['expiration'] : 0,
+				'ip'          => isset( $session['ip'] ) ? $session['ip'] : '',
+				'user_agent'  => isset( $session['ua'] ) ? $session['ua'] : '',
+				'device_info' => self::parse_user_agent( isset( $session['ua'] ) ? $session['ua'] : '' ),
 			);
 		}
 

@@ -113,7 +113,7 @@ class NBUF_Antibot {
 	 * @return array Configuration data.
 	 */
 	private static function get_client_config() {
-		$session_id  = self::get_or_create_session_id();
+		$session_id   = self::get_or_create_session_id();
 		$js_seed_data = self::generate_js_seed( $session_id );
 
 		return array(
@@ -149,7 +149,7 @@ class NBUF_Antibot {
 		if ( class_exists( 'NBUF_Universal_Router' ) ) {
 			/* If router has already processed, use its state */
 			$current_view = NBUF_Universal_Router::get_current_view();
-			self::debug_log( 'Universal Router current_view: ' . ( $current_view ?: '(empty)' ) );
+			self::debug_log( 'Universal Router current_view: ' . ( $current_view ? $current_view : '(empty)' ) );
 
 			if ( 'register' === $current_view ) {
 				self::debug_log( 'Matched via router current_view' );
@@ -192,9 +192,11 @@ class NBUF_Antibot {
 		return false;
 	}
 
-	/* =========================================================
-	   SESSION MANAGEMENT
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * SESSION MANAGEMENT
+	 * =========================================================
+	 */
 
 	/**
 	 * Get or create a unique session ID.
@@ -227,9 +229,11 @@ class NBUF_Antibot {
 		return $session_id;
 	}
 
-	/* =========================================================
-	   HONEYPOT FIELDS
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * HONEYPOT FIELDS
+	 * =========================================================
+	 */
 
 	/**
 	 * Generate honeypot field names (rotates hourly).
@@ -243,10 +247,14 @@ class NBUF_Antibot {
 
 		$base_hash = hash( 'sha256', $site_salt . $rotation_key );
 
+		/*
+		 * Use plugin-specific prefixes to avoid collision with legitimate
+		 * form fields from themes or other plugins (e.g., contact forms).
+		 */
 		return array(
-			'field1' => 'contact_' . substr( $base_hash, 0, 8 ),
-			'field2' => 'website_' . substr( $base_hash, 8, 8 ),
-			'field3' => 'company_' . substr( $base_hash, 16, 8 ),
+			'field1' => 'nbuf_hp_a_' . substr( $base_hash, 0, 8 ),
+			'field2' => 'nbuf_hp_b_' . substr( $base_hash, 8, 8 ),
+			'field3' => 'nbuf_hp_c_' . substr( $base_hash, 16, 8 ),
 		);
 	}
 
@@ -314,9 +322,11 @@ class NBUF_Antibot {
 		return true;
 	}
 
-	/* =========================================================
-	   TIME CHECK
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * TIME CHECK
+	 * =========================================================
+	 */
 
 	/**
 	 * Generate form render timestamp token.
@@ -403,9 +413,11 @@ class NBUF_Antibot {
 		return true;
 	}
 
-	/* =========================================================
-	   JAVASCRIPT TOKEN
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * JAVASCRIPT TOKEN
+	 * =========================================================
+	 */
 
 	/**
 	 * Generate seed for JS token computation.
@@ -484,9 +496,11 @@ class NBUF_Antibot {
 		return hash_equals( $expected, $token );
 	}
 
-	/* =========================================================
-	   INTERACTION DETECTION
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * INTERACTION DETECTION
+	 * =========================================================
+	 */
 
 	/**
 	 * Validate interaction data from client.
@@ -548,9 +562,11 @@ class NBUF_Antibot {
 		return true;
 	}
 
-	/* =========================================================
-	   PROOF OF WORK
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * PROOF OF WORK
+	 * =========================================================
+	 */
 
 	/**
 	 * Generate PoW challenge.
@@ -614,7 +630,7 @@ class NBUF_Antibot {
 		$transient_key = self::SESSION_PREFIX . 'pow_' . $session_id;
 		$challenge     = get_transient( $transient_key );
 		self::debug_log( 'Looking for PoW transient: ' . $transient_key );
-		self::debug_log( 'PoW challenge: ' . ( $challenge ?: '(not found)' ) );
+		self::debug_log( 'PoW challenge: ' . ( $challenge ? $challenge : '(not found)' ) );
 
 		if ( ! $challenge ) {
 			self::debug_log( 'PoW FAIL: no transient found' );
@@ -635,9 +651,11 @@ class NBUF_Antibot {
 		return $result;
 	}
 
-	/* =========================================================
-	   MAIN VALIDATION
-	   ========================================================= */
+	/*
+	 * =========================================================
+	 * MAIN VALIDATION
+	 * =========================================================
+	 */
 
 	/**
 	 * Validate all anti-bot checks.
@@ -660,7 +678,7 @@ class NBUF_Antibot {
 			? sanitize_text_field( $post_data['nbuf_session'] )
 			: '';
 
-		self::debug_log( 'Session ID from POST: ' . ( $session_id ?: '(empty)' ) );
+		self::debug_log( 'Session ID from POST: ' . ( $session_id ? $session_id : '(empty)' ) );
 		self::debug_log( 'POST keys: ' . implode( ', ', array_keys( $post_data ) ) );
 
 		/* Log antibot-related POST values */
@@ -681,7 +699,7 @@ class NBUF_Antibot {
 		}
 
 		/* 2. Time check validation */
-		$time_token = isset( $post_data['nbuf_form_token'] )
+		$time_token  = isset( $post_data['nbuf_form_token'] )
 			? sanitize_text_field( $post_data['nbuf_form_token'] )
 			: '';
 		$time_result = self::validate_time_check( $time_token );
@@ -691,7 +709,7 @@ class NBUF_Antibot {
 		}
 
 		/* 3. JavaScript token validation */
-		$js_token = isset( $post_data['nbuf_js_token'] )
+		$js_token  = isset( $post_data['nbuf_js_token'] )
 			? sanitize_text_field( $post_data['nbuf_js_token'] )
 			: '';
 		$js_result = self::validate_js_token( $js_token, $session_id );
@@ -701,7 +719,7 @@ class NBUF_Antibot {
 		}
 
 		/* 4. Interaction detection */
-		$interaction_data = isset( $post_data['nbuf_interaction'] )
+		$interaction_data   = isset( $post_data['nbuf_interaction'] )
 			? sanitize_text_field( $post_data['nbuf_interaction'] )
 			: '';
 		$interaction_result = self::validate_interaction( $interaction_data );
@@ -711,7 +729,7 @@ class NBUF_Antibot {
 		}
 
 		/* 5. Proof of work */
-		$pow_nonce = isset( $post_data['nbuf_pow_nonce'] )
+		$pow_nonce  = isset( $post_data['nbuf_pow_nonce'] )
 			? sanitize_text_field( $post_data['nbuf_pow_nonce'] )
 			: '';
 		$pow_result = self::validate_pow( $pow_nonce, $session_id );

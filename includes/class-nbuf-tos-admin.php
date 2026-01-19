@@ -477,15 +477,15 @@ class NBUF_ToS_Admin {
 							<td>
 								<?php if ( $acceptance->user_login ) : ?>
 									<a href="<?php echo esc_url( get_edit_user_link( $acceptance->user_id ) ); ?>">
-										<?php echo esc_html( $acceptance->display_name ?: $acceptance->user_login ); ?>
+										<?php echo esc_html( $acceptance->display_name ? $acceptance->display_name : $acceptance->user_login ); ?>
 									</a>
 								<?php else : ?>
 									<em><?php esc_html_e( 'Deleted user', 'nobloat-user-foundry' ); ?></em>
 								<?php endif; ?>
 							</td>
-							<td><?php echo esc_html( $acceptance->user_email ?: '-' ); ?></td>
+							<td><?php echo esc_html( $acceptance->user_email ? $acceptance->user_email : '-' ); ?></td>
 							<td><?php echo esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $acceptance->accepted_at ) ) ); ?></td>
-							<td><code><?php echo esc_html( $acceptance->ip_address ?: '-' ); ?></code></td>
+							<td><code><?php echo esc_html( $acceptance->ip_address ? $acceptance->ip_address : '-' ); ?></code></td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -597,29 +597,35 @@ class NBUF_ToS_Admin {
 		$output = fopen( 'php://output', 'w' );
 
 		/* CSV header */
-		fputcsv( $output, array(
-			'User ID',
-			'Username',
-			'Email',
-			'Display Name',
-			'Version',
-			'Accepted At',
-			'IP Address',
-			'User Agent',
-		) );
+		fputcsv(
+			$output,
+			array(
+				'User ID',
+				'Username',
+				'Email',
+				'Display Name',
+				'Version',
+				'Accepted At',
+				'IP Address',
+				'User Agent',
+			)
+		);
 
 		/* CSV data */
 		foreach ( $acceptances as $acceptance ) {
-			fputcsv( $output, array(
-				$acceptance->user_id,
-				$acceptance->user_login ?: 'deleted',
-				$acceptance->user_email ?: '',
-				$acceptance->display_name ?: '',
-				$acceptance->version ?: '',
-				$acceptance->accepted_at,
-				$acceptance->ip_address ?: '',
-				$acceptance->user_agent ?: '',
-			) );
+			fputcsv(
+				$output,
+				array(
+					$acceptance->user_id,
+					$acceptance->user_login ? $acceptance->user_login : 'deleted',
+					$acceptance->user_email ? $acceptance->user_email : '',
+					$acceptance->display_name ? $acceptance->display_name : '',
+					$acceptance->version ? $acceptance->version : '',
+					$acceptance->accepted_at,
+					$acceptance->ip_address ? $acceptance->ip_address : '',
+					$acceptance->user_agent ? $acceptance->user_agent : '',
+				)
+			);
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Writing to php://output for streaming CSV download.

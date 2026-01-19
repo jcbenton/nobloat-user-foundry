@@ -307,22 +307,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Get complete user data (recommended approach)
 $user = NBUF_User::get( $user_id );
 if ( $user ) {
-    echo 'Email: ' . $user->user_email;
-    echo 'Verified: ' . ( $user->is_verified() ? 'Yes' : 'No' );
-    echo 'Disabled: ' . ( $user->is_disabled() ? 'Yes' : 'No' );
-    echo 'Has 2FA: ' . ( $user->has_2fa() ? 'Yes' : 'No' );
-    echo 'Phone: ' . $user->phone;
+	echo 'Email: ' . $user->user_email;
+	echo 'Verified: ' . ( $user->is_verified() ? 'Yes' : 'No' );
+	echo 'Disabled: ' . ( $user->is_disabled() ? 'Yes' : 'No' );
+	echo 'Has 2FA: ' . ( $user->has_2fa() ? 'Yes' : 'No' );
+	echo 'Phone: ' . $user->phone;
 }
 
 // Batch load users (efficient for lists)
 $users = NBUF_User::get_many( array( 1, 2, 3, 4, 5 ) );
 foreach ( $users as $user ) {
-    echo $user->get_display_name();
+	echo $user->get_display_name();
 }
 
 // Check verification status directly
 if ( NBUF_User_Data::is_verified( $user_id ) ) {
-    // User is verified
+	// User is verified
 }
 
 // Disable a user account
@@ -333,9 +333,9 @@ NBUF_User_Data::set_expiration( $user_id, '2025-12-31 23:59:59' );
 
 // Update profile data
 NBUF_Profile_Data::update( $user_id, array(
-    'phone'   => '555-1234',
-    'company' => 'Acme Corp',
-    'city'    => 'Boston',
+	'phone'   => '555-1234',
+	'company' => 'Acme Corp',
+	'city'    => 'Boston',
 ) );
 
 // Get plugin option
@@ -343,10 +343,10 @@ $enable_2fa = NBUF_Options::get( 'nbuf_enable_2fa', false );
 
 // Log custom action
 NBUF_Audit_Log::log(
-    $user_id,
-    'custom_action',
-    'success',
-    'User performed custom action',
-    array( 'extra_data' => 'value' )
+	$user_id,
+	'custom_action',
+	'success',
+	'User performed custom action',
+	array( 'extra_data' => 'value' )
 );
 </pre>

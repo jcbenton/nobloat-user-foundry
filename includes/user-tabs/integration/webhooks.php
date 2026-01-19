@@ -12,11 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Handle webhook actions */
+/*
+ * Handle webhook actions.
+ */
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified in NBUF_Settings::init()
-$nbuf_webhook_action  = isset( $_GET['webhook_action'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_action'] ) ) : '';
-$nbuf_webhook_id      = isset( $_GET['webhook_id'] ) ? absint( $_GET['webhook_id'] ) : 0;
-$nbuf_view_logs_for   = isset( $_GET['view_logs'] ) ? absint( $_GET['view_logs'] ) : 0;
+$nbuf_webhook_action = isset( $_GET['webhook_action'] ) ? sanitize_text_field( wp_unslash( $_GET['webhook_action'] ) ) : '';
+$nbuf_webhook_id     = isset( $_GET['webhook_id'] ) ? absint( $_GET['webhook_id'] ) : 0;
+$nbuf_view_logs_for  = isset( $_GET['view_logs'] ) ? absint( $_GET['view_logs'] ) : 0;
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 /* Get current settings */
@@ -298,7 +300,7 @@ if ( $nbuf_view_logs_for ) :
 							$nbuf_log_success = $nbuf_log_code >= 200 && $nbuf_log_code < 300;
 							?>
 							<span style="color: <?php echo $nbuf_log_success ? '#00a32a' : '#d63638'; ?>;">
-								<?php echo esc_html( $nbuf_log_code ?: '—' ); ?>
+								<?php echo esc_html( $nbuf_log_code ? $nbuf_log_code : '—' ); ?>
 							</span>
 						</td>
 						<td>
@@ -352,17 +354,17 @@ if ( $nbuf_view_logs_for ) :
 
 <pre style="background: #f0f0f1; padding: 15px; border-radius: 4px; overflow-x: auto;">
 {
-  "event": "user_registered",
-  "timestamp": "2024-01-15T10:30:00+00:00",
-  "webhook_id": 1,
-  "site_url": "https://example.com",
-  "data": {
-    "user_id": 123,
-    "user_email": "user@example.com",
-    "user_login": "username",
-    "display_name": "John Doe",
-    "roles": ["subscriber"]
-  }
+	"event": "user_registered",
+	"timestamp": "2024-01-15T10:30:00+00:00",
+	"webhook_id": 1,
+	"site_url": "https://example.com",
+	"data": {
+	"user_id": 123,
+	"user_email": "user@example.com",
+	"user_login": "username",
+	"display_name": "John Doe",
+	"roles": ["subscriber"]
+	}
 }
 </pre>
 

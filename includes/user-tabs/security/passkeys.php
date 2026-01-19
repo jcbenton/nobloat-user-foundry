@@ -20,7 +20,7 @@ $nbuf_passkeys_attestation       = NBUF_Options::get( 'nbuf_passkeys_attestation
 $nbuf_passkeys_timeout           = NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 );
 
 /* Statistics */
-$nbuf_total_passkeys = 0;
+$nbuf_total_passkeys      = 0;
 $nbuf_users_with_passkeys = 0;
 if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	$nbuf_total_passkeys      = NBUF_User_Passkeys_Data::get_total_count();

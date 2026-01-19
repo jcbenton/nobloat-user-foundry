@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $nbuf_enable_password_reset = NBUF_Options::get( 'nbuf_enable_password_reset', true );
 
 /* Email settings */
-$nbuf_allow_email_change    = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
-$nbuf_verify_email_change   = NBUF_Options::get( 'nbuf_verify_email_change', true );
+$nbuf_allow_email_change  = NBUF_Options::get( 'nbuf_allow_email_change', 'disabled' );
+$nbuf_verify_email_change = NBUF_Options::get( 'nbuf_verify_email_change', true );
 
 /* Expiration settings */
 $nbuf_enable_expiration = NBUF_Options::get( 'nbuf_enable_expiration', false );

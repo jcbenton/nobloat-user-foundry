@@ -278,7 +278,9 @@ class NBUF_Restriction_Metabox {
 			'updated_at'         => current_time( 'mysql', true ),
 		);
 
-		/* Check if restriction exists */
+		/*
+		 * Check if restriction exists.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom restrictions table.
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(

@@ -256,7 +256,9 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 			'updated_at'    => self::get_current_timestamp(),
 		);
 
-		/* Check if exists */
+		/*
+		 * Check if exists.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom menu restrictions table.
 		$exists = $wpdb->get_var(
 			$wpdb->prepare(

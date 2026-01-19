@@ -96,7 +96,8 @@ class NBUF_Password_Validator {
 		if ( 'once' === $check_timing && $weak_flagged ) {
 			/* Already flagged - check if they changed password since flagging */
 			$password_changed = NBUF_User_Data::get_password_changed_at( $user->ID );
-			if ( $password_changed && strtotime( $password_changed ) > strtotime( $weak_flagged ) ) {
+			/* Both timestamps stored in GMT - append GMT for consistent interpretation */
+			if ( $password_changed && strtotime( $password_changed . ' GMT' ) > strtotime( $weak_flagged . ' GMT' ) ) {
 				/*
 				 * Password was changed after flagging but still doesn't meet requirements.
 				 * This shouldn't happen normally (password change form validates),
@@ -116,7 +117,8 @@ class NBUF_Password_Validator {
 		$grace_days = (int) NBUF_Options::get( 'nbuf_password_grace_period', 7 );
 
 		if ( $grace_days > 0 && $weak_flagged ) {
-			$flagged_timestamp = strtotime( $weak_flagged );
+			/* Timestamps stored in GMT - append GMT for consistent interpretation */
+			$flagged_timestamp = strtotime( $weak_flagged . ' GMT' );
 			$grace_expires     = $flagged_timestamp + ( $grace_days * DAY_IN_SECONDS );
 
 			if ( time() < $grace_expires ) {
@@ -276,7 +278,8 @@ class NBUF_Password_Validator {
 
 		/* Check if password was changed after flagging */
 		$password_changed = NBUF_User_Data::get_password_changed_at( $user_id );
-		if ( $password_changed && strtotime( $password_changed ) > strtotime( $weak_flagged ) ) {
+		/* Both timestamps stored in GMT - append GMT for consistent interpretation */
+		if ( $password_changed && strtotime( $password_changed . ' GMT' ) > strtotime( $weak_flagged . ' GMT' ) ) {
 			/* Password was changed after flagging - clear flag */
 			NBUF_User_Data::clear_weak_password_flag( $user_id );
 			return false;
@@ -305,7 +308,8 @@ class NBUF_Password_Validator {
 		$weak_flagged = NBUF_User_Data::get_weak_password_flagged_at( $user_id );
 
 		if ( $grace_days > 0 && $weak_flagged ) {
-			$flagged_timestamp = strtotime( $weak_flagged );
+			/* Timestamps stored in GMT - append GMT for consistent interpretation */
+			$flagged_timestamp = strtotime( $weak_flagged . ' GMT' );
 			$grace_expires     = $flagged_timestamp + ( $grace_days * DAY_IN_SECONDS );
 
 			if ( time() < $grace_expires ) {
@@ -331,8 +335,9 @@ class NBUF_Password_Validator {
 			return 0;
 		}
 
-		$grace_days        = (int) NBUF_Options::get( 'nbuf_password_grace_period', 7 );
-		$flagged_timestamp = strtotime( $weak_flagged );
+		$grace_days = (int) NBUF_Options::get( 'nbuf_password_grace_period', 7 );
+		/* Timestamps stored in GMT - append GMT for consistent interpretation */
+		$flagged_timestamp = strtotime( $weak_flagged . ' GMT' );
 		$grace_expires     = $flagged_timestamp + ( $grace_days * DAY_IN_SECONDS );
 		$remaining         = $grace_expires - time();
 

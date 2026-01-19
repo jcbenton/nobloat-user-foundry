@@ -236,7 +236,9 @@ class NBUF_2FA_Login {
 		/* Get method from transient (includes auto-required method) */
 		$method = isset( $pending_data['method'] ) ? $pending_data['method'] : NBUF_2FA::get_user_method( $user_id );
 
-		/* Get submitted code and code type */
+		/*
+		 * Get submitted code and code type.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification above.
 		$code = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification above.
@@ -257,6 +259,7 @@ class NBUF_2FA_Login {
 		}
 
 		$verified = false;
+		$result   = null;
 
 		/* Try backup code first if explicitly selected */
 		if ( 'backup' === $code_type ) {
@@ -305,7 +308,7 @@ class NBUF_2FA_Login {
 			);
 
 			/* Redirect to 2FA page with specific error */
-			$current_url = self::get_2fa_page_url();
+			$current_url   = self::get_2fa_page_url();
 			$redirect_args = array( 'error' => $error_code );
 
 			/* Preserve backup mode if that's what was used */
@@ -404,7 +407,9 @@ class NBUF_2FA_Login {
 			array( 'username' => $user->user_login )
 		);
 
-		/* Fire login action */
+		/*
+		 * Fire login action.
+		 */
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_login is a core WordPress hook.
 		do_action( 'wp_login', $user->user_login, $user );
 
@@ -431,7 +436,9 @@ class NBUF_2FA_Login {
 				break;
 		}
 
-		/* Allow override via redirect_to parameter */
+		/*
+		 * Allow override via redirect_to parameter.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification earlier.
 		if ( isset( $_REQUEST['redirect_to'] ) && ! empty( $_REQUEST['redirect_to'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification earlier.
@@ -569,7 +576,9 @@ class NBUF_2FA_Login {
 
 		$user_id = absint( $pending_data['user_id'] );
 
-		/* Check if user wants to use backup code */
+		/*
+		 * Check if user wants to use backup code.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only mode parameter
 		$backup_mode = isset( $_GET['backup'] ) && '1' === $_GET['backup'];
 

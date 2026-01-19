@@ -35,7 +35,9 @@ class NBUF_Admin_Audit_Log_Page {
 	 * Handle export/purge/bulk actions early before any output
 	 */
 	public static function handle_early_actions() {
-		/* Only process on our page */
+		/*
+		 * Only process on our page.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below for specific actions
 		if ( ! isset( $_GET['page'] ) && ! isset( $_POST['page'] ) ) {
 			return;

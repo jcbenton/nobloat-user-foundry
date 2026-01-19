@@ -47,10 +47,10 @@ class NBUF_Email {
 		}
 
 		/* Create filter callbacks */
-		$from_callback = function () use ( $sender_address ) {
+		$from_callback         = function () use ( $sender_address ) {
 			return $sender_address;
 		};
-		$name_callback = function () use ( $sender_name ) {
+		$name_callback         = function () use ( $sender_name ) {
 			return $sender_name;
 		};
 		$content_type_callback = function () use ( $content_type ) {

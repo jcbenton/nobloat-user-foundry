@@ -184,7 +184,7 @@ class NBUF_Custom_Tabs {
 	public static function create( array $data ): array {
 		$tabs = self::get_all();
 
-		$new_tab = self::sanitize_tab_data( $data );
+		$new_tab       = self::sanitize_tab_data( $data );
 		$new_tab['id'] = 'tab_' . uniqid();
 
 		$tabs[] = $new_tab;
@@ -206,9 +206,9 @@ class NBUF_Custom_Tabs {
 
 		foreach ( $tabs as $i => $tab ) {
 			if ( isset( $tab['id'] ) && $tab['id'] === $id ) {
-				$updated_tab = self::sanitize_tab_data( $data );
+				$updated_tab       = self::sanitize_tab_data( $data );
 				$updated_tab['id'] = $id; /* Preserve original ID */
-				$tabs[ $i ] = $updated_tab;
+				$tabs[ $i ]        = $updated_tab;
 
 				NBUF_Options::update( self::OPTION_NAME, $tabs );
 				return true;
@@ -226,7 +226,7 @@ class NBUF_Custom_Tabs {
 	 * @return bool True if deleted, false if tab not found.
 	 */
 	public static function delete( string $id ): bool {
-		$tabs = self::get_all();
+		$tabs           = self::get_all();
 		$original_count = count( $tabs );
 
 		$tabs = array_filter(
@@ -263,14 +263,14 @@ class NBUF_Custom_Tabs {
 
 		/* Build reordered array with new priorities */
 		$reordered = array();
-		$priority = 10;
+		$priority  = 10;
 
 		foreach ( $ordered_ids as $id ) {
 			$id = sanitize_text_field( $id );
 			if ( isset( $indexed[ $id ] ) ) {
 				$indexed[ $id ]['priority'] = $priority;
-				$reordered[] = $indexed[ $id ];
-				$priority += 10;
+				$reordered[]                = $indexed[ $id ];
+				$priority                  += 10;
 				unset( $indexed[ $id ] );
 			}
 		}
@@ -278,8 +278,8 @@ class NBUF_Custom_Tabs {
 		/* Append any remaining tabs not in the order array */
 		foreach ( $indexed as $tab ) {
 			$tab['priority'] = $priority;
-			$reordered[] = $tab;
-			$priority += 10;
+			$reordered[]     = $tab;
+			$priority       += 10;
 		}
 
 		NBUF_Options::update( self::OPTION_NAME, $reordered );
@@ -294,7 +294,7 @@ class NBUF_Custom_Tabs {
 	 */
 	private static function sanitize_tab_data( array $data ): array {
 		/* Validate roles against actual WordPress roles */
-		$valid_roles = array_keys( wp_roles()->get_names() );
+		$valid_roles     = array_keys( wp_roles()->get_names() );
 		$submitted_roles = isset( $data['roles'] ) && is_array( $data['roles'] ) ? $data['roles'] : array();
 		$sanitized_roles = array_values( array_intersect( $submitted_roles, $valid_roles ) );
 

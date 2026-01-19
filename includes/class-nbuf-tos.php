@@ -85,11 +85,11 @@ class NBUF_ToS {
 
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM %i
+				'SELECT * FROM %i
 				WHERE is_active = 1
 				AND effective_date <= %s
 				ORDER BY effective_date DESC
-				LIMIT 1",
+				LIMIT 1',
 				$table,
 				$now
 			)
@@ -393,11 +393,11 @@ class NBUF_ToS {
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT a.*, v.version, v.title
+				'SELECT a.*, v.version, v.title
 				FROM %i a
 				LEFT JOIN %i v ON a.tos_version_id = v.id
 				WHERE a.user_id = %d
-				ORDER BY a.accepted_at DESC",
+				ORDER BY a.accepted_at DESC',
 				$acceptances_table,
 				$versions_table,
 				$user_id
@@ -561,19 +561,22 @@ class NBUF_ToS {
 			return;
 		}
 
-		/* Allow logout */
+		/*
+		 * Allow logout.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Checking WP logout action, no form processing.
 		if ( isset( $_GET['action'] ) && 'logout' === $_GET['action'] ) {
 			return;
 		}
 
-		/* Check if user has pending ToS or hasn't accepted current */
+		/* Check if user has pending ToS or hasn't accepted current. */
 		$has_pending = get_transient( 'nbuf_tos_pending_' . $user_id );
 		if ( $has_pending || ! self::has_user_accepted_current( $user_id ) ) {
 			/* Check grace period */
 			$active_version = self::get_active_version();
 			if ( $active_version ) {
 				$grace_hours = self::get_grace_period_hours();
+
 				/*
 				 * Both effective_date and current time need to be in the same timezone.
 				 * effective_date is stored in local time, so compare with current local time.

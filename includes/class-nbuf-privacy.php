@@ -610,7 +610,9 @@ class NBUF_Privacy {
 		$per_page       = 500;
 		$offset         = ( $page - 1 ) * $per_page;
 
-		/* Get failed login attempts for this user's username and email */
+		/*
+		 * Get failed login attempts for this user's username and email.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required for custom table, pagination makes caching impractical.
 		$attempts = $wpdb->get_results(
 			$wpdb->prepare(

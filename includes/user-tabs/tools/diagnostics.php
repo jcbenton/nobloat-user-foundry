@@ -33,14 +33,14 @@ $nbuf_table_stats = array();
 
 foreach ( $nbuf_all_tables as $nbuf_key => $nbuf_table_name ) {
 	$nbuf_exists = in_array( $nbuf_table_name, array_values( $nbuf_table_data['existing'] ), true )
-	            || in_array( $nbuf_table_name, array_values( $nbuf_table_data['unexpected'] ), true );
+				|| in_array( $nbuf_table_name, array_values( $nbuf_table_data['unexpected'] ), true );
 
 	if ( $nbuf_exists ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$nbuf_count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $nbuf_table_name ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$nbuf_size = $wpdb->get_var(
+		$nbuf_size                     = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT ROUND((data_length + index_length) / 1024, 2)
 				FROM information_schema.TABLES

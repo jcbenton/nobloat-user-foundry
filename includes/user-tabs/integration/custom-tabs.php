@@ -14,7 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Delete action is handled in NBUF_Settings::handle_custom_tab_delete() on admin_init */
 
-/* Handle edit mode */
+/*
+ * Handle edit mode.
+ */
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only edit mode selection.
 $nbuf_edit_tab_id = isset( $_GET['edit_tab'] ) ? sanitize_text_field( wp_unslash( $_GET['edit_tab'] ) ) : '';
 
@@ -29,7 +31,9 @@ $nbuf_custom_tabs = NBUF_Custom_Tabs::get_all();
 /* Get available roles */
 $nbuf_wp_roles = wp_roles()->get_names();
 
-/* Show success/error messages */
+/*
+ * Show success/error messages.
+ */
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display only
 if ( isset( $_GET['deleted'] ) ) {
 	echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Custom tab deleted.', 'nobloat-user-foundry' ) . '</p></div>';

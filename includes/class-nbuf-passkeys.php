@@ -291,17 +291,17 @@ class NBUF_Passkeys {
 
 		/* Build registration options */
 		$options = array(
-			'challenge'        => self::base64url_encode( $challenge ),
-			'rp'               => array(
+			'challenge'              => self::base64url_encode( $challenge ),
+			'rp'                     => array(
 				'name' => self::get_rp_name(),
 				'id'   => self::get_rp_id(),
 			),
-			'user'             => array(
+			'user'                   => array(
 				'id'          => self::base64url_encode( (string) $user_id ),
 				'name'        => $user->user_login,
 				'displayName' => $user->display_name,
 			),
-			'pubKeyCredParams' => array(
+			'pubKeyCredParams'       => array(
 				array(
 					'type' => 'public-key',
 					'alg'  => -7,
@@ -311,8 +311,8 @@ class NBUF_Passkeys {
 					'alg'  => -257,
 				), /* RS256 */
 			),
-			'timeout'          => (int) NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 ),
-			'attestation'      => NBUF_Options::get( 'nbuf_passkeys_attestation', 'none' ),
+			'timeout'                => (int) NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 ),
+			'attestation'            => NBUF_Options::get( 'nbuf_passkeys_attestation', 'none' ),
 			'authenticatorSelection' => array(
 				'residentKey'      => 'preferred',
 				'userVerification' => $user_verification,
@@ -548,10 +548,10 @@ class NBUF_Passkeys {
 		delete_transient( self::CHALLENGE_PREFIX . 'user_' . $session_id );
 
 		/* Extract response components */
-		$credential_id    = self::base64url_decode( $response['id'] ?? '' );
-		$client_data_json = self::base64url_decode( $response['clientDataJSON'] ?? '' );
+		$credential_id      = self::base64url_decode( $response['id'] ?? '' );
+		$client_data_json   = self::base64url_decode( $response['clientDataJSON'] ?? '' );
 		$authenticator_data = self::base64url_decode( $response['authenticatorData'] ?? '' );
-		$signature        = self::base64url_decode( $response['signature'] ?? '' );
+		$signature          = self::base64url_decode( $response['signature'] ?? '' );
 
 		if ( empty( $credential_id ) || empty( $client_data_json ) || empty( $authenticator_data ) || empty( $signature ) ) {
 			return new WP_Error( 'invalid_response', __( 'Invalid authentication response.', 'nobloat-user-foundry' ) );
@@ -961,15 +961,17 @@ class NBUF_Passkeys {
 			return false;
 		}
 
-		/* Build PEM public key */
+		/*
+		 * Build PEM public key.
+		 */
 		/* EC public key for P-256: 0x04 || x || y */
 		$ec_point = "\x04" . $x . $y;
 
 		/* ASN.1 structure for EC public key */
-		$ec_key_der = "\x30\x59" .                           /* SEQUENCE */
-			"\x30\x13" .                                     /* SEQUENCE */
-			"\x06\x07\x2a\x86\x48\xce\x3d\x02\x01" .         /* OID ecPublicKey */
-			"\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07" .     /* OID prime256v1 */
+		$ec_key_der = "\x30\x59" . /* SEQUENCE */
+			"\x30\x13" . /* SEQUENCE */
+			"\x06\x07\x2a\x86\x48\xce\x3d\x02\x01" . /* OID ecPublicKey */
+			"\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07" . /* OID prime256v1 */
 			"\x03\x42\x00" . $ec_point;                      /* BIT STRING */
 
 		$pem = "-----BEGIN PUBLIC KEY-----\n" .
@@ -1274,7 +1276,9 @@ class NBUF_Passkeys {
 		}
 		self::record_rate_limit_request();
 
-		/* No nonce check for this endpoint - it's pre-login */
+		/*
+		 * No nonce check for this endpoint - it's pre-login.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$username = isset( $_POST['username'] ) ? sanitize_text_field( wp_unslash( $_POST['username'] ) ) : '';
 
@@ -1391,7 +1395,9 @@ class NBUF_Passkeys {
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 
-		/* Get redirect URL */
+		/*
+		 * Get redirect URL.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$redirect_url = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
 		if ( empty( $redirect_url ) ) {
@@ -1420,7 +1426,9 @@ class NBUF_Passkeys {
 		}
 		self::record_rate_limit_request();
 
-		/* No nonce check for this endpoint - it's pre-login */
+		/*
+		 * No nonce check for this endpoint - it's pre-login.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey check endpoint.
 		$login = isset( $_POST['login'] ) ? sanitize_text_field( wp_unslash( $_POST['login'] ) ) : '';
 

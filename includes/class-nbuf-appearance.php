@@ -101,7 +101,7 @@ class NBUF_Appearance {
 	 */
 	public static function get_tab_structure() {
 		return array(
-			'emails'     => array(
+			'emails'   => array(
 				'label'   => __( 'Email Templates', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'verification'       => __( 'Verification', 'nobloat-user-foundry' ),
@@ -112,14 +112,14 @@ class NBUF_Appearance {
 					'admin-notification' => __( 'Admin Notification', 'nobloat-user-foundry' ),
 				),
 			),
-			'policies'   => array(
+			'policies' => array(
 				'label'   => __( 'Policy Templates', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'privacy' => __( 'Privacy Policy', 'nobloat-user-foundry' ),
 					'terms'   => __( 'Terms of Use', 'nobloat-user-foundry' ),
 				),
 			),
-			'forms'      => array(
+			'forms'    => array(
 				'label'   => __( 'Form Templates', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'login'         => __( 'Login Form', 'nobloat-user-foundry' ),
@@ -132,16 +132,16 @@ class NBUF_Appearance {
 					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
 				),
 			),
-			'pages'      => array(
+			'pages'    => array(
 				'label'   => __( 'Page Templates', 'nobloat-user-foundry' ),
 				'subtabs' => array(
-					'public-profile'    => __( 'Public Profile', 'nobloat-user-foundry' ),
-					'member-directory'  => __( 'Member Directory', 'nobloat-user-foundry' ),
-					'data-export'       => __( 'Data Export', 'nobloat-user-foundry' ),
-					'version-history'   => __( 'Version History', 'nobloat-user-foundry' ),
+					'public-profile'   => __( 'Public Profile', 'nobloat-user-foundry' ),
+					'member-directory' => __( 'Member Directory', 'nobloat-user-foundry' ),
+					'data-export'      => __( 'Data Export', 'nobloat-user-foundry' ),
+					'version-history'  => __( 'Version History', 'nobloat-user-foundry' ),
 				),
 			),
-			'styles'     => array(
+			'styles'   => array(
 				'label'   => __( 'CSS Styles', 'nobloat-user-foundry' ),
 				'subtabs' => array(
 					'login'            => __( 'Login', 'nobloat-user-foundry' ),
@@ -286,7 +286,7 @@ class NBUF_Appearance {
 		/* Map tabs to file paths */
 		$file_map = array(
 			/* Email Templates */
-			'emails' => array(
+			'emails'   => array(
 				'verification'       => 'templates/verification.php',
 				'welcome'            => 'templates/welcome.php',
 				'expiration'         => 'templates/expiration.php',
@@ -300,7 +300,7 @@ class NBUF_Appearance {
 				'terms'   => 'policies/terms.php',
 			),
 			/* Form Templates */
-			'forms' => array(
+			'forms'    => array(
 				'login'         => 'forms/login.php',
 				'registration'  => 'forms/registration.php',
 				'request-reset' => 'forms/request-reset.php',
@@ -311,14 +311,14 @@ class NBUF_Appearance {
 				'backup-codes'  => 'forms/backup-codes.php',
 			),
 			/* Page Templates */
-			'pages' => array(
+			'pages'    => array(
 				'public-profile'   => 'pages/public-profile.php',
 				'member-directory' => 'pages/member-directory.php',
 				'data-export'      => 'pages/data-export.php',
 				'version-history'  => 'pages/version-history.php',
 			),
 			/* CSS Styles */
-			'styles' => array(
+			'styles'   => array(
 				'login'            => 'styles/login.php',
 				'register'         => 'styles/register.php',
 				'account'          => 'styles/account.php',

@@ -1129,10 +1129,10 @@ class NBUF_Profile_Photos {
 	 * @param int $user_id User ID.
 	 */
 	public static function render_profile_photo_subtab( $user_id ) {
-		$user_data        = NBUF_User_Data::get( $user_id );
-		$profiles_enabled = NBUF_Options::get( 'nbuf_enable_profiles', false );
-		$gravatar_enabled = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-		$use_gravatar     = $user_data && ! empty( $user_data->use_gravatar );
+		$user_data          = NBUF_User_Data::get( $user_id );
+		$profiles_enabled   = NBUF_Options::get( 'nbuf_enable_profiles', false );
+		$gravatar_enabled   = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
+		$use_gravatar       = $user_data && ! empty( $user_data->use_gravatar );
 		$has_custom_profile = $user_data && ! empty( $user_data->profile_photo_url );
 
 		/* Get current photo - either custom upload, gravatar, or SVG avatar */
@@ -1280,8 +1280,8 @@ class NBUF_Profile_Photos {
 	 * @param int $user_id User ID.
 	 */
 	public static function render_profile_settings_subtab( $user_id ) {
-		$user_data       = NBUF_User_Data::get( $user_id );
-		$profile_privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+		$user_data         = NBUF_User_Data::get( $user_id );
+		$profile_privacy   = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 		$show_in_directory = $user_data ? (int) $user_data->show_in_directory : 0;
 
 		/* Get user's visible fields preference (default to all enabled) */
@@ -1382,7 +1382,7 @@ class NBUF_Profile_Photos {
 								foreach ( $category['fields'] as $key => $default_label ) {
 									if ( in_array( $key, $enabled_keys, true ) ) {
 										/* Use custom label if set, otherwise default */
-										$label = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : $default_label;
+										$label                         = ! empty( $custom_labels[ $key ] ) ? $custom_labels[ $key ] : $default_label;
 										$enabled_custom_fields[ $key ] = $label;
 									}
 								}

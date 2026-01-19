@@ -120,11 +120,11 @@ class NBUF_2FA_Account {
 		$html = '<div class="nbuf-account-section">';
 
 		/* Sub-tab links */
-		$html         .= '<div class="nbuf-subtabs">';
-		$subtab_count  = 0;
+		$html        .= '<div class="nbuf-subtabs">';
+		$subtab_count = 0;
 		foreach ( $subtabs as $key => $label ) {
-			$is_first  = ( 0 === $subtab_count );
-			$html     .= '<button type="button" class="nbuf-subtab-link' . ( $is_first ? ' active' : '' ) . '" data-subtab="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
+			$is_first = ( 0 === $subtab_count );
+			$html    .= '<button type="button" class="nbuf-subtab-link' . ( $is_first ? ' active' : '' ) . '" data-subtab="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
 			++$subtab_count;
 		}
 		$html .= '</div>';
@@ -549,7 +549,7 @@ class NBUF_2FA_Account {
 		}
 
 		/* Get existing application passwords */
-		$app_passwords = WP_Application_Passwords::get_user_application_passwords( $user_id );
+		$app_passwords  = WP_Application_Passwords::get_user_application_passwords( $user_id );
 		$password_count = count( $app_passwords );
 
 		$html = '<div class="nbuf-security-subtab-content">';

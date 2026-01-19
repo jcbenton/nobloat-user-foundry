@@ -223,19 +223,20 @@ class NBUF_Impersonation {
 		/* Log impersonation start to admin audit log */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
 			NBUF_Admin_Audit_Log::log(
-				'impersonation_start',
 				$current_user->ID,
-				$target_user_id,
+				'impersonation',
+				'start',
 				sprintf(
 					/* translators: 1: admin username, 2: target username */
 					__( 'Admin %1$s started impersonating user %2$s', 'nobloat-user-foundry' ),
 					$current_user->user_login,
 					$target_user->user_login
 				),
+				$target_user_id,
 				array(
-					'admin_id'       => $current_user->ID,
-					'admin_username' => $current_user->user_login,
-					'target_id'      => $target_user_id,
+					'admin_id'        => $current_user->ID,
+					'admin_username'  => $current_user->user_login,
+					'target_id'       => $target_user_id,
 					'target_username' => $target_user->user_login,
 				)
 			);
@@ -278,11 +279,11 @@ class NBUF_Impersonation {
 		set_transient(
 			$transient_key,
 			array(
-				'original_user_id'   => $current_user->ID,
-				'original_username'  => $current_user->user_login,
-				'target_user_id'     => $target_user_id,
-				'target_username'    => $target_user->user_login,
-				'started_at'         => time(),
+				'original_user_id'  => $current_user->ID,
+				'original_username' => $current_user->user_login,
+				'target_user_id'    => $target_user_id,
+				'target_username'   => $target_user->user_login,
+				'started_at'        => time(),
 			),
 			DAY_IN_SECONDS
 		);
@@ -320,15 +321,16 @@ class NBUF_Impersonation {
 		/* Log impersonation end */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) && $original_user && $target_user ) {
 			NBUF_Admin_Audit_Log::log(
-				'impersonation_end',
 				$original_user_id,
-				$impersonation_data['target_user_id'],
+				'impersonation',
+				'end',
 				sprintf(
 					/* translators: 1: admin username, 2: target username */
 					__( 'Admin %1$s ended impersonation of user %2$s', 'nobloat-user-foundry' ),
 					$original_user->user_login,
 					$target_user->user_login
 				),
+				$impersonation_data['target_user_id'],
 				array(
 					'admin_id'        => $original_user_id,
 					'admin_username'  => $original_user->user_login,

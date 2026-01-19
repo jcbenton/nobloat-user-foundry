@@ -24,8 +24,8 @@ $nbuf_restrict_admin_access = NBUF_Options::get( 'nbuf_restrict_admin_access', f
 $nbuf_admin_redirect_url    = NBUF_Options::get( 'nbuf_admin_redirect_url', '' );
 
 /* Account Page Features */
-$nbuf_session_management_enabled  = NBUF_Options::get( 'nbuf_session_management_enabled', true );
-$nbuf_activity_dashboard_enabled  = NBUF_Options::get( 'nbuf_activity_dashboard_enabled', true );
+$nbuf_session_management_enabled = NBUF_Options::get( 'nbuf_session_management_enabled', true );
+$nbuf_activity_dashboard_enabled = NBUF_Options::get( 'nbuf_activity_dashboard_enabled', true );
 
 /* Terms of Service */
 $nbuf_tos_enabled            = NBUF_Options::get( 'nbuf_tos_enabled', false );

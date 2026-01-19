@@ -248,7 +248,7 @@ class NBUF_Admin_Profile_Fields {
 				foreach ( $category_data['fields'] as $field_key => $field_label ) {
 					if ( in_array( $field_key, $account_fields, true ) ) {
 						$category_fields[ $field_key ] = array(
-							'label'        => isset( $custom_labels[ $field_key ] ) && ! empty( $custom_labels[ $field_key ] )
+							'label'         => isset( $custom_labels[ $field_key ] ) && ! empty( $custom_labels[ $field_key ] )
 								? $custom_labels[ $field_key ]
 								: $field_label,
 							'default_label' => $field_label,

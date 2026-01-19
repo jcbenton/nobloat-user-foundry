@@ -1277,9 +1277,25 @@ class NBUF_Admin_Users {
 								<td><?php echo esc_html( $passkey->created_at ? wp_date( 'Y-m-d', strtotime( $passkey->created_at ) ) : '—' ); ?></td>
 								<td><?php echo esc_html( $passkey->last_used ? wp_date( 'Y-m-d', strtotime( $passkey->last_used ) ) : __( 'Never', 'nobloat-user-foundry' ) ); ?></td>
 								<td>
-									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'nbuf_delete_passkey', 'passkey_id' => $passkey->id, 'user_id' => $user_id ), admin_url( 'user-edit.php' ) ), 'nbuf_delete_passkey_' . $passkey->id ) ); ?>"
-									   class="button-link-delete"
-									   onclick="return confirm('<?php echo esc_js( __( 'Delete this passkey?', 'nobloat-user-foundry' ) ); ?>');">
+									<a href="
+									<?php
+									echo esc_url(
+										wp_nonce_url(
+											add_query_arg(
+												array(
+													'action'  => 'nbuf_delete_passkey',
+													'passkey_id' => $passkey->id,
+													'user_id' => $user_id,
+												),
+												admin_url( 'user-edit.php' )
+											),
+											'nbuf_delete_passkey_' . $passkey->id
+										)
+									);
+									?>
+												"
+										class="button-link-delete"
+										onclick="return confirm('<?php echo esc_js( __( 'Delete this passkey?', 'nobloat-user-foundry' ) ); ?>');">
 						<?php esc_html_e( 'Delete', 'nobloat-user-foundry' ); ?>
 									</a>
 								</td>
@@ -1292,9 +1308,24 @@ class NBUF_Admin_Users {
 			<tr>
 				<th><?php esc_html_e( 'Admin Actions', 'nobloat-user-foundry' ); ?></th>
 				<td>
-					<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'nbuf_delete_all_passkeys', 'user_id' => $user_id ), admin_url( 'user-edit.php' ) ), 'nbuf_delete_all_passkeys_' . $user_id ) ); ?>"
-					   class="button"
-					   onclick="return confirm('<?php echo esc_js( __( 'Delete ALL passkeys for this user? They will need to register new passkeys.', 'nobloat-user-foundry' ) ); ?>');">
+					<a href="
+					<?php
+					echo esc_url(
+						wp_nonce_url(
+							add_query_arg(
+								array(
+									'action'  => 'nbuf_delete_all_passkeys',
+									'user_id' => $user_id,
+								),
+								admin_url( 'user-edit.php' )
+							),
+							'nbuf_delete_all_passkeys_' . $user_id
+						)
+					);
+					?>
+								"
+						class="button"
+						onclick="return confirm('<?php echo esc_js( __( 'Delete ALL passkeys for this user? They will need to register new passkeys.', 'nobloat-user-foundry' ) ); ?>');">
 						<?php esc_html_e( 'Delete All Passkeys', 'nobloat-user-foundry' ); ?>
 					</a>
 					<span class="description"><?php esc_html_e( 'Removes all registered passkeys for this user.', 'nobloat-user-foundry' ); ?></span>

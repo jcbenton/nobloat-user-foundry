@@ -231,7 +231,7 @@ class NBUF_Public_Profiles {
 		if ( is_user_logged_in() && get_current_user_id() === $user->ID ) {
 			$account_url = class_exists( 'NBUF_URL' ) ? NBUF_URL::get( 'account' ) : '';
 			if ( $account_url ) {
-				$edit_profile_button = '<div class="nbuf-profile-actions">';
+				$edit_profile_button  = '<div class="nbuf-profile-actions">';
 				$edit_profile_button .= '<button type="button" class="nbuf-button nbuf-button-primary" onclick="window.location.href=\'' . esc_url( $account_url ) . '\'">' . esc_html__( 'Edit Profile', 'nobloat-user-foundry' ) . '</button>';
 				$edit_profile_button .= '</div>';
 			}
@@ -274,7 +274,9 @@ class NBUF_Public_Profiles {
 			'{wp_footer}'           => $wp_footer,
 		);
 
-		/* Replace placeholders and output */
+		/*
+		 * Replace placeholders and output.
+		 */
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- All values escaped above.
 		echo str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 	}

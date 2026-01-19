@@ -203,8 +203,11 @@ function nbuf_run_uninstall() {
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
-			"DELETE FROM {$wpdb->options}
-			 WHERE option_name LIKE 'nbuf_%'"
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE option_name LIKE %s',
+				$wpdb->options,
+				'nbuf_%'
+			)
 		);
 
 		/*
@@ -212,11 +215,14 @@ function nbuf_run_uninstall() {
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
-			"DELETE FROM {$wpdb->options}
-			 WHERE option_name LIKE '_transient_nbuf_%'
-			 OR option_name LIKE '_transient_timeout_nbuf_%'
-			 OR option_name LIKE '_transient_photo_upload_%'
-			 OR option_name LIKE '_transient_timeout_photo_upload_%'"
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s',
+				$wpdb->options,
+				'_transient_nbuf_%',
+				'_transient_timeout_nbuf_%',
+				'_transient_photo_upload_%',
+				'_transient_timeout_photo_upload_%'
+			)
 		);
 	}
 

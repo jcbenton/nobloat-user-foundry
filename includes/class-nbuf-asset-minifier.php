@@ -45,7 +45,7 @@ class NBUF_Asset_Minifier {
 	 */
 	public static function get_cache_dir() {
 		if ( null === self::$cache_dir ) {
-			$upload_dir     = wp_upload_dir();
+			$upload_dir      = wp_upload_dir();
 			self::$cache_dir = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/cache/';
 		}
 		return self::$cache_dir;
@@ -59,7 +59,7 @@ class NBUF_Asset_Minifier {
 	 */
 	public static function get_cache_url() {
 		if ( null === self::$cache_url ) {
-			$upload_dir     = wp_upload_dir();
+			$upload_dir      = wp_upload_dir();
 			self::$cache_url = trailingslashit( $upload_dir['baseurl'] ) . 'nobloat/cache/';
 		}
 		return self::$cache_url;
@@ -85,7 +85,9 @@ class NBUF_Asset_Minifier {
 				return false;
 			}
 
-			/* Ensure correct permissions (umask may have affected them) */
+			/*
+			 * Ensure correct permissions (umask may have affected them).
+			 */
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 			chmod( $cache_dir, 0755 );
 		}
@@ -155,14 +157,18 @@ class NBUF_Asset_Minifier {
 			return false;
 		}
 
-		/* Verify source file exists and resolve to absolute path */
+		/*
+		 * Verify source file exists and resolve to absolute path.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath
 		$real_source_path = realpath( $source_path );
 		if ( false === $real_source_path ) {
 			return false;
 		}
 
-		/* Ensure source is within plugin directory (prevent arbitrary file reads) */
+		/*
+		 * Ensure source is within plugin directory (prevent arbitrary file reads).
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath
 		$plugin_dir = realpath( NBUF_PLUGIN_DIR );
 		if ( false === $plugin_dir || 0 !== strpos( $real_source_path, $plugin_dir ) ) {
@@ -216,7 +222,9 @@ class NBUF_Asset_Minifier {
 			self::cleanup_old_versions( $handle, $cache_path );
 		}
 
-		/* Read source file */
+		/*
+		 * Read source file.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$source = file_get_contents( $source_path );
 		if ( false === $source ) {
@@ -244,7 +252,9 @@ class NBUF_Asset_Minifier {
 			return false;
 		}
 
-		/* Atomic rename to final location */
+		/*
+		 * Atomic rename to final location.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 		if ( ! rename( $temp_path, $cache_path ) ) {
 			wp_delete_file( $temp_path );
@@ -279,7 +289,9 @@ class NBUF_Asset_Minifier {
 		$deleted     = 0;
 
 		if ( ! empty( $files ) && is_array( $files ) ) {
-			/* Get real cache dir path for validation */
+			/*
+			 * Get real cache dir path for validation.
+			 */
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath
 			$real_cache_dir = realpath( $cache_dir );
 
@@ -289,7 +301,9 @@ class NBUF_Asset_Minifier {
 					continue;
 				}
 
-				/* Verify file is within cache directory (defense in depth) */
+				/*
+				 * Verify file is within cache directory (defense in depth).
+				 */
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath
 				$real_file = realpath( $file );
 
@@ -378,7 +392,7 @@ class NBUF_Asset_Minifier {
 					++$i;
 				}
 				++$i;
-				$placeholder              = '___NBUF_STR_' . $index . '___';
+				$placeholder               = '___NBUF_STR_' . $index . '___';
 				$preserved[ $placeholder ] = $string;
 				++$index;
 				$result .= $placeholder;
@@ -391,7 +405,7 @@ class NBUF_Asset_Minifier {
 				++$i;
 				$depth = 0;
 				while ( $i < $len ) {
-					$c = $js[ $i ];
+					$c       = $js[ $i ];
 					$string .= $c;
 
 					if ( '\\' === $c && $i + 1 < $len ) {
@@ -409,7 +423,7 @@ class NBUF_Asset_Minifier {
 						$inner_quote = $c;
 						++$i;
 						while ( $i < $len ) {
-							$c2 = $js[ $i ];
+							$c2      = $js[ $i ];
 							$string .= $c2;
 							if ( '\\' === $c2 && $i + 1 < $len ) {
 								++$i;
@@ -427,7 +441,7 @@ class NBUF_Asset_Minifier {
 					++$i;
 				}
 				++$i;
-				$placeholder              = '___NBUF_TPL_' . $index . '___';
+				$placeholder               = '___NBUF_TPL_' . $index . '___';
 				$preserved[ $placeholder ] = $string;
 				++$index;
 				$result .= $placeholder;
@@ -463,7 +477,7 @@ class NBUF_Asset_Minifier {
 					$regex = $char;
 					++$i;
 					while ( $i < $len ) {
-						$c = $js[ $i ];
+						$c      = $js[ $i ];
 						$regex .= $c;
 						if ( '\\' === $c && $i + 1 < $len ) {
 							++$i;
@@ -475,7 +489,7 @@ class NBUF_Asset_Minifier {
 							 */
 							++$i;
 							while ( $i < $len ) {
-								$c2 = $js[ $i ];
+								$c2     = $js[ $i ];
 								$regex .= $c2;
 								if ( '\\' === $c2 && $i + 1 < $len ) {
 									++$i;
@@ -496,7 +510,7 @@ class NBUF_Asset_Minifier {
 						}
 						++$i;
 					}
-					$placeholder              = '___NBUF_RGX_' . $index . '___';
+					$placeholder               = '___NBUF_RGX_' . $index . '___';
 					$preserved[ $placeholder ] = $regex;
 					++$index;
 					$result .= $placeholder;
@@ -613,7 +627,9 @@ class NBUF_Asset_Minifier {
 			}
 		}
 
-		/* Remove the directory */
+		/*
+		 * Remove the directory.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 		return rmdir( $cache_dir );
 	}

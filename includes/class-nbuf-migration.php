@@ -403,7 +403,7 @@ class NBUF_Migration {
 
 		/* Create mapper and get suggestions */
 		$mapper      = new NBUF_Field_Mapper();
-		$suggestions = $mapper->suggest_mapping( $source_field, $sample_value );
+		$suggestions = $mapper->suggest_mapping( $source_field );
 
 		wp_send_json_success( array( 'suggestions' => $suggestions ) );
 	}
@@ -453,11 +453,11 @@ class NBUF_Migration {
 		}
 
 		$data = array(
-			'is_active'             => false,
-			'user_count'            => 0,
-			'profile_fields_count'  => 0,
-			'restrictions_count'    => 0,
-			'orphaned_roles_count'  => 0,
+			'is_active'            => false,
+			'user_count'           => 0,
+			'profile_fields_count' => 0,
+			'restrictions_count'   => 0,
+			'orphaned_roles_count' => 0,
 		);
 
 		/* Get orphaned roles count (available for all migrations) */

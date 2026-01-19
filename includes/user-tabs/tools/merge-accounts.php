@@ -29,6 +29,6 @@ if ( isset( $_GET['users'] ) && ! empty( $_GET['users'] ) ) {
 	</p>
 
 	<div class="nbuf-merge-content" style="margin-top: 20px;">
-		<?php include NBUF_INCLUDE_DIR . 'user-tabs/tools/merge-tabs/wordpress.php'; ?>
+		<?php require NBUF_INCLUDE_DIR . 'user-tabs/tools/merge-tabs/wordpress.php'; ?>
 	</div>
 </div>

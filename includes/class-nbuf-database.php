@@ -540,12 +540,12 @@ class NBUF_Database {
 		global $wpdb;
 		self::init();
 
-		$sanitized_email = sanitize_email( $email );
-		$sanitized_token = sanitize_text_field( $token );
+		$sanitized_email   = sanitize_email( $email );
+		$sanitized_token   = sanitize_text_field( $token );
 		$expires_formatted = is_numeric( $expires_at )
 			? gmdate( 'Y-m-d H:i:s', $expires_at )
 			: gmdate( 'Y-m-d H:i:s', strtotime( $expires_at ) );
-		$now = gmdate( 'Y-m-d H:i:s' );
+		$now               = gmdate( 'Y-m-d H:i:s' );
 
 		/*
 		 * Atomic INSERT ... SELECT that only inserts if no valid token exists.
@@ -558,7 +558,7 @@ class NBUF_Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic token insert requires direct query.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"INSERT INTO %i (user_id, user_email, token, expires_at, verified, is_test)
+				'INSERT INTO %i (user_id, user_email, token, expires_at, verified, is_test)
 				SELECT %d, %s, %s, %s, 0, %d
 				WHERE NOT EXISTS (
 					SELECT 1 FROM %i
@@ -566,7 +566,7 @@ class NBUF_Database {
 					AND verified = 0
 					AND expires_at > %s
 					LIMIT 1
-				)",
+				)',
 				self::$table_name,
 				(int) $user_id,
 				$sanitized_email,
@@ -1130,7 +1130,7 @@ class NBUF_Database {
 			$wpdb->prepare( 'SHOW INDEX FROM %i', $table_name ),
 			ARRAY_A
 		);
-		$index_names = wp_list_pluck( $existing_indexes, 'Key_name' );
+		$index_names      = wp_list_pluck( $existing_indexes, 'Key_name' );
 
 		$migration_success = true;
 		$errors            = array();
@@ -1224,7 +1224,7 @@ class NBUF_Database {
 			$wpdb->prepare( 'SHOW INDEX FROM %i', self::$table_name ),
 			ARRAY_A
 		);
-		$index_names = wp_list_pluck( $existing_indexes, 'Key_name' );
+		$index_names      = wp_list_pluck( $existing_indexes, 'Key_name' );
 
 		$migration_success = true;
 
@@ -1273,7 +1273,9 @@ class NBUF_Database {
 				return false;
 			}
 
-			/* Add index for type column */
+			/*
+			 * Add index for type column.
+			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Migration adding index.
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY type (type)', $wpdb->prefix . 'nbuf_tokens' ) );
 		}
@@ -1485,11 +1487,13 @@ class NBUF_Database {
 
 		$expected_tables = self::get_expected_tables();
 
-		/* Query database for all nbuf_ tables that actually exist */
+		/*
+		 * Query database for all nbuf_ tables that actually exist.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing_in_db = $wpdb->get_col(
 			$wpdb->prepare(
-				"SHOW TABLES LIKE %s",
+				'SHOW TABLES LIKE %s',
 				$wpdb->prefix . 'nbuf_%'
 			)
 		);
@@ -1513,7 +1517,7 @@ class NBUF_Database {
 		foreach ( $existing_in_db as $table_name ) {
 			if ( ! in_array( $table_name, $expected_names, true ) ) {
 				/* Extract key from table name (remove prefix + nbuf_) */
-				$key                 = str_replace( $wpdb->prefix . 'nbuf_', '', $table_name );
+				$key                = str_replace( $wpdb->prefix . 'nbuf_', '', $table_name );
 				$unexpected[ $key ] = $table_name;
 			}
 		}

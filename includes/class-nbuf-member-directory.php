@@ -231,7 +231,7 @@ class NBUF_Member_Directory {
 			return '';
 		}
 
-		$html = '<div class="nbuf-directory-controls">';
+		$html  = '<div class="nbuf-directory-controls">';
 		$html .= '<form method="get" action="" class="nbuf-directory-form">';
 
 		/* Preserve existing query vars using whitelist approach for security */
@@ -565,7 +565,9 @@ class NBUF_Member_Directory {
 		$offset = ( $args['paged'] - 1 ) * $args['per_page'];
 		$sql   .= $wpdb->prepare( ' LIMIT %d OFFSET %d', $args['per_page'], $offset );
 
-		/* Execute query */
+		/*
+		 * Execute query.
+		 */
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query built incrementally with prepare() for values; orderby is whitelisted.
 		$members = $wpdb->get_results( $sql );
 

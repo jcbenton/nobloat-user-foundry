@@ -277,6 +277,14 @@ class NBUF_Login_Limiting {
 			)
 		);
 
+		/*
+		 * SECURITY: Fail-safe handling - if database query fails (returns null),
+		 * deny the login attempt rather than allowing bypass of rate limiting.
+		 */
+		if ( null === $count ) {
+			return PHP_INT_MAX;
+		}
+
 		return (int) $count;
 	}
 
@@ -305,6 +313,14 @@ class NBUF_Login_Limiting {
 				$cutoff_time
 			)
 		);
+
+		/*
+		 * SECURITY: Fail-safe handling - if database query fails (returns null),
+		 * deny the login attempt rather than allowing bypass of rate limiting.
+		 */
+		if ( null === $count ) {
+			return PHP_INT_MAX;
+		}
 
 		return (int) $count;
 	}

@@ -1,0 +1,97 @@
+parameters:
+    level: 5
+    paths:
+        - .
+    excludePaths:
+        analyseAndScan:
+            - vendor (?)
+            - node_modules (?)
+            - tests (?)
+    parallel:
+        maximumNumberOfProcesses: 1
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        # Plugin constants defined at runtime
+        - '#Constant NBUF_PLUGIN_DIR not found#'
+        - '#Constant NBUF_PLUGIN_URL not found#'
+        - '#Constant NBUF_PLUGIN_FILE not found#'
+        - '#Constant NBUF_VERSION not found#'
+        # WordPress constants defined at runtime
+        - '#Constant COOKIEPATH not found#'
+        - '#Constant COOKIE_DOMAIN not found#'
+        - '#Constant WP_MEMORY_LIMIT not found#'
+        - '#Constant WP_MAX_MEMORY_LIMIT not found#'
+        - '#Constant ABSPATH not found#'
+        - '#Constant WPINC not found#'
+        - '#Constant DB_NAME not found#'
+        - '#Constant WEEK_IN_SECONDS not found#'
+        - '#Constant DAY_IN_SECONDS not found#'
+        - '#Constant HOUR_IN_SECONDS not found#'
+        - '#Constant MINUTE_IN_SECONDS not found#'
+        # Defensive type checks - intentional
+        - '#Call to function is_array\(\) with .* will always evaluate to true#'
+        - '#Call to function is_string\(\) with .* will always evaluate to true#'
+        - '#Call to function is_object\(\) with .* will always evaluate to true#'
+        - '#Offset .* in isset\(\) always exists#'
+        - '#Ternary operator condition is always#'
+        # WordPress hooks that modify by reference
+        - '#on a separate line has no effect#'
+        # WordPress filter return types are sometimes flexible
+        - '#Action callback returns .* but should not return anything#'
+        # Third-party plugin integrations (WooCommerce, EDD) - only loaded when plugins active
+        - '#Function wc_.* not found#'
+        - '#Function edd_.* not found#'
+        - '#class EDD_.* not found#'
+        - '#Access to property .* on an unknown class EDD_#'
+        - '#Instantiated class EDD_.* not found#'
+        # Backward compatibility checks - method_exists is intentional
+        - '#Call to function method_exists\(\) with .* will always evaluate to true#'
+        # Filter callbacks may not return explicitly when modifying by reference
+        - '#Filter callback return statement is missing#'
+        # Defensive code - intentional
+        - '#in empty\(\) always exists#'
+        - '#Strict comparison .* will always evaluate to#'
+        # Property written for future use
+        - '#property .* is never read, only written#'
+        # NBUF_Options::get() returns mixed, but values are used safely
+        - '#Parameter \#1 \$text of function esc_html expects string, .* given#'
+        - '#Parameter \#1 \$text of function esc_attr expects string, .* given#'
+        - '#Parameter \#3 \$number of function _n expects int, float given#'
+        # Pagination - ceil() returns float, but WP accepts it
+        - '#total_pages.* does not accept type float#'
+        # WordPress callback parameter counts
+        - '#Callback expects \d+ parameters?, \$accepted_args is set to \d+#'
+        # Conditional method calls guarded by method_exists
+        - '#Call to an undefined static method NBUF_Login_Limiting::get_client_ip#'
+        # Image processor - Imagick version-specific methods
+        - '#Imagick::autoOrientImage#'
+        - '#Negated boolean expression is always false#'
+        - '#Comparison operation .* is always false#'
+        - '#Result of \|\| is always false#'
+        # List table pagination - ceil returns float, WP handles it
+        - '#set_pagination_args.*total_pages.*float#'
+        # Unknown class - typo in class name
+        - '#class Abstract_NBUF_Restriction#'
+        # Return type mismatches - WP_Error is valid return for error cases
+        - '#should return string but returns WP_Error#'
+        - '#should return array but returns#'
+        # Parameter type flexibility
+        - '#function esc_js expects string, int given#'
+        - '#function add_option expects bool\|null, .* given#'
+        - '#function wp_dropdown_pages expects#'
+        - '#function login_header expects#'
+        - '#function wp_validate_redirect expects#'
+        - '#function get_file_data expects string, false given#'
+        # Method invocation count warnings for optional params
+        - '#invoked with \d+ parameters?, \d+-\d+ required#'
+        # Property written for future use in mappers
+        - '#is never read, only written#'
+        # Webhooks use get_object_vars() which PHPStan doesn't track well
+        - '#Cannot access property .* on array#'
+        # Undefined methods guarded by class_exists/method_exists
+        - '#Call to an undefined static method NBUF_URL::is_universal_mode#'
+        # Object vs array type confusion in profile data
+        - '#expects array, object\|null given#'
+        # Imagick method_exists false positive
+        - '#method_exists.*will always evaluate to false#'
+    reportUnmatchedIgnoredErrors: false

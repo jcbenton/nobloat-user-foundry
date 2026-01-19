@@ -385,16 +385,16 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 */
 	private function event_type_dropdown() {
 		$event_types = array(
-			''                              => __( 'All Event Types', 'nobloat-user-foundry' ),
-			'login_failed'                  => __( 'Login Failed', 'nobloat-user-foundry' ),
-			'login_blocked'                 => __( 'Login Blocked', 'nobloat-user-foundry' ),
+			''                                 => __( 'All Event Types', 'nobloat-user-foundry' ),
+			'login_failed'                     => __( 'Login Failed', 'nobloat-user-foundry' ),
+			'login_blocked'                    => __( 'Login Blocked', 'nobloat-user-foundry' ),
 			'distributed_brute_force_detected' => __( 'Distributed Brute Force', 'nobloat-user-foundry' ),
-			'privilege_escalation_blocked'  => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
-			'invalid_photo_selection'       => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
-			'file_validation_failed'        => __( 'File Validation Failed', 'nobloat-user-foundry' ),
-			'file_not_found'                => __( 'File Not Found', 'nobloat-user-foundry' ),
-			'file_integrity_failed'         => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
-			'file_copy_failed'              => __( 'File Copy Failed', 'nobloat-user-foundry' ),
+			'privilege_escalation_blocked'     => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
+			'invalid_photo_selection'          => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
+			'file_validation_failed'           => __( 'File Validation Failed', 'nobloat-user-foundry' ),
+			'file_not_found'                   => __( 'File Not Found', 'nobloat-user-foundry' ),
+			'file_integrity_failed'            => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
+			'file_copy_failed'                 => __( 'File Copy Failed', 'nobloat-user-foundry' ),
 		);
 
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only dropdown filter display

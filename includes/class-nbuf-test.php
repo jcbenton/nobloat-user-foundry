@@ -173,7 +173,7 @@ class NBUF_Test {
 			$site_name
 		);
 
-		$message  = sprintf(
+		$message = sprintf(
 			/* translators: %s: username */
 			__( 'Hello %s,', 'nobloat-user-foundry' ),
 			'testuser'
@@ -206,7 +206,7 @@ class NBUF_Test {
 			$site_name
 		);
 
-		$message  = sprintf(
+		$message = sprintf(
 			/* translators: %s: Site name */
 			__( 'Your account registration on %s has been reviewed.', 'nobloat-user-foundry' ),
 			$site_name
@@ -389,7 +389,7 @@ class NBUF_Test {
 			$site_name
 		);
 
-		$message  = sprintf(
+		$message = sprintf(
 			/* translators: %s: user display name */
 			__( 'Hi %s,', 'nobloat-user-foundry' ),
 			'Test User'
@@ -485,7 +485,7 @@ class NBUF_Test {
 				__( '[%s] Security Alerts Not Enabled', 'nobloat-user-foundry' ),
 				$site_name
 			);
-			$message = __( 'Security alert emails are currently disabled.', 'nobloat-user-foundry' ) . "\n\n";
+			$message  = __( 'Security alert emails are currently disabled.', 'nobloat-user-foundry' ) . "\n\n";
 			$message .= __( 'To receive security alerts for critical events (brute force attacks, privilege escalation, etc.), enable them in:', 'nobloat-user-foundry' ) . "\n";
 			$message .= __( 'User Foundry > GDPR & Privacy > Logging > Enable Critical Alert Emails', 'nobloat-user-foundry' ) . "\n\n";
 			$message .= __( 'Once enabled, security alerts will be sent using the HTML template to your configured recipient.', 'nobloat-user-foundry' );
@@ -516,7 +516,7 @@ class NBUF_Test {
 			$site_name
 		);
 
-		$message  = sprintf(
+		$message = sprintf(
 			/* translators: %s: site name */
 			__( 'This is a test profile change notification from %s.', 'nobloat-user-foundry' ),
 			$site_name

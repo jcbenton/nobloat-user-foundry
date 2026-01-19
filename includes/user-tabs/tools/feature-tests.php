@@ -328,8 +328,8 @@ $nbuf_antibot_enabled  = NBUF_Options::get( 'nbuf_antibot_enabled', true );
 
 			<!-- Interaction Detection -->
 			<?php
-			$nbuf_interaction_enabled  = NBUF_Options::get( 'nbuf_antibot_interaction', true );
-			$nbuf_min_interactions     = NBUF_Options::get( 'nbuf_antibot_min_interactions', 3 );
+			$nbuf_interaction_enabled = NBUF_Options::get( 'nbuf_antibot_interaction', true );
+			$nbuf_min_interactions    = NBUF_Options::get( 'nbuf_antibot_min_interactions', 3 );
 			?>
 			<tr>
 				<td>
@@ -365,12 +365,16 @@ $nbuf_antibot_enabled  = NBUF_Options::get( 'nbuf_antibot_enabled', true );
 					<?php if ( $nbuf_interaction_enabled ) : ?>
 						<?php
 						/* Test with valid interaction data */
-						$nbuf_test_interaction = base64_encode( wp_json_encode( array( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-							'mouse'    => 5,
-							'keyboard' => 10,
-							'focus'    => 3,
-							'scroll'   => 2,
-						) ) );
+						$nbuf_test_interaction = base64_encode(
+							wp_json_encode(
+								array( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+								'mouse'    => 5,
+								'keyboard' => 10,
+								'focus'    => 3,
+								'scroll'   => 2,
+								)
+							)
+						);
 						$nbuf_interaction_pass = NBUF_Antibot::validate_interaction( $nbuf_test_interaction );
 						if ( $nbuf_interaction_pass ) :
 							?>

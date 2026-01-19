@@ -279,7 +279,9 @@ class NBUF_Config_Importer {
 					$option_value = maybe_serialize( $option_value );
 				}
 
-				/* Check if option exists */
+				/*
+				 * Check if option exists.
+				 */
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
 				$exists = $wpdb->get_var(
 					$wpdb->prepare(

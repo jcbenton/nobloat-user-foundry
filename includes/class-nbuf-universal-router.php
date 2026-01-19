@@ -310,7 +310,9 @@ class NBUF_Universal_Router {
 		if ( 'account' === $view ) {
 			NBUF_Asset_Minifier::enqueue_script( 'nbuf-account-page', 'assets/js/frontend/account-page.js', array() );
 
-			/* Get subtab from query param */
+			/*
+			 * Get subtab from query param.
+			 */
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reading subtab for display purposes.
 			$active_subtab = isset( $_GET['subtab'] ) ? sanitize_key( wp_unslash( $_GET['subtab'] ) ) : '';
 
@@ -318,7 +320,7 @@ class NBUF_Universal_Router {
 				'nbuf-account-page',
 				'nbufAccountData',
 				array(
-					'activeTab'    => self::$current_subview ?: '',
+					'activeTab'    => self::$current_subview ? self::$current_subview : '',
 					'activeSubtab' => $active_subtab,
 					'baseSlug'     => self::get_base_slug(),
 				)
@@ -350,7 +352,7 @@ class NBUF_Universal_Router {
 		$remaining = trim( substr( $path, strlen( $base_slug ) ), '/' );
 		$segments  = $remaining ? explode( '/', $remaining ) : array();
 
-		$view    = isset( $segments[0] ) && $segments[0] !== '' ? $segments[0] : self::get_default_view();
+		$view    = isset( $segments[0] ) && '' !== $segments[0] ? $segments[0] : self::get_default_view();
 		$subview = isset( $segments[1] ) ? $segments[1] : '';
 
 		/* Validate view */
@@ -388,7 +390,7 @@ class NBUF_Universal_Router {
 	 * @return string View key.
 	 */
 	public static function get_current_view() {
-		return self::$current_view ?: '';
+		return self::$current_view ? self::$current_view : '';
 	}
 
 	/**
@@ -397,7 +399,7 @@ class NBUF_Universal_Router {
 	 * @return string Subview key.
 	 */
 	public static function get_current_subview() {
-		return self::$current_subview ?: '';
+		return self::$current_subview ? self::$current_subview : '';
 	}
 
 	/**
@@ -455,7 +457,7 @@ class NBUF_Universal_Router {
 	 * @return bool True if on universal page.
 	 */
 	public static function is_universal_request() {
-		return self::$current_view !== null;
+		return null !== self::$current_view;
 	}
 
 	/**
@@ -480,9 +482,11 @@ class NBUF_Universal_Router {
 		/* Virtual pages don't use rewrite rules - nothing to flush */
 	}
 
-	/* =========================================================
+	/*
+	 * =========================================================
 	 * VIEW RENDERERS
-	 * ========================================================= */
+	 * =========================================================
+	 */
 
 	/**
 	 * Render login form.

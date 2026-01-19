@@ -29,10 +29,10 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 	$nbuf_table_name = $wpdb->prefix . 'nbuf_security_log';
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom security log table statistics.
 	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) ) === $nbuf_table_name ) {
-		$nbuf_date_from = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
+		$nbuf_date_from     = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
 		$nbuf_blocked_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COALESCE(SUM(occurrence_count), 0) FROM %i WHERE event_type = %s AND timestamp >= %s",
+				'SELECT COALESCE(SUM(occurrence_count), 0) FROM %i WHERE event_type = %s AND timestamp >= %s',
 				$nbuf_table_name,
 				'registration_bot_blocked',
 				$nbuf_date_from
@@ -185,13 +185,15 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 	<?php
 	if ( $nbuf_blocked_count > 0 ) {
 		printf(
-			/* translators: %d: number of blocked attempts */
-			esc_html( _n(
-				'%d bot registration attempt blocked in the last 30 days.',
-				'%d bot registration attempts blocked in the last 30 days.',
-				$nbuf_blocked_count,
-				'nobloat-user-foundry'
-			) ),
+			esc_html(
+				/* translators: %d: number of blocked attempts */
+				_n(
+					'%d bot registration attempt blocked in the last 30 days.',
+					'%d bot registration attempts blocked in the last 30 days.',
+					$nbuf_blocked_count,
+					'nobloat-user-foundry'
+				)
+			),
 			(int) $nbuf_blocked_count
 		);
 	} else {

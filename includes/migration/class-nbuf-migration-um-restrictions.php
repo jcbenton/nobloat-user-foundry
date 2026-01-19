@@ -91,11 +91,11 @@ class NBUF_Migration_UM_Restrictions {
 					$wpdb->replace(
 						$menu_table,
 						array(
-							'menu_item_id' => $post->ID,
-							'visibility'   => $nbuf_restriction['visibility'],
+							'menu_item_id'  => $post->ID,
+							'visibility'    => $nbuf_restriction['visibility'],
 							'allowed_roles' => wp_json_encode( $nbuf_restriction['allowed_roles'] ),
-							'created_at'   => current_time( 'mysql', true ),
-							'updated_at'   => current_time( 'mysql', true ),
+							'created_at'    => current_time( 'mysql', true ),
+							'updated_at'    => current_time( 'mysql', true ),
 						),
 						array( '%d', '%s', '%s', '%s', '%s' )
 					);
@@ -105,7 +105,9 @@ class NBUF_Migration_UM_Restrictions {
 					continue;
 				}
 
-				/* Regular content restrictions */
+				/*
+				 * Regular content restrictions.
+				 */
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->replace(
 					$content_table,
@@ -352,11 +354,15 @@ class NBUF_Migration_UM_Restrictions {
 
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		/* Get count before deletion */
+		/*
+		 * Get count before deletion.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
 		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 
-		/* Delete all restrictions */
+		/*
+		 * Delete all restrictions.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
 		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 

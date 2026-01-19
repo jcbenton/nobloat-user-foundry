@@ -215,17 +215,25 @@ class NBUF_Shortcodes {
 				$redirect_url = NBUF_Universal_Router::get_url( 'account', 'security' );
 				$redirect_url = add_query_arg( 'subtab', 'password', $redirect_url );
 			} else {
-				$redirect_url = add_query_arg( array( 'tab' => 'security', 'subtab' => 'password' ), $redirect_url );
+				$redirect_url = add_query_arg(
+					array(
+						'tab'    => 'security',
+						'subtab' => 'password',
+					),
+					$redirect_url
+				);
 			}
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
 
-		/* Get and validate reset key from URL */
+		/*
+		 * Get and validate reset key from URL.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading URL params for reset key validation.
 		$login = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$key   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+		$key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 
 		/* Require login and key parameters */
 		if ( empty( $login ) || empty( $key ) ) {
@@ -239,8 +247,8 @@ class NBUF_Shortcodes {
 		/* Validate the reset key using WordPress function */
 		$user = check_password_reset_key( $key, $login );
 		if ( is_wp_error( $user ) ) {
-			$forgot_url   = self::get_forgot_password_url();
-			$error_code   = $user->get_error_code();
+			$forgot_url    = self::get_forgot_password_url();
+			$error_code    = $user->get_error_code();
 			$error_message = '';
 
 			if ( 'expired_key' === $error_code ) {
@@ -371,7 +379,13 @@ class NBUF_Shortcodes {
 				$redirect_url = NBUF_Universal_Router::get_url( 'account', 'security' );
 				$redirect_url = add_query_arg( 'subtab', 'password', $redirect_url );
 			} else {
-				$redirect_url = add_query_arg( array( 'tab' => 'security', 'subtab' => 'password' ), $redirect_url );
+				$redirect_url = add_query_arg(
+					array(
+						'tab'    => 'security',
+						'subtab' => 'password',
+					),
+					$redirect_url
+				);
 			}
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -735,7 +749,9 @@ class NBUF_Shortcodes {
 					break;
 			}
 
-			/* Check for redirect_to parameter */
+			/*
+			 * Check for redirect_to parameter.
+			 */
 			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Just reading redirect URL, no data modification.
 			if ( isset( $_GET['redirect_to'] ) && ! empty( $_GET['redirect_to'] ) ) {
 				$redirect_url = esc_url_raw( wp_unslash( $_GET['redirect_to'] ) );
@@ -1036,8 +1052,8 @@ class NBUF_Shortcodes {
 			$current_url = home_url( $request_uri );
 
 			/* Check for specific error codes to provide better feedback */
-			$error_code = $user->get_error_code();
-			$login_status = 'failed'; // Default
+			$error_code   = $user->get_error_code();
+			$login_status = 'failed'; // Default.
 
 			if ( 'too_many_attempts' === $error_code ) {
 				$login_status = 'blocked';
@@ -1194,7 +1210,7 @@ class NBUF_Shortcodes {
 		/* Check if policy panel will be shown - if so, disable multi-column layout */
 		$policy_enabled  = NBUF_Options::get( 'nbuf_policy_registration_enabled', true );
 		$use_two_columns = $field_count > 5 && ! $policy_enabled;
-		$field_items         = array();
+		$field_items     = array();
 
 		/* Textarea fields that should always span full width */
 		$full_width_fields = array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' );
@@ -1268,9 +1284,9 @@ class NBUF_Shortcodes {
 		$email_value = isset( $preserved_data['email'] ) ? esc_attr( $preserved_data['email'] ) : '';
 
 		/* Build dynamic password requirements text */
-		$password_min_length      = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
-		$password_requirements    = array();
-		$password_requirements[]  = sprintf(
+		$password_min_length     = absint( NBUF_Options::get( 'nbuf_password_min_length', 12 ) );
+		$password_requirements   = array();
+		$password_requirements[] = sprintf(
 			/* translators: %d: minimum password length */
 			__( 'Minimum %d characters', 'nobloat-user-foundry' ),
 			$password_min_length
@@ -1294,7 +1310,7 @@ class NBUF_Shortcodes {
 
 		/* Format requirements text */
 		if ( count( $password_requirements ) > 1 ) {
-			$first_req               = array_shift( $password_requirements );
+			$first_req                  = array_shift( $password_requirements );
 			$password_requirements_text = $first_req . '. ' . __( 'Must include:', 'nobloat-user-foundry' ) . ' ' . implode( ', ', $password_requirements );
 		} else {
 			$password_requirements_text = $password_requirements[0];
@@ -1608,10 +1624,10 @@ class NBUF_Shortcodes {
 		$profile_fields_html = self::build_profile_fields_html( $current_user, $profile_data );
 
 		/* Build Profile tab with sub-tabs */
-		$profiles_enabled        = NBUF_Options::get( 'nbuf_enable_profiles', false );
-		$gravatar_enabled        = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
-		$cover_enabled           = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
-		$public_profiles_enabled = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
+		$profiles_enabled         = NBUF_Options::get( 'nbuf_enable_profiles', false );
+		$gravatar_enabled         = NBUF_Options::get( 'nbuf_profile_enable_gravatar', false );
+		$cover_enabled            = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
+		$public_profiles_enabled  = NBUF_Options::get( 'nbuf_enable_public_profiles', false );
 		$member_directory_enabled = NBUF_Options::get( 'nbuf_enable_member_directory', false );
 
 		/* Determine what sub-tabs to show */
@@ -1659,7 +1675,7 @@ class NBUF_Shortcodes {
 			/* Build sub-tab links */
 			$subtab_count = 0;
 			foreach ( $subtabs as $key => $label ) {
-				$is_first     = ( $subtab_count === 0 );
+				$is_first      = ( 0 === $subtab_count );
 				$subtab_links .= '<button type="button" class="nbuf-subtab-link' . ( $is_first ? ' active' : '' ) . '" data-subtab="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
 				++$subtab_count;
 			}
@@ -1677,18 +1693,18 @@ class NBUF_Shortcodes {
 				ob_start();
 				do_action( 'nbuf_account_profile_settings_subtab', $user_id );
 				$profile_settings_html = ob_get_clean();
-				$is_first         = ( $first_subtab === 'profile-settings' );
-				$subtab_contents .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="profile-settings">';
-				$subtab_contents .= '<form method="post" action="' . esc_url( self::get_current_page_url() ) . '" class="nbuf-account-form nbuf-profile-tab-form">';
-				$subtab_contents .= $profile_tab_nonce;
-				$subtab_contents .= '<input type="hidden" name="nbuf_account_action" value="update_profile_tab">';
-				$subtab_contents .= '<input type="hidden" name="nbuf_active_tab" value="profile">';
-				$subtab_contents .= '<input type="hidden" name="nbuf_active_subtab" value="profile-settings">';
-				$subtab_contents .= '<input type="hidden" name="nbuf_directory_submitted" value="1">';
-				$subtab_contents .= '<div class="nbuf-profile-subtab-section">' . $profile_settings_html . '</div>';
-				$subtab_contents .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Save Settings', 'nobloat-user-foundry' ) . '</button>';
-				$subtab_contents .= '</form>';
-				$subtab_contents .= '</div>';
+				$is_first              = ( 'profile-settings' === $first_subtab );
+				$subtab_contents      .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="profile-settings">';
+				$subtab_contents      .= '<form method="post" action="' . esc_url( self::get_current_page_url() ) . '" class="nbuf-account-form nbuf-profile-tab-form">';
+				$subtab_contents      .= $profile_tab_nonce;
+				$subtab_contents      .= '<input type="hidden" name="nbuf_account_action" value="update_profile_tab">';
+				$subtab_contents      .= '<input type="hidden" name="nbuf_active_tab" value="profile">';
+				$subtab_contents      .= '<input type="hidden" name="nbuf_active_subtab" value="profile-settings">';
+				$subtab_contents      .= '<input type="hidden" name="nbuf_directory_submitted" value="1">';
+				$subtab_contents      .= '<div class="nbuf-profile-subtab-section">' . $profile_settings_html . '</div>';
+				$subtab_contents      .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Save Settings', 'nobloat-user-foundry' ) . '</button>';
+				$subtab_contents      .= '</form>';
+				$subtab_contents      .= '</div>';
 			}
 
 			/* Profile Photo sub-tab */
@@ -1696,7 +1712,7 @@ class NBUF_Shortcodes {
 				ob_start();
 				do_action( 'nbuf_account_profile_photo_subtab', $user_id );
 				$profile_photo_html = ob_get_clean();
-				$is_first           = ( $first_subtab === 'profile-photo' );
+				$is_first           = ( 'profile-photo' === $first_subtab );
 				$subtab_contents   .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="profile-photo">';
 				$subtab_contents   .= '<div class="nbuf-profile-subtab-section">' . $profile_photo_html . '</div>';
 				$subtab_contents   .= '</div>';
@@ -1707,7 +1723,7 @@ class NBUF_Shortcodes {
 				ob_start();
 				do_action( 'nbuf_account_cover_photo_subtab', $user_id );
 				$cover_photo_html = ob_get_clean();
-				$is_first         = ( $first_subtab === 'cover-photo' );
+				$is_first         = ( 'cover-photo' === $first_subtab );
 				$subtab_contents .= '<div class="nbuf-subtab-content' . ( $is_first ? ' active' : '' ) . '" data-subtab="cover-photo">';
 				$subtab_contents .= '<div class="nbuf-profile-subtab-section">' . $cover_photo_html . '</div>';
 				$subtab_contents .= '</div>';
@@ -1727,8 +1743,8 @@ class NBUF_Shortcodes {
 		$photos_tab_content = $profile_tab_content;
 
 		/* Build history tab content if version history is enabled AND user access is enabled */
-		$history_tab_button  = '';
-		$history_tab_content = '';
+		$history_tab_button           = '';
+		$history_tab_content          = '';
 		$version_history_enabled      = NBUF_Options::get( 'nbuf_version_history_enabled', true );
 		$version_history_user_visible = NBUF_Options::get( 'nbuf_version_history_user_visible', false );
 		if ( $version_history_enabled && $version_history_user_visible ) {
@@ -1830,11 +1846,11 @@ class NBUF_Shortcodes {
 				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
 					'i18n'     => array(
-						'revoking'        => __( 'Revoking...', 'nobloat-user-foundry' ),
-						'revoke'          => __( 'Revoke', 'nobloat-user-foundry' ),
-						'session_revoked' => __( 'Session revoked.', 'nobloat-user-foundry' ),
-						'all_revoked'     => __( 'All other sessions have been logged out.', 'nobloat-user-foundry' ),
-						'error'           => __( 'An error occurred.', 'nobloat-user-foundry' ),
+						'revoking'           => __( 'Revoking...', 'nobloat-user-foundry' ),
+						'revoke'             => __( 'Revoke', 'nobloat-user-foundry' ),
+						'session_revoked'    => __( 'Session revoked.', 'nobloat-user-foundry' ),
+						'all_revoked'        => __( 'All other sessions have been logged out.', 'nobloat-user-foundry' ),
+						'error'              => __( 'An error occurred.', 'nobloat-user-foundry' ),
 						'confirm_revoke_all' => __( 'Are you sure you want to log out all other sessions?', 'nobloat-user-foundry' ),
 					),
 				)
@@ -1868,8 +1884,8 @@ class NBUF_Shortcodes {
 		}
 
 		/* Build policies tab content if enabled */
-		$policies_tab_button  = '';
-		$policies_tab_content = '';
+		$policies_tab_button    = '';
+		$policies_tab_content   = '';
 		$policy_account_enabled = NBUF_Options::get( 'nbuf_policy_account_tab_enabled', false );
 		if ( $policy_account_enabled ) {
 			$policies_tab_button  = '<button type="button" class="nbuf-tab-button" data-tab="policies">' . esc_html__( 'Policies', 'nobloat-user-foundry' ) . '</button>';
@@ -1913,8 +1929,7 @@ class NBUF_Shortcodes {
 
 			$email_tab_button = '<button type="button" class="nbuf-tab-button" data-tab="email">' . esc_html__( 'Email', 'nobloat-user-foundry' ) . '</button>';
 
-
-		$email_tab_content = '
+			$email_tab_content = '
 			<div class="nbuf-tab-content" data-tab="email">
 				<div class="nbuf-account-section">
 					<h3>' . esc_html__( 'Change Email Address', 'nobloat-user-foundry' ) . '</h3>
@@ -1977,7 +1992,7 @@ class NBUF_Shortcodes {
 				$custom_tabs_buttons .= '<button type="button" class="nbuf-tab-button" data-tab="' . $tab_slug . '">' . $icon_html . $tab_name . '</button>';
 
 				/* Tab content - process shortcodes */
-				$tab_content = do_shortcode( $custom_tab['content'] );
+				$tab_content          = do_shortcode( $custom_tab['content'] );
 				$custom_tabs_content .= '<div class="nbuf-tab-content" data-tab="' . $tab_slug . '"><div class="nbuf-account-section">' . $tab_content . '</div></div>';
 			}
 
@@ -2079,10 +2094,10 @@ class NBUF_Shortcodes {
 	 */
 	private static function build_profile_fields_html( $user, $profile_data ) {
 		/* Get enabled account profile fields */
-		$enabled_fields    = NBUF_Profile_Data::get_account_fields();
-		$field_registry    = NBUF_Profile_Data::get_field_registry();
-		$custom_labels     = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
-		$show_description  = NBUF_Options::get( 'nbuf_show_description_field', false );
+		$enabled_fields   = NBUF_Profile_Data::get_account_fields();
+		$field_registry   = NBUF_Profile_Data::get_field_registry();
+		$custom_labels    = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+		$show_description = NBUF_Options::get( 'nbuf_show_description_field', false );
 
 		/* Build flat field labels array (defaults from registry) */
 		$default_labels = array(
@@ -2110,14 +2125,14 @@ class NBUF_Shortcodes {
 		$field_items = array();
 
 		/* Native WordPress fields */
-		$first_name       = get_user_meta( $user->ID, 'first_name', true );
-		$last_name        = get_user_meta( $user->ID, 'last_name', true );
-		$description      = get_user_meta( $user->ID, 'description', true );
-		$first_name_label = ! empty( $custom_labels['first_name'] ) ? $custom_labels['first_name'] : $default_labels['first_name'];
-		$last_name_label  = ! empty( $custom_labels['last_name'] ) ? $custom_labels['last_name'] : $default_labels['last_name'];
+		$first_name         = get_user_meta( $user->ID, 'first_name', true );
+		$last_name          = get_user_meta( $user->ID, 'last_name', true );
+		$description        = get_user_meta( $user->ID, 'description', true );
+		$first_name_label   = ! empty( $custom_labels['first_name'] ) ? $custom_labels['first_name'] : $default_labels['first_name'];
+		$last_name_label    = ! empty( $custom_labels['last_name'] ) ? $custom_labels['last_name'] : $default_labels['last_name'];
 		$display_name_label = ! empty( $custom_labels['display_name'] ) ? $custom_labels['display_name'] : $default_labels['display_name'];
-		$user_url_label   = ! empty( $custom_labels['user_url'] ) ? $custom_labels['user_url'] : $default_labels['user_url'];
-		$description_label = ! empty( $custom_labels['description'] ) ? $custom_labels['description'] : $default_labels['description'];
+		$user_url_label     = ! empty( $custom_labels['user_url'] ) ? $custom_labels['user_url'] : $default_labels['user_url'];
+		$description_label  = ! empty( $custom_labels['description'] ) ? $custom_labels['description'] : $default_labels['description'];
 
 		$field_items[] = array(
 			'html'       => '<div class="nbuf-form-group">
@@ -2165,9 +2180,9 @@ class NBUF_Shortcodes {
 		/* Add profile fields based on enabled settings */
 		foreach ( $enabled_fields as $field_key ) {
 			/* Use custom label if set, otherwise fall back to default */
-			$label        = ! empty( $custom_labels[ $field_key ] ) ? $custom_labels[ $field_key ] : ( isset( $default_labels[ $field_key ] ) ? $default_labels[ $field_key ] : ucwords( str_replace( '_', ' ', $field_key ) ) );
-			$value        = isset( $profile_data->$field_key ) ? $profile_data->$field_key : '';
-			$input_type   = self::get_field_input_type( $field_key );
+			$label         = ! empty( $custom_labels[ $field_key ] ) ? $custom_labels[ $field_key ] : ( isset( $default_labels[ $field_key ] ) ? $default_labels[ $field_key ] : ucwords( str_replace( '_', ' ', $field_key ) ) );
+			$value         = isset( $profile_data->$field_key ) ? $profile_data->$field_key : '';
+			$input_type    = self::get_field_input_type( $field_key );
 			$is_full_width = in_array( $field_key, $full_width_fields, true );
 
 			/* Special handling for timezone field - searchable select */
@@ -2220,7 +2235,9 @@ class NBUF_Shortcodes {
 			return;
 		}
 
-		/* Handle standard account actions */
+		/*
+		 * Handle standard account actions.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
 		if ( isset( $_POST['nbuf_account_action'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
@@ -2243,7 +2260,9 @@ class NBUF_Shortcodes {
 			}
 		}
 
-		/* Handle 2FA actions */
+		/*
+		 * Handle 2FA actions.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in individual action handlers.
 		if ( isset( $_POST['nbuf_2fa_action'] ) ) {
 			NBUF_2FA_Account::handle_actions();
@@ -2752,7 +2771,7 @@ Best regards,
 		$user_id = get_current_user_id();
 
 		/* Get and validate privacy setting */
-		$privacy = isset( $_POST['nbuf_profile_privacy'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_profile_privacy'] ) ) : 'private';
+		$privacy       = isset( $_POST['nbuf_profile_privacy'] ) ? sanitize_key( wp_unslash( $_POST['nbuf_profile_privacy'] ) ) : 'private';
 		$valid_options = array( 'public', 'members_only', 'private' );
 		if ( ! in_array( $privacy, $valid_options, true ) ) {
 			$privacy = 'private';
@@ -2929,7 +2948,9 @@ Best regards,
 		status_header( 200 );
 		nocache_headers();
 
-		/* Verify the file is a valid ZIP before sending */
+		/*
+		 * Verify the file is a valid ZIP before sending.
+		 */
 		// phpcs:disable WordPress.WP.AlternativeFunctions.file_system_operations_fopen, WordPress.WP.AlternativeFunctions.file_system_operations_fread, WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Reading ZIP signature to verify file integrity.
 		$fp = fopen( $export_file, 'rb' );
 		if ( $fp ) {
@@ -2955,7 +2976,9 @@ Best regards,
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streaming file to browser for download.
 		readfile( $export_file );
 
-		/* Clean up file after sending */
+		/*
+		 * Clean up file after sending.
+		 */
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Cleanup temporary export file.
 		unlink( $export_file );
 
@@ -3140,7 +3163,9 @@ Best regards,
 			return '<p class="nbuf-centered-message">' . esc_html__( 'Authenticator app 2FA is not enabled on this site.', 'nobloat-user-foundry' ) . '</p>';
 		}
 
-		/* Handle TOTP setup form submission */
+		/*
+		 * Handle TOTP setup form submission.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below.
 		if ( isset( $_POST['nbuf_2fa_setup_totp'] ) ) {
 			return self::handle_totp_setup_submission( $user_id );
@@ -3222,7 +3247,13 @@ Best regards,
 				/* Get cancel URL - back to account security > authenticator subtab */
 				$cancel_url = ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() )
 					? add_query_arg( 'subtab', 'authenticator', NBUF_Universal_Router::get_url( 'account', 'security' ) )
-					: add_query_arg( array( 'tab' => 'security', 'subtab' => 'authenticator' ), self::get_account_url() );
+					: add_query_arg(
+						array(
+							'tab'    => 'security',
+							'subtab' => 'authenticator',
+						),
+						self::get_account_url()
+					);
 
 				/* Generate nonce field */
 				ob_start();
@@ -3240,7 +3271,7 @@ Best regards,
 					'{success_message}' => '',
 					'{error_message}'   => '',
 				);
-				$template = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+				$template     = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 
 				echo $template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template already escaped
 				?>
@@ -3414,7 +3445,13 @@ Best regards,
 		/* Get cancel URL - back to account security > authenticator subtab */
 		$cancel_url = ( class_exists( 'NBUF_Universal_Router' ) && NBUF_Universal_Router::is_universal_request() )
 			? add_query_arg( 'subtab', 'authenticator', NBUF_Universal_Router::get_url( 'account', 'security' ) )
-			: add_query_arg( array( 'tab' => 'security', 'subtab' => 'authenticator' ), self::get_account_url() );
+			: add_query_arg(
+				array(
+					'tab'    => 'security',
+					'subtab' => 'authenticator',
+				),
+				self::get_account_url()
+			);
 
 		/* Generate nonce field */
 		ob_start();
@@ -3422,7 +3459,7 @@ Best regards,
 		$nonce_field = ob_get_clean();
 
 		/* Build error message HTML */
-		$error_html = '<div class="nbuf-error">';
+		$error_html  = '<div class="nbuf-error">';
 		$error_html .= '<p><strong>' . esc_html__( 'Error:', 'nobloat-user-foundry' ) . '</strong> ' . esc_html( $error_message ) . '</p>';
 		$error_html .= '</div>';
 
@@ -3437,7 +3474,7 @@ Best regards,
 			'{success_message}' => '',
 			'{error_message}'   => $error_html,
 		);
-		$template = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+		$template     = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
 
 		return '<div class="nbuf-totp-setup-page">' . $template . '</div>';
 	}
@@ -3706,10 +3743,10 @@ Best regards,
 		/* Get custom profile data */
 		$profile_data = null;
 		if ( class_exists( 'NBUF_Profile_Data' ) ) {
-			$profile_data     = NBUF_Profile_Data::get( $user->ID );
-			$field_registry   = NBUF_Profile_Data::get_field_registry();
-			$custom_labels    = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
-			$enabled_fields   = NBUF_Profile_Data::get_account_fields();
+			$profile_data   = NBUF_Profile_Data::get( $user->ID );
+			$field_registry = NBUF_Profile_Data::get_field_registry();
+			$custom_labels  = NBUF_Options::get( 'nbuf_profile_field_labels', array() );
+			$enabled_fields = NBUF_Profile_Data::get_account_fields();
 
 			/* Build custom fields array */
 			foreach ( $field_registry as $category ) {
@@ -3763,7 +3800,9 @@ Best regards,
 		/* Build profile photo URL (handle data URIs vs regular URLs) */
 		$photo_src = 0 === strpos( $profile_photo, 'data:' ) ? esc_attr( $profile_photo ) : esc_url( $profile_photo );
 
-		/* Build joined text */
+		/*
+		 * Build joined text.
+		 */
 		/* translators: %s: User registration date */
 		$joined_text = sprintf( esc_html__( 'Joined %s', 'nobloat-user-foundry' ), esc_html( $registered_date ) );
 

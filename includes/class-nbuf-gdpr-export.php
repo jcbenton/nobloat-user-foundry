@@ -320,11 +320,13 @@ class NBUF_GDPR_Export {
     <h2>' . esc_html__( 'Request Account Deletion', 'nobloat-user-foundry' ) . '</h2>
     <p>' . esc_html__( 'If you wish to delete your account and all associated data, you can:', 'nobloat-user-foundry' ) . '</p>
     <ul>
-        <li>' . sprintf(
-		/* translators: %s: site URL */
-		esc_html__( 'Use the account deletion feature on %s (if available)', 'nobloat-user-foundry' ), // phpcs:ignore PEAR.Functions.FunctionCallSignature.Indent -- Complex sprintf formatting.
-		'<a href="' . esc_url( $site_url ) . '">' . esc_html( $site_name ) . '</a>'
-		) . '</li> <?php // phpcs:ignore PEAR.Functions.FunctionCallSignature.Indent ?>
+        <li>' .
+		// phpcs:ignore Generic.WhiteSpace.ScopeIndent.IncorrectExact -- HTML string formatting.
+		sprintf(
+			/* translators: %s: site URL */
+			esc_html__( 'Use the account deletion feature on %s (if available)', 'nobloat-user-foundry' ),
+			'<a href="' . esc_url( $site_url ) . '">' . esc_html( $site_name ) . '</a>'
+		) . '</li>
         <li>' . esc_html__( 'Contact the site administrator to request deletion', 'nobloat-user-foundry' ) . '</li>
     </ul>
 
@@ -587,33 +589,33 @@ class NBUF_GDPR_Export {
 		);
 
 		$export = array(
-			'customer_id'    => $user_id,
-			'total_orders'   => count( $orders ),
-			'orders'         => array(),
+			'customer_id'  => $user_id,
+			'total_orders' => count( $orders ),
+			'orders'       => array(),
 		);
 
 		foreach ( $orders as $order ) {
 			$order_data = array(
-				'order_id'         => $order->get_id(),
-				'order_number'     => $order->get_order_number(),
-				'date_created'     => $order->get_date_created() ? $order->get_date_created()->date( 'Y-m-d H:i:s' ) : null,
-				'status'           => $order->get_status(),
-				'currency'         => $order->get_currency(),
-				'total'            => $order->get_total(),
-				'payment_method'   => $order->get_payment_method_title(),
-				'billing_address'  => $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(),
-				'billing_city'     => $order->get_billing_city(),
-				'billing_state'    => $order->get_billing_state(),
-				'billing_postcode' => $order->get_billing_postcode(),
-				'billing_country'  => $order->get_billing_country(),
-				'billing_email'    => $order->get_billing_email(),
-				'billing_phone'    => $order->get_billing_phone(),
-				'shipping_address' => $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2(),
-				'shipping_city'    => $order->get_shipping_city(),
-				'shipping_state'   => $order->get_shipping_state(),
+				'order_id'          => $order->get_id(),
+				'order_number'      => $order->get_order_number(),
+				'date_created'      => $order->get_date_created() ? $order->get_date_created()->date( 'Y-m-d H:i:s' ) : null,
+				'status'            => $order->get_status(),
+				'currency'          => $order->get_currency(),
+				'total'             => $order->get_total(),
+				'payment_method'    => $order->get_payment_method_title(),
+				'billing_address'   => $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(),
+				'billing_city'      => $order->get_billing_city(),
+				'billing_state'     => $order->get_billing_state(),
+				'billing_postcode'  => $order->get_billing_postcode(),
+				'billing_country'   => $order->get_billing_country(),
+				'billing_email'     => $order->get_billing_email(),
+				'billing_phone'     => $order->get_billing_phone(),
+				'shipping_address'  => $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2(),
+				'shipping_city'     => $order->get_shipping_city(),
+				'shipping_state'    => $order->get_shipping_state(),
 				'shipping_postcode' => $order->get_shipping_postcode(),
-				'shipping_country' => $order->get_shipping_country(),
-				'items'            => array(),
+				'shipping_country'  => $order->get_shipping_country(),
+				'items'             => array(),
 			);
 
 			/* Get order items */
@@ -756,14 +758,14 @@ class NBUF_GDPR_Export {
 		$customer  = new EDD_Customer( $user_id, true );
 
 		$export = array(
-			'customer_id'     => $customer->id,
-			'user_id'         => $user_id,
-			'email'           => $customer->email,
-			'name'            => $customer->name,
-			'purchase_count'  => $customer->purchase_count,
-			'purchase_value'  => $customer->purchase_value,
-			'date_created'    => $customer->date_created,
-			'purchases'       => array(),
+			'customer_id'    => $customer->id,
+			'user_id'        => $user_id,
+			'email'          => $customer->email,
+			'name'           => $customer->name,
+			'purchase_count' => $customer->purchase_count,
+			'purchase_value' => $customer->purchase_value,
+			'date_created'   => $customer->date_created,
+			'purchases'      => array(),
 		);
 
 		if ( $purchases ) {
@@ -1437,22 +1439,22 @@ class NBUF_GDPR_Export {
 
 		/* Build replacements */
 		$replacements = array(
-			'{section_title}'        => esc_html_x( 'Download Your Personal Data', 'GDPR export section title', 'nobloat-user-foundry' ),
-			'{gdpr_description}'     => esc_html__( 'Under GDPR Article 15 (Right of Access), you have the right to receive a copy of your personal data we store.', 'nobloat-user-foundry' ),
+			'{section_title}'         => esc_html_x( 'Download Your Personal Data', 'GDPR export section title', 'nobloat-user-foundry' ),
+			'{gdpr_description}'      => esc_html__( 'Under GDPR Article 15 (Right of Access), you have the right to receive a copy of your personal data we store.', 'nobloat-user-foundry' ),
 			'{export_includes_title}' => esc_html__( 'This export includes:', 'nobloat-user-foundry' ),
-			'{export_includes_list}' => $includes_list,
-			'{estimated_size_label}' => esc_html__( 'Estimated file size:', 'nobloat-user-foundry' ),
-			'{estimated_size}'       => esc_html( size_format( $counts['estimated_size'] ) ),
-			'{format_label}'         => esc_html__( 'Format:', 'nobloat-user-foundry' ),
-			'{format_value}'         => esc_html__( 'ZIP archive (JSON + HTML)', 'nobloat-user-foundry' ),
-			'{export_button}'        => $export_button,
-			'{history_title}'        => esc_html__( 'Export History:', 'nobloat-user-foundry' ),
-			'{export_history}'       => $export_history,
-			'{modal_title}'          => esc_html_x( 'Confirm Your Password', 'Password modal title', 'nobloat-user-foundry' ),
-			'{modal_description}'    => esc_html__( 'For security, please confirm your password to download your personal data.', 'nobloat-user-foundry' ),
-			'{password_label}'       => esc_html__( 'Password:', 'nobloat-user-foundry' ),
-			'{cancel_button}'        => esc_html__( 'Cancel', 'nobloat-user-foundry' ),
-			'{confirm_button}'       => esc_html__( 'Confirm & Download', 'nobloat-user-foundry' ),
+			'{export_includes_list}'  => $includes_list,
+			'{estimated_size_label}'  => esc_html__( 'Estimated file size:', 'nobloat-user-foundry' ),
+			'{estimated_size}'        => esc_html( size_format( $counts['estimated_size'] ) ),
+			'{format_label}'          => esc_html__( 'Format:', 'nobloat-user-foundry' ),
+			'{format_value}'          => esc_html__( 'ZIP archive (JSON + HTML)', 'nobloat-user-foundry' ),
+			'{export_button}'         => $export_button,
+			'{history_title}'         => esc_html__( 'Export History:', 'nobloat-user-foundry' ),
+			'{export_history}'        => $export_history,
+			'{modal_title}'           => esc_html_x( 'Confirm Your Password', 'Password modal title', 'nobloat-user-foundry' ),
+			'{modal_description}'     => esc_html__( 'For security, please confirm your password to download your personal data.', 'nobloat-user-foundry' ),
+			'{password_label}'        => esc_html__( 'Password:', 'nobloat-user-foundry' ),
+			'{cancel_button}'         => esc_html__( 'Cancel', 'nobloat-user-foundry' ),
+			'{confirm_button}'        => esc_html__( 'Confirm & Download', 'nobloat-user-foundry' ),
 		);
 
 		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
@@ -1506,13 +1508,13 @@ class NBUF_GDPR_Export {
 				'nonce'            => wp_create_nonce( 'nbuf_export_data' ),
 				'require_password' => (bool) NBUF_Options::get( 'nbuf_gdpr_require_password', true ),
 				'i18n'             => array(
-					'password_required'  => __( 'Please enter your password.', 'nobloat-user-foundry' ),
-					'processing'         => __( 'Processing...', 'nobloat-user-foundry' ),
-					'confirm_download'   => __( 'Confirm & Download', 'nobloat-user-foundry' ),
-					'generating_export'  => __( 'Generating your data export...', 'nobloat-user-foundry' ),
-					'ajax_error'         => __( 'An error occurred. Please try again.', 'nobloat-user-foundry' ),
-					'unknown_error'      => __( 'Unknown error occurred.', 'nobloat-user-foundry' ),
-					'email_sent'         => __( 'Email Sent', 'nobloat-user-foundry' ),
+					'password_required' => __( 'Please enter your password.', 'nobloat-user-foundry' ),
+					'processing'        => __( 'Processing...', 'nobloat-user-foundry' ),
+					'confirm_download'  => __( 'Confirm & Download', 'nobloat-user-foundry' ),
+					'generating_export' => __( 'Generating your data export...', 'nobloat-user-foundry' ),
+					'ajax_error'        => __( 'An error occurred. Please try again.', 'nobloat-user-foundry' ),
+					'unknown_error'     => __( 'Unknown error occurred.', 'nobloat-user-foundry' ),
+					'email_sent'        => __( 'Email Sent', 'nobloat-user-foundry' ),
 				),
 			)
 		);

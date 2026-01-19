@@ -108,7 +108,7 @@ add_filter(
 		return $system_enabled ? false : $send;
 	},
 	10,
-	3
+	1
 );
 
 /**

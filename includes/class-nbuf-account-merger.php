@@ -416,11 +416,11 @@ class NBUF_Account_Merger {
 			$primary_id  = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
 		}
 
-		$merge_posts         = isset( $_POST['nbuf_merge_posts'] );
-		$merge_comments      = isset( $_POST['nbuf_merge_comments'] );
-		$merge_meta          = isset( $_POST['nbuf_merge_meta'] );
-		$consolidate_emails  = isset( $_POST['nbuf_consolidate_emails'] );
-		$notify_user         = isset( $_POST['nbuf_notify_user'] );
+		$merge_posts        = isset( $_POST['nbuf_merge_posts'] );
+		$merge_comments     = isset( $_POST['nbuf_merge_comments'] );
+		$merge_meta         = isset( $_POST['nbuf_merge_meta'] );
+		$consolidate_emails = isset( $_POST['nbuf_consolidate_emails'] );
+		$notify_user        = isset( $_POST['nbuf_notify_user'] );
 
 		/* Collect field choices - which account's values to keep */
 		$field_choices = array();
@@ -429,7 +429,7 @@ class NBUF_Account_Merger {
 		foreach ( $_POST as $key => $value ) {
 			/* Look for field choice fields (format: nbuf_field_{field}) */
 			if ( 0 === strpos( $key, 'nbuf_field_' ) ) {
-				$field                 = str_replace( 'nbuf_field_', '', $key );
+				$field                   = str_replace( 'nbuf_field_', '', $key );
 				$field_choices[ $field ] = sanitize_text_field( wp_unslash( $value ) );
 			}
 		}
@@ -447,16 +447,16 @@ class NBUF_Account_Merger {
 		/* Execute merge */
 		$result = self::execute_merge(
 			array(
-				'primary_id'          => $primary_id,
-				'source_id'           => $source_id,
-				'account_ids'         => $account_ids,
-				'merge_posts'         => $merge_posts,
-				'merge_comments'      => $merge_comments,
-				'merge_meta'          => $merge_meta,
-				'consolidate_emails'  => $consolidate_emails,
-				'secondary_action'    => 'delete',
-				'notify_user'         => $notify_user,
-				'field_choices'       => $field_choices,
+				'primary_id'         => $primary_id,
+				'source_id'          => $source_id,
+				'account_ids'        => $account_ids,
+				'merge_posts'        => $merge_posts,
+				'merge_comments'     => $merge_comments,
+				'merge_meta'         => $merge_meta,
+				'consolidate_emails' => $consolidate_emails,
+				'secondary_action'   => 'delete',
+				'notify_user'        => $notify_user,
+				'field_choices'      => $field_choices,
 			)
 		);
 
@@ -601,7 +601,7 @@ class NBUF_Account_Merger {
 						throw new Exception( 'Failed to delete secondary user ' . $secondary_id );
 					}
 				} elseif ( 'disable' === $args['secondary_action'] ) {
-					$disable_result = NBUF_User_Data::disable_user( $secondary_id, 'merged' );
+					$disable_result = NBUF_User_Data::set_disabled( $secondary_id, 'merged' );
 
 					/* Check if disable operation failed */
 					if ( false === $disable_result ) {
@@ -811,7 +811,14 @@ class NBUF_Account_Merger {
 
 		/* Log field choices applied */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			$source_chosen = array_keys( array_filter( $field_choices, function( $v ) { return 'source' === $v; } ) );
+			$source_chosen = array_keys(
+				array_filter(
+					$field_choices,
+					function ( $v ) {
+						return 'source' === $v;
+					}
+				)
+			);
 			if ( ! empty( $source_chosen ) ) {
 				NBUF_Audit_Log::log(
 					$target_id,
@@ -1062,10 +1069,13 @@ If you did not request this merge or have questions, please contact the site adm
 					NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_PROFILE );
 				}
 				/* Clear profile photo from primary user data */
-				$user_data = NBUF_User_Data::get( $primary_id );
-				unset( $user_data['profile_photo_url'] );
-				unset( $user_data['profile_photo_path'] );
-				NBUF_User_Data::update( $primary_id, $user_data );
+				NBUF_User_Data::update(
+					$primary_id,
+					array(
+						'profile_photo_url'  => '',
+						'profile_photo_path' => '',
+					)
+				);
 
 				/* Log deletion to audit trail */
 				if ( class_exists( 'NBUF_Audit_Log' ) ) {
@@ -1272,10 +1282,13 @@ If you did not request this merge or have questions, please contact the site adm
 					NBUF_Image_Processor::delete_photo( $user_id, NBUF_Image_Processor::TYPE_COVER );
 				}
 				/* Clear cover photo from primary user data */
-				$user_data = NBUF_User_Data::get( $primary_id );
-				unset( $user_data['cover_photo_url'] );
-				unset( $user_data['cover_photo_path'] );
-				NBUF_User_Data::update( $primary_id, $user_data );
+				NBUF_User_Data::update(
+					$primary_id,
+					array(
+						'cover_photo_url'  => '',
+						'cover_photo_path' => '',
+					)
+				);
 
 				/* Log deletion to audit trail */
 				if ( class_exists( 'NBUF_Audit_Log' ) ) {

@@ -419,7 +419,7 @@ class NBUF_Version_History {
 		: null;
 
 		/* Build data and format arrays (handle NULL values properly) */
-		$data = array(
+		$data   = array(
 			'user_id'        => $user_id,
 			'changed_at'     => gmdate( 'Y-m-d H:i:s' ),
 			'change_type'    => $change_type,
@@ -814,7 +814,9 @@ class NBUF_Version_History {
 			)
 		);
 
-		/* Also clean up orphan records for deleted users */
+		/*
+		 * Also clean up orphan records for deleted users.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$orphans_deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -1038,7 +1040,9 @@ class NBUF_Version_History {
 		<?php endif; ?>
 
 		<?php
-		/* Render the version history viewer */
+		/*
+		 * Render the version history viewer.
+		 */
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_viewer() returns escaped HTML.
 		echo self::render_viewer( $user_id, 'account' );
 		?>

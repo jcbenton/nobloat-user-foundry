@@ -384,6 +384,7 @@ class NBUF_User_Data {
 			$user_id,
 			'users',
 			'account_approved',
+			'Account approved by admin',
 			array(
 				'approved_by' => $admin_id,
 				'notes'       => $notes,
@@ -436,6 +437,7 @@ class NBUF_User_Data {
 			$user_id,
 			'users',
 			'account_rejected',
+			'Account rejected by admin',
 			array(
 				'rejected_by' => $admin_id,
 				'reason'      => $reason,
@@ -515,7 +517,7 @@ class NBUF_User_Data {
 		$batches = array_chunk( $user_ids, 500 );
 
 		foreach ( $batches as $batch ) {
-			$values      = array();
+			$values       = array();
 			$placeholders = array();
 
 			foreach ( $batch as $user_id ) {

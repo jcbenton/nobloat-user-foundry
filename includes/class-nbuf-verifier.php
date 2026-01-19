@@ -76,13 +76,22 @@ class NBUF_Verifier {
 		global $wpdb;
 
 		$table = $wpdb->prefix . NBUF_DB_TABLE;
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		/*
+		 * SECURITY: Use transaction to make FOR UPDATE lock effective.
+		 * This prevents race conditions where the same token could be
+		 * verified simultaneously by multiple requests.
+		 */
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'START TRANSACTION' );
+
 		$entry = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE token = %s FOR UPDATE', $table, $token )
 		);
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( ! $entry ) {
+			$wpdb->query( 'ROLLBACK' );
 			/* Log failed verification - invalid token (cannot log user_id since entry doesn't exist) */
 			return self::wrap_notice(
 				__( 'This verification link is invalid or has already been used.', 'nobloat-user-foundry' ),
@@ -103,8 +112,9 @@ class NBUF_Verifier {
 					'Verification link expired'
 				);
 			}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token update.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token update.
 			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+			$wpdb->query( 'COMMIT' );
 			return self::wrap_notice(
 				__( 'This verification link has expired. Please request a new one.', 'nobloat-user-foundry' ),
 				false
@@ -113,8 +123,9 @@ class NBUF_Verifier {
 
 		// Test tokens: report success but do not mark verified.
 		if ( ! empty( $entry->is_test ) && 1 === (int) $entry->is_test ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token deletion.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token deletion.
 			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+			$wpdb->query( 'COMMIT' );
 			return self::wrap_notice(
 				__( 'Test verification successful. The plugin is functioning correctly.', 'nobloat-user-foundry' ),
 				true
@@ -198,8 +209,9 @@ class NBUF_Verifier {
 		}
 
 		// One-time token: delete after use.
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural auto-login update.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural auto-login update.
 		$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+		$wpdb->query( 'COMMIT' );
 
 		/**
 		 * Fire hook for integrations.
@@ -258,7 +270,7 @@ class NBUF_Verifier {
 
 		$color = $success ? '#2d8a34' : '#c0392b';
 
-		// Using CSS classes from account-page.css; color is dynamic for success/failure
+		// Using CSS classes from account-page.css; color is dynamic for success/failure.
 		$out  = '<div class="nobloat-verify-wrapper">';
 		$out .= '<h1 class="nobloat-verify-title" style="color:' . esc_attr( $color ) . ';">' . esc_html( $title ) . '</h1>';
 		$out .= '<p class="nobloat-verify-message">' . esc_html( $message ) . '</p>';

@@ -706,7 +706,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				__( 'User data imported from Ultimate Member', 'nobloat-user-foundry' ),
 				array(
 					'source_plugin' => 'Ultimate Member',
-					'verified'      => $is_verified,
+					'verified'      => $user_data['is_verified'],
 					'fields_count'  => count( $profile_data ) - 1,
 				)
 			);

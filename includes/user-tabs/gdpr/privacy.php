@@ -18,7 +18,9 @@ if ( ! current_user_can( 'manage_options' ) ) {
 	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'nobloat-user-foundry' ) );
 }
 
-/* Handle form submission */
+/*
+ * Handle form submission.
+ */
 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after check.
 if ( isset( $_POST['nbuf_form_id'] ) && 'gdpr_privacy' === sanitize_key( wp_unslash( $_POST['nbuf_form_id'] ) ) && check_admin_referer( 'nbuf_gdpr_privacy_settings' ) ) {
 	/* Data Retention on User Deletion - validate against allowed values */

@@ -29,10 +29,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p class="description"><?php esc_html_e( 'This account will be merged and then deleted.', 'nobloat-user-foundry' ); ?></p>
 			<div class="nbuf-user-search">
 				<input type="text"
-					   id="nbuf-source-search"
-					   class="regular-text nbuf-user-search-input"
-					   placeholder="<?php esc_attr_e( 'Search by name, email, or username...', 'nobloat-user-foundry' ); ?>"
-					   autocomplete="off">
+						id="nbuf-source-search"
+						class="regular-text nbuf-user-search-input"
+						placeholder="<?php esc_attr_e( 'Search by name, email, or username...', 'nobloat-user-foundry' ); ?>"
+						autocomplete="off">
 				<div id="nbuf-source-results" class="nbuf-search-results" style="display: none;"></div>
 				<input type="hidden" id="nbuf-source-id" name="nbuf_source_account" value="">
 			</div>
@@ -53,10 +53,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p class="description"><?php esc_html_e( 'This account will be kept and receive the merged data.', 'nobloat-user-foundry' ); ?></p>
 			<div class="nbuf-user-search">
 				<input type="text"
-					   id="nbuf-target-search"
-					   class="regular-text nbuf-user-search-input"
-					   placeholder="<?php esc_attr_e( 'Search by name, email, or username...', 'nobloat-user-foundry' ); ?>"
-					   autocomplete="off">
+						id="nbuf-target-search"
+						class="regular-text nbuf-user-search-input"
+						placeholder="<?php esc_attr_e( 'Search by name, email, or username...', 'nobloat-user-foundry' ); ?>"
+						autocomplete="off">
 				<div id="nbuf-target-results" class="nbuf-search-results" style="display: none;"></div>
 				<input type="hidden" id="nbuf-target-id" name="nbuf_target_account" value="">
 			</div>
@@ -299,25 +299,25 @@ wp_localize_script(
 		'nonce'          => wp_create_nonce( 'nbuf_merge_accounts' ),
 		'field_registry' => $nbuf_field_registry,
 		'i18n'           => array(
-			'searching'        => __( 'Searching...', 'nobloat-user-foundry' ),
-			'no_results'       => __( 'No users found', 'nobloat-user-foundry' ),
-			'min_chars'        => __( 'Type at least 2 characters to search', 'nobloat-user-foundry' ),
-			'same_account'     => __( 'Source and target cannot be the same account', 'nobloat-user-foundry' ),
-			'loading'          => __( 'Loading account data...', 'nobloat-user-foundry' ),
-			'error'            => __( 'Error loading account data', 'nobloat-user-foundry' ),
-			'remove'           => __( 'Remove', 'nobloat-user-foundry' ),
-			'empty'            => __( '(empty)', 'nobloat-user-foundry' ),
-			'source'           => __( 'Source', 'nobloat-user-foundry' ),
-			'target'           => __( 'Target', 'nobloat-user-foundry' ),
-			'posts'            => __( 'posts', 'nobloat-user-foundry' ),
-			'comments'         => __( 'comments', 'nobloat-user-foundry' ),
-			'confirm_cancel'   => __( 'Are you sure you want to cancel?', 'nobloat-user-foundry' ),
-			'display_name'     => __( 'Display Name', 'nobloat-user-foundry' ),
-			'first_name'       => __( 'First Name', 'nobloat-user-foundry' ),
-			'last_name'        => __( 'Last Name', 'nobloat-user-foundry' ),
-			'nickname'         => __( 'Nickname', 'nobloat-user-foundry' ),
-			'description'      => __( 'Biography', 'nobloat-user-foundry' ),
-			'user_url'         => __( 'Website', 'nobloat-user-foundry' ),
+			'searching'      => __( 'Searching...', 'nobloat-user-foundry' ),
+			'no_results'     => __( 'No users found', 'nobloat-user-foundry' ),
+			'min_chars'      => __( 'Type at least 2 characters to search', 'nobloat-user-foundry' ),
+			'same_account'   => __( 'Source and target cannot be the same account', 'nobloat-user-foundry' ),
+			'loading'        => __( 'Loading account data...', 'nobloat-user-foundry' ),
+			'error'          => __( 'Error loading account data', 'nobloat-user-foundry' ),
+			'remove'         => __( 'Remove', 'nobloat-user-foundry' ),
+			'empty'          => __( '(empty)', 'nobloat-user-foundry' ),
+			'source'         => __( 'Source', 'nobloat-user-foundry' ),
+			'target'         => __( 'Target', 'nobloat-user-foundry' ),
+			'posts'          => __( 'posts', 'nobloat-user-foundry' ),
+			'comments'       => __( 'comments', 'nobloat-user-foundry' ),
+			'confirm_cancel' => __( 'Are you sure you want to cancel?', 'nobloat-user-foundry' ),
+			'display_name'   => __( 'Display Name', 'nobloat-user-foundry' ),
+			'first_name'     => __( 'First Name', 'nobloat-user-foundry' ),
+			'last_name'      => __( 'Last Name', 'nobloat-user-foundry' ),
+			'nickname'       => __( 'Nickname', 'nobloat-user-foundry' ),
+			'description'    => __( 'Biography', 'nobloat-user-foundry' ),
+			'user_url'       => __( 'Website', 'nobloat-user-foundry' ),
 		),
 	)
 );

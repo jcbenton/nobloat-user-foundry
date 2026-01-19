@@ -397,7 +397,9 @@ class NBUF_Magic_Links {
 		global $wpdb;
 		$table_name = $wpdb->prefix . NBUF_DB_TABLE;
 
-		/* Find token */
+		/*
+		 * Find token.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$token_data = $wpdb->get_row(
 			$wpdb->prepare(
@@ -413,14 +415,18 @@ class NBUF_Magic_Links {
 
 		/* Check expiration */
 		if ( strtotime( $token_data->expires_at ) < time() ) {
-			/* Delete expired token */
+			/*
+			 * Delete expired token.
+			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 			$wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
 
 			return new WP_Error( 'expired_token', __( 'This magic link has expired. Please request a new one.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Delete token after use (one-time use) */
+		/*
+		 * Delete token after use (one-time use).
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
 
@@ -645,11 +651,11 @@ class NBUF_Magic_Links {
 							<?php esc_html_e( 'Email Address', 'nobloat-user-foundry' ); ?>
 						</label>
 						<input type="email"
-							   id="nbuf_magic_link_email"
-							   name="nbuf_magic_link_email"
-							   class="nbuf-form-input"
-							   required
-							   placeholder="<?php esc_attr_e( 'your@email.com', 'nobloat-user-foundry' ); ?>">
+								id="nbuf_magic_link_email"
+								name="nbuf_magic_link_email"
+								class="nbuf-form-input"
+								required
+								placeholder="<?php esc_attr_e( 'your@email.com', 'nobloat-user-foundry' ); ?>">
 					</div>
 
 					<button type="submit" class="nbuf-login-button">

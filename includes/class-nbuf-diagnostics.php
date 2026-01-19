@@ -51,7 +51,9 @@ class NBUF_Diagnostics {
 		/* Run all table creation and update functions via centralized method */
 		NBUF_Database::repair_all_tables();
 
-		/* Redirect back to the originating page with success message */
+		/*
+		 * Redirect back to the originating page with success message.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce already verified above.
 		$redirect_to = isset( $_POST['redirect_to'] ) ? sanitize_text_field( wp_unslash( $_POST['redirect_to'] ) ) : 'status';
 

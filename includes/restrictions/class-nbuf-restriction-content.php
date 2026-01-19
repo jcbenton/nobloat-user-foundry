@@ -294,7 +294,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
-		/* Get all restrictions for this post type */
+		/*
+		 * Get all restrictions for this post type.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom restrictions table.
 		$restrictions = $wpdb->get_results(
 			$wpdb->prepare(

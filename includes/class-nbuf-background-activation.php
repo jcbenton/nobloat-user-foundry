@@ -123,7 +123,9 @@ class NBUF_Background_Activation {
 		/* Count users not in nbuf_user_data or not verified */
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 
-		/* Check if table exists */
+		/*
+		 * Check if table exists.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 		$table_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -134,12 +136,16 @@ class NBUF_Background_Activation {
 		);
 
 		if ( ! $table_exists ) {
-			/* Table doesn't exist, count all users */
+			/*
+			 * Table doesn't exist, count all users.
+			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 			return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
 		}
 
-		/* Count users needing verification (not in table or is_verified != 1) */
+		/*
+		 * Count users needing verification (not in table or is_verified != 1).
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
@@ -180,7 +186,9 @@ class NBUF_Background_Activation {
 			return 0;
 		}
 
-		/* Get batch of user IDs */
+		/*
+		 * Get batch of user IDs.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Batch processing during activation.
 		$user_ids = $wpdb->get_col(
 			$wpdb->prepare(
@@ -228,9 +236,9 @@ class NBUF_Background_Activation {
 		}
 
 		/* Update state */
-		$state['processed']     += $processed;
-		$state['offset']        += self::BATCH_SIZE;
-		$state['last_activity']  = time();
+		$state['processed']    += $processed;
+		$state['offset']       += self::BATCH_SIZE;
+		$state['last_activity'] = time();
 
 		/* Check if complete */
 		if ( $processed < self::BATCH_SIZE || $state['processed'] >= $state['total_users'] ) {
@@ -251,10 +259,10 @@ class NBUF_Background_Activation {
 
 		wp_send_json_success(
 			array(
-				'status'      => $state['status'],
-				'processed'   => $state['processed'],
-				'total'       => $state['total_users'],
-				'percent'     => $state['total_users'] > 0
+				'status'       => $state['status'],
+				'processed'    => $state['processed'],
+				'total'        => $state['total_users'],
+				'percent'      => $state['total_users'] > 0
 					? round( ( $state['processed'] / $state['total_users'] ) * 100 )
 					: 100,
 				'current_task' => $state['current_task'] ?? '',

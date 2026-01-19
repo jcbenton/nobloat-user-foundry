@@ -32,9 +32,12 @@ if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_p
 		: array();
 
 	/* Filter out empty labels */
-	$nbuf_field_labels = array_filter( $nbuf_field_labels, function ( $label ) {
-		return ! empty( trim( $label ) );
-	} );
+	$nbuf_field_labels = array_filter(
+		$nbuf_field_labels,
+		function ( $label ) {
+			return ! empty( trim( $label ) );
+		}
+	);
 
 	/* Save WordPress native field settings */
 	$nbuf_show_description = isset( $_POST['nbuf_show_description_field'] ) ? 1 : 0;
@@ -56,8 +59,8 @@ $nbuf_field_labels        = NBUF_Options::get( 'nbuf_profile_field_labels', arra
 $nbuf_field_registry      = NBUF_Profile_Data::get_field_registry();
 
 /* For backward compatibility - migrate from old settings if new ones are empty */
-$nbuf_old_enabled     = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
-$nbuf_old_reg_fields  = NBUF_Options::get( 'nbuf_registration_fields', array() );
+$nbuf_old_enabled    = NBUF_Options::get( 'nbuf_enabled_profile_fields', array() );
+$nbuf_old_reg_fields = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
 if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
 	if ( ! empty( $nbuf_old_enabled ) ) {
@@ -68,11 +71,11 @@ if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
 	if ( ! empty( $nbuf_old_reg_fields ) ) {
 		foreach ( $nbuf_old_reg_fields as $nbuf_key => $nbuf_value ) {
 			if ( strpos( $nbuf_key, '_label' ) !== false && ! empty( $nbuf_value ) ) {
-				$nbuf_field_key = str_replace( '_label', '', $nbuf_key );
+				$nbuf_field_key                       = str_replace( '_label', '', $nbuf_key );
 				$nbuf_field_labels[ $nbuf_field_key ] = $nbuf_value;
 			}
 			if ( strpos( $nbuf_key, '_required' ) !== false && $nbuf_value ) {
-				$nbuf_field_key = str_replace( '_required', '', $nbuf_key );
+				$nbuf_field_key         = str_replace( '_required', '', $nbuf_key );
 				$nbuf_required_fields[] = $nbuf_field_key;
 			}
 			if ( strpos( $nbuf_key, '_enabled' ) !== false && $nbuf_value ) {
@@ -103,8 +106,8 @@ if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
 	</p>
 
 	<?php
-	$nbuf_show_description    = NBUF_Options::get( 'nbuf_show_description_field', false );
-	$nbuf_description_label   = isset( $nbuf_field_labels['description'] ) ? $nbuf_field_labels['description'] : '';
+	$nbuf_show_description  = NBUF_Options::get( 'nbuf_show_description_field', false );
+	$nbuf_description_label = isset( $nbuf_field_labels['description'] ) ? $nbuf_field_labels['description'] : '';
 	?>
 
 	<table style="margin-bottom: 30px; border-collapse: collapse; width: 100%;">
@@ -163,7 +166,7 @@ if ( empty( $nbuf_registration_fields ) && empty( $nbuf_account_fields ) ) {
 			$nbuf_is_required     = in_array( $nbuf_field_key, $nbuf_required_fields, true );
 			$nbuf_is_account      = in_array( $nbuf_field_key, $nbuf_account_fields, true );
 			$nbuf_custom_label    = $nbuf_field_labels[ $nbuf_field_key ] ?? '';
-			$nbuf_description = nbuf_get_field_description( $nbuf_field_key );
+			$nbuf_description     = nbuf_get_field_description( $nbuf_field_key );
 			?>
 				<tr>
 					<td style="padding: 8px 10px;"><strong><?php echo esc_html( $nbuf_field_label ); ?></strong></td>

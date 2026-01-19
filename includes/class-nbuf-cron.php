@@ -210,7 +210,9 @@ class NBUF_Cron {
 	private static function cleanup_magic_link_transients() {
 		global $wpdb;
 
-		/* Delete expired magic link rate limit transients */
+		/*
+		 * Delete expired magic link rate limit transients.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
 		$wpdb->query(
 			$wpdb->prepare(
@@ -396,6 +398,7 @@ class NBUF_Cron {
 				$user_id,
 				'users',
 				'unverified_account_deleted',
+				'Unverified account auto-deleted after ' . $cleanup_days . ' days',
 				array(
 					'reason'     => 'auto_cleanup',
 					'days'       => $cleanup_days,
@@ -486,7 +489,9 @@ class NBUF_Cron {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
-		/* Check if table exists */
+		/*
+		 * Check if table exists.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table existence check.
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) !== $table_name ) {
 			return 0;

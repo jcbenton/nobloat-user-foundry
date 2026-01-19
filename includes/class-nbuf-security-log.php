@@ -130,7 +130,9 @@ class NBUF_Security_Log {
 		global $wpdb;
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 
-		/* Check if table exists */
+		/*
+		 * Check if table exists.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check.
 		$table_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -144,7 +146,9 @@ class NBUF_Security_Log {
 			return;
 		}
 
-		/* Check and add first_seen column if missing */
+		/*
+		 * Check and add first_seen column if missing.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration check.
 		$first_seen_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -165,7 +169,9 @@ class NBUF_Security_Log {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
-		/* Check and add occurrence_count column if missing */
+		/*
+		 * Check and add occurrence_count column if missing.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema migration check.
 		$occurrence_count_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -186,7 +192,9 @@ class NBUF_Security_Log {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
-		/* Add index for event_type + ip_address lookups if missing */
+		/*
+		 * Add index for event_type + ip_address lookups if missing.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check.
 		$index_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -207,7 +215,9 @@ class NBUF_Security_Log {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		}
 
-		/* Set first_seen = timestamp for existing records where first_seen is NULL */
+		/*
+		 * Set first_seen = timestamp for existing records where first_seen is NULL.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data migration.
 		$wpdb->query(
 			$wpdb->prepare(
@@ -216,7 +226,9 @@ class NBUF_Security_Log {
 			)
 		);
 
-		/* Set occurrence_count = 1 for existing records where it's NULL */
+		/*
+		 * Set occurrence_count = 1 for existing records where it's NULL.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data migration.
 		$wpdb->query(
 			$wpdb->prepare(
@@ -272,7 +284,7 @@ class NBUF_Security_Log {
 				'event_type'       => $event_type,
 				'user_id'          => $user_id,
 				'ip_address'       => self::get_client_ip(),
-				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 512 ) : '',
 				'message'          => $message,
 				'context'          => wp_json_encode( $sanitized_context ),
 			),
@@ -331,7 +343,9 @@ class NBUF_Security_Log {
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 		$now        = gmdate( 'Y-m-d H:i:s' );
 
-		/* Look for existing record with same event_type and ip_address */
+		/*
+		 * Look for existing record with same event_type and ip_address.
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security logging upsert check.
 		$existing = $wpdb->get_row(
 			$wpdb->prepare(
@@ -367,7 +381,7 @@ class NBUF_Security_Log {
 					'severity'         => $new_severity,
 					'message'          => $message,
 					'context'          => wp_json_encode( $sanitized_context ),
-					'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+					'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 512 ) : '',
 				),
 				array( 'id' => $existing->id ),
 				array( '%s', '%d', '%s', '%s', '%s', '%s' ),
@@ -402,7 +416,7 @@ class NBUF_Security_Log {
 				'event_type'       => $event_type,
 				'user_id'          => $user_id,
 				'ip_address'       => $ip_address,
-				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
+				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 512 ) : '',
 				'message'          => $message,
 				'context'          => wp_json_encode( $sanitized_context ),
 			),
@@ -940,9 +954,11 @@ class NBUF_Security_Log {
 		$where_clause = implode( ' AND ', $where );
 		$table_name   = $wpdb->prefix . 'nbuf_security_log';
 
-		/* Build base query with whitelisted orderby and order (safe, from whitelist) */
+		/*
+		 * Build base query with whitelisted orderby and order (safe, from whitelist).
+		 */
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $orderby_column and $order_direction are whitelisted values.
-		$base_query = "SELECT * FROM %i WHERE " . $where_clause . ' ORDER BY ' . $orderby_column . ' ' . $order_direction . ' LIMIT %d OFFSET %d';
+		$base_query = 'SELECT * FROM %i WHERE ' . $where_clause . ' ORDER BY ' . $orderby_column . ' ' . $order_direction . ' LIMIT %d OFFSET %d';
 
 		/* Build complete query with all parameters */
 		if ( ! empty( $where_args ) ) {

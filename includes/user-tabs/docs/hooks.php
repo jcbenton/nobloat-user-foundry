@@ -147,31 +147,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 <pre style="background: #f6f7f7; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">
 // Customize login redirect based on user role
 add_filter( 'nbuf_login_redirect', function( $redirect_url, $user ) {
-    if ( in_array( 'administrator', $user->roles ) ) {
-        return admin_url();
-    }
-    return home_url( '/my-account/' );
+	if ( in_array( 'administrator', $user->roles ) ) {
+		return admin_url();
+	}
+	return home_url( '/my-account/' );
 }, 10, 2 );
 
 // Send notification when user is verified
 add_action( 'nbuf_user_verified', function( $user_email, $user_id ) {
-    wp_mail(
-        get_option( 'admin_email' ),
-        'User Verified',
-        'User ' . $user_email . ' has verified their email.'
-    );
+	wp_mail(
+		get_option( 'admin_email' ),
+		'User Verified',
+		'User ' . $user_email . ' has verified their email.'
+	);
 }, 10, 2 );
 
 // Add custom action when account expires
 add_action( 'nbuf_user_expired', function( $user_id ) {
-    // Log expiration or notify user
-    error_log( 'User ' . $user_id . ' account has expired.' );
+	// Log expiration or notify user
+	error_log( 'User ' . $user_id . ' account has expired.' );
 } );
 
 // Customize profile fields on registration
 add_filter( 'nbuf_profile_registration_fields', function( $fields ) {
-    // Remove a field from registration
-    unset( $fields['company'] );
-    return $fields;
+	// Remove a field from registration
+	unset( $fields['company'] );
+	return $fields;
 } );
 </pre>

@@ -394,8 +394,14 @@ class NBUF_Hooks {
 
 			if ( $weak_password_flagged ) {
 				/* Check if grace period expired */
-				$grace_period_days   = NBUF_Options::get( 'nbuf_password_grace_period', 7 );
-				$flagged_timestamp   = strtotime( $weak_password_flagged );
+				$grace_period_days = NBUF_Options::get( 'nbuf_password_grace_period', 7 );
+
+				/*
+				 * IMPORTANT: Timestamps are stored in GMT via current_time( 'mysql', true ).
+				 * Append 'GMT' to ensure strtotime() interprets correctly regardless of
+				 * server timezone settings.
+				 */
+				$flagged_timestamp   = strtotime( $weak_password_flagged . ' GMT' );
 				$grace_end_timestamp = $flagged_timestamp + ( $grace_period_days * DAY_IN_SECONDS );
 
 				if ( time() > $grace_end_timestamp ) {

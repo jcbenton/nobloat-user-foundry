@@ -89,8 +89,8 @@ class NBUF_Password_Expiration {
 	 *
 	 * Fires when user updates their profile. We check if password was actually changed.
 	 *
-	 * @param int   $user_id       User ID.
-	 * @param array $old_user_data Old user data object.
+	 * @param int     $user_id       User ID.
+	 * @param WP_User $old_user_data Old user data object.
 	 */
 	public static function track_password_change_on_profile_update( $user_id, $old_user_data ) {
 		/* Get new user data */

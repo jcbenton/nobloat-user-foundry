@@ -30,16 +30,16 @@ class NBUF_Webhooks {
 	 * @var array
 	 */
 	private static $available_events = array(
-		'user_registered'    => 'User Registered',
-		'user_verified'      => 'User Verified Email',
-		'user_login'         => 'User Logged In',
-		'user_logout'        => 'User Logged Out',
+		'user_registered'     => 'User Registered',
+		'user_verified'       => 'User Verified Email',
+		'user_login'          => 'User Logged In',
+		'user_logout'         => 'User Logged Out',
 		'user_profile_update' => 'User Profile Updated',
 		'user_password_reset' => 'User Password Reset',
-		'user_2fa_enabled'   => 'User Enabled 2FA',
-		'user_2fa_disabled'  => 'User Disabled 2FA',
-		'user_approved'      => 'User Approved',
-		'user_disabled'      => 'User Disabled',
+		'user_2fa_enabled'    => 'User Enabled 2FA',
+		'user_2fa_disabled'   => 'User Disabled 2FA',
+		'user_approved'       => 'User Approved',
+		'user_disabled'       => 'User Disabled',
 	);
 
 	/**
@@ -81,7 +81,8 @@ class NBUF_Webhooks {
 
 		/* Decode events JSON for each webhook */
 		foreach ( $results as $webhook ) {
-			$webhook->events = json_decode( $webhook->events, true ) ?: array();
+			$decoded_events  = json_decode( $webhook->events, true );
+			$webhook->events = $decoded_events ? $decoded_events : array();
 		}
 
 		return $results;
@@ -106,7 +107,8 @@ class NBUF_Webhooks {
 		);
 
 		if ( $webhook ) {
-			$webhook->events = json_decode( $webhook->events, true ) ?: array();
+			$decoded_events  = json_decode( $webhook->events, true );
+			$webhook->events = $decoded_events ? $decoded_events : array();
 		}
 
 		return $webhook;
@@ -240,14 +242,14 @@ class NBUF_Webhooks {
 
 		/* Build headers */
 		$headers = array(
-			'Content-Type' => 'application/json',
-			'User-Agent'   => 'NoBloat-User-Foundry-Webhook/1.0',
+			'Content-Type'    => 'application/json',
+			'User-Agent'      => 'NoBloat-User-Foundry-Webhook/1.0',
 			'X-Webhook-Event' => $event,
 		);
 
 		/* Add HMAC signature if secret is set */
 		if ( ! empty( $webhook->secret ) ) {
-			$signature = hash_hmac( 'sha256', $json_payload, $webhook->secret );
+			$signature                      = hash_hmac( 'sha256', $json_payload, $webhook->secret );
 			$headers['X-Webhook-Signature'] = 'sha256=' . $signature;
 		}
 

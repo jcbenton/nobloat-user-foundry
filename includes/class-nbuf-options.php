@@ -492,12 +492,12 @@ class NBUF_Options {
 		 * All user values go through $wpdb->prepare().
 		 */
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted internal source, placeholders are hardcoded format strings.
-		$sql = "INSERT INTO `" . self::$table_name . "` (option_name, option_value, autoload, option_group)
-				VALUES " . implode( ', ', $placeholders ) . "
+		$sql = 'INSERT INTO `' . self::$table_name . '` (option_name, option_value, autoload, option_group)
+				VALUES ' . implode( ', ', $placeholders ) . '
 				ON DUPLICATE KEY UPDATE
 					option_value = VALUES(option_value),
 					autoload = VALUES(autoload),
-					option_group = VALUES(option_group)";
+					option_group = VALUES(option_group)';
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Batch insert to custom options table. Table name from trusted internal source. All user values go through $wpdb->prepare().
 		$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );

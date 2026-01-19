@@ -58,7 +58,7 @@ class NBUF_Email_Restrictions {
 		}
 
 		/* Parse domains - one per line */
-		$lines = explode( "\n", $domains_raw );
+		$lines   = explode( "\n", $domains_raw );
 		$domains = array();
 
 		foreach ( $lines as $line ) {

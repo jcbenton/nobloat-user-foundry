@@ -49,44 +49,44 @@ foreach ( $nbuf_cron_jobs as $nbuf_hook => $nbuf_info ) {
  */
 $nbuf_templates = array(
 	/* Email Templates */
-	'Email Templates'    => array(
-		'email-verification-html' => __( 'Email Verification (HTML)', 'nobloat-user-foundry' ),
-		'email-verification-text' => __( 'Email Verification (Text)', 'nobloat-user-foundry' ),
-		'welcome-email-html'      => __( 'Welcome Email (HTML)', 'nobloat-user-foundry' ),
-		'welcome-email-text'      => __( 'Welcome Email (Text)', 'nobloat-user-foundry' ),
-		'password-reset-html'     => __( 'Password Reset (HTML)', 'nobloat-user-foundry' ),
-		'password-reset-text'     => __( 'Password Reset (Text)', 'nobloat-user-foundry' ),
-		'2fa-email-code-html'     => __( '2FA Email Code (HTML)', 'nobloat-user-foundry' ),
-		'2fa-email-code-text'     => __( '2FA Email Code (Text)', 'nobloat-user-foundry' ),
-		'expiration-warning-html' => __( 'Expiration Warning (HTML)', 'nobloat-user-foundry' ),
-		'expiration-warning-text' => __( 'Expiration Warning (Text)', 'nobloat-user-foundry' ),
-		'expiration-notice-html'  => __( 'Expiration Notice (HTML)', 'nobloat-user-foundry' ),
-		'expiration-notice-text'  => __( 'Expiration Notice (Text)', 'nobloat-user-foundry' ),
-		'admin-new-user-html'     => __( 'Admin New User (HTML)', 'nobloat-user-foundry' ),
-		'admin-new-user-text'     => __( 'Admin New User (Text)', 'nobloat-user-foundry' ),
+	'Email Templates' => array(
+		'email-verification-html'   => __( 'Email Verification (HTML)', 'nobloat-user-foundry' ),
+		'email-verification-text'   => __( 'Email Verification (Text)', 'nobloat-user-foundry' ),
+		'welcome-email-html'        => __( 'Welcome Email (HTML)', 'nobloat-user-foundry' ),
+		'welcome-email-text'        => __( 'Welcome Email (Text)', 'nobloat-user-foundry' ),
+		'password-reset-html'       => __( 'Password Reset (HTML)', 'nobloat-user-foundry' ),
+		'password-reset-text'       => __( 'Password Reset (Text)', 'nobloat-user-foundry' ),
+		'2fa-email-code-html'       => __( '2FA Email Code (HTML)', 'nobloat-user-foundry' ),
+		'2fa-email-code-text'       => __( '2FA Email Code (Text)', 'nobloat-user-foundry' ),
+		'expiration-warning-html'   => __( 'Expiration Warning (HTML)', 'nobloat-user-foundry' ),
+		'expiration-warning-text'   => __( 'Expiration Warning (Text)', 'nobloat-user-foundry' ),
+		'expiration-notice-html'    => __( 'Expiration Notice (HTML)', 'nobloat-user-foundry' ),
+		'expiration-notice-text'    => __( 'Expiration Notice (Text)', 'nobloat-user-foundry' ),
+		'admin-new-user-html'       => __( 'Admin New User (HTML)', 'nobloat-user-foundry' ),
+		'admin-new-user-text'       => __( 'Admin New User (Text)', 'nobloat-user-foundry' ),
 		'security-alert-email-html' => __( 'Security Alert (HTML)', 'nobloat-user-foundry' ),
 	),
 	/* Form Templates */
-	'Form Templates'     => array(
-		'login-form'        => __( 'Login Form', 'nobloat-user-foundry' ),
-		'registration-form' => __( 'Registration Form', 'nobloat-user-foundry' ),
-		'account-page'      => __( 'Account Page', 'nobloat-user-foundry' ),
+	'Form Templates'  => array(
+		'login-form'         => __( 'Login Form', 'nobloat-user-foundry' ),
+		'registration-form'  => __( 'Registration Form', 'nobloat-user-foundry' ),
+		'account-page'       => __( 'Account Page', 'nobloat-user-foundry' ),
 		'request-reset-form' => __( 'Password Reset Request', 'nobloat-user-foundry' ),
-		'reset-form'        => __( 'Password Reset Form', 'nobloat-user-foundry' ),
+		'reset-form'         => __( 'Password Reset Form', 'nobloat-user-foundry' ),
 	),
 	/* 2FA Templates */
-	'2FA Templates'      => array(
+	'2FA Templates'   => array(
 		'2fa-verify'        => __( '2FA Verification', 'nobloat-user-foundry' ),
 		'2fa-setup-totp'    => __( '2FA TOTP Setup', 'nobloat-user-foundry' ),
 		'2fa-backup-codes'  => __( '2FA Backup Codes', 'nobloat-user-foundry' ),
 		'2fa-backup-verify' => __( '2FA Backup Verify', 'nobloat-user-foundry' ),
 	),
 	/* Page Templates */
-	'Page Templates'     => array(
-		'public-profile-html'       => __( 'Public Profile', 'nobloat-user-foundry' ),
-		'member-directory-html'     => __( 'Member Directory (Grid)', 'nobloat-user-foundry' ),
+	'Page Templates'  => array(
+		'public-profile-html'        => __( 'Public Profile', 'nobloat-user-foundry' ),
+		'member-directory-html'      => __( 'Member Directory (Grid)', 'nobloat-user-foundry' ),
 		'member-directory-list-html' => __( 'Member Directory (List)', 'nobloat-user-foundry' ),
-		'account-data-export-html'  => __( 'Account Data Export', 'nobloat-user-foundry' ),
+		'account-data-export-html'   => __( 'Account Data Export', 'nobloat-user-foundry' ),
 	),
 );
 
@@ -94,7 +94,7 @@ $nbuf_templates = array(
 $nbuf_template_status = array();
 foreach ( $nbuf_templates as $nbuf_group => $nbuf_group_templates ) {
 	foreach ( $nbuf_group_templates as $nbuf_template_name => $nbuf_label ) {
-		$nbuf_content = NBUF_Template_Manager::load_template( $nbuf_template_name );
+		$nbuf_content                                = NBUF_Template_Manager::load_template( $nbuf_template_name );
 		$nbuf_template_status[ $nbuf_template_name ] = array(
 			'loaded' => ! empty( $nbuf_content ) && strpos( $nbuf_content, 'Template not found' ) === false,
 			'size'   => strlen( $nbuf_content ),
@@ -112,8 +112,8 @@ foreach ( $nbuf_templates as $nbuf_group => $nbuf_group_templates ) {
 <?php
 $nbuf_scheduled_count   = 0;
 $nbuf_unscheduled_count = 0;
-foreach ( $nbuf_cron_status as $status ) {
-	if ( $status['scheduled'] ) {
+foreach ( $nbuf_cron_status as $cron_item ) {
+	if ( $cron_item['scheduled'] ) {
 		++$nbuf_scheduled_count;
 	} else {
 		++$nbuf_unscheduled_count;
@@ -206,8 +206,8 @@ foreach ( $nbuf_cron_status as $status ) {
 <?php
 $nbuf_templates_ok     = 0;
 $nbuf_templates_failed = 0;
-foreach ( $nbuf_template_status as $status ) {
-	if ( $status['loaded'] ) {
+foreach ( $nbuf_template_status as $tpl_item ) {
+	if ( $tpl_item['loaded'] ) {
 		++$nbuf_templates_ok;
 	} else {
 		++$nbuf_templates_failed;

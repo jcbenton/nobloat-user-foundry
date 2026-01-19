@@ -403,7 +403,7 @@ $nbuf_user_manager_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', fal
 					<?php esc_html_e( 'Enable custom hook listener', 'nobloat-user-foundry' ); ?>
 				</label>
 				<div style="margin-top:6px;">
-					<input type="text" name="nbuf_settings[hooks_custom]" value="<?php echo esc_attr( $custom ); ?>" placeholder="custom_user_register_hook" class="regular-text">
+					<input type="text" name="nbuf_settings[hooks_custom]" value="<?php echo esc_attr( $nbuf_custom ); ?>" placeholder="custom_user_register_hook" class="regular-text">
 					<p class="description"><?php esc_html_e( 'Custom action name fired after user creation (e.g., from custom registration logic).', 'nobloat-user-foundry' ); ?></p>
 				</div>
 			</td>

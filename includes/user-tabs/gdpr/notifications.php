@@ -22,8 +22,8 @@ if ( ! current_user_can( 'manage_options' ) ) {
 /* Get current settings */
 $nbuf_notify_enabled = NBUF_Options::get( 'nbuf_notify_profile_changes', false );
 $nbuf_notify_to      = NBUF_Options::get( 'nbuf_notify_profile_changes_to', get_option( 'admin_email' ) );
-$nbuf_notify_fields    = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
-$nbuf_notify_digest    = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
+$nbuf_notify_fields  = NBUF_Options::get( 'nbuf_notify_profile_changes_fields', array( 'user_email', 'display_name' ) );
+$nbuf_notify_digest  = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
 /* Ensure $nbuf_notify_to is a comma-separated string */
 if ( is_array( $nbuf_notify_to ) ) {
@@ -51,7 +51,7 @@ $nbuf_available_fields = array(
 /* Add enabled profile fields dynamically (with custom labels) */
 $nbuf_enabled_profile_fields = NBUF_Profile_Data::get_account_fields();
 if ( ! empty( $nbuf_enabled_profile_fields ) ) {
-	$nbuf_field_registry    = NBUF_Profile_Data::get_field_registry_with_labels();
+	$nbuf_field_registry            = NBUF_Profile_Data::get_field_registry_with_labels();
 	$nbuf_profile_fields_to_monitor = array();
 
 	foreach ( $nbuf_enabled_profile_fields as $nbuf_field_key ) {

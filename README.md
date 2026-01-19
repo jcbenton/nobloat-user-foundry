@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(min-width: 768px)" srcset="wporg-assets/banner-1544x500.png">
-    <img src="wporg-assets/banner-772x250.png" alt="TokenLink – Menu Permissions" width="100%">
+    <img src="wporg-assets/banner-772x250.png" alt="NoBloat User Foundry" width="100%">
   </picture>
 </p>
 
@@ -295,6 +295,7 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 | `nbuf_user_audit_log` | User activity log |
 | `nbuf_admin_audit_log` | Admin actions log |
 | `nbuf_user_notes` | Admin notes per user |
+| `nbuf_import_history` | Migration/import tracking |
 | `nbuf_profile_versions` | Profile history snapshots |
 | `nbuf_security_log` | Security events |
 | `nbuf_webhooks` | Webhook configuration |

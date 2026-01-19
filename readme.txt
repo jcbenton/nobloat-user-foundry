@@ -324,6 +324,22 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.5.5 =
+* Security: Consolidated IP address handling into new NBUF_IP utility class
+* Security: IPv6 normalization prevents rate limit bypass via address variations
+* Security: Trusted proxy configuration for load balancer/CDN setups
+* Security: MySQL lock cleanup with try-finally pattern
+* Security: Fail-safe database query handling in login limiting
+* Security: Consistent GMT/UTC timestamp handling throughout
+* Improved: Extensive PHPCS compliance updates (80+ files)
+* Improved: Return type declarations for better type safety
+* Improved: DocBlocks added to anonymous callback functions
+* Improved: Code architecture refinements
+* Improved: Account page and admin UI styling
+* Fixed: Removed hardcoded /contact URL from expiration templates
+* Fixed: Grace period logic with write side effects in getter
+* Fixed: Alignment warnings in admin list tables
+
 = 1.5.0 =
 * Added: Custom account page tabs with shortcode content
 * Added: Role-based tab visibility restrictions
@@ -379,6 +395,9 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Upgrade Notice ==
 
+= 1.5.5 =
+Security and code quality release. Consolidated IP handling, PHPCS compliance, and various fixes. No database changes required.
+
 = 1.5.0 =
 Adds custom account page tabs for integrating third-party plugin content (WooCommerce, EDD, etc.). No database migration required.
 
@@ -401,6 +420,7 @@ The plugin creates these custom tables:
 * `nbuf_user_audit_log` - User activity log
 * `nbuf_admin_audit_log` - Admin actions log
 * `nbuf_user_notes` - Admin notes per user
+* `nbuf_import_history` - Migration/import tracking
 * `nbuf_profile_versions` - Profile history snapshots
 * `nbuf_security_log` - Security events
 * `nbuf_webhooks` - Webhook configuration

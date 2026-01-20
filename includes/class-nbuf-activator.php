@@ -552,6 +552,19 @@ class NBUF_Activator {
 			if ( $debug_timing ) {
 				$timings['5d_batches_done'] = round( microtime( true ) - $start_time, 3 );
 			}
+
+			/*
+			 * Verify critical settings were saved.
+			 * If batch_insert failed (disk full, permissions, etc.), show admin notice.
+			 */
+			$verification_check = NBUF_Options::get( 'nbuf_settings' );
+			if ( empty( $verification_check ) ) {
+				set_transient(
+					'nbuf_activation_warning',
+					__( 'NoBloat User Foundry: Some default settings may not have been saved. Please check your database connection and try deactivating/reactivating the plugin.', 'nobloat-user-foundry' ),
+					60
+				);
+			}
 		}
 		if ( $debug_timing ) {
 			$timings['5_default_settings'] = round( microtime( true ) - $start_time, 3 );

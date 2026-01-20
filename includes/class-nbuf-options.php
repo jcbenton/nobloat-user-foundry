@@ -82,13 +82,14 @@ class NBUF_Options {
 	}
 
 	/**
-	 * Load all options in ONE query with Redis/Memcached support
+	 * Load autoloaded options in ONE query with Redis/Memcached support
 	 *
 	 * PERFORMANCE OPTIMIZATION:
+	 * - Only loads options with autoload=1 (excludes CSS blobs ~50KB+)
 	 * - Try Redis/Memcached first (0 DB queries if cached)
-	 * - Fall back to single SELECT query for ALL options (~100 options in ~10KB)
-	 * - Cache in Redis for 1 hour (subsequent pageloads = 0 queries)
-	 * - More efficient than 20+ individual queries
+	 * - Fall back to single SELECT query for autoloaded options (~5KB)
+	 * - Non-autoloaded options (CSS, templates) loaded on-demand
+	 * - Mirrors WordPress core autoload behavior
 	 *
 	 * Redis Integration:
 	 * - wp_cache_get() automatically uses Redis if Redis Object Cache plugin installed
@@ -116,12 +117,12 @@ class NBUF_Options {
 		}
 
 		/*
-		 * Cache MISS - query database for ALL options
-		 * Single query loads entire options table (~100 options in ~10KB)
-		 * More efficient than 20+ individual queries per pageload
+		 * Cache MISS - query database for AUTOLOADED options only
+		 * Excludes CSS blobs (50KB+) which are rarely needed on AJAX requests
+		 * Non-autoloaded options loaded individually via load_single_option()
 		 */
 		$results = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT option_name, option_value FROM %i', self::$table_name ),
+			$wpdb->prepare( 'SELECT option_name, option_value FROM %i WHERE autoload = 1', self::$table_name ),
 			OBJECT
 		);
 
@@ -144,23 +145,74 @@ class NBUF_Options {
 	}
 
 	/**
+	 * Load a single option from database (for non-autoloaded options)
+	 *
+	 * Used for CSS and other large options that shouldn't be autoloaded.
+	 * Caches the result in memory to avoid repeated queries.
+	 *
+	 * @param  string $key Option name.
+	 * @return mixed|null Option value or null if not found.
+	 */
+	private static function load_single_option( string $key ) {
+		global $wpdb;
+		self::init();
+
+		$value = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT option_value FROM %i WHERE option_name = %s',
+				self::$table_name,
+				$key
+			)
+		);
+
+		/*
+		 * Check for database error vs "not found".
+		 * $wpdb->get_var() returns null for both cases.
+		 */
+		if ( ! empty( $wpdb->last_error ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Database error logging for debugging.
+			error_log( 'NBUF Options: Database error loading option "' . esc_html( $key ) . '": ' . $wpdb->last_error );
+		}
+
+		if ( null !== $value ) {
+			$unserialized        = maybe_unserialize( $value );
+			self::$cache[ $key ] = $unserialized;
+			return $unserialized;
+		}
+
+		return null;
+	}
+
+	/**
 	 * Get option value
 	 *
-	 * PERFORMANCE: Loads ALL options on first access using single query + Redis cache.
-	 * Subsequent calls return from in-memory cache (0 queries).
+	 * PERFORMANCE:
+	 * - Loads autoloaded options on first access using single query + Redis cache
+	 * - Non-autoloaded options (CSS, templates) loaded individually on-demand
+	 * - Subsequent calls return from in-memory cache (0 queries)
 	 *
 	 * @param  string $key     Option name.
 	 * @param  mixed  $default Default value if not found.
 	 * @return mixed Option value or default.
 	 */
 	public static function get( string $key, $default = false ) {  // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Matches WordPress get_option() convention
-		/* Load ALL options on first access */
+		/* Load autoloaded options on first access */
 		if ( ! self::$all_options_loaded ) {
 			self::load_all_options();
 		}
 
-		/* Return from cache */
-		return self::$cache[ $key ] ?? $default;
+		/* Return from cache if present */
+		if ( array_key_exists( $key, self::$cache ) ) {
+			return self::$cache[ $key ];
+		}
+
+		/*
+		 * Not in autoloaded cache - try loading individually
+		 * This handles non-autoloaded options like CSS blobs
+		 */
+		$value = self::load_single_option( $key );
+
+		return ( null !== $value ) ? $value : $default;
 	}
 
 	/**
@@ -336,16 +388,30 @@ class NBUF_Options {
 	/**
 	 * Check if option exists
 	 *
+	 * Checks both autoloaded options (from cache) and non-autoloaded
+	 * options (via database query). This ensures consistency with get().
+	 *
 	 * @param  string $key Option name.
 	 * @return bool True if exists.
 	 */
 	public static function exists( string $key ): bool {
-		/* Load all options if not loaded */
+		/* Load autoloaded options if not loaded */
 		if ( ! self::$all_options_loaded ) {
 			self::load_all_options();
 		}
 
-		return isset( self::$cache[ $key ] );
+		/* Check autoloaded cache first */
+		if ( isset( self::$cache[ $key ] ) ) {
+			return true;
+		}
+
+		/*
+		 * Not in autoloaded cache - check database for non-autoloaded options.
+		 * This handles CSS blobs and other large options with autoload=0.
+		 */
+		$value = self::load_single_option( $key );
+
+		return null !== $value;
 	}
 
 	/**

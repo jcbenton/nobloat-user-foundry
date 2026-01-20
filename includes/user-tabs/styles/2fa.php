@@ -22,8 +22,8 @@ if ( isset( $_POST['nbuf_save_2fa_css'] ) && check_admin_referer( 'nbuf_2fa_css_
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_2fa_page_css', $nbuf_twofa_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_twofa_css, '2fa-setup', 'nbuf_css_write_failed_2fa', true );
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '2FA page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

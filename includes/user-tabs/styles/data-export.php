@@ -21,8 +21,8 @@ if ( isset( $_POST['nbuf_reset_data_export_css'] ) && check_admin_referer( 'nbuf
 	/* Save default to database */
 	NBUF_Options::update( 'nbuf_data_export_custom_css', $nbuf_default_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'data-export', 'nbuf_css_write_failed_data_export' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'data-export', 'nbuf_css_write_failed_data_export', true );
 
 
 	if ( $nbuf_success ) {
@@ -43,8 +43,8 @@ if ( isset( $_POST['nbuf_save_data_export_css'] ) && check_admin_referer( 'nbuf_
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_data_export_custom_css', $nbuf_data_export_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_data_export_css, 'data-export', 'nbuf_css_write_failed_data_export' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_data_export_css, 'data-export', 'nbuf_css_write_failed_data_export', true );
 
 
 	if ( $nbuf_success ) {

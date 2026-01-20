@@ -37,11 +37,36 @@ class NBUF_CSS_Manager {
 		// Remove comments.
 		$css = preg_replace( '/\/\*.*?\*\//s', '', $css );
 
+		/*
+		 * Preserve content inside CSS functions that require whitespace.
+		 * Functions like calc(), var(), min(), max(), clamp() need their
+		 * internal whitespace preserved (e.g., "calc(100% - 20px)").
+		 */
+		$preserved   = array();
+		$placeholder = '___NBUF_CSS_FUNC_';
+		$index       = 0;
+
+		$css = preg_replace_callback(
+			'/\b(calc|var|min|max|clamp|env|url)\s*\([^)]*\)/i',
+			function ( $matches ) use ( &$preserved, $placeholder, &$index ) {
+				$key               = $placeholder . $index . '___';
+				$preserved[ $key ] = $matches[0];
+				++$index;
+				return $key;
+			},
+			$css
+		);
+
 		// Remove excess whitespace.
 		$css = preg_replace( '/\s+/', ' ', $css );
 
-		// Remove spaces around CSS punctuation.
+		// Remove spaces around CSS punctuation (safe now that functions are preserved).
 		$css = preg_replace( '/\s*([{}:;,>~+])\s*/', '$1', $css );
+
+		// Restore preserved function content.
+		foreach ( $preserved as $key => $value ) {
+			$css = str_replace( $key, $value, $css );
+		}
 
 		// Trim and return.
 		return trim( $css );
@@ -94,9 +119,10 @@ class NBUF_CSS_Manager {
 	 * @param  string $css       CSS content to save.
 	 * @param  string $filename  Base filename (e.g., 'reset-page').
 	 * @param  string $token_key Option name for write failure token.
+	 * @param  bool   $force     Skip hash comparison and always write (default: false).
 	 * @return bool True if write successful, false otherwise.
 	 */
-	public static function save_css_to_disk( $css, $filename, $token_key = 'nbuf_css_write_failed' ) {
+	public static function save_css_to_disk( $css, $filename, $token_key = 'nbuf_css_write_failed', $force = false ) {
 		$ui_dir = NBUF_PLUGIN_DIR . 'assets/css/frontend/';
 
 		/* Ensure directory exists */
@@ -107,27 +133,31 @@ class NBUF_CSS_Manager {
 			}
 		}
 
-		/* Check if CSS actually changed (hash comparison with stored version) */
-		$new_hash       = md5( $css );
-		$version_key    = 'nbuf_css_version_' . $filename;
-		$stored_version = NBUF_Options::get( $version_key );
-		$old_hash       = '';
+		$version_key = 'nbuf_css_version_' . $filename;
 
-		if ( $stored_version ) {
-			$old_path = $ui_dir . $filename . '.' . $stored_version . '.min.css';
-			if ( file_exists( $old_path ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-				$old_content = file_get_contents( $old_path );
-				if ( false !== $old_content ) {
-					/* Compare against minified content */
-					$old_hash = md5( self::minify( $css ) ) === md5( $old_content ) ? $new_hash : '';
+		/* Skip hash comparison if force is true (explicit user action) */
+		if ( ! $force ) {
+			/* Check if CSS actually changed (hash comparison with stored version) */
+			$new_hash       = md5( $css );
+			$stored_version = NBUF_Options::get( $version_key );
+			$old_hash       = '';
+
+			if ( $stored_version ) {
+				$old_path = $ui_dir . $filename . '.' . $stored_version . '.min.css';
+				if ( file_exists( $old_path ) ) {
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					$old_content = file_get_contents( $old_path );
+					if ( false !== $old_content ) {
+						/* Compare against minified content */
+						$old_hash = md5( self::minify( $css ) ) === md5( $old_content ) ? $new_hash : '';
+					}
 				}
 			}
-		}
 
-		/* Skip write if CSS unchanged */
-		if ( $new_hash === $old_hash && ! empty( $old_hash ) ) {
-			return true;
+			/* Skip write if CSS unchanged */
+			if ( $new_hash === $old_hash && ! empty( $old_hash ) ) {
+				return true;
+			}
 		}
 
 		/* Generate new timestamp for filename */
@@ -595,8 +625,8 @@ class NBUF_CSS_Manager {
 			/* Clear any existing failure token before attempting write */
 			self::clear_write_failure_token( $config['token_key'] );
 
-			/* Write to disk */
-			$success = self::save_css_to_disk( $css, $filename, $config['token_key'] );
+			/* Write to disk (force=true to always regenerate on explicit request) */
+			$success = self::save_css_to_disk( $css, $filename, $config['token_key'], true );
 
 			if ( $success ) {
 				++$results['success'];
@@ -651,8 +681,8 @@ class NBUF_CSS_Manager {
 			/* Clear any existing failure token */
 			self::clear_write_failure_token( $config['token_key'] );
 
-			/* Write to disk */
-			$success = self::save_css_to_disk( $default_css, $filename, $config['token_key'] );
+			/* Write to disk (force=true to always regenerate on explicit reset) */
+			$success = self::save_css_to_disk( $default_css, $filename, $config['token_key'], true );
 
 			if ( $success ) {
 				++$results['success'];

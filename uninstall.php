@@ -15,6 +15,43 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 /**
+ * Safely remove an empty directory with proper error handling.
+ *
+ * @since 1.5.0
+ * @param string $dir Path to directory to remove.
+ * @return bool True if removed or didn't exist, false on failure.
+ */
+function nbuf_safe_rmdir( $dir ) {
+	if ( ! is_dir( $dir ) ) {
+		return true; // Nothing to remove.
+	}
+
+	// Check if directory is empty.
+	$files = scandir( $dir );
+	if ( false === $files ) {
+		return false;
+	}
+
+	// Filter out . and ..
+	$files = array_diff( $files, array( '.', '..' ) );
+
+	if ( ! empty( $files ) ) {
+		// Directory not empty - can't remove, but this isn't an error.
+		return true;
+	}
+
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removing plugin cache/upload directories during uninstall.
+	$result = rmdir( $dir );
+
+	if ( ! $result ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Uninstall error logging for troubleshooting.
+		error_log( '[NoBloat User Foundry] Failed to remove directory during uninstall: ' . $dir );
+	}
+
+	return $result;
+}
+
+/**
  * Execute uninstall cleanup.
  *
  * Wrapped in a function to avoid global variable naming conflicts.
@@ -125,8 +162,7 @@ function nbuf_run_uninstall() {
 			}
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.PHP.NoSilencedErrors.Discouraged
-		@rmdir( $nbuf_cache_dir );
+		nbuf_safe_rmdir( $nbuf_cache_dir );
 	}
 
 	/**
@@ -168,24 +204,13 @@ function nbuf_run_uninstall() {
 							}
 						}
 
-						/*
-						 * Delete user directory (may be non-empty, @ acceptable).
-						 * rmdir() only deletes empty directories.
-						 */
-						if ( is_dir( $nbuf_user_dir ) && is_readable( $nbuf_user_dir ) ) {
-							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.PHP.NoSilencedErrors.Discouraged
-							@rmdir( $nbuf_user_dir );
-						}
+						/* Delete user directory if empty */
+						nbuf_safe_rmdir( $nbuf_user_dir );
 					}
 				}
 
-				/*
-				 * Delete main nobloat directory (may be non-empty, @ acceptable).
-				 */
-				if ( is_dir( $nbuf_dir_real ) && is_readable( $nbuf_dir_real ) ) {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir, WordPress.PHP.NoSilencedErrors.Discouraged
-					@rmdir( $nbuf_dir_real );
-				}
+				/* Delete main nobloat directory if empty */
+				nbuf_safe_rmdir( $nbuf_dir_real );
 			}
 		}
 	}

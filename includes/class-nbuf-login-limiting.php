@@ -123,12 +123,20 @@ class NBUF_Login_Limiting {
 
 		$ip_address = self::get_ip_address();
 
-		/* Insert failed attempt record - use GMT for consistent timezone handling */
+		/*
+		 * Insert failed attempt record - use GMT for consistent timezone handling.
+		 * Limit username to 255 characters to match database column size.
+		 */
+		$sanitized_username = sanitize_text_field( $username );
+		if ( strlen( $sanitized_username ) > 255 ) {
+			$sanitized_username = substr( $sanitized_username, 0, 255 );
+		}
+
 		$wpdb->insert(
 			$table_name,
 			array(
 				'ip_address'   => $ip_address,
-				'username'     => sanitize_text_field( $username ),
+				'username'     => $sanitized_username,
 				'attempt_time' => gmdate( 'Y-m-d H:i:s' ),
 			),
 			array( '%s', '%s', '%s' )

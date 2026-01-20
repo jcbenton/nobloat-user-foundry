@@ -1162,12 +1162,12 @@ class NBUF_Database {
 			}
 		}
 
-		/* Log results */
+		/* Log errors and mark complete if successful */
 		if ( $migration_success ) {
-			error_log( '[NoBloat User Foundry] Audit log indexes migration completed successfully' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration logging only, not debug code.
 			NBUF_Options::update( $migration_key, time(), false, 'system' );
 		} else {
-			error_log( '[NoBloat User Foundry] Audit log indexes migration failed: ' . implode( '; ', $errors ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Migration error logging only.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Logging actual migration failures for troubleshooting.
+			error_log( '[NoBloat User Foundry] Audit log indexes migration failed: ' . implode( '; ', $errors ) );
 			/* Don't mark as complete if migration failed - allow retry */
 		}
 

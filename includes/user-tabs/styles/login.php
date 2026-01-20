@@ -22,8 +22,8 @@ if ( isset( $_POST['nbuf_save_login_css'] ) && check_admin_referer( 'nbuf_login_
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_login_page_css', $nbuf_login_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_login_css, 'login-page', 'nbuf_css_write_failed_login' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_login_css, 'login-page', 'nbuf_css_write_failed_login', true );
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Login page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

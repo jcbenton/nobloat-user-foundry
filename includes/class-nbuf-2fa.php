@@ -188,8 +188,12 @@ class NBUF_2FA {
 	 * @return string|false Numeric code padded with leading zeros, or false on failure.
 	 */
 	private static function generate_numeric_code( $code_length = self::EMAIL_CODE_LENGTH ) {
-		/* Validate and clamp code length to sane range */
-		$code_length = max( 4, min( 10, (int) $code_length ) );
+		/*
+		 * Validate and clamp code length to sane range.
+		 * Maximum is 9 digits to prevent integer overflow on 32-bit PHP.
+		 * pow(10, 9) - 1 = 999999999 which fits in 32-bit signed int (max 2147483647).
+		 */
+		$code_length = max( 4, min( 9, (int) $code_length ) );
 
 		/* Calculate maximum value (e.g., 999999 for 6 digits) */
 		$max_value = (int) ( pow( 10, $code_length ) - 1 );
@@ -311,11 +315,6 @@ class NBUF_2FA {
 		} finally {
 			/* Always release lock, even if an exception occurred */
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
-		}
-
-		/* If we got an error result, return it (lock already released in finally) */
-		if ( is_wp_error( $result ) ) {
-			return $result;
 		}
 
 		/* Send email with plain text code (user needs to read it) */
@@ -645,43 +644,73 @@ If you did not request this code, please ignore this email.
 			$expires     = is_array( $device_data ) ? ( $device_data['expires'] ?? 0 ) : $device_data;
 
 			if ( $expires > time() ) {
-				/* Rotate token for enhanced security (prevents long-term token theft). */
-				$new_token = bin2hex( random_bytes( 32 ) );
-				/* SECURITY: Calculate remaining time from old token and apply to new one */
-				$remaining_time = max( 0, $expires - time() );
-				$new_expires    = time() + $remaining_time;
-
-				/* Remove old token and add new one */
-				NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
-				$new_device_data = array(
-					'expires'    => $new_expires,
-					'created'    => is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time(),
-					'user_agent' => is_array( $device_data ) ? ( $device_data['user_agent'] ?? '' ) : '',
-					'ip'         => is_array( $device_data ) ? ( $device_data['ip'] ?? '' ) : '',
-				);
-				NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_device_data );
-
 				/*
-				Update cookie with new token
-				*/
-				/* SECURITY: 2FA cookies should only be used over HTTPS */
-				if ( ! is_ssl() ) {
-					error_log( 'NBUF Warning: 2FA device trust should only be used over HTTPS connections' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security warning for HTTPS requirement.
+				 * Rotate token for enhanced security (prevents long-term token theft).
+				 * SECURITY: Use MySQL GET_LOCK to prevent race conditions when multiple
+				 * concurrent requests attempt to rotate the same token simultaneously.
+				 */
+				global $wpdb;
+				$lock_name = 'nbuf_2fa_trust_' . $user_id;
+				$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock_name ) );
+
+				if ( ! $locked ) {
+					/* Could not acquire lock - another request is rotating, trust this request anyway */
+					return true;
 				}
 
-				$cookie_name = 'nbuf_2fa_trust_' . $user_id;
-				setcookie(
-					$cookie_name,
-					$new_token,
-					array(
-						'expires'  => $new_expires,
-						'path'     => COOKIEPATH,
-						'domain'   => COOKIE_DOMAIN,
-						'secure'   => true, /* Always use secure flag for 2FA cookies */
-						'httponly' => true,
-						'samesite' => 'Lax',
-					)
-				);
+				try {
+					/*
+					 * Re-check token after acquiring lock (another request may have rotated it).
+					 * This prevents the race condition where two requests read the same token,
+					 * one rotates it, and the second fails because the old token is now gone.
+					 */
+					$trusted_devices = NBUF_User_2FA_Data::get_trusted_devices( $user_id );
+					if ( ! isset( $trusted_devices[ $token ] ) ) {
+						/* Token was already rotated by another request - check for new cookie */
+						return true;
+					}
+
+					$new_token = bin2hex( random_bytes( 32 ) );
+					/* SECURITY: Calculate remaining time from old token and apply to new one */
+					$remaining_time = max( 0, $expires - time() );
+					$new_expires    = time() + $remaining_time;
+
+					/* Remove old token and add new one atomically */
+					NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
+					$new_device_data = array(
+						'expires'    => $new_expires,
+						'created'    => is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time(),
+						'user_agent' => is_array( $device_data ) ? ( $device_data['user_agent'] ?? '' ) : '',
+						'ip'         => is_array( $device_data ) ? ( $device_data['ip'] ?? '' ) : '',
+					);
+					NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_device_data );
+
+					/*
+					 * Update cookie with new token.
+					 * SECURITY: 2FA cookies should only be used over HTTPS.
+					 */
+					if ( ! is_ssl() ) {
+						// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Security warning for HTTPS requirement.
+						error_log( 'NBUF Warning: 2FA device trust should only be used over HTTPS connections' );
+					}
+
+					$cookie_name = 'nbuf_2fa_trust_' . $user_id;
+					setcookie(
+						$cookie_name,
+						$new_token,
+						array(
+							'expires'  => $new_expires,
+							'path'     => COOKIEPATH,
+							'domain'   => COOKIE_DOMAIN,
+							'secure'   => true, /* Always use secure flag for 2FA cookies */
+							'httponly' => true,
+							'samesite' => 'Lax',
+						)
+					);
+				} finally {
+					/* Always release lock */
+					$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+				}
 
 				return true;
 			}

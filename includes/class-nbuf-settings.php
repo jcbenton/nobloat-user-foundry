@@ -214,7 +214,6 @@ class NBUF_Settings {
 			'nbuf_account_page_css'                   => 'wp_strip_all_tags',
 			'nbuf_css_load_on_pages'                  => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_css_use_minified'                   => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_css_combine_files'                  => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Security - Login limiting */
 			'nbuf_enable_login_limiting'              => array( __CLASS__, 'sanitize_checkbox' ),
@@ -1059,6 +1058,16 @@ class NBUF_Settings {
 	 * @return void
 	 */
 	public static function display_settings_notices(): void {
+		/*
+		 * Check for activation warning (shown on all admin pages).
+		 * This handles the case where batch_insert failed during activation.
+		 */
+		$activation_warning = get_transient( 'nbuf_activation_warning' );
+		if ( $activation_warning ) {
+			delete_transient( 'nbuf_activation_warning' );
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $activation_warning ) . '</p></div>';
+		}
+
 		/*
 		 * Check if we're on a plugin settings page.
 		 */
@@ -2315,6 +2324,7 @@ class NBUF_Settings {
 			'member-directory'  => 'member-directory.css',
 			'version-history'   => 'version-history.css',
 			'data-export'       => 'data-export.css',
+			'tos-acceptance'    => 'tos-acceptance.css',
 		);
 		$option_map = array(
 			'reset-page'        => 'nbuf_reset_page_css',
@@ -2326,6 +2336,19 @@ class NBUF_Settings {
 			'member-directory'  => 'nbuf_member_directory_custom_css',
 			'version-history'   => 'nbuf_version_history_custom_css',
 			'data-export'       => 'nbuf_data_export_custom_css',
+			'tos-acceptance'    => 'nbuf_tos_acceptance_css',
+		);
+		$token_map  = array(
+			'reset-page'        => 'nbuf_css_write_failed_reset',
+			'login-page'        => 'nbuf_css_write_failed_login',
+			'registration-page' => 'nbuf_css_write_failed_registration',
+			'account-page'      => 'nbuf_css_write_failed_account',
+			'2fa-setup'         => 'nbuf_css_write_failed_2fa',
+			'profile'           => 'nbuf_css_write_failed_profile',
+			'member-directory'  => 'nbuf_css_write_failed_member_directory',
+			'version-history'   => 'nbuf_css_write_failed_version_history',
+			'data-export'       => 'nbuf_css_write_failed_data_export',
+			'tos-acceptance'    => 'nbuf_css_write_failed_tos',
 		);
 
 		if ( empty( $file_map[ $template ] ) ) {
@@ -2355,12 +2378,19 @@ class NBUF_Settings {
 			wp_send_json_error( __( 'Failed to read CSS file.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Delete the custom CSS from database so it falls back to file */
-		NBUF_Options::delete( $option_map[ $template ] );
+		/* Save default CSS to database */
+		NBUF_Options::update( $option_map[ $template ], $content, false, 'css' );
+
+		/* Regenerate the CSS file on disk (force=true to always write) */
+		$disk_success = NBUF_CSS_Manager::save_css_to_disk( $content, $template, $token_map[ $template ], true );
+
+		$message = $disk_success
+			? __( 'CSS restored to default successfully.', 'nobloat-user-foundry' )
+			: __( 'CSS restored to default in database, but disk write failed.', 'nobloat-user-foundry' );
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'CSS restored to default successfully.', 'nobloat-user-foundry' ),
+				'message' => $message,
 				'content' => $content,
 			)
 		);

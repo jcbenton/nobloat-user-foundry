@@ -54,10 +54,10 @@ if ( file_exists( $nbuf_docs_path ) ) {
 	}
 
 	/*
-	* Output the content.
-	*/
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation HTML.
-	echo $nbuf_content;
+	 * Output the content.
+	 * Uses wp_kses_post() to allow standard HTML while stripping dangerous elements.
+	 */
+	echo wp_kses_post( $nbuf_content );
 
 } else {
 	echo '<p>' . esc_html__( 'No documentation file found. Place an HTML file at /docs/plugin-docs.html.', 'nobloat-user-foundry' ) . '</p>';

@@ -28,10 +28,8 @@ if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_sa
 	/* Get and save CSS optimization options */
 	$nbuf_css_load_on_pages = isset( $_POST['nbuf_css_load_on_pages'] ) ? 1 : 0;
 	$nbuf_css_use_minified  = isset( $_POST['nbuf_css_use_minified'] ) ? 1 : 0;
-	$nbuf_css_combine_files = isset( $_POST['nbuf_css_combine_files'] ) ? 1 : 0;
 	NBUF_Options::update( 'nbuf_css_load_on_pages', $nbuf_css_load_on_pages, true, 'settings' );
 	NBUF_Options::update( 'nbuf_css_use_minified', $nbuf_css_use_minified, true, 'settings' );
-	NBUF_Options::update( 'nbuf_css_combine_files', $nbuf_css_combine_files, true, 'settings' );
 
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_reset_page_css', $nbuf_reset_css, false, 'css' );
@@ -39,27 +37,16 @@ if ( isset( $_POST['nbuf_save_styles'] ) && check_admin_referer( 'nbuf_styles_sa
 	NBUF_Options::update( 'nbuf_registration_page_css', $nbuf_registration_css, false, 'css' );
 	NBUF_Options::update( 'nbuf_account_page_css', $nbuf_account_css, false, 'css' );
 
-	/* Try to write to disk with minification */
-	$nbuf_reset_success        = NBUF_CSS_Manager::save_css_to_disk( $nbuf_reset_css, 'reset-page', 'nbuf_css_write_failed' );
-	$nbuf_login_success        = NBUF_CSS_Manager::save_css_to_disk( $nbuf_login_css, 'login-page', 'nbuf_css_write_failed' );
-	$nbuf_registration_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_registration_css, 'registration-page', 'nbuf_css_write_failed' );
-	$nbuf_account_success      = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed' );
-
-	/* Create combined CSS file if option is enabled */
-	$nbuf_combined_success = true;
-	if ( $nbuf_css_combine_files ) {
-		$nbuf_combined_css     = $nbuf_reset_css . "\n\n" . $nbuf_login_css . "\n\n" . $nbuf_registration_css . "\n\n" . $nbuf_account_css;
-		$nbuf_combined_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_combined_css, 'nobloat-combined', 'nbuf_css_write_failed' );
-	}
+	/* Try to write to disk with minification (force=true to always regenerate on explicit save) */
+	$nbuf_reset_success        = NBUF_CSS_Manager::save_css_to_disk( $nbuf_reset_css, 'reset-page', 'nbuf_css_write_failed_reset', true );
+	$nbuf_login_success        = NBUF_CSS_Manager::save_css_to_disk( $nbuf_login_css, 'login-page', 'nbuf_css_write_failed_login', true );
+	$nbuf_registration_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_registration_css, 'registration-page', 'nbuf_css_write_failed_registration', true );
+	$nbuf_account_success      = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed_account', true );
 
 	/* Show appropriate message */
-	if ( $nbuf_reset_success && $nbuf_login_success && $nbuf_registration_success && $nbuf_account_success && $nbuf_combined_success ) {
-		$nbuf_message = __( 'Styles saved successfully and written to disk.', 'nobloat-user-foundry' );
-		if ( $nbuf_css_combine_files ) {
-			$nbuf_message .= ' ' . __( 'Combined CSS file created.', 'nobloat-user-foundry' );
-		}
-		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $nbuf_message ) . '</p></div>';
-	} elseif ( ! $nbuf_reset_success || ! $nbuf_login_success || ! $nbuf_registration_success || ! $nbuf_account_success || ! $nbuf_combined_success ) {
+	if ( $nbuf_reset_success && $nbuf_login_success && $nbuf_registration_success && $nbuf_account_success ) {
+		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Styles saved successfully and written to disk.', 'nobloat-user-foundry' ) . '</p></div>';
+	} else {
 		echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__( 'Styles saved to database, but could not write to disk. Styles will be loaded from database (slightly slower). Check file permissions on /assets/css/frontend/ directory.', 'nobloat-user-foundry' ) . '</p></div>';
 	}
 }
@@ -75,7 +62,6 @@ $nbuf_account_css      = NBUF_Options::get( 'nbuf_account_page_css' );
 /* CSS optimization settings */
 $nbuf_css_load_on_pages = NBUF_Options::get( 'nbuf_css_load_on_pages', true );
 $nbuf_css_use_minified  = NBUF_Options::get( 'nbuf_css_use_minified', true );
-$nbuf_css_combine_files = NBUF_Options::get( 'nbuf_css_combine_files', true );
 
 /* If empty, load from default templates */
 if ( empty( $nbuf_reset_css ) ) {
@@ -145,20 +131,6 @@ $nbuf_has_write_failure = NBUF_CSS_Manager::has_write_failure( 'nbuf_css_write_f
 						</label>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, loads minified .min.css files for better performance. When disabled, loads unminified .css files (useful for debugging). Recommended: Enabled', 'nobloat-user-foundry' ); ?>
-						</p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row">
-						<?php esc_html_e( 'Combine CSS Files', 'nobloat-user-foundry' ); ?>
-					</th>
-					<td>
-						<label>
-							<input type="checkbox" name="nbuf_css_combine_files" value="1" <?php checked( $nbuf_css_combine_files, true ); ?>>
-							<?php esc_html_e( 'Combine CSS into single file', 'nobloat-user-foundry' ); ?>
-						</label>
-						<p class="description">
-							<?php esc_html_e( 'When enabled, all plugin CSS is combined into a single file (nobloat-combined.css or nobloat-combined.min.css) reducing HTTP requests. Individual files are still saved for reference. Recommended: Enabled', 'nobloat-user-foundry' ); ?>
 						</p>
 					</td>
 				</tr>

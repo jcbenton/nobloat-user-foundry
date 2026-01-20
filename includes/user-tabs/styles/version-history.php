@@ -21,8 +21,8 @@ if ( isset( $_POST['nbuf_reset_version_history_css'] ) && check_admin_referer( '
 	/* Save default to database */
 	NBUF_Options::update( 'nbuf_version_history_custom_css', $nbuf_default_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'version-history', 'nbuf_css_write_failed_version_history' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_default_css, 'version-history', 'nbuf_css_write_failed_version_history', true );
 
 
 	if ( $nbuf_success ) {
@@ -43,8 +43,8 @@ if ( isset( $_POST['nbuf_save_version_history_css'] ) && check_admin_referer( 'n
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_version_history_custom_css', $nbuf_version_history_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_version_history_css, 'version-history', 'nbuf_css_write_failed_version_history' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_version_history_css, 'version-history', 'nbuf_css_write_failed_version_history', true );
 
 
 	if ( $nbuf_success ) {

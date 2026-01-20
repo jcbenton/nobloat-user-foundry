@@ -22,8 +22,8 @@ if ( isset( $_POST['nbuf_save_reset_css'] ) && check_admin_referer( 'nbuf_reset_
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_reset_page_css', $nbuf_reset_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_reset_css, 'reset-page', 'nbuf_css_write_failed_reset' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_reset_css, 'reset-page', 'nbuf_css_write_failed_reset', true );
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Reset page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

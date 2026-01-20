@@ -22,13 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class NBUF_Shortcodes {
 
 	/**
-	 * Track whether combined CSS has been loaded.
-	 *
-	 * @var bool
-	 */
-	private static $combined_css_loaded = false;
-
-	/**
 	 * Enqueue frontend CSS for a specific page type.
 	 *
 	 * Called directly from shortcodes to ensure CSS loads
@@ -44,22 +37,7 @@ class NBUF_Shortcodes {
 			return;
 		}
 
-		/* Check if combined CSS is enabled */
-		$use_combined = NBUF_Options::get( 'nbuf_css_combine_files', true );
-
-		if ( $use_combined && ! self::$combined_css_loaded ) {
-			/* Load combined CSS file instead of individual files */
-			if ( NBUF_CSS_Manager::enqueue_combined_css() ) {
-				self::$combined_css_loaded = true;
-				return;
-			}
-			/* Combined file not available, fall through to individual loading */
-		} elseif ( $use_combined && self::$combined_css_loaded ) {
-			/* Combined CSS already loaded, nothing more to do */
-			return;
-		}
-
-		/* Combined disabled - load individual CSS files */
+		/* Load individual CSS files */
 		$css_files = array(
 			'login'        => array( 'nbuf-login', 'login-page', 'nbuf_login_page_css', 'nbuf_css_write_failed_login' ),
 			'registration' => array( 'nbuf-registration', 'registration-page', 'nbuf_registration_page_css', 'nbuf_css_write_failed_registration' ),

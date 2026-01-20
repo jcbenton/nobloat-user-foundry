@@ -22,8 +22,8 @@ if ( isset( $_POST['nbuf_save_register_css'] ) && check_admin_referer( 'nbuf_reg
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_registration_page_css', $nbuf_registration_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_registration_css, 'registration-page', 'nbuf_css_write_failed_registration' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_registration_css, 'registration-page', 'nbuf_css_write_failed_registration', true );
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Registration page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

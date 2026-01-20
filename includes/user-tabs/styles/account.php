@@ -22,8 +22,8 @@ if ( isset( $_POST['nbuf_save_account_css'] ) && check_admin_referer( 'nbuf_acco
 	/* Save to database */
 	NBUF_Options::update( 'nbuf_account_page_css', $nbuf_account_css, false, 'css' );
 
-	/* Write to disk */
-	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed_account' );
+	/* Write to disk (force=true to always regenerate on explicit save) */
+	$nbuf_success = NBUF_CSS_Manager::save_css_to_disk( $nbuf_account_css, 'account-page', 'nbuf_css_write_failed_account', true );
 
 	if ( $nbuf_success ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Account page styles saved successfully.', 'nobloat-user-foundry' ) . '</p></div>';

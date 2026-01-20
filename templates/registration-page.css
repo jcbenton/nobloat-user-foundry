@@ -554,36 +554,42 @@ textarea.nbuf-registration-input {
 
 .nbuf-registration-container .nbuf-policy-tabs {
     display: flex;
-    border-bottom: 1px solid var(--nbuf-border);
+    align-items: center;
+    gap: var(--nbuf-space-sm);
+    padding: var(--nbuf-space-xs);
+    background: #f0f0f1;
+    border-radius: var(--nbuf-radius-md);
 }
 
 .nbuf-registration-container .nbuf-policy-tab-link {
-    padding: var(--nbuf-space-lg) 0;
-    margin-right: var(--nbuf-space-xl);
-    margin-left: var(--nbuf-space-xl);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
     border: none;
+    border-radius: var(--nbuf-radius-md);
     background: transparent;
+    box-shadow: none;
     cursor: pointer;
     font: inherit;
-    font-size: 15px;
-    color: #3a3a56;
-    transition: all var(--nbuf-transition-base);
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-}
-
-.nbuf-registration-container .nbuf-policy-tab-link:first-child {
-    margin-left: var(--nbuf-space-xl);
+    font-size: 14px;
+    font-weight: 500;
+    color: #50575e;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .nbuf-registration-container .nbuf-policy-tab-link:hover {
-    border-bottom-color: #1a325e;
+    color: var(--nbuf-primary);
+    background: rgba(0, 115, 170, 0.08);
 }
 
 .nbuf-registration-container .nbuf-policy-tab-link.active {
-    color: #09092c;
-    font-weight: 500;
-    border-bottom-color: #1a325e;
+    color: var(--nbuf-primary);
+    background: var(--nbuf-surface);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .nbuf-registration-container .nbuf-policy-tab-content {

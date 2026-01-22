@@ -121,7 +121,6 @@
 
 			return hashHex;
 		} catch (error) {
-			console.warn('NBUF Antibot: JS token generation failed', error);
 			return '';
 		}
 	}
@@ -172,10 +171,8 @@
 				await new Promise(resolve => setTimeout(resolve, 0));
 			}
 
-			console.warn('NBUF Antibot: PoW max iterations reached');
 			return '';
 		} catch (error) {
-			console.warn('NBUF Antibot: PoW solving failed', error);
 			return '';
 		}
 	}

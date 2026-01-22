@@ -451,8 +451,6 @@
 			}
 
 		} catch (error) {
-			console.error('Passkey authentication error:', error);
-
 			if (error.name === 'NotAllowedError') {
 				showError(nbufPasskeyLogin.strings?.canceled || 'Authentication canceled.');
 			} else {

@@ -234,8 +234,6 @@
 			reloadWithPasskeysTab();
 
 		} catch (error) {
-			console.error('Passkey registration error:', error);
-
 			let message = 'Registration failed. Please try again.';
 			if (error.name === 'NotAllowedError') {
 				message = 'Registration was canceled or timed out.';
@@ -285,7 +283,6 @@
 			}
 
 		} catch (error) {
-			console.error('Delete error:', error);
 			alert(error.message || 'Failed to delete passkey.');
 			button.disabled = false;
 			button.textContent = 'Delete';
@@ -320,7 +317,6 @@
 			reloadWithPasskeysTab();
 
 		} catch (error) {
-			console.error('Rename error:', error);
 			alert(error.message || 'Failed to rename passkey.');
 			button.disabled = false;
 			button.textContent = 'Rename';

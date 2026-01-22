@@ -59,13 +59,11 @@
 			} else {
 				loadMoreBtn.disabled = false;
 				loadMoreBtn.textContent = originalText;
-				console.error('Activity load failed:', data.data.message);
 			}
 		})
 		.catch(error => {
 			loadMoreBtn.disabled = false;
 			loadMoreBtn.textContent = originalText;
-			console.error('Activity load error:', error);
 		});
 	});
 })();

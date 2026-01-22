@@ -121,7 +121,7 @@ class NBUF_Audit_Log_Page {
 			</div>
 
 			<!-- List table -->
-			<form method="get">
+			<form method="post">
 				<input type="hidden" name="page" value="nobloat-foundry-user-log">
 		<?php
 		$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'audit-log-search' );

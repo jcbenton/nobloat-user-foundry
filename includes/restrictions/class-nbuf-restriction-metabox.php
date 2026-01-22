@@ -219,18 +219,19 @@ class NBUF_Restriction_Metabox {
 				array( '%d', '%s' )
 			);
 
-			/* Log removal */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				NBUF_Audit_Log::log(
+			/* Log removal to admin audit (restriction changes are admin actions) */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
 					get_current_user_id(),
-					'restrictions',
 					'restriction_removed',
+					'success',
 					sprintf(
 					/* translators: 1: Post type, 2: Post title */
 						__( 'Removed access restriction from %1$s "%2$s"', 'nobloat-user-foundry' ),
 						$post->post_type,
 						$post->post_title
 					),
+					null,
 					array(
 						'content_id'   => $post_id,
 						'content_type' => $post->post_type,
@@ -331,18 +332,19 @@ class NBUF_Restriction_Metabox {
 			$action_text = __( 'Added access restriction to %1$s "%2$s"', 'nobloat-user-foundry' );
 		}
 
-		/* Log to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log to admin audit (restriction changes are admin actions) */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'restrictions',
 				$action,
+				'success',
 				sprintf(
 				/* translators: 1: Post type, 2: Post title */
 					$action_text,
 					$post->post_type,
 					$post->post_title
 				),
+				null,
 				array(
 					'content_id'   => $post_id,
 					'content_type' => $post->post_type,

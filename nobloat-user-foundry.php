@@ -388,18 +388,15 @@ add_action(
 			'user_register',
 			function ( $user_id ) {
 				/* Only log if created by admin (not self-registration) */
-				if ( is_admin() && current_user_can( 'create_users' ) ) {
-					$user         = get_userdata( $user_id );
-					$current_user = wp_get_current_user();
-					NBUF_Audit_Log::log(
-						$user_id,
-						'user_created',
+				if ( is_admin() && current_user_can( 'create_users' ) && class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+					$user = get_userdata( $user_id );
+					NBUF_Admin_Audit_Log::log(
+						get_current_user_id(),
+						NBUF_Admin_Audit_Log::EVENT_USER_CREATED,
 						'success',
-						'User created by administrator',
-						array(
-							'username'   => $user->user_login,
-							'created_by' => $current_user->user_login,
-						)
+						__( 'User created by administrator', 'nobloat-user-foundry' ),
+						$user_id,
+						array( 'username' => $user->user_login )
 					);
 				}
 			},
@@ -410,18 +407,17 @@ add_action(
 		add_action(
 			'delete_user',
 			function ( $user_id ) {
-				$user         = get_userdata( $user_id );
-				$current_user = wp_get_current_user();
-				NBUF_Audit_Log::log(
-					$user_id,
-					'user_deleted',
-					'success',
-					'User deleted',
-					array(
-						'username'   => $user ? $user->user_login : 'unknown',
-						'deleted_by' => $current_user ? $current_user->user_login : 'system',
-					)
-				);
+				if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+					$user = get_userdata( $user_id );
+					NBUF_Admin_Audit_Log::log(
+						get_current_user_id(),
+						NBUF_Admin_Audit_Log::EVENT_USER_DELETED,
+						'success',
+						__( 'User deleted', 'nobloat-user-foundry' ),
+						$user_id,
+						array( 'username' => $user ? $user->user_login : 'unknown' )
+					);
+				}
 			}
 		);
 

@@ -251,18 +251,16 @@ class NBUF_Audit_Log {
 		/* Filter by search (username, first/last name, message, IP) */
 		if ( ! empty( $filters['search'] ) ) {
 			/*
-			* PERFORMANCE: Use FULLTEXT search for event_message (100x+ faster on large datasets)
-			* FULLTEXT index was added in Session #30 (HIGH-6 fix)
-			* BOOLEAN MODE with '*' allows prefix matching similar to LIKE '%term%'
-			* Name search uses subquery on wp_usermeta for first_name/last_name
-			*/
-			$where_clauses[] = "(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
+			 * Search across username, event_message, ip_address, and user's first/last name.
+			 * Uses LIKE for accuracy - FULLTEXT tokenizes on underscores which breaks
+			 * username searches like "user_abc123" (would match any message with "user").
+			 */
+			$where_clauses[] = "(username LIKE %s OR event_message LIKE %s OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
 			$search_term     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$search_boolean  = $wpdb->esc_like( $filters['search'] ) . '*';
-			$where_values[]  = $search_term;    // for username LIKE.
-			$where_values[]  = $search_boolean; // for FULLTEXT MATCH...AGAINST.
-			$where_values[]  = $search_term;    // for ip_address LIKE.
-			$where_values[]  = $search_term;    // for first/last name LIKE.
+			$where_values[]  = $search_term; // for username LIKE.
+			$where_values[]  = $search_term; // for event_message LIKE.
+			$where_values[]  = $search_term; // for ip_address LIKE.
+			$where_values[]  = $search_term; // for first/last name LIKE.
 		}
 
 		/* Build WHERE clause */
@@ -341,16 +339,15 @@ class NBUF_Audit_Log {
 		/* Filter by search (username, first/last name, message, IP) */
 		if ( ! empty( $filters['search'] ) ) {
 			/*
-			 * PERFORMANCE: Use FULLTEXT search for event_message (100x+ faster)
-			 * Name search uses subquery on wp_usermeta for first_name/last_name
+			 * Search across username, event_message, ip_address, and user's first/last name.
+			 * Uses LIKE for accuracy (FULLTEXT tokenizes on underscores, breaking username searches).
 			 */
-			$where_clauses[] = "(username LIKE %s OR MATCH(event_message) AGAINST(%s IN BOOLEAN MODE) OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
+			$where_clauses[] = "(username LIKE %s OR event_message LIKE %s OR ip_address LIKE %s OR user_id IN (SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key IN ('first_name', 'last_name') AND meta_value LIKE %s))";
 			$search_term     = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$search_boolean  = $wpdb->esc_like( $filters['search'] ) . '*';
-			$where_values[]  = $search_term;    // for username LIKE.
-			$where_values[]  = $search_boolean; // for FULLTEXT MATCH...AGAINST.
-			$where_values[]  = $search_term;    // for ip_address LIKE.
-			$where_values[]  = $search_term;    // for first/last name LIKE.
+			$where_values[]  = $search_term; // for username LIKE.
+			$where_values[]  = $search_term; // for event_message LIKE.
+			$where_values[]  = $search_term; // for ip_address LIKE.
+			$where_values[]  = $search_term; // for first/last name LIKE.
 		}
 
 		/* Build WHERE clause - $where_sql is built from placeholders with validated values */

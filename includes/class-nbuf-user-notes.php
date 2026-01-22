@@ -118,19 +118,15 @@ class NBUF_User_Notes {
 		);
 
 		if ( $inserted ) {
-			/* Log note creation */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				$user  = get_user_by( 'id', $user_id );
-				$admin = get_user_by( 'id', $created_by );
-				NBUF_Audit_Log::log(
-					$user_id,
+			/* Log note creation to admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					$created_by,
 					'user_note_added',
-					'info',
-					sprintf( 'Admin note added by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array(
-						'note_id'  => $wpdb->insert_id,
-						'admin_id' => $created_by,
-					)
+					'success',
+					__( 'Admin note added to user', 'nobloat-user-foundry' ),
+					$user_id,
+					array( 'note_id' => $wpdb->insert_id )
 				);
 			}
 
@@ -167,19 +163,15 @@ class NBUF_User_Notes {
 		);
 
 		if ( false !== $updated && $note ) {
-			/* Log note update */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				$admin_id = get_current_user_id();
-				$admin    = get_user_by( 'id', $admin_id );
-				NBUF_Audit_Log::log(
-					$note->user_id,
+			/* Log note update to admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					get_current_user_id(),
 					'user_note_updated',
-					'info',
-					sprintf( 'Admin note updated by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array(
-						'note_id'  => $note_id,
-						'admin_id' => $admin_id,
-					)
+					'success',
+					__( 'Admin note updated', 'nobloat-user-foundry' ),
+					$note->user_id,
+					array( 'note_id' => $note_id )
 				);
 			}
 
@@ -210,19 +202,15 @@ class NBUF_User_Notes {
 		);
 
 		if ( $deleted && $note ) {
-			/* Log note deletion */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				$admin_id = get_current_user_id();
-				$admin    = get_user_by( 'id', $admin_id );
-				NBUF_Audit_Log::log(
-					$note->user_id,
+			/* Log note deletion to admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					get_current_user_id(),
 					'user_note_deleted',
-					'info',
-					sprintf( 'Admin note deleted by %s', $admin ? $admin->user_login : 'Unknown' ),
-					array(
-						'note_id'  => $note_id,
-						'admin_id' => $admin_id,
-					)
+					'success',
+					__( 'Admin note deleted', 'nobloat-user-foundry' ),
+					$note->user_id,
+					array( 'note_id' => $note_id )
 				);
 			}
 

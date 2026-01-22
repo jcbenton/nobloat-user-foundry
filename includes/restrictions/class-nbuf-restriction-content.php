@@ -95,12 +95,11 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 				? $restriction['custom_message']
 				: __( 'This content is restricted. Please log in to view.', 'nobloat-user-foundry' );
 
-				/* Log access denial */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						get_current_user_id(),
-						'restrictions',
+				/* Log access denial to security log */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'access_denied_message',
+						'info',
 						sprintf(
 						/* translators: %s: Post title */
 							__( 'Access denied to "%s" - message shown', 'nobloat-user-foundry' ),
@@ -110,7 +109,8 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 							'content_id'   => $post->ID,
 							'content_type' => $post->post_type,
 							'visibility'   => $restriction['visibility'],
-						)
+						),
+						get_current_user_id()
 					);
 				}
 
@@ -179,12 +179,11 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 				? esc_url( $restriction['redirect_url'] )
 				: wp_login_url( get_permalink( $post->ID ) );
 
-				/* Log access denial */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						get_current_user_id(),
-						'restrictions',
+				/* Log access denial to security log */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'access_denied_redirect',
+						'info',
 						sprintf(
 						/* translators: 1: Post title, 2: Redirect URL */
 							__( 'Access denied to "%1$s" - redirected to %2$s', 'nobloat-user-foundry' ),
@@ -196,7 +195,8 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 							'content_type' => $post->post_type,
 							'visibility'   => $restriction['visibility'],
 							'redirect_url' => $url,
-						)
+						),
+						get_current_user_id()
 					);
 				}
 
@@ -205,12 +205,11 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 				exit;
 
 			case '404':
-				/* Log access denial */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						get_current_user_id(),
-						'restrictions',
+				/* Log access denial to security log */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'access_denied_404',
+						'info',
 						sprintf(
 						/* translators: %s: Post title */
 							__( 'Access denied to "%s" - 404 shown', 'nobloat-user-foundry' ),
@@ -220,7 +219,8 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 							'content_id'   => $post->ID,
 							'content_type' => $post->post_type,
 							'visibility'   => $restriction['visibility'],
-						)
+						),
+						get_current_user_id()
 					);
 				}
 

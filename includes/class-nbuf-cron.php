@@ -398,20 +398,27 @@ class NBUF_Cron {
 				continue;
 			}
 
-			/* Log before deletion */
-			NBUF_Audit_Log::log(
-				$user_id,
-				'users',
-				'unverified_account_deleted',
-				'Unverified account auto-deleted after ' . $cleanup_days . ' days',
-				array(
-					'reason'     => 'auto_cleanup',
-					'days'       => $cleanup_days,
-					'username'   => $user->user_login,
-					'email'      => $user->user_email,
-					'registered' => $user->user_registered,
-				)
-			);
+			/* Log before deletion to admin audit log (system action) */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					0, /* System action */
+					NBUF_Admin_Audit_Log::EVENT_USER_DELETED,
+					'success',
+					sprintf(
+						/* translators: %d: Number of days */
+						__( 'Unverified account auto-deleted after %d days', 'nobloat-user-foundry' ),
+						$cleanup_days
+					),
+					$user_id,
+					array(
+						'reason'     => 'auto_cleanup',
+						'days'       => $cleanup_days,
+						'username'   => $user->user_login,
+						'email'      => $user->user_email,
+						'registered' => $user->user_registered,
+					)
+				);
+			}
 
 			/* Delete user (reassign posts to admin if needed) */
 			if ( wp_delete_user( $user_id ) ) {

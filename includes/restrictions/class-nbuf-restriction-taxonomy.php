@@ -111,12 +111,11 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 					$redirect_url = wp_login_url( get_term_link( $term_id, $taxonomy ) );
 				}
 
-				/* Log access denial */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						get_current_user_id(),
-						'restrictions',
+				/* Log access denial to security log */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'taxonomy_access_denied_redirect',
+						'info',
 						sprintf(
 						/* translators: 1: Term name, 2: Taxonomy */
 							__( 'Access denied to %1$s (%2$s) - redirected', 'nobloat-user-foundry' ),
@@ -127,7 +126,8 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 							'term_id'    => $term_id,
 							'taxonomy'   => $taxonomy,
 							'visibility' => $visibility,
-						)
+						),
+						get_current_user_id()
 					);
 				}
 
@@ -136,12 +136,11 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 
 			case '404':
 			default:
-				/* Log access denial */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						get_current_user_id(),
-						'restrictions',
+				/* Log access denial to security log */
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'taxonomy_access_denied_404',
+						'info',
 						sprintf(
 						/* translators: 1: Term name, 2: Taxonomy */
 							__( 'Access denied to %1$s (%2$s) - 404 shown', 'nobloat-user-foundry' ),
@@ -152,7 +151,8 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 							'term_id'    => $term_id,
 							'taxonomy'   => $taxonomy,
 							'visibility' => $visibility,
-						)
+						),
+						get_current_user_id()
 					);
 				}
 

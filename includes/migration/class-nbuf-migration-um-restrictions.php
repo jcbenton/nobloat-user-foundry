@@ -137,18 +137,19 @@ class NBUF_Migration_UM_Restrictions {
 			}
 		}
 
-		/* Log migration to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log migration to admin audit (migration is an admin action) */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'restrictions',
-				'um_restrictions_migrated',
+				'migration_restrictions',
+				'success',
 				sprintf(
 				/* translators: 1: Number of content restrictions, 2: Number of menu restrictions */
 					__( 'Migrated %1$d content restrictions and %2$d menu restrictions from Ultimate Member', 'nobloat-user-foundry' ),
 					$results['migrated'] - $results['menu_migrated'],
 					$results['menu_migrated']
 				),
+				null,
 				$results
 			);
 		}
@@ -366,17 +367,18 @@ class NBUF_Migration_UM_Restrictions {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation.
 		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 
-		/* Log rollback */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log rollback to admin audit */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'restrictions',
-				'um_restrictions_rollback',
+				'migration_rollback',
+				'success',
 				sprintf(
 				/* translators: %d: Number of restrictions deleted */
 					__( 'Rolled back migration - deleted %d content restrictions', 'nobloat-user-foundry' ),
 					$count
 				),
+				null,
 				array( 'deleted_count' => $count )
 			);
 		}

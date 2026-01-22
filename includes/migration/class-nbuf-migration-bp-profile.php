@@ -195,17 +195,18 @@ class NBUF_Migration_BP_Profile {
 			}
 		}
 
-		/* Log migration to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log migration to admin audit (migration is an admin action) */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'migration',
-				'bp_profile_migrated',
+				'migration_profiles',
+				'success',
 				sprintf(
 				/* translators: %d: Number of users migrated */
 					__( 'Migrated %d user profiles from BuddyPress XProfile', 'nobloat-user-foundry' ),
 					$results['migrated']
 				),
+				null,
 				$results
 			);
 		}

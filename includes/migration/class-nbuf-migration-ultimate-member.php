@@ -460,11 +460,10 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 			$user_id_safe = absint( $user_id );
 			if ( $user_id_safe <= 0 ) {
 				/* Invalid user ID, skip photo migration */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						0,
-						'security',
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
 						'invalid_user_id_photo_migration',
+						'warning',
 						__( 'Invalid user ID during photo migration', 'nobloat-user-foundry' ),
 						array( 'attempted_user_id' => $user_id )
 					);
@@ -495,16 +494,16 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 				if ( ! $um_user_dir_real || ! $um_base_dir_real || 0 !== strpos( $um_user_dir_real, $um_base_dir_real ) ) {
 					/* Directory validation failed, log security event */
-					if ( class_exists( 'NBUF_Audit_Log' ) ) {
-						NBUF_Audit_Log::log(
-							$user_id_safe,
-							'security',
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log(
 							'path_traversal_attempt',
+							'critical',
 							__( 'Path traversal attempt detected during photo migration', 'nobloat-user-foundry' ),
 							array(
 								'um_user_dir' => $um_user_dir,
 								'context'     => 'photo_migration_directory',
-							)
+							),
+							$user_id_safe
 						);
 					}
 					$um_user_dir_real = false;
@@ -521,17 +520,17 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 					$source_path_real = realpath( $source_path );
 					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
 						/* Log path traversal attempt */
-						if ( class_exists( 'NBUF_Audit_Log' ) ) {
-							NBUF_Audit_Log::log(
-								$user_id_safe,
-								'security',
+						if ( class_exists( 'NBUF_Security_Log' ) ) {
+							NBUF_Security_Log::log(
 								'path_traversal_attempt',
+								'critical',
 								__( 'Path traversal attempt detected during profile photo migration', 'nobloat-user-foundry' ),
 								array(
 									'filename'    => $profile_photo_filename,
 									'source_path' => $source_path,
 									'context'     => 'profile_photo_migration',
-								)
+								),
+								$user_id_safe
 							);
 						}
 					} else {
@@ -560,17 +559,17 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 					$source_path_real = realpath( $source_path );
 					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
 						/* Log path traversal attempt */
-						if ( class_exists( 'NBUF_Audit_Log' ) ) {
-							NBUF_Audit_Log::log(
-								$user_id_safe,
-								'security',
+						if ( class_exists( 'NBUF_Security_Log' ) ) {
+							NBUF_Security_Log::log(
 								'path_traversal_attempt',
+								'critical',
 								__( 'Path traversal attempt detected during cover photo migration', 'nobloat-user-foundry' ),
 								array(
 									'filename'    => $cover_photo_filename,
 									'source_path' => $source_path,
 									'context'     => 'cover_photo_migration',
-								)
+								),
+								$user_id_safe
 							);
 						}
 					} else {
@@ -703,13 +702,14 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 			}
 		}
 
-		/* Log to audit if enabled */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
-				$user_id,
-				'users',
+		/* Log to admin audit (migration is an admin action) */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
 				'migration_imported',
+				'success',
 				__( 'User data imported from Ultimate Member', 'nobloat-user-foundry' ),
+				$user_id,
 				array(
 					'source_plugin' => 'Ultimate Member',
 					'verified'      => $user_data['is_verified'],

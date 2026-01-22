@@ -620,21 +620,24 @@ class NBUF_Account_Merger {
 				}
 			}
 
-			/* Log merge in audit log */
-			NBUF_Audit_Log::log(
-				$args['primary_id'],
-				'account_merge',
-				'success',
-				sprintf(
-				/* translators: %d: Number of accounts merged */
-					__( 'Merged %d accounts into this account', 'nobloat-user-foundry' ),
-					count( $secondary_ids )
-				),
-				array(
-					'merged_ids' => $secondary_ids,
-					'action'     => $args['secondary_action'],
-				)
-			);
+			/* Log merge in admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					get_current_user_id(),
+					NBUF_Admin_Audit_Log::EVENT_ACCOUNT_MERGE,
+					'success',
+					sprintf(
+					/* translators: %d: Number of accounts merged */
+						__( 'Merged %d accounts into this account', 'nobloat-user-foundry' ),
+						count( $secondary_ids )
+					),
+					$args['primary_id'],
+					array(
+						'merged_ids' => $secondary_ids,
+						'action'     => $args['secondary_action'],
+					)
+				);
+			}
 
 			/*
 			 * Commit transaction
@@ -822,7 +825,7 @@ class NBUF_Account_Merger {
 		}
 
 		/* Log field choices applied */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
 			$source_chosen = array_keys(
 				array_filter(
 					$field_choices,
@@ -832,8 +835,8 @@ class NBUF_Account_Merger {
 				)
 			);
 			if ( ! empty( $source_chosen ) ) {
-				NBUF_Audit_Log::log(
-					$target_id,
+				NBUF_Admin_Audit_Log::log(
+					get_current_user_id(),
 					'account_merge_fields',
 					'success',
 					sprintf(
@@ -841,6 +844,7 @@ class NBUF_Account_Merger {
 						__( 'Applied source account values for fields: %s', 'nobloat-user-foundry' ),
 						implode( ', ', $source_chosen )
 					),
+					$target_id,
 					array(
 						'source_id'      => $source_id,
 						'fields_applied' => $source_chosen,
@@ -1094,13 +1098,14 @@ If you did not request this merge or have questions, please contact the site adm
 					)
 				);
 
-				/* Log deletion to audit trail */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						$primary_id,
+				/* Log deletion to admin audit trail */
+				if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+					NBUF_Admin_Audit_Log::log(
+						get_current_user_id(),
 						'photo_delete',
 						'success',
-						'All profile photos deleted during account merge',
+						__( 'All profile photos deleted during account merge', 'nobloat-user-foundry' ),
+						$primary_id,
 						array(
 							'photo_type' => 'profile',
 							'delete_all' => true,
@@ -1213,13 +1218,14 @@ If you did not request this merge or have questions, please contact the site adm
 										$user_data['profile_photo_path'] = $dest_path;
 										NBUF_User_Data::update( $primary_id, $user_data );
 
-										/* Log photo copy to audit trail */
-										if ( class_exists( 'NBUF_Audit_Log' ) ) {
-											NBUF_Audit_Log::log(
-												$primary_id,
+										/* Log photo copy to admin audit trail */
+										if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+											NBUF_Admin_Audit_Log::log(
+												get_current_user_id(),
 												'photo_merge',
 												'success',
-												'Profile photo copied during account merge',
+												__( 'Profile photo copied during account merge', 'nobloat-user-foundry' ),
+												$primary_id,
 												array(
 													'photo_type'     => 'profile',
 													'source_user_id' => $selected_user_id,
@@ -1307,13 +1313,14 @@ If you did not request this merge or have questions, please contact the site adm
 					)
 				);
 
-				/* Log deletion to audit trail */
-				if ( class_exists( 'NBUF_Audit_Log' ) ) {
-					NBUF_Audit_Log::log(
-						$primary_id,
+				/* Log deletion to admin audit trail */
+				if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+					NBUF_Admin_Audit_Log::log(
+						get_current_user_id(),
 						'photo_delete',
 						'success',
-						'All cover photos deleted during account merge',
+						__( 'All cover photos deleted during account merge', 'nobloat-user-foundry' ),
+						$primary_id,
 						array(
 							'photo_type' => 'cover',
 							'delete_all' => true,
@@ -1426,13 +1433,14 @@ If you did not request this merge or have questions, please contact the site adm
 										$user_data['cover_photo_path'] = $dest_path;
 										NBUF_User_Data::update( $primary_id, $user_data );
 
-										/* Log photo copy to audit trail */
-										if ( class_exists( 'NBUF_Audit_Log' ) ) {
-											NBUF_Audit_Log::log(
-												$primary_id,
+										/* Log photo copy to admin audit trail */
+										if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+											NBUF_Admin_Audit_Log::log(
+												get_current_user_id(),
 												'photo_merge',
 												'success',
-												'Cover photo copied during account merge',
+												__( 'Cover photo copied during account merge', 'nobloat-user-foundry' ),
+												$primary_id,
 												array(
 													'photo_type'     => 'cover',
 													'source_user_id' => $selected_user_id,
@@ -1551,21 +1559,7 @@ If you did not request this merge or have questions, please contact the site adm
 				)
 			);
 
-			/* Log attempted privilege escalation in audit log */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				NBUF_Audit_Log::log(
-					$current_user->ID,
-					'security_violation',
-					'blocked',
-					'Attempted privilege escalation during account merge',
-					array(
-						'attempted_role' => $selected_highest_role,
-						'current_role'   => $current_highest_role,
-						'target_user_id' => $primary_id,
-						'source_user_id' => $selected_user_id,
-					)
-				);
-			}
+			/* Security violation already logged to NBUF_Security_Log above */
 			return;
 		}
 
@@ -1581,17 +1575,17 @@ If you did not request this merge or have questions, please contact the site adm
 				$primary_user->add_role( $role );
 			}
 
-			/* Log role change in audit log */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				NBUF_Audit_Log::log(
-					$primary_id,
-					'role_change',
+			/* Log role change in admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
+					$current_user->ID,
+					NBUF_Admin_Audit_Log::EVENT_ROLE_CHANGED,
 					'success',
-					'User roles updated during account merge',
+					__( 'User roles updated during account merge', 'nobloat-user-foundry' ),
+					$primary_id,
 					array(
 						'new_roles'      => $selected_user->roles,
 						'source_user_id' => $selected_user_id,
-						'performed_by'   => $current_user->ID,
 						'performer_role' => $current_highest_role,
 					)
 				);

@@ -373,25 +373,25 @@ class NBUF_Multi_Role {
 			$updated_user->add_role( 'subscriber' );
 		}
 
-		/* Log the change */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
+		/* Log the change to admin audit log */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
 			$added   = array_diff( $new_roles, $current_roles );
 			$removed = array_diff( $current_roles, $new_roles );
 
 			if ( ! empty( $added ) || ! empty( $removed ) ) {
-				NBUF_Audit_Log::log(
-					$user_id,
-					'account',
-					'roles_changed',
+				NBUF_Admin_Audit_Log::log(
+					get_current_user_id(),
+					NBUF_Admin_Audit_Log::EVENT_ROLE_CHANGED,
+					'success',
 					sprintf(
 						/* translators: %s: User display name */
 						__( 'Roles updated for user "%s"', 'nobloat-user-foundry' ),
 						$user->display_name
 					),
+					$user_id,
 					array(
-						'added'      => $added,
-						'removed'    => $removed,
-						'changed_by' => get_current_user_id(),
+						'added'   => $added,
+						'removed' => $removed,
 					)
 				);
 			}

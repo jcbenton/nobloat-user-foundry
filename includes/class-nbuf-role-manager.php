@@ -189,17 +189,18 @@ class NBUF_Role_Manager {
 		/* Clear caches */
 		self::clear_cache();
 
-		/* Log to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log to admin audit log */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'roles',
 				'role_created',
+				'success',
 				sprintf(
 				/* translators: %s: Role name */
 					__( 'Created role "%s"', 'nobloat-user-foundry' ),
 					$role_name
 				),
+				null,
 				array(
 					'role_key'     => $role_key,
 					'capabilities' => count( $final_capabilities ),
@@ -277,17 +278,18 @@ class NBUF_Role_Manager {
 		/* Clear caches */
 		self::clear_cache();
 
-		/* Log to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log to admin audit log */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'roles',
 				'role_updated',
+				'success',
 				sprintf(
 				/* translators: %s: Role key */
 					__( 'Updated role "%s"', 'nobloat-user-foundry' ),
 					$role_key
 				),
+				null,
 				array(
 					'role_key' => $role_key,
 					'updates'  => array_keys( $updates ),
@@ -347,18 +349,19 @@ class NBUF_Role_Manager {
 		/* Clear caches */
 		self::clear_cache();
 
-		/* Log to audit */
-		if ( class_exists( 'NBUF_Audit_Log' ) ) {
-			NBUF_Audit_Log::log(
+		/* Log to admin audit log */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
-				'roles',
 				'role_deleted',
+				'success',
 				sprintf(
 				/* translators: 1: Role key, 2: Number of users reassigned */
 					__( 'Deleted role "%1$s" and reassigned %2$d users', 'nobloat-user-foundry' ),
 					$role_key,
 					count( $users )
 				),
+				null,
 				array(
 					'role_key'      => $role_key,
 					'users_count'   => count( $users ),
@@ -667,17 +670,18 @@ class NBUF_Role_Manager {
 		if ( $results['adopted'] > 0 ) {
 			self::clear_cache();
 
-			/* Log to audit */
-			if ( class_exists( 'NBUF_Audit_Log' ) ) {
-				NBUF_Audit_Log::log(
+			/* Log to admin audit log */
+			if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+				NBUF_Admin_Audit_Log::log(
 					get_current_user_id(),
-					'roles',
 					'roles_adopted',
+					'success',
 					sprintf(
 						/* translators: %d: Number of roles adopted */
 						__( 'Adopted %d orphaned roles during migration', 'nobloat-user-foundry' ),
 						$results['adopted']
 					),
+					null,
 					$results
 				);
 			}

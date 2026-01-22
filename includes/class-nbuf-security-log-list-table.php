@@ -54,7 +54,6 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 			'event_type'       => __( 'Event Type', 'nobloat-user-foundry' ),
 			'ip_address'       => __( 'IP Address', 'nobloat-user-foundry' ),
 			'message'          => __( 'Message', 'nobloat-user-foundry' ),
-			'context'          => __( 'Context', 'nobloat-user-foundry' ),
 		);
 	}
 
@@ -166,20 +165,77 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 * @return string Formatted event type
 	 */
 	public function column_event_type( $item ) {
+		$label = self::get_event_type_label( $item->event_type );
+		return '<code>' . esc_html( $label ) . '</code>';
+	}
+
+	/**
+	 * Get human-readable label for event type
+	 *
+	 * @param  string $event_type Event type slug.
+	 * @return string Human-readable label.
+	 */
+	public static function get_event_type_label( string $event_type ): string {
 		$event_labels = array(
+			/* Login & Authentication */
 			'login_failed'                     => __( 'Login Failed', 'nobloat-user-foundry' ),
 			'login_blocked'                    => __( 'Login Blocked', 'nobloat-user-foundry' ),
+			'ip_blocked'                       => __( 'IP Blocked', 'nobloat-user-foundry' ),
 			'distributed_brute_force_detected' => __( 'Distributed Brute Force', 'nobloat-user-foundry' ),
+			/* Registration */
+			'registration_bot_blocked'         => __( 'Bot Registration Blocked', 'nobloat-user-foundry' ),
+			'email_domain_blocked'             => __( 'Email Domain Blocked', 'nobloat-user-foundry' ),
+			/* Magic Links */
+			'magic_link_sent'                  => __( 'Magic Link Sent', 'nobloat-user-foundry' ),
+			'magic_link_used'                  => __( 'Magic Link Used', 'nobloat-user-foundry' ),
+			'magic_link_insert_failed'         => __( 'Magic Link Insert Failed', 'nobloat-user-foundry' ),
+			/* Passkeys */
+			'passkey_rate_limited'             => __( 'Passkey Rate Limited', 'nobloat-user-foundry' ),
+			'passkey_clone_detected'           => __( 'Passkey Clone Detected', 'nobloat-user-foundry' ),
+			/* Impersonation */
+			'impersonation_start'              => __( 'Impersonation Started', 'nobloat-user-foundry' ),
+			'impersonation_ip_mismatch'        => __( 'Impersonation IP Mismatch', 'nobloat-user-foundry' ),
+			/* Access Control */
+			'access_denied_message'            => __( 'Access Denied (Message)', 'nobloat-user-foundry' ),
+			'access_denied_redirect'           => __( 'Access Denied (Redirect)', 'nobloat-user-foundry' ),
+			'access_denied_404'                => __( 'Access Denied (404)', 'nobloat-user-foundry' ),
+			'taxonomy_access_denied_redirect'  => __( 'Taxonomy Access Denied (Redirect)', 'nobloat-user-foundry' ),
+			'taxonomy_access_denied_404'       => __( 'Taxonomy Access Denied (404)', 'nobloat-user-foundry' ),
 			'privilege_escalation_blocked'     => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
+			/* Security */
+			'open_redirect_blocked'            => __( 'Open Redirect Blocked', 'nobloat-user-foundry' ),
+			'csrf_origin_mismatch'             => __( 'CSRF Origin Mismatch', 'nobloat-user-foundry' ),
+			'path_traversal_attempt'           => __( 'Path Traversal Attempt', 'nobloat-user-foundry' ),
+			'csv_injection_prevented'          => __( 'CSV Injection Prevented', 'nobloat-user-foundry' ),
+			/* Account Merge */
+			'account_merge_rollback'           => __( 'Account Merge Rollback', 'nobloat-user-foundry' ),
 			'invalid_photo_selection'          => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
+			/* File Operations */
+			'file_read_failed'                 => __( 'File Read Failed', 'nobloat-user-foundry' ),
 			'file_validation_failed'           => __( 'File Validation Failed', 'nobloat-user-foundry' ),
 			'file_not_found'                   => __( 'File Not Found', 'nobloat-user-foundry' ),
 			'file_integrity_failed'            => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
 			'file_copy_failed'                 => __( 'File Copy Failed', 'nobloat-user-foundry' ),
+			'file_deletion_failed'             => __( 'File Deletion Failed', 'nobloat-user-foundry' ),
+			'invalid_mime_type'                => __( 'Invalid MIME Type', 'nobloat-user-foundry' ),
+			'rmdir_failed'                     => __( 'Directory Removal Failed', 'nobloat-user-foundry' ),
+			/* Image Processing */
+			'image_validation_failed'          => __( 'Image Validation Failed', 'nobloat-user-foundry' ),
+			'image_create_failed'              => __( 'Image Create Failed', 'nobloat-user-foundry' ),
+			'image_copy_failed'                => __( 'Image Copy Failed', 'nobloat-user-foundry' ),
+			'webp_conversion_failed'           => __( 'WebP Conversion Failed', 'nobloat-user-foundry' ),
+			/* CSS */
+			'css_read_failed'                  => __( 'CSS Read Failed', 'nobloat-user-foundry' ),
+			'css_write_failed'                 => __( 'CSS Write Failed', 'nobloat-user-foundry' ),
+			'css_minify_write_failed'          => __( 'CSS Minify Write Failed', 'nobloat-user-foundry' ),
+			/* Export */
+			'csv_output_failed'                => __( 'CSV Output Failed', 'nobloat-user-foundry' ),
+			'data_export_failed'               => __( 'Data Export Failed', 'nobloat-user-foundry' ),
+			/* Migration */
+			'invalid_user_id_photo_migration'  => __( 'Invalid User ID (Photo Migration)', 'nobloat-user-foundry' ),
 		);
 
-		$label = isset( $event_labels[ $item->event_type ] ) ? $event_labels[ $item->event_type ] : $item->event_type;
-		return '<code>' . esc_html( $label ) . '</code>';
+		return isset( $event_labels[ $event_type ] ) ? $event_labels[ $event_type ] : $event_type;
 	}
 
 	/**
@@ -199,36 +255,29 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	 * Render message column
 	 *
 	 * @param  object $item Log entry.
-	 * @return string Security event message
+	 * @return string Security event message with optional context button
 	 */
 	public function column_message( $item ) {
-		return esc_html( $item->message );
-	}
+		$output = esc_html( $item->message );
 
-	/**
-	 * Render context column with modal popup button
-	 *
-	 * @param  object $item Log entry.
-	 * @return string Context data button that opens modal
-	 */
-	public function column_context( $item ) {
-		if ( empty( $item->context ) ) {
-			return '<span class="nbuf-muted">—</span>';
+		/* Add View Details button if context available */
+		if ( ! empty( $item->context ) ) {
+			$context = $item->context;
+
+			/* If context is JSON string, decode it for the data attribute */
+			$decoded = json_decode( $context, true );
+			if ( json_last_error() !== JSON_ERROR_NONE || ! is_array( $decoded ) ) {
+				$decoded = array( 'raw' => $context );
+			}
+
+			$output .= sprintf(
+				'<br><button type="button" class="button button-small nbuf-view-context" data-context="%s">%s</button>',
+				esc_attr( wp_json_encode( $decoded ) ),
+				esc_html__( 'View Details', 'nobloat-user-foundry' )
+			);
 		}
 
-		$context = $item->context;
-
-		/* If context is JSON string, decode it for the data attribute */
-		$decoded = json_decode( $context, true );
-		if ( json_last_error() !== JSON_ERROR_NONE || ! is_array( $decoded ) ) {
-			$decoded = array( 'raw' => $context );
-		}
-
-		return sprintf(
-			'<button type="button" class="button button-small nbuf-view-context" data-context="%s">%s</button>',
-			esc_attr( wp_json_encode( $decoded ) ),
-			esc_html__( 'View Details', 'nobloat-user-foundry' )
-		);
+		return $output;
 	}
 
 	/**
@@ -397,15 +446,62 @@ class NBUF_Security_Log_List_Table extends WP_List_Table {
 	private function event_type_dropdown(): void {
 		$event_types = array(
 			''                                 => __( 'All Event Types', 'nobloat-user-foundry' ),
+			/* Login & Authentication */
 			'login_failed'                     => __( 'Login Failed', 'nobloat-user-foundry' ),
 			'login_blocked'                    => __( 'Login Blocked', 'nobloat-user-foundry' ),
+			'ip_blocked'                       => __( 'IP Blocked', 'nobloat-user-foundry' ),
 			'distributed_brute_force_detected' => __( 'Distributed Brute Force', 'nobloat-user-foundry' ),
+			/* Registration */
+			'registration_bot_blocked'         => __( 'Bot Registration Blocked', 'nobloat-user-foundry' ),
+			'email_domain_blocked'             => __( 'Email Domain Blocked', 'nobloat-user-foundry' ),
+			/* Magic Links */
+			'magic_link_sent'                  => __( 'Magic Link Sent', 'nobloat-user-foundry' ),
+			'magic_link_used'                  => __( 'Magic Link Used', 'nobloat-user-foundry' ),
+			'magic_link_insert_failed'         => __( 'Magic Link Insert Failed', 'nobloat-user-foundry' ),
+			/* Passkeys */
+			'passkey_rate_limited'             => __( 'Passkey Rate Limited', 'nobloat-user-foundry' ),
+			'passkey_clone_detected'           => __( 'Passkey Clone Detected', 'nobloat-user-foundry' ),
+			/* Impersonation */
+			'impersonation_start'              => __( 'Impersonation Started', 'nobloat-user-foundry' ),
+			'impersonation_ip_mismatch'        => __( 'Impersonation IP Mismatch', 'nobloat-user-foundry' ),
+			/* Access Control */
+			'access_denied_message'            => __( 'Access Denied (Message)', 'nobloat-user-foundry' ),
+			'access_denied_redirect'           => __( 'Access Denied (Redirect)', 'nobloat-user-foundry' ),
+			'access_denied_404'                => __( 'Access Denied (404)', 'nobloat-user-foundry' ),
+			'taxonomy_access_denied_redirect'  => __( 'Taxonomy Access Denied (Redirect)', 'nobloat-user-foundry' ),
+			'taxonomy_access_denied_404'       => __( 'Taxonomy Access Denied (404)', 'nobloat-user-foundry' ),
 			'privilege_escalation_blocked'     => __( 'Privilege Escalation Blocked', 'nobloat-user-foundry' ),
+			/* Security */
+			'open_redirect_blocked'            => __( 'Open Redirect Blocked', 'nobloat-user-foundry' ),
+			'csrf_origin_mismatch'             => __( 'CSRF Origin Mismatch', 'nobloat-user-foundry' ),
+			'path_traversal_attempt'           => __( 'Path Traversal Attempt', 'nobloat-user-foundry' ),
+			'csv_injection_prevented'          => __( 'CSV Injection Prevented', 'nobloat-user-foundry' ),
+			/* Account Merge */
+			'account_merge_rollback'           => __( 'Account Merge Rollback', 'nobloat-user-foundry' ),
 			'invalid_photo_selection'          => __( 'Invalid Photo Selection', 'nobloat-user-foundry' ),
+			/* File Operations */
+			'file_read_failed'                 => __( 'File Read Failed', 'nobloat-user-foundry' ),
 			'file_validation_failed'           => __( 'File Validation Failed', 'nobloat-user-foundry' ),
 			'file_not_found'                   => __( 'File Not Found', 'nobloat-user-foundry' ),
 			'file_integrity_failed'            => __( 'File Integrity Failed', 'nobloat-user-foundry' ),
 			'file_copy_failed'                 => __( 'File Copy Failed', 'nobloat-user-foundry' ),
+			'file_deletion_failed'             => __( 'File Deletion Failed', 'nobloat-user-foundry' ),
+			'invalid_mime_type'                => __( 'Invalid MIME Type', 'nobloat-user-foundry' ),
+			'rmdir_failed'                     => __( 'Directory Removal Failed', 'nobloat-user-foundry' ),
+			/* Image Processing */
+			'image_validation_failed'          => __( 'Image Validation Failed', 'nobloat-user-foundry' ),
+			'image_create_failed'              => __( 'Image Create Failed', 'nobloat-user-foundry' ),
+			'image_copy_failed'                => __( 'Image Copy Failed', 'nobloat-user-foundry' ),
+			'webp_conversion_failed'           => __( 'WebP Conversion Failed', 'nobloat-user-foundry' ),
+			/* CSS */
+			'css_read_failed'                  => __( 'CSS Read Failed', 'nobloat-user-foundry' ),
+			'css_write_failed'                 => __( 'CSS Write Failed', 'nobloat-user-foundry' ),
+			'css_minify_write_failed'          => __( 'CSS Minify Write Failed', 'nobloat-user-foundry' ),
+			/* Export */
+			'csv_output_failed'                => __( 'CSV Output Failed', 'nobloat-user-foundry' ),
+			'data_export_failed'               => __( 'Data Export Failed', 'nobloat-user-foundry' ),
+			/* Migration */
+			'invalid_user_id_photo_migration'  => __( 'Invalid User ID (Photo Migration)', 'nobloat-user-foundry' ),
 		);
 
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only dropdown filter display

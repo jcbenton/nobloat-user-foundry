@@ -945,10 +945,13 @@ class NBUF_Security_Log {
 			}
 		}
 
-		/* Search in message */
+		/* Search in message, IP address, and event type */
 		if ( ! empty( $args['search'] ) ) {
-			$where[]      = 'message LIKE %s';
-			$where_args[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$search_term  = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$where[]      = '(message LIKE %s OR ip_address LIKE %s OR event_type LIKE %s)';
+			$where_args[] = $search_term;
+			$where_args[] = $search_term;
+			$where_args[] = $search_term;
 		}
 
 		/* Whitelist allowed orderby columns to prevent SQL injection */
@@ -1030,9 +1033,13 @@ class NBUF_Security_Log {
 			}
 		}
 
+		/* Search in message, IP address, and event type */
 		if ( ! empty( $args['search'] ) ) {
-			$where[]      = 'message LIKE %s';
-			$where_args[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$search_term  = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$where[]      = '(message LIKE %s OR ip_address LIKE %s OR event_type LIKE %s)';
+			$where_args[] = $search_term;
+			$where_args[] = $search_term;
+			$where_args[] = $search_term;
 		}
 
 		/* Build WHERE clause */

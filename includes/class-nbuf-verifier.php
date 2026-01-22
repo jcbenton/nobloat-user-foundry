@@ -146,7 +146,7 @@ class NBUF_Verifier {
 			 * Check for pending email change.
 			 * If this verification is for a pending email, apply the change.
 			 */
-			$pending_email = get_user_meta( $user_id, 'nbuf_pending_email', true );
+			$pending_email = NBUF_User_Data::get_pending_email( $user_id );
 			if ( $pending_email && strtolower( $pending_email ) === strtolower( $entry->user_email ) ) {
 				/* Get old email for notification */
 				$user      = get_userdata( $user_id );
@@ -180,7 +180,7 @@ class NBUF_Verifier {
 					$email_was_changed = true;
 
 					/* Clear pending email */
-					delete_user_meta( $user_id, 'nbuf_pending_email' );
+					NBUF_User_Data::clear_pending_email( $user_id );
 
 					/* Send notification to old email */
 					if ( $old_email && class_exists( 'NBUF_Shortcodes' ) ) {

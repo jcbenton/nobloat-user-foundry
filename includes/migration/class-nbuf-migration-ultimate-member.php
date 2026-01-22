@@ -486,14 +486,19 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 				/*
 				 * Validate directory path using realpath()
+				 * Note: realpath() returns false if directory doesn't exist (normal case)
+				 * Only log security event if actual path traversal detected (.. in path)
 				 */
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
 				$um_user_dir_real = realpath( $um_user_dir );
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
 				$um_base_dir_real = realpath( $um_base_dir );
 
-				if ( ! $um_user_dir_real || ! $um_base_dir_real || 0 !== strpos( $um_user_dir_real, $um_base_dir_real ) ) {
-					/* Directory validation failed, log security event */
+				if ( ! $um_user_dir_real || ! $um_base_dir_real ) {
+					/* Directory doesn't exist - normal case, not a security event */
+					$um_user_dir_real = false;
+				} elseif ( 0 !== strpos( $um_user_dir_real, $um_base_dir_real ) ) {
+					/* User directory is outside base directory - actual path traversal */
 					if ( class_exists( 'NBUF_Security_Log' ) ) {
 						NBUF_Security_Log::log(
 							'path_traversal_attempt',
@@ -515,11 +520,16 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 					/*
 					 * Verify path is within allowed directory
+					 * Note: realpath() returns false if file doesn't exist (normal case)
 					 */
 					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
 					$source_path_real = realpath( $source_path );
-					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
-						/* Log path traversal attempt */
+
+					// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- Intentional: file not existing is normal case.
+					if ( ! $source_path_real ) {
+						// File doesn't exist - normal case, skip silently.
+					} elseif ( 0 !== strpos( $source_path_real, $um_user_dir_real ) ) {
+						// File is outside user directory - actual path traversal.
 						if ( class_exists( 'NBUF_Security_Log' ) ) {
 							NBUF_Security_Log::log(
 								'path_traversal_attempt',
@@ -554,11 +564,16 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 					/*
 					 * Verify path is within allowed directory
+					 * Note: realpath() returns false if file doesn't exist (normal case)
 					 */
 					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
 					$source_path_real = realpath( $source_path );
-					if ( ! $source_path_real || 0 !== strpos( $source_path_real, $um_user_dir_real ) || ! file_exists( $source_path_real ) ) {
-						/* Log path traversal attempt */
+
+					// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- Intentional: file not existing is normal case.
+					if ( ! $source_path_real ) {
+						// File doesn't exist - normal case, skip silently.
+					} elseif ( 0 !== strpos( $source_path_real, $um_user_dir_real ) ) {
+						// File is outside user directory - actual path traversal.
 						if ( class_exists( 'NBUF_Security_Log' ) ) {
 							NBUF_Security_Log::log(
 								'path_traversal_attempt',

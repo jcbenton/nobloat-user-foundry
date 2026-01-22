@@ -317,8 +317,8 @@ class NBUF_Admin_Users {
 		}
 
 		/* Reset 2FA link for users with 2FA enabled */
-		$twofa_method = get_user_meta( $user->ID, 'nbuf_2fa_method', true );
-		if ( ! empty( $twofa_method ) && 'disabled' !== $twofa_method ) {
+		$twofa_method = NBUF_User_2FA_Data::get_method( $user->ID );
+		if ( ! empty( $twofa_method ) ) {
 			$url = wp_nonce_url(
 				add_query_arg(
 					array(
@@ -829,44 +829,11 @@ class NBUF_Admin_Users {
 		$disabled_count   = NBUF_User_Data::get_count( 'disabled' );
 		$expired_count    = NBUF_User_Data::get_count( 'expired' );
 
-		/* Get 2FA counts */
-
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$twofa_enabled_count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(DISTINCT user_id) FROM %i
-				WHERE meta_key = 'nbuf_2fa_method'
-				AND meta_value IN ('email', 'totp', 'both')",
-				$wpdb->usermeta
-			)
-		);
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$twofa_email_count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(user_id) FROM %i
-				WHERE meta_key = 'nbuf_2fa_method'
-				AND meta_value = 'email'",
-				$wpdb->usermeta
-			)
-		);
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$twofa_totp_count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(user_id) FROM %i
-				WHERE meta_key = 'nbuf_2fa_method'
-				AND meta_value = 'totp'",
-				$wpdb->usermeta
-			)
-		);
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$twofa_both_count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(user_id) FROM %i
-				WHERE meta_key = 'nbuf_2fa_method'
-				AND meta_value = 'both'",
-				$wpdb->usermeta
-			)
-		);
+		/* Get 2FA counts from custom table */
+		$twofa_enabled_count = NBUF_User_2FA_Data::get_count();
+		$twofa_email_count   = NBUF_User_2FA_Data::get_count( 'email' );
+		$twofa_totp_count    = NBUF_User_2FA_Data::get_count( 'totp' );
+		$twofa_both_count    = NBUF_User_2FA_Data::get_count( 'both' );
 
 		/* Add JavaScript to update filter labels with counts */
 		?>

@@ -67,6 +67,7 @@ class NBUF_Migration {
 		add_action( 'wp_ajax_nbuf_get_restrictions_preview', array( __CLASS__, 'ajax_get_restrictions_preview' ) );
 		add_action( 'wp_ajax_nbuf_execute_migration', array( __CLASS__, 'ajax_execute_migration' ) );
 		add_action( 'wp_ajax_nbuf_execute_migration_batch', array( __CLASS__, 'ajax_execute_migration_batch' ) );
+		add_action( 'wp_ajax_nbuf_delete_migration_history', array( __CLASS__, 'ajax_delete_migration_history' ) );
 	}
 
 	/**
@@ -915,6 +916,15 @@ class NBUF_Migration {
 
 		$results = array();
 
+		/* Get cumulative results from transient (for tracking totals across batches) */
+		$cumulative_key     = 'nbuf_migration_cumulative_' . $user_id;
+		$cumulative_results = get_transient( $cumulative_key );
+
+		if ( 0 === $batch_offset || false === $cumulative_results ) {
+			/* First batch - initialize cumulative results */
+			$cumulative_results = array();
+		}
+
 		/* Execute profile data migration for this batch */
 		if ( in_array( 'profile_data', $migration_types, true ) ) {
 			if ( 'ultimate-member' === $plugin_slug ) {
@@ -983,6 +993,37 @@ class NBUF_Migration {
 		$processed = $batch_offset + $batch_size;
 
 		/*
+		 * Accumulate batch results into cumulative totals.
+		 * This ensures the final history log shows total counts, not just the last batch.
+		 */
+		foreach ( $results as $type => $data ) {
+			if ( ! isset( $cumulative_results[ $type ] ) ) {
+				$cumulative_results[ $type ] = array(
+					'imported' => 0,
+					'migrated' => 0,
+					'skipped'  => 0,
+					'total'    => 0,
+					'errors'   => array(),
+				);
+			}
+
+			$cumulative_results[ $type ]['imported'] += ( $data['imported'] ?? 0 );
+			$cumulative_results[ $type ]['migrated'] += ( $data['migrated'] ?? 0 );
+			$cumulative_results[ $type ]['skipped']  += ( $data['skipped'] ?? 0 );
+			$cumulative_results[ $type ]['total']    += ( $data['total'] ?? 0 );
+
+			if ( ! empty( $data['errors'] ) && is_array( $data['errors'] ) ) {
+				$cumulative_results[ $type ]['errors'] = array_merge(
+					$cumulative_results[ $type ]['errors'],
+					$data['errors']
+				);
+			}
+		}
+
+		/* Store cumulative results for next batch (expires in 30 minutes) */
+		set_transient( $cumulative_key, $cumulative_results, 30 * MINUTE_IN_SECONDS );
+
+		/*
 		 * Add users_with_data count to results for clear reporting.
 		 * This tells the user how many actually had plugin data to migrate.
 		 */
@@ -1004,16 +1045,54 @@ class NBUF_Migration {
 			'results'         => $results,
 		);
 
-		/* Log to history if completed */
+		/* Log to history if completed - use cumulative results for accurate totals */
 		if ( $is_completed ) {
-			foreach ( $results as $type => $data ) {
+			foreach ( $cumulative_results as $type => $data ) {
 				self::log_import_history( $plugin_slug . '_' . $type, $data );
 			}
+
+			/* Clean up cumulative transient */
+			delete_transient( $cumulative_key );
 		}
 
 		/* Clear migration lock */
 		delete_transient( $migration_lock_key );
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * AJAX: Delete migration history entry
+	 *
+	 * @return void
+	 */
+	public static function ajax_delete_migration_history(): void {
+		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
+		}
+
+		$history_id = isset( $_POST['history_id'] ) ? absint( $_POST['history_id'] ) : 0;
+
+		if ( $history_id < 1 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid history ID', 'nobloat-user-foundry' ) ) );
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_import_history';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
+		$deleted = $wpdb->delete(
+			$table_name,
+			array( 'id' => $history_id ),
+			array( '%d' )
+		);
+
+		if ( false === $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'Failed to delete history entry', 'nobloat-user-foundry' ) ) );
+		}
+
+		wp_send_json_success( array( 'message' => __( 'History entry deleted', 'nobloat-user-foundry' ) ) );
 	}
 }

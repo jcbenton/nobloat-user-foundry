@@ -217,14 +217,37 @@ $nbuf_available_plugins = array(
 						<th><?php esc_html_e( 'Type', 'nobloat-user-foundry' ); ?></th>
 						<th><?php esc_html_e( 'Records', 'nobloat-user-foundry' ); ?></th>
 						<th><?php esc_html_e( 'Status', 'nobloat-user-foundry' ); ?></th>
+						<th style="width: 40px;"></th>
 					</tr>
 				</thead>
 				<tbody>
 			<?php foreach ( $nbuf_history as $nbuf_record ) : ?>
-						<tr>
+						<?php
+						// Parse source_plugin to extract plugin name and migration type.
+						// Format: "{plugin-slug}_{type}" e.g. "ultimate-member_profile_data".
+						$nbuf_source_parts = explode( '_', $nbuf_record->source_plugin, 2 );
+						$nbuf_plugin_name  = $nbuf_source_parts[0] ?? 'unknown';
+						$nbuf_mig_type     = $nbuf_source_parts[1] ?? '';
+
+						/* Format plugin name */
+						$nbuf_plugin_labels  = array(
+							'ultimate-member' => 'Ultimate Member',
+							'buddypress'      => 'BuddyPress',
+						);
+						$nbuf_plugin_display = $nbuf_plugin_labels[ $nbuf_plugin_name ] ?? ucwords( str_replace( '-', ' ', $nbuf_plugin_name ) );
+
+						/* Format migration type */
+						$nbuf_type_labels  = array(
+							'profile_data' => __( 'Profile Data', 'nobloat-user-foundry' ),
+							'restrictions' => __( 'Restrictions', 'nobloat-user-foundry' ),
+							'adopt_roles'  => __( 'Adopt Roles', 'nobloat-user-foundry' ),
+						);
+						$nbuf_type_display = $nbuf_type_labels[ $nbuf_mig_type ] ?? ucwords( str_replace( '_', ' ', $nbuf_mig_type ) );
+						?>
+						<tr data-history-id="<?php echo esc_attr( $nbuf_record->id ); ?>">
 							<td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $nbuf_record->imported_at ) ) ); ?></td>
-							<td><?php echo esc_html( $nbuf_record->source_plugin ); ?></td>
-							<td><?php echo esc_html( $nbuf_record->migration_type ?? 'unknown' ); ?></td>
+							<td><?php echo esc_html( $nbuf_plugin_display ); ?></td>
+							<td><?php echo esc_html( $nbuf_type_display ); ?></td>
 							<td><?php echo esc_html( $nbuf_record->successful ); ?> / <?php echo esc_html( $nbuf_record->total_rows ); ?></td>
 							<td>
 				<?php if ( $nbuf_record->failed > 0 ) : ?>
@@ -233,10 +256,52 @@ $nbuf_available_plugins = array(
 									<span style="color: green;">✓ Success</span>
 								<?php endif; ?>
 							</td>
+							<td>
+								<button type="button" class="nbuf-delete-history-btn" data-id="<?php echo esc_attr( $nbuf_record->id ); ?>" title="<?php esc_attr_e( 'Delete', 'nobloat-user-foundry' ); ?>" style="background: none; border: none; cursor: pointer; color: #b32d2e; padding: 0;">
+									<span class="dashicons dashicons-trash"></span>
+								</button>
+							</td>
 						</tr>
 			<?php endforeach; ?>
 				</tbody>
 			</table>
+			<script>
+			jQuery(document).ready(function($) {
+				$('.nbuf-delete-history-btn').on('click', function() {
+					if (!confirm('<?php echo esc_js( __( 'Delete this history entry?', 'nobloat-user-foundry' ) ); ?>')) {
+						return;
+					}
+
+					var $btn = $(this);
+					var $row = $btn.closest('tr');
+					var historyId = $btn.data('id');
+
+					$btn.prop('disabled', true);
+
+					$.ajax({
+						url: ajaxurl,
+						type: 'POST',
+						data: {
+							action: 'nbuf_delete_migration_history',
+							nonce: NBUF_Migration.nonce,
+							history_id: historyId
+						},
+						success: function(response) {
+							if (response.success) {
+								$row.fadeOut(300, function() { $(this).remove(); });
+							} else {
+								alert(response.data.message || '<?php echo esc_js( __( 'Failed to delete entry', 'nobloat-user-foundry' ) ); ?>');
+								$btn.prop('disabled', false);
+							}
+						},
+						error: function() {
+							alert('<?php echo esc_js( __( 'Failed to delete entry', 'nobloat-user-foundry' ) ); ?>');
+							$btn.prop('disabled', false);
+						}
+					});
+				});
+			});
+			</script>
 			<?php
 		}
 		?>

@@ -24,6 +24,8 @@ $nbuf_cleanup  = (array) ( $nbuf_settings['cleanup'] ?? array() );
 	<!-- Hidden inputs to preserve tab state after save -->
 	<input type="hidden" name="nbuf_active_tab" value="system">
 	<input type="hidden" name="nbuf_active_subtab" value="cleanup">
+	<!-- Marker to indicate cleanup form was submitted (ensures nbuf_settings is always POSTed) -->
+	<input type="hidden" name="nbuf_settings[cleanup_submitted]" value="1">
 
 	<h2><?php esc_html_e( 'Uninstall Cleanup', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">

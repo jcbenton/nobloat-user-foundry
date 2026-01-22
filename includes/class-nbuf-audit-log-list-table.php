@@ -52,9 +52,9 @@ class NBUF_Audit_Log_List_Table extends WP_List_Table {
 			'username'      => __( 'User', 'nobloat-user-foundry' ),
 			'event_type'    => __( 'Event', 'nobloat-user-foundry' ),
 			'event_status'  => __( 'Status', 'nobloat-user-foundry' ),
-			'event_message' => __( 'Details', 'nobloat-user-foundry' ),
 			'ip_address'    => __( 'IP Address', 'nobloat-user-foundry' ),
 			'user_agent'    => __( 'User Agent', 'nobloat-user-foundry' ),
+			'event_message' => __( 'Details', 'nobloat-user-foundry' ),
 		);
 	}
 

@@ -73,7 +73,7 @@ class NBUF_GDPR_Export {
 	 * @return array{can_export: bool, wait_minutes: int} Array with 'can_export' bool and 'wait_minutes' int.
 	 */
 	public static function check_rate_limit( $user_id ) {
-		$last_export        = get_user_meta( $user_id, 'nbuf_last_data_export', true );
+		$last_export        = NBUF_User_Data::get_last_data_export( $user_id );
 		$rate_limit_minutes = absint( NBUF_Options::get( 'nbuf_gdpr_rate_limit_minutes', 15 ) );
 
 		if ( ! $last_export ) {
@@ -1056,7 +1056,7 @@ class NBUF_GDPR_Export {
 		}
 
 		/* Update rate limit timestamp */
-		update_user_meta( $user_id, 'nbuf_last_data_export', time() );
+		NBUF_User_Data::set_last_data_export( $user_id );
 
 		/* Log to admin audit log */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
@@ -1392,7 +1392,7 @@ class NBUF_GDPR_Export {
 		$rate_check = self::check_rate_limit( $user_id );
 		$counts     = self::get_data_counts( $user_id );
 
-		$last_export = get_user_meta( $user_id, 'nbuf_last_data_export', true );
+		$last_export = NBUF_User_Data::get_last_data_export( $user_id );
 
 		/* Build export includes list */
 		$includes_list  = '<li>' . esc_html__( 'Profile information (name, email, custom fields)', 'nobloat-user-foundry' ) . '</li>';

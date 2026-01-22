@@ -1561,6 +1561,184 @@ class NBUF_Database {
 		if ( class_exists( 'NBUF_Security_Log' ) ) {
 			NBUF_Security_Log::create_table();
 		}
+
+		/* Run user meta migration */
+		self::update_tables_for_usermeta_migration();
+	}
+
+	/**
+	 * Update tables for user meta migration.
+	 *
+	 * Adds columns to store data that was previously in wp_usermeta.
+	 * This consolidates user data into custom tables for better performance.
+	 *
+	 * New columns:
+	 * - nbuf_user_data: pending_email, last_data_export, passkey_prompt_dismissed
+	 * - nbuf_user_2fa: totp_grace_start
+	 *
+	 * Safe to run multiple times (only adds columns if they don't exist).
+	 *
+	 * @since 1.5.0
+	 * @return void
+	 */
+	public static function update_tables_for_usermeta_migration(): void {
+		global $wpdb;
+
+		/* Update nbuf_user_data table */
+		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
+
+		/* Add pending_email column for email change verification */
+		if ( ! self::column_exists( $user_data_table, 'pending_email' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN pending_email VARCHAR(100) DEFAULT NULL AFTER last_login_at', $user_data_table ) );
+		}
+
+		/* Add last_data_export column for GDPR rate limiting */
+		if ( ! self::column_exists( $user_data_table, 'last_data_export' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN last_data_export DATETIME DEFAULT NULL AFTER pending_email', $user_data_table ) );
+		}
+
+		/* Add passkey_prompt_dismissed column for passkey prompt tracking */
+		if ( ! self::column_exists( $user_data_table, 'passkey_prompt_dismissed' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN passkey_prompt_dismissed TEXT DEFAULT NULL AFTER last_data_export', $user_data_table ) );
+		}
+
+		/* Update nbuf_user_2fa table */
+		$twofa_table = $wpdb->prefix . 'nbuf_user_2fa';
+
+		/* Add totp_grace_start column for TOTP setup grace period */
+		if ( ! self::column_exists( $twofa_table, 'totp_grace_start' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN totp_grace_start DATETIME DEFAULT NULL AFTER forced_at', $twofa_table ) );
+		}
+	}
+
+	/**
+	 * Migrate user meta data from wp_usermeta to custom tables.
+	 *
+	 * Moves data for these meta keys:
+	 * - nbuf_pending_email -> nbuf_user_data.pending_email
+	 * - nbuf_last_data_export -> nbuf_user_data.last_data_export
+	 * - nbuf_passkey_prompt_dismissed_devices -> nbuf_user_data.passkey_prompt_dismissed
+	 * - nbuf_totp_grace_start -> nbuf_user_2fa.totp_grace_start
+	 *
+	 * After migration, the wp_usermeta entries are deleted.
+	 * Safe to run multiple times - only migrates data that exists.
+	 *
+	 * @since 1.5.0
+	 * @return array{migrated: int, deleted: int} Count of migrated and deleted entries.
+	 */
+	public static function migrate_usermeta_to_custom_tables(): array {
+		global $wpdb;
+
+		$migrated = 0;
+		$deleted  = 0;
+
+		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
+		$twofa_table     = $wpdb->prefix . 'nbuf_user_2fa';
+
+		/* Meta keys to migrate and their target columns */
+		$user_data_migrations = array(
+			'nbuf_pending_email'                    => 'pending_email',
+			'nbuf_last_data_export'                 => 'last_data_export',
+			'nbuf_passkey_prompt_dismissed_devices' => 'passkey_prompt_dismissed',
+		);
+
+		/* Migrate user_data fields */
+		foreach ( $user_data_migrations as $meta_key => $column ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$entries = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT user_id, meta_value FROM %i WHERE meta_key = %s',
+					$wpdb->usermeta,
+					$meta_key
+				)
+			);
+
+			foreach ( $entries as $entry ) {
+				$user_id = (int) $entry->user_id;
+				$value   = $entry->meta_value;
+
+				/* Format value based on column type */
+				if ( 'last_data_export' === $column && is_numeric( $value ) ) {
+					/* Convert timestamp to datetime */
+					$value = gmdate( 'Y-m-d H:i:s', (int) $value );
+				}
+
+				/* Update custom table - use NBUF_User_Data::update for proper handling */
+				NBUF_User_Data::update( $user_id, array( $column => $value ) );
+				++$migrated;
+
+				// Delete from usermeta.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration cleanup.
+				$wpdb->delete(
+					$wpdb->usermeta,
+					array(
+						'user_id'  => $user_id,
+						'meta_key' => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+					)
+				);
+				++$deleted;
+			}
+		}
+
+		// Migrate totp_grace_start to 2FA table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$grace_entries = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT user_id, meta_value FROM %i WHERE meta_key = %s',
+				$wpdb->usermeta,
+				'nbuf_totp_grace_start'
+			)
+		);
+
+		foreach ( $grace_entries as $entry ) {
+			$user_id = (int) $entry->user_id;
+			$value   = (int) $entry->meta_value;
+
+			/* Convert timestamp to datetime */
+			$datetime = gmdate( 'Y-m-d H:i:s', $value );
+
+			// Check if user has 2FA record.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$exists = $wpdb->get_var(
+				$wpdb->prepare( 'SELECT user_id FROM %i WHERE user_id = %d', $twofa_table, $user_id )
+			);
+
+			if ( $exists ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update( $twofa_table, array( 'totp_grace_start' => $datetime ), array( 'user_id' => $user_id ) );
+			} else {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+				$wpdb->insert(
+					$twofa_table,
+					array(
+						'user_id'          => $user_id,
+						'totp_grace_start' => $datetime,
+					)
+				);
+			}
+			++$migrated;
+
+			// Delete from usermeta.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration cleanup.
+			$wpdb->delete(
+				$wpdb->usermeta,
+				array(
+					'user_id'  => $user_id,
+					'meta_key' => 'nbuf_totp_grace_start', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				)
+			);
+			++$deleted;
+		}
+
+		/* Mark migration as complete */
+		if ( class_exists( 'NBUF_Options' ) ) {
+			NBUF_Options::update( 'nbuf_usermeta_migrated', 1, false, 'system' );
+		}
+
+		return array(
+			'migrated' => $migrated,
+			'deleted'  => $deleted,
+		);
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

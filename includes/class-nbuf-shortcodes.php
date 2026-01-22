@@ -1843,7 +1843,7 @@ class NBUF_Shortcodes {
 			}
 
 			/* Check for pending email change */
-			$pending_email        = get_user_meta( $user_id, 'nbuf_pending_email', true );
+			$pending_email        = NBUF_User_Data::get_pending_email( $user_id );
 			$pending_email_notice = '';
 			if ( $pending_email ) {
 				$pending_email_notice = '
@@ -2560,7 +2560,7 @@ class NBUF_Shortcodes {
 			 * Store new email as pending, send verification to new email.
 			 * Actual email change happens only after verification.
 			 */
-			update_user_meta( $user_id, 'nbuf_pending_email', $new_email );
+			NBUF_User_Data::set_pending_email( $user_id, $new_email );
 
 			/* Generate verification token */
 			$token   = bin2hex( random_bytes( 32 ) );
@@ -3146,11 +3146,11 @@ Best regards,
 				if ( $must_setup ) :
 					/* Check grace period */
 					$grace_days  = absint( NBUF_Options::get( 'nbuf_2fa_totp_grace_period', 7 ) );
-					$grace_start = get_user_meta( $user_id, 'nbuf_totp_grace_start', true );
+					$grace_start = NBUF_User_2FA_Data::get_totp_grace_start( $user_id );
 
 					if ( ! $grace_start ) {
 						/* First time on setup page - start grace period */
-						update_user_meta( $user_id, 'nbuf_totp_grace_start', time() );
+						NBUF_User_2FA_Data::set_totp_grace_start( $user_id );
 						$grace_start = time();
 					}
 
@@ -3297,7 +3297,7 @@ Best regards,
 		}
 
 		/* Clear grace period start if set */
-		delete_user_meta( $user_id, 'nbuf_totp_grace_start' );
+		NBUF_User_2FA_Data::clear_totp_grace_start( $user_id );
 
 		/* Generate backup codes automatically */
 		$backup_codes = NBUF_2FA::generate_backup_codes( $user_id );

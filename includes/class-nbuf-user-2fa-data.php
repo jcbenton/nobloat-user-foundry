@@ -209,6 +209,45 @@ class NBUF_User_2FA_Data {
 	}
 
 	/**
+	 * Get TOTP grace period start timestamp.
+	 *
+	 * Returns Unix timestamp of when grace period started.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return int|null     Unix timestamp or null if not set.
+	 */
+	public static function get_totp_grace_start( int $user_id ): ?int {
+		$data = self::get( $user_id );
+		if ( $data && ! empty( $data->totp_grace_start ) ) {
+			return strtotime( $data->totp_grace_start );
+		}
+		return null;
+	}
+
+	/**
+	 * Set TOTP grace period start timestamp.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success.
+	 */
+	public static function set_totp_grace_start( int $user_id ): bool {
+		return self::update( $user_id, array( 'totp_grace_start' => current_time( 'mysql', true ) ) );
+	}
+
+	/**
+	 * Clear TOTP grace period start timestamp.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success.
+	 */
+	public static function clear_totp_grace_start( int $user_id ): bool {
+		return self::update( $user_id, array( 'totp_grace_start' => null ) );
+	}
+
+	/**
 	 * Check if 2FA setup is completed.
 	 *
 	 * @since  1.0.0

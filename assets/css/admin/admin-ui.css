@@ -492,6 +492,113 @@
 	}
 }
 
+/* ==============================================
+   Security Log & Audit Log Table Column Widths
+   ============================================== */
+
+/* Security log table column widths */
+.wp-list-table.security_logs .column-cb {
+	width: 2.2em;
+}
+
+.wp-list-table.security_logs .column-timestamp {
+	width: 200px;
+}
+
+.wp-list-table.security_logs .column-occurrence_count {
+	width: 90px;
+	text-align: center;
+}
+
+.wp-list-table.security_logs .column-severity {
+	width: 110px;
+}
+
+.wp-list-table.security_logs .column-event_type {
+	width: 260px;
+	white-space: nowrap;
+}
+
+.wp-list-table.security_logs .column-ip_address {
+	width: 170px;
+}
+
+/* Occurrence count badge */
+.nbuf-occurrence-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	background: #646970;
+	color: #fff;
+	border-radius: 10px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/* Muted text for single occurrences */
+.nbuf-muted {
+	color: #a7aaad;
+}
+
+/* User Audit log table column widths */
+.wp-list-table.audit_logs .column-cb {
+	width: 2.2em;
+}
+
+.wp-list-table.audit_logs .column-created_at {
+	width: 200px;
+}
+
+.wp-list-table.audit_logs .column-username {
+	width: 200px;
+}
+
+.wp-list-table.audit_logs .column-event_type {
+	width: 180px;
+	white-space: nowrap;
+}
+
+.wp-list-table.audit_logs .column-event_status {
+	width: 100px;
+}
+
+.wp-list-table.audit_logs .column-ip_address {
+	width: 170px;
+}
+
+.wp-list-table.audit_logs .column-user_agent {
+	width: 160px;
+}
+
+/* Admin Audit log table column widths */
+.wp-list-table.admin_audit_logs .column-cb {
+	width: 2.2em;
+}
+
+.wp-list-table.admin_audit_logs .column-created_at {
+	width: 200px;
+}
+
+.wp-list-table.admin_audit_logs .column-admin_username {
+	width: 180px;
+}
+
+.wp-list-table.admin_audit_logs .column-action_type {
+	width: 180px;
+	white-space: nowrap;
+}
+
+.wp-list-table.admin_audit_logs .column-target_username {
+	width: 220px;
+}
+
+.wp-list-table.admin_audit_logs .column-action_status {
+	width: 100px;
+}
+
+.wp-list-table.admin_audit_logs .column-ip_address {
+	width: 170px;
+}
+
 /* Info box - custom styling to avoid WordPress notice positioning */
 .nbuf-info-box {
 	background: #f0f6fc;

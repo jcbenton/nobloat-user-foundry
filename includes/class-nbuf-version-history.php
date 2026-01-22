@@ -333,18 +333,17 @@ class NBUF_Version_History {
 			$snapshot['nbuf_profile'] = $profile;
 		}
 
-		/* Get relevant user meta (2FA, privacy settings, etc.) */
-		$meta_keys = array(
-			'nbuf_2fa_enabled',
-			'nbuf_profile_privacy',
-			'nbuf_show_in_directory',
-		);
+		// Get relevant settings from custom tables.
+		// 2FA status from nbuf_user_2fa table.
+		$snapshot['nbuf_2fa_enabled'] = NBUF_User_2FA_Data::is_enabled( $user_id ) ? '1' : '0';
 
-		foreach ( $meta_keys as $key ) {
-			$value = get_user_meta( $user_id, $key, true );
-			if ( '' !== $value ) {
-				$snapshot[ $key ] = $value;
+		/* Privacy settings from nbuf_user_data table */
+		$user_data = NBUF_User_Data::get( $user_id );
+		if ( $user_data ) {
+			if ( ! empty( $user_data->profile_privacy ) ) {
+				$snapshot['nbuf_profile_privacy'] = $user_data->profile_privacy;
 			}
+			$snapshot['nbuf_show_in_directory'] = isset( $user_data->show_in_directory ) ? (string) $user_data->show_in_directory : '0';
 		}
 
 		return $snapshot;

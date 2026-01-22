@@ -237,6 +237,7 @@ class NBUF_Admin_Audit_Log_Page {
 			<form method="post">
 				<input type="hidden" name="page" value="nobloat-foundry-admin-audit-log" />
 				<?php
+				$list_table->search_box( __( 'Search logs', 'nobloat-user-foundry' ), 'admin-audit-log-search' );
 				$list_table->display();
 				?>
 			</form>

@@ -25,31 +25,42 @@ class NBUF_Migration_BP_Profile {
 	/**
 	 * Migrate BuddyPress XProfile data to NBUF
 	 *
-	 * @param  array<string, mixed> $options Migration options (backup_unmapped, field_mapping_override).
+	 * @param  array<string, mixed> $options Migration options (backup_unmapped, field_mapping_override, batch_size, batch_offset).
 	 * @return array<string, mixed> Migration results with counts and errors.
 	 */
 	public static function migrate_profile_data( array $options = array() ): array {
 		global $wpdb;
 
+		/* Parse batch options */
+		$batch_size   = isset( $options['batch_size'] ) ? absint( $options['batch_size'] ) : 0;
+		$batch_offset = isset( $options['batch_offset'] ) ? absint( $options['batch_offset'] ) : 0;
+		$copy_photos  = isset( $options['copy_photos'] ) ? (bool) $options['copy_photos'] : true;
+
 		$results = array(
-			'total_users'     => 0,
+			'total'           => 0,
+			'imported'        => 0,
 			'migrated'        => 0,
 			'skipped'         => 0,
+			'photos_migrated' => 0,
+			'covers_migrated' => 0,
 			'fields_mapped'   => 0,
 			'fields_unmapped' => array(),
 			'errors'          => array(),
+			'batch_complete'  => false,
 		);
 
 		/* Check if BuddyPress is active */
 		if ( ! function_exists( 'buddypress' ) ) {
-			$results['errors'][] = __( 'BuddyPress plugin is not active.', 'nobloat-user-foundry' );
+			$results['errors'][]       = __( 'BuddyPress plugin is not active.', 'nobloat-user-foundry' );
+			$results['batch_complete'] = true;
 			return $results;
 		}
 
 		/* Get BuddyPress table name */
 		$bp = buddypress();
 		if ( empty( $bp->profile->table_name_data ) || empty( $bp->profile->table_name_fields ) ) {
-			$results['errors'][] = __( 'BuddyPress XProfile tables not found.', 'nobloat-user-foundry' );
+			$results['errors'][]       = __( 'BuddyPress XProfile tables not found.', 'nobloat-user-foundry' );
+			$results['batch_complete'] = true;
 			return $results;
 		}
 
@@ -59,7 +70,7 @@ class NBUF_Migration_BP_Profile {
 		/*
 		Get all BP xprofile fields (exclude "Name" field which is ID 1 typically)
 		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation reading from BuddyPress tables.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation reading from BuddyPress tables.
 		$bp_fields = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, name, type, parent_id
@@ -80,20 +91,41 @@ class NBUF_Migration_BP_Profile {
 		}
 
 		/*
-		Get unique users who have xprofile data
-		*/
-     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation reading from BuddyPress tables.
-		$users = $wpdb->get_col(
-			$wpdb->prepare(
-				'SELECT DISTINCT user_id
-				FROM %i
-				WHERE user_id > 0
-				ORDER BY user_id ASC',
-				$bp_data_table
-			)
-		);
+		 * Get unique users who have xprofile data.
+		 * If batch_size is set, use LIMIT/OFFSET for pagination.
+		 */
+		if ( $batch_size > 0 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation reading from BuddyPress tables.
+			$users = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT DISTINCT user_id
+					FROM %i
+					WHERE user_id > 0
+					ORDER BY user_id ASC
+					LIMIT %d OFFSET %d',
+					$bp_data_table,
+					$batch_size,
+					$batch_offset
+				)
+			);
 
-		$results['total_users'] = count( $users );
+			/* Check if this is the last batch */
+			$results['batch_complete'] = ( count( $users ) < $batch_size );
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration operation reading from BuddyPress tables.
+			$users                     = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT DISTINCT user_id
+					FROM %i
+					WHERE user_id > 0
+					ORDER BY user_id ASC',
+					$bp_data_table
+				)
+			);
+			$results['batch_complete'] = true;
+		}
+
+		$results['total'] = count( $users );
 
 		/* Migrate each user */
 		foreach ( $users as $user_id ) {
@@ -181,13 +213,27 @@ class NBUF_Migration_BP_Profile {
 					$cache_key = "nbuf_profile_{$user_id}";
 					wp_cache_delete( $cache_key, 'nbuf_profile_data' );
 
+					/* Migrate BuddyPress avatar and cover photo if enabled */
+					if ( $copy_photos ) {
+						$photo_migrated = self::migrate_user_avatar( $user_id );
+						if ( $photo_migrated ) {
+							++$results['photos_migrated'];
+						}
+
+						$cover_migrated = self::migrate_user_cover( $user_id );
+						if ( $cover_migrated ) {
+							++$results['covers_migrated'];
+						}
+					}
+
 					++$results['migrated'];
+					++$results['imported'];
 				} else {
 					++$results['skipped'];
 				}
 			} catch ( Exception $e ) {
 				$results['errors'][] = sprintf(
-				/* translators: 1: User ID, 2: Error message */
+					/* translators: 1: User ID, 2: Error message */
 					__( 'User ID %1$d: %2$s', 'nobloat-user-foundry' ),
 					$user_id,
 					$e->getMessage()
@@ -195,15 +241,19 @@ class NBUF_Migration_BP_Profile {
 			}
 		}
 
-		/* Log migration to admin audit (migration is an admin action) */
-		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+		/*
+		 * Log migration to admin audit only when batch is complete.
+		 * This prevents duplicate logging for each batch.
+		 * Note: History logging is handled by NBUF_Migration::ajax_execute_migration_batch()
+		 */
+		if ( $results['batch_complete'] && $results['migrated'] > 0 && class_exists( 'NBUF_Admin_Audit_Log' ) ) {
 			NBUF_Admin_Audit_Log::log(
 				get_current_user_id(),
 				'migration_profiles',
 				'success',
 				sprintf(
-				/* translators: %d: Number of users migrated */
-					__( 'Migrated %d user profiles from BuddyPress XProfile', 'nobloat-user-foundry' ),
+					/* translators: %d: Number of users migrated */
+					__( 'Migrated %d user profiles from BuddyPress XProfile (batch)', 'nobloat-user-foundry' ),
 					$results['migrated']
 				),
 				null,
@@ -635,5 +685,288 @@ class NBUF_Migration_BP_Profile {
 		}
 
 		return $stats;
+	}
+
+	/**
+	 * Migrate BuddyPress avatar for a single user
+	 *
+	 * Copies the user's BP avatar to NBUF's photo directory with WebP conversion.
+	 * BuddyPress stores avatars in: wp-content/uploads/avatars/{user_id}/
+	 *
+	 * @param  int $user_id User ID.
+	 * @return bool True if avatar was migrated, false otherwise.
+	 */
+	private static function migrate_user_avatar( int $user_id ): bool {
+		/* Check if BuddyPress avatar functions exist */
+		if ( ! function_exists( 'bp_core_fetch_avatar' ) || ! function_exists( 'bp_core_avatar_upload_path' ) ) {
+			return false;
+		}
+
+		/* Check if NBUF_Image_Processor exists */
+		if ( ! class_exists( 'NBUF_Image_Processor' ) ) {
+			return false;
+		}
+
+		/* Get the BP avatar upload path */
+		$bp_avatar_base = bp_core_avatar_upload_path();
+		if ( empty( $bp_avatar_base ) ) {
+			return false;
+		}
+
+		/* BuddyPress stores user avatars in: {upload_path}/avatars/{user_id}/ */
+		$user_avatar_dir = trailingslashit( $bp_avatar_base ) . 'avatars/' . $user_id . '/';
+
+		/* Validate directory exists */
+		if ( ! is_dir( $user_avatar_dir ) ) {
+			return false;
+		}
+
+		/*
+		 * Security: Validate path using realpath() to prevent traversal attacks.
+		 */
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$user_avatar_dir_real = realpath( $user_avatar_dir );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$bp_avatar_base_real = realpath( $bp_avatar_base );
+
+		if ( ! $user_avatar_dir_real || ! $bp_avatar_base_real ) {
+			return false;
+		}
+
+		if ( 0 !== strpos( $user_avatar_dir_real, $bp_avatar_base_real ) ) {
+			/* Path traversal attempt detected */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'path_traversal_attempt',
+					'critical',
+					__( 'Path traversal attempt detected during BP avatar migration', 'nobloat-user-foundry' ),
+					array(
+						'user_avatar_dir' => $user_avatar_dir,
+						'context'         => 'bp_avatar_migration',
+					),
+					$user_id
+				);
+			}
+			return false;
+		}
+
+		/*
+		 * Find the full-size avatar file.
+		 * BP naming convention: {user_id}-bpfull.{ext} or sometimes just numbered files.
+		 * Look for common patterns.
+		 */
+		$avatar_file = null;
+		$extensions  = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+
+		// Try BP's standard naming first: {timestamp}-bpfull.{ext}.
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Directory may not be readable.
+		$files = @scandir( $user_avatar_dir_real );
+
+		if ( ! empty( $files ) ) {
+			foreach ( $files as $file ) {
+				/* Skip . and .. */
+				if ( '.' === $file || '..' === $file ) {
+					continue;
+				}
+
+				/* Look for full-size avatar (bpfull) first */
+				if ( false !== strpos( $file, '-bpfull.' ) ) {
+					$avatar_file = $file;
+					break;
+				}
+			}
+
+			/* If no bpfull found, look for any image file (fallback) */
+			if ( ! $avatar_file ) {
+				foreach ( $files as $file ) {
+					if ( '.' === $file || '..' === $file ) {
+						continue;
+					}
+
+					$ext = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+					if ( in_array( $ext, $extensions, true ) ) {
+						/* Skip thumbnail versions */
+						if ( false !== strpos( $file, '-bpthumb.' ) ) {
+							continue;
+						}
+						$avatar_file = $file;
+						break;
+					}
+				}
+			}
+		}
+
+		if ( ! $avatar_file ) {
+			return false;
+		}
+
+		/* Build full path and validate */
+		$source_path = $user_avatar_dir_real . '/' . basename( $avatar_file );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$source_path_real = realpath( $source_path );
+
+		if ( ! $source_path_real || ! file_exists( $source_path_real ) ) {
+			return false;
+		}
+
+		/* Verify file is within user avatar directory */
+		if ( 0 !== strpos( $source_path_real, $user_avatar_dir_real ) ) {
+			return false;
+		}
+
+		/* Process and copy the image using NBUF_Image_Processor */
+		$processed = NBUF_Image_Processor::process_image(
+			$source_path_real,
+			$user_id,
+			NBUF_Image_Processor::TYPE_PROFILE
+		);
+
+		if ( is_wp_error( $processed ) ) {
+			return false;
+		}
+
+		/* Update user data with new photo path/URL if NBUF_User_Data exists */
+		if ( class_exists( 'NBUF_User_Data' ) && ! empty( $processed['path'] ) ) {
+			NBUF_User_Data::update(
+				$user_id,
+				array(
+					'profile_photo_path' => $processed['path'],
+					'profile_photo_url'  => $processed['url'] ?? '',
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Migrate BuddyPress cover photo for a single user
+	 *
+	 * Copies the user's BP cover photo to NBUF's photo directory with WebP conversion.
+	 * BuddyPress stores cover photos in: wp-content/uploads/buddypress/members/{user_id}/cover-image/
+	 *
+	 * @param  int $user_id User ID.
+	 * @return bool True if cover was migrated, false otherwise.
+	 */
+	private static function migrate_user_cover( int $user_id ): bool {
+		/* Check if NBUF_Image_Processor exists */
+		if ( ! class_exists( 'NBUF_Image_Processor' ) ) {
+			return false;
+		}
+
+		/* Get WordPress upload directory */
+		$upload_dir = wp_upload_dir();
+		if ( empty( $upload_dir['basedir'] ) ) {
+			return false;
+		}
+
+		/*
+		 * BuddyPress stores cover photos in: {uploads}/buddypress/members/{user_id}/cover-image/
+		 * This is the standard location since BP 2.4.0
+		 */
+		$bp_cover_dir = trailingslashit( $upload_dir['basedir'] ) . 'buddypress/members/' . $user_id . '/cover-image/';
+
+		/* Check if directory exists */
+		if ( ! is_dir( $bp_cover_dir ) ) {
+			return false;
+		}
+
+		/*
+		 * Security: Validate path using realpath() to prevent traversal attacks.
+		 */
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$bp_cover_dir_real = realpath( $bp_cover_dir );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$upload_base_real = realpath( $upload_dir['basedir'] );
+
+		if ( ! $bp_cover_dir_real || ! $upload_base_real ) {
+			return false;
+		}
+
+		if ( 0 !== strpos( $bp_cover_dir_real, $upload_base_real ) ) {
+			/* Path traversal attempt detected */
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'path_traversal_attempt',
+					'critical',
+					__( 'Path traversal attempt detected during BP cover migration', 'nobloat-user-foundry' ),
+					array(
+						'bp_cover_dir' => $bp_cover_dir,
+						'context'      => 'bp_cover_migration',
+					),
+					$user_id
+				);
+			}
+			return false;
+		}
+
+		/*
+		 * Find the cover image file.
+		 * BP typically stores the cover as a timestamped filename.
+		 */
+		$cover_file = null;
+		$extensions = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Directory may not be readable.
+		$files = @scandir( $bp_cover_dir_real );
+
+		if ( ! empty( $files ) ) {
+			foreach ( $files as $file ) {
+				/* Skip . and .. */
+				if ( '.' === $file || '..' === $file ) {
+					continue;
+				}
+
+				$ext = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+				if ( in_array( $ext, $extensions, true ) ) {
+					$cover_file = $file;
+					break;
+				}
+			}
+		}
+
+		if ( ! $cover_file ) {
+			return false;
+		}
+
+		/* Build full path and validate */
+		$source_path = $bp_cover_dir_real . '/' . basename( $cover_file );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_realpath -- Required for security validation.
+		$source_path_real = realpath( $source_path );
+
+		if ( ! $source_path_real || ! file_exists( $source_path_real ) ) {
+			return false;
+		}
+
+		/* Verify file is within cover directory */
+		if ( 0 !== strpos( $source_path_real, $bp_cover_dir_real ) ) {
+			return false;
+		}
+
+		/* Process and copy the image using NBUF_Image_Processor */
+		$processed = NBUF_Image_Processor::process_image(
+			$source_path_real,
+			$user_id,
+			NBUF_Image_Processor::TYPE_COVER
+		);
+
+		if ( is_wp_error( $processed ) ) {
+			return false;
+		}
+
+		/* Update user data with new cover path/URL if NBUF_User_Data exists */
+		if ( class_exists( 'NBUF_User_Data' ) && ! empty( $processed['path'] ) ) {
+			NBUF_User_Data::update(
+				$user_id,
+				array(
+					'cover_photo_path' => $processed['path'],
+					'cover_photo_url'  => $processed['url'] ?? '',
+				)
+			);
+		}
+
+		return true;
 	}
 }

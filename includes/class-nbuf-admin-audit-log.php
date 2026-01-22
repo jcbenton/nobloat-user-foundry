@@ -220,6 +220,17 @@ class NBUF_Admin_Audit_Log {
 			$values[] = sanitize_text_field( $filters['action_status'] );
 		}
 
+		/* Search filter - searches admin username, target username, action message, IP address */
+		if ( ! empty( $filters['search'] ) ) {
+			$search_term = '%' . $wpdb->esc_like( sanitize_text_field( $filters['search'] ) ) . '%';
+			$where[]     = '(admin_username LIKE %s OR target_username LIKE %s OR action_message LIKE %s OR ip_address LIKE %s OR action_type LIKE %s)';
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+		}
+
 		$where_clause = implode( ' AND ', $where );
 
 		/* Build query */
@@ -277,6 +288,17 @@ class NBUF_Admin_Audit_Log {
 		if ( ! empty( $filters['action_status'] ) ) {
 			$where[]  = 'action_status = %s';
 			$values[] = sanitize_text_field( $filters['action_status'] );
+		}
+
+		/* Search filter - searches admin username, target username, action message, IP address */
+		if ( ! empty( $filters['search'] ) ) {
+			$search_term = '%' . $wpdb->esc_like( sanitize_text_field( $filters['search'] ) ) . '%';
+			$where[]     = '(admin_username LIKE %s OR target_username LIKE %s OR action_message LIKE %s OR ip_address LIKE %s OR action_type LIKE %s)';
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
+			$values[]    = $search_term;
 		}
 
 		$where_clause = implode( ' AND ', $where );

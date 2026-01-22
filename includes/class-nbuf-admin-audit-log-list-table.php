@@ -53,8 +53,8 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 			'action_type'     => __( 'Action', 'nobloat-user-foundry' ),
 			'target_username' => __( 'Target User', 'nobloat-user-foundry' ),
 			'action_status'   => __( 'Status', 'nobloat-user-foundry' ),
-			'action_message'  => __( 'Details', 'nobloat-user-foundry' ),
 			'ip_address'      => __( 'IP Address', 'nobloat-user-foundry' ),
+			'action_message'  => __( 'Details', 'nobloat-user-foundry' ),
 		);
 	}
 
@@ -142,28 +142,51 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	public function column_action_type( $item ) {
 		$action_type = $item['action_type'];
 		$labels      = array(
-			'user_deleted'            => __( 'User Deleted', 'nobloat-user-foundry' ),
-			'user_created'            => __( 'User Created', 'nobloat-user-foundry' ),
-			'password_reset_by_admin' => __( 'Password Reset', 'nobloat-user-foundry' ),
-			'role_changed'            => __( 'Role Changed', 'nobloat-user-foundry' ),
-			'bulk_action'             => __( 'Bulk Action', 'nobloat-user-foundry' ),
-			'settings_changed'        => __( 'Settings Changed', 'nobloat-user-foundry' ),
-			'manual_verify'           => __( 'Manual Verify', 'nobloat-user-foundry' ),
-			'manual_unverify'         => __( 'Manual Unverify', 'nobloat-user-foundry' ),
-			'account_merge'           => __( 'Account Merge', 'nobloat-user-foundry' ),
-			'profile_edited_by_admin' => __( 'Profile Edited', 'nobloat-user-foundry' ),
-			'email_changed_by_admin'  => __( 'Email Changed', 'nobloat-user-foundry' ),
-			'2fa_reset_by_admin'      => __( '2FA Reset', 'nobloat-user-foundry' ),
-			'logs_purged'             => __( 'Logs Purged', 'nobloat-user-foundry' ),
+			/* User Management */
+			'user_created'             => __( 'User Created', 'nobloat-user-foundry' ),
+			'user_deleted'             => __( 'User Deleted', 'nobloat-user-foundry' ),
+			'role_changed'             => __( 'Role Changed', 'nobloat-user-foundry' ),
+			'profile_edited_by_admin'  => __( 'Profile Edited', 'nobloat-user-foundry' ),
+			'email_changed_by_admin'   => __( 'Email Changed', 'nobloat-user-foundry' ),
+			'password_reset_by_admin'  => __( 'Password Reset', 'nobloat-user-foundry' ),
+			'manual_verify'            => __( 'Manual Verify', 'nobloat-user-foundry' ),
+			'manual_unverify'          => __( 'Manual Unverify', 'nobloat-user-foundry' ),
+			'2fa_reset_by_admin'       => __( '2FA Reset', 'nobloat-user-foundry' ),
+			/* Impersonation */
+			'impersonation'            => __( 'Impersonation', 'nobloat-user-foundry' ),
+			/* Account Merge */
+			'account_merge'            => __( 'Account Merge', 'nobloat-user-foundry' ),
+			'account_merge_fields'     => __( 'Account Merge Fields', 'nobloat-user-foundry' ),
+			'photo_merge'              => __( 'Photo Merge', 'nobloat-user-foundry' ),
+			'photo_delete'             => __( 'Photo Delete', 'nobloat-user-foundry' ),
+			/* User Notes */
+			'user_note_added'          => __( 'User Note Added', 'nobloat-user-foundry' ),
+			'user_note_updated'        => __( 'User Note Updated', 'nobloat-user-foundry' ),
+			'user_note_deleted'        => __( 'User Note Deleted', 'nobloat-user-foundry' ),
+			/* Restrictions */
+			'restriction_added'        => __( 'Restriction Added', 'nobloat-user-foundry' ),
+			'restriction_removed'      => __( 'Restriction Removed', 'nobloat-user-foundry' ),
+			/* Roles */
+			'role_created'             => __( 'Role Created', 'nobloat-user-foundry' ),
+			'role_updated'             => __( 'Role Updated', 'nobloat-user-foundry' ),
+			'role_deleted'             => __( 'Role Deleted', 'nobloat-user-foundry' ),
+			'roles_adopted'            => __( 'Roles Adopted', 'nobloat-user-foundry' ),
+			/* Settings & System */
+			'settings_changed'         => __( 'Settings Changed', 'nobloat-user-foundry' ),
+			'logs_purged'              => __( 'Logs Purged', 'nobloat-user-foundry' ),
+			/* Data Export */
+			'user_data_exported'       => __( 'User Data Exported', 'nobloat-user-foundry' ),
+			'admin_exported_user_data' => __( 'Admin Exported User Data', 'nobloat-user-foundry' ),
+			/* Migration */
+			'migration_imported'       => __( 'Migration Imported', 'nobloat-user-foundry' ),
+			'migration_profiles'       => __( 'Migration Profiles', 'nobloat-user-foundry' ),
+			'migration_restrictions'   => __( 'Migration Restrictions', 'nobloat-user-foundry' ),
+			'migration_rollback'       => __( 'Migration Rollback', 'nobloat-user-foundry' ),
 		);
 
 		$label = isset( $labels[ $action_type ] ) ? $labels[ $action_type ] : esc_html( $action_type );
 
-		return sprintf(
-			'<span class="nbuf-action-badge nbuf-action-%s">%s</span>',
-			esc_attr( $action_type ),
-			esc_html( $label )
-		);
+		return '<code>' . esc_html( $label ) . '</code>';
 	}
 
 	/**
@@ -200,12 +223,12 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 	 */
 	public function column_action_status( $item ) {
 		$status = $item['action_status'];
-		$badges = array(
-			'success' => '<span class="nbuf-status-badge nbuf-status-success">✓ ' . __( 'Success', 'nobloat-user-foundry' ) . '</span>',
-			'failure' => '<span class="nbuf-status-badge nbuf-status-failure">✗ ' . __( 'Failure', 'nobloat-user-foundry' ) . '</span>',
+		$labels = array(
+			'success' => __( 'Success', 'nobloat-user-foundry' ),
+			'failure' => __( 'Failure', 'nobloat-user-foundry' ),
 		);
 
-		return isset( $badges[ $status ] ) ? $badges[ $status ] : esc_html( $status );
+		return isset( $labels[ $status ] ) ? esc_html( $labels[ $status ] ) : esc_html( $status );
 	}
 
 	/**
@@ -222,7 +245,7 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 			$metadata = json_decode( $item['metadata'], true );
 			if ( is_array( $metadata ) && ! empty( $metadata ) ) {
 				$message .= sprintf(
-					' <button type="button" class="button button-small nbuf-view-metadata" data-metadata="%s">%s</button>',
+					'<br><button type="button" class="button button-small nbuf-view-metadata" data-metadata="%s">%s</button>',
 					esc_attr( wp_json_encode( $metadata ) ),
 					esc_html__( 'View Details', 'nobloat-user-foundry' )
 				);
@@ -271,31 +294,35 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 		/* Get filters */
 		$filters = array();
 
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for filtering, admin screen with capability check.
-		if ( ! empty( $_GET['admin_id'] ) ) {
-			$filters['admin_id'] = absint( $_GET['admin_id'] );
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Read-only parameters for filtering, admin screen with capability check.
+		if ( ! empty( $_REQUEST['admin_id'] ) ) {
+			$filters['admin_id'] = absint( $_REQUEST['admin_id'] );
 		}
 
-		if ( ! empty( $_GET['target_user_id'] ) ) {
-			$filters['target_user_id'] = absint( $_GET['target_user_id'] );
+		if ( ! empty( $_REQUEST['target_user_id'] ) ) {
+			$filters['target_user_id'] = absint( $_REQUEST['target_user_id'] );
 		}
 
-		if ( ! empty( $_GET['action_type'] ) ) {
-			$filters['action_type'] = sanitize_text_field( wp_unslash( $_GET['action_type'] ) );
+		if ( ! empty( $_REQUEST['action_type'] ) ) {
+			$filters['action_type'] = sanitize_text_field( wp_unslash( $_REQUEST['action_type'] ) );
 		}
 
-		if ( ! empty( $_GET['action_status'] ) ) {
-			$filters['action_status'] = sanitize_text_field( wp_unslash( $_GET['action_status'] ) );
+		if ( ! empty( $_REQUEST['action_status'] ) ) {
+			$filters['action_status'] = sanitize_text_field( wp_unslash( $_REQUEST['action_status'] ) );
 		}
 
-		if ( ! empty( $_GET['date_from'] ) ) {
-			$filters['date_from'] = sanitize_text_field( wp_unslash( $_GET['date_from'] ) );
+		if ( ! empty( $_REQUEST['date_from'] ) ) {
+			$filters['date_from'] = sanitize_text_field( wp_unslash( $_REQUEST['date_from'] ) );
 		}
 
-		if ( ! empty( $_GET['date_to'] ) ) {
-			$filters['date_to'] = sanitize_text_field( wp_unslash( $_GET['date_to'] ) );
+		if ( ! empty( $_REQUEST['date_to'] ) ) {
+			$filters['date_to'] = sanitize_text_field( wp_unslash( $_REQUEST['date_to'] ) );
 		}
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( ! empty( $_REQUEST['s'] ) ) {
+			$filters['search'] = sanitize_text_field( wp_unslash( $_REQUEST['s'] ) );
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
 		/* Pagination */
 		$per_page     = 25;
@@ -345,18 +372,49 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 				<option value=""><?php esc_html_e( 'All Action Types', 'nobloat-user-foundry' ); ?></option>
 				<?php
 				$action_types = array(
-					'user_deleted'            => __( 'User Deleted', 'nobloat-user-foundry' ),
-					'user_created'            => __( 'User Created', 'nobloat-user-foundry' ),
-					'password_reset_by_admin' => __( 'Password Reset', 'nobloat-user-foundry' ),
-					'role_changed'            => __( 'Role Changed', 'nobloat-user-foundry' ),
-					'bulk_action'             => __( 'Bulk Action', 'nobloat-user-foundry' ),
-					'settings_changed'        => __( 'Settings Changed', 'nobloat-user-foundry' ),
-					'manual_verify'           => __( 'Manual Verify', 'nobloat-user-foundry' ),
-					'manual_unverify'         => __( 'Manual Unverify', 'nobloat-user-foundry' ),
-					'profile_edited_by_admin' => __( 'Profile Edited', 'nobloat-user-foundry' ),
+					/* User Management */
+					'user_created'             => __( 'User Created', 'nobloat-user-foundry' ),
+					'user_deleted'             => __( 'User Deleted', 'nobloat-user-foundry' ),
+					'role_changed'             => __( 'Role Changed', 'nobloat-user-foundry' ),
+					'profile_edited_by_admin'  => __( 'Profile Edited', 'nobloat-user-foundry' ),
+					'email_changed_by_admin'   => __( 'Email Changed', 'nobloat-user-foundry' ),
+					'password_reset_by_admin'  => __( 'Password Reset', 'nobloat-user-foundry' ),
+					'manual_verify'            => __( 'Manual Verify', 'nobloat-user-foundry' ),
+					'manual_unverify'          => __( 'Manual Unverify', 'nobloat-user-foundry' ),
+					'2fa_reset_by_admin'       => __( '2FA Reset', 'nobloat-user-foundry' ),
+					/* Impersonation */
+					'impersonation'            => __( 'Impersonation', 'nobloat-user-foundry' ),
+					/* Account Merge */
+					'account_merge'            => __( 'Account Merge', 'nobloat-user-foundry' ),
+					'account_merge_fields'     => __( 'Account Merge Fields', 'nobloat-user-foundry' ),
+					'photo_merge'              => __( 'Photo Merge', 'nobloat-user-foundry' ),
+					'photo_delete'             => __( 'Photo Delete', 'nobloat-user-foundry' ),
+					/* User Notes */
+					'user_note_added'          => __( 'User Note Added', 'nobloat-user-foundry' ),
+					'user_note_updated'        => __( 'User Note Updated', 'nobloat-user-foundry' ),
+					'user_note_deleted'        => __( 'User Note Deleted', 'nobloat-user-foundry' ),
+					/* Restrictions */
+					'restriction_added'        => __( 'Restriction Added', 'nobloat-user-foundry' ),
+					'restriction_removed'      => __( 'Restriction Removed', 'nobloat-user-foundry' ),
+					/* Roles */
+					'role_created'             => __( 'Role Created', 'nobloat-user-foundry' ),
+					'role_updated'             => __( 'Role Updated', 'nobloat-user-foundry' ),
+					'role_deleted'             => __( 'Role Deleted', 'nobloat-user-foundry' ),
+					'roles_adopted'            => __( 'Roles Adopted', 'nobloat-user-foundry' ),
+					/* Settings & System */
+					'settings_changed'         => __( 'Settings Changed', 'nobloat-user-foundry' ),
+					'logs_purged'              => __( 'Logs Purged', 'nobloat-user-foundry' ),
+					/* Data Export */
+					'user_data_exported'       => __( 'User Data Exported', 'nobloat-user-foundry' ),
+					'admin_exported_user_data' => __( 'Admin Exported User Data', 'nobloat-user-foundry' ),
+					/* Migration */
+					'migration_imported'       => __( 'Migration Imported', 'nobloat-user-foundry' ),
+					'migration_profiles'       => __( 'Migration Profiles', 'nobloat-user-foundry' ),
+					'migration_restrictions'   => __( 'Migration Restrictions', 'nobloat-user-foundry' ),
+					'migration_rollback'       => __( 'Migration Rollback', 'nobloat-user-foundry' ),
 				);
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter for displaying current filter value.
-				$selected = isset( $_GET['action_type'] ) ? sanitize_text_field( wp_unslash( $_GET['action_type'] ) ) : '';
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Read-only parameter for displaying current filter value.
+				$selected = isset( $_REQUEST['action_type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action_type'] ) ) : '';
 				foreach ( $action_types as $value => $label ) {
 					printf(
 						'<option value="%s" %s>%s</option>',
@@ -370,15 +428,16 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 
 			<select name="action_status">
 				<option value=""><?php esc_html_e( 'All Statuses', 'nobloat-user-foundry' ); ?></option>
-				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter for displaying current filter value. ?>
-				<option value="success" <?php selected( isset( $_GET['action_status'] ) ? sanitize_text_field( wp_unslash( $_GET['action_status'] ) ) : '', 'success' ); ?>><?php esc_html_e( 'Success', 'nobloat-user-foundry' ); ?></option>
-				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only GET parameter for displaying current filter value. ?>
-				<option value="failure" <?php selected( isset( $_GET['action_status'] ) ? sanitize_text_field( wp_unslash( $_GET['action_status'] ) ) : '', 'failure' ); ?>><?php esc_html_e( 'Failure', 'nobloat-user-foundry' ); ?></option>
+				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Read-only parameter for displaying current filter value. ?>
+				<option value="success" <?php selected( isset( $_REQUEST['action_status'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action_status'] ) ) : '', 'success' ); ?>><?php esc_html_e( 'Success', 'nobloat-user-foundry' ); ?></option>
+				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Read-only parameter for displaying current filter value. ?>
+				<option value="failure" <?php selected( isset( $_REQUEST['action_status'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action_status'] ) ) : '', 'failure' ); ?>><?php esc_html_e( 'Failure', 'nobloat-user-foundry' ); ?></option>
 			</select>
 
 			<?php // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only GET parameters for displaying current filter values. ?>
-			<label><?php esc_html_e( 'From:', 'nobloat-user-foundry' ); ?> <input type="date" name="date_from" value="<?php echo esc_attr( isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '' ); ?>" /></label>
-			<label><?php esc_html_e( 'To:', 'nobloat-user-foundry' ); ?> <input type="date" name="date_to" value="<?php echo esc_attr( isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '' ); ?>" /></label>
+			<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing -- Read-only parameter for displaying current filter value. ?>
+			<label><?php esc_html_e( 'From:', 'nobloat-user-foundry' ); ?> <input type="date" name="date_from" value="<?php echo esc_attr( isset( $_REQUEST['date_from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_from'] ) ) : '' ); ?>" /></label>
+			<label><?php esc_html_e( 'To:', 'nobloat-user-foundry' ); ?> <input type="date" name="date_to" value="<?php echo esc_attr( isset( $_REQUEST['date_to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['date_to'] ) ) : '' ); ?>" /></label>
 			<?php // phpcs:enable WordPress.Security.NonceVerification.Recommended ?>
 
 			<?php submit_button( __( 'Filter', 'nobloat-user-foundry' ), 'secondary', 'filter_action', false ); ?>

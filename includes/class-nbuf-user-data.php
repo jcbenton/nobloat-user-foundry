@@ -317,6 +317,99 @@ class NBUF_User_Data {
 	}
 
 	/**
+	 * Get user's pending email address.
+	 *
+	 * Used during email change verification flow.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return string|null  Pending email or null if none.
+	 */
+	public static function get_pending_email( int $user_id ): ?string {
+		$data = self::get( $user_id );
+		return $data && ! empty( $data->pending_email ) ? $data->pending_email : null;
+	}
+
+	/**
+	 * Set user's pending email address.
+	 *
+	 * @since  1.5.0
+	 * @param  int    $user_id User ID.
+	 * @param  string $email   Email address.
+	 * @return bool            True on success.
+	 */
+	public static function set_pending_email( int $user_id, string $email ): bool {
+		return self::update( $user_id, array( 'pending_email' => $email ) );
+	}
+
+	/**
+	 * Clear user's pending email address.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success.
+	 */
+	public static function clear_pending_email( int $user_id ): bool {
+		return self::update( $user_id, array( 'pending_email' => null ) );
+	}
+
+	/**
+	 * Get user's last data export timestamp.
+	 *
+	 * Used for GDPR export rate limiting.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return int|null     Unix timestamp or null if never exported.
+	 */
+	public static function get_last_data_export( int $user_id ): ?int {
+		$data = self::get( $user_id );
+		if ( $data && ! empty( $data->last_data_export ) ) {
+			return strtotime( $data->last_data_export );
+		}
+		return null;
+	}
+
+	/**
+	 * Set user's last data export timestamp.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return bool         True on success.
+	 */
+	public static function set_last_data_export( int $user_id ): bool {
+		return self::update( $user_id, array( 'last_data_export' => current_time( 'mysql', true ) ) );
+	}
+
+	/**
+	 * Get user's passkey prompt dismissed devices.
+	 *
+	 * @since  1.5.0
+	 * @param  int $user_id User ID.
+	 * @return array<string, mixed>  Array of dismissed device data.
+	 */
+	public static function get_passkey_prompt_dismissed( int $user_id ): array {
+		$data = self::get( $user_id );
+		if ( $data && ! empty( $data->passkey_prompt_dismissed ) ) {
+			$decoded = json_decode( $data->passkey_prompt_dismissed, true );
+			return is_array( $decoded ) ? $decoded : array();
+		}
+		return array();
+	}
+
+	/**
+	 * Set user's passkey prompt dismissed devices.
+	 *
+	 * @since  1.5.0
+	 * @param  int                  $user_id User ID.
+	 * @param  array<string, mixed> $data    Dismissed device data.
+	 * @return bool                          True on success.
+	 */
+	public static function set_passkey_prompt_dismissed( int $user_id, array $data ): bool {
+		return self::update( $user_id, array( 'passkey_prompt_dismissed' => wp_json_encode( $data ) ) );
+	}
+
+	/**
 	 * Check if user requires admin approval.
 	 *
 	 * @since  1.0.0

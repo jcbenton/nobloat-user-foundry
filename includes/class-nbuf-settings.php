@@ -1528,9 +1528,18 @@ class NBUF_Settings {
 			? ( ! empty( $input['auto_verify_existing'] ) ? 1 : 0 )
 			: ( $existing['auto_verify_existing'] ?? 0 );
 
-		$output['cleanup'] = isset( $input['cleanup'] )
-			? array_map( 'sanitize_text_field', (array) $input['cleanup'] )
-			: ( $existing['cleanup'] ?? array() );
+		/* Check if cleanup form was submitted (marker is within nbuf_settings array) */
+		$cleanup_submitted = ! empty( $input['cleanup_submitted'] );
+
+		if ( isset( $input['cleanup'] ) ) {
+			$output['cleanup'] = array_map( 'sanitize_text_field', (array) $input['cleanup'] );
+		} elseif ( $cleanup_submitted ) {
+			/* Cleanup form was submitted but no checkboxes selected - clear the value */
+			$output['cleanup'] = array();
+		} else {
+			/* Different form submitted - preserve existing value */
+			$output['cleanup'] = $existing['cleanup'] ?? array();
+		}
 
 		/* Save to custom options table */
 		NBUF_Options::update( 'nbuf_settings', $output, true, 'settings' );
@@ -1890,6 +1899,12 @@ class NBUF_Settings {
 						if ( $desc ) {
 							echo '<p class="description">' . wp_kses_post( $desc ) . '</p>';
 						}
+						break;
+
+					case 'html':
+						/* Custom HTML content - no input field, just display the HTML */
+						$html_content = $field['html'] ?? '';
+						echo wp_kses_post( $html_content );
 						break;
 
 					case 'text':

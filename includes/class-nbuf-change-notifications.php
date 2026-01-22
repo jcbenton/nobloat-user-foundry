@@ -95,8 +95,12 @@ class NBUF_Change_Notifications {
 		add_action( 'profile_update', array( $this, 'track_profile_update' ), 10, 2 );
 		add_action( 'nbuf_after_profile_update', array( $this, 'track_frontend_profile_update' ), 10, 1 );
 
-		/* Hook into user meta updates */
-		add_action( 'update_user_meta', array( $this, 'track_meta_update' ), 10, 4 );
+		/*
+		 * Note: 2FA and profile privacy changes are now stored in custom tables
+		 * (nbuf_user_2fa, nbuf_user_data) rather than wp_usermeta.
+		 * 2FA changes are logged via NBUF_Audit_Log in the 2FA data class.
+		 * Profile privacy changes are tracked via the profile update hooks.
+		 */
 
 		/* Store original data before updates (admin + frontend) */
 		add_action( 'personal_options_update', array( $this, 'store_original_data' ), 1 );

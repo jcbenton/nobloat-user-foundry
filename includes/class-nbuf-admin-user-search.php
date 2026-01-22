@@ -462,25 +462,26 @@ class NBUF_Admin_User_Search {
 			}
 		}
 
-		/* 2FA status filter */
+		/* 2FA status filter - uses nbuf_user_2fa custom table */
 		if ( ! empty( $_GET['nbuf_2fa_status'] ) ) {
-			$twofa      = sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) );
-			$filter_ids = null;
+			$twofa       = sanitize_text_field( wp_unslash( $_GET['nbuf_2fa_status'] ) );
+			$filter_ids  = null;
+			$twofa_table = $wpdb->prefix . 'nbuf_user_2fa';
 
 			if ( 'enabled' === $twofa ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$filter_ids = $wpdb->get_col(
 					$wpdb->prepare(
-						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
-						$wpdb->usermeta
+						'SELECT user_id FROM %i WHERE enabled = 1',
+						$twofa_table
 					)
 				);
 			} elseif ( 'disabled' === $twofa ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$enabled = $wpdb->get_col(
 					$wpdb->prepare(
-						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value IN ('email', 'totp', 'both')",
-						$wpdb->usermeta
+						'SELECT user_id FROM %i WHERE enabled = 1',
+						$twofa_table
 					)
 				);
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -490,8 +491,8 @@ class NBUF_Admin_User_Search {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$filter_ids = $wpdb->get_col(
 					$wpdb->prepare(
-						"SELECT user_id FROM %i WHERE meta_key = 'nbuf_2fa_method' AND meta_value = %s",
-						$wpdb->usermeta,
+						'SELECT user_id FROM %i WHERE enabled = 1 AND method = %s',
+						$twofa_table,
 						$twofa
 					)
 				);

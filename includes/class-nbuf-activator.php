@@ -90,6 +90,14 @@ class NBUF_Activator {
 
 			/* Migrate tokens table type column for magic links (v1.5.2+) */
 			NBUF_Database::migrate_tokens_type_column();
+
+			/* Add columns for usermeta migration (v1.5.2+) */
+			NBUF_Database::update_tables_for_usermeta_migration();
+		}
+
+		/* Schedule usermeta migration via cron (v1.5.2+) */
+		if ( class_exists( 'NBUF_Cron' ) ) {
+			NBUF_Cron::schedule_usermeta_migration();
 		}
 		if ( $debug_timing ) {
 			$timings['1_database_tables'] = round( microtime( true ) - $start_time, 3 );

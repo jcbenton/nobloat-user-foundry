@@ -712,18 +712,10 @@ class NBUF_Passkey_Prompt {
 	 *
 	 * @since  1.5.1
 	 * @param  int $user_id User ID.
-	 * @return array<int, string> Array of device IDs.
+	 * @return array<string, mixed> Array of device IDs.
 	 */
 	private static function get_dismissed_devices( int $user_id ): array {
-		$dismissed = get_user_meta( $user_id, self::DISMISSED_META_KEY, true );
-
-		if ( empty( $dismissed ) ) {
-			return array();
-		}
-
-		$devices = json_decode( $dismissed, true );
-
-		return is_array( $devices ) ? $devices : array();
+		return NBUF_User_Data::get_passkey_prompt_dismissed( $user_id );
 	}
 
 	/**
@@ -748,6 +740,6 @@ class NBUF_Passkey_Prompt {
 			$dismissed = array_slice( $dismissed, -50 );
 		}
 
-		update_user_meta( $user_id, self::DISMISSED_META_KEY, wp_json_encode( $dismissed ) );
+		NBUF_User_Data::set_passkey_prompt_dismissed( $user_id, $dismissed );
 	}
 }

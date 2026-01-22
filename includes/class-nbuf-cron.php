@@ -185,6 +185,9 @@ class NBUF_Cron {
 		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
 		add_action( 'nbuf_enterprise_logging_cleanup', array( __CLASS__, 'run_enterprise_logging_cleanup' ) );
 		add_action( 'nbuf_cleanup_login_attempts', array( __CLASS__, 'run_login_attempts_cleanup' ) );
+
+		/* One-time migration hooks */
+		add_action( 'nbuf_migrate_usermeta', array( __CLASS__, 'run_usermeta_migration' ) );
 	}
 
 	/**
@@ -532,6 +535,45 @@ class NBUF_Cron {
 		}
 
 		return (int) $deleted;
+	}
+
+	/**
+	 * Run usermeta migration.
+	 *
+	 * One-time migration of user data from wp_usermeta to custom tables.
+	 * Scheduled via cron to avoid slowing down plugin activation.
+	 *
+	 * @since 1.5.2
+	 * @return void
+	 */
+	public static function run_usermeta_migration(): void {
+		if ( class_exists( 'NBUF_Database' ) ) {
+			NBUF_Database::migrate_usermeta_to_custom_tables();
+		}
+	}
+
+	/**
+	 * Schedule usermeta migration.
+	 *
+	 * Schedules a one-time cron event to migrate user data from wp_usermeta
+	 * to custom tables. Called during plugin activation.
+	 *
+	 * @since 1.5.2
+	 * @return void
+	 */
+	public static function schedule_usermeta_migration(): void {
+		/* Only schedule if not already scheduled or completed */
+		if ( wp_next_scheduled( 'nbuf_migrate_usermeta' ) ) {
+			return;
+		}
+
+		/* Check if migration already completed */
+		if ( NBUF_Options::get( 'nbuf_usermeta_migrated' ) ) {
+			return;
+		}
+
+		/* Schedule to run in 30 seconds (after activation completes) */
+		wp_schedule_single_event( time() + 30, 'nbuf_migrate_usermeta' );
 	}
 }
 

@@ -260,7 +260,7 @@ $nbuf_settings_fields = array(
 		'html'  => sprintf(
 			/* translators: %s: Link to Privacy settings */
 			__( 'Configure log handling when users are deleted in %s.', 'nobloat-user-foundry' ),
-			'<a href="' . esc_url( admin_url( 'admin.php?page=nbuf-settings&tab=gdpr&subtab=privacy' ) ) . '">' . __( 'GDPR &raquo; Privacy', 'nobloat-user-foundry' ) . '</a>'
+			'<a href="' . esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=gdpr&subtab=privacy' ) ) . '">' . __( 'GDPR &raquo; Privacy', 'nobloat-user-foundry' ) . '</a>'
 		),
 	),
 );

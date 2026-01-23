@@ -115,6 +115,7 @@ class NBUF_Appearance {
 					'2fa'                => __( '2FA', 'nobloat-user-foundry' ),
 					'password-reset'     => __( 'Password Reset', 'nobloat-user-foundry' ),
 					'admin-notification' => __( 'Admin Notification', 'nobloat-user-foundry' ),
+					'security-alert'     => __( 'Security Alert', 'nobloat-user-foundry' ),
 				),
 			),
 			'policies' => array(
@@ -133,8 +134,9 @@ class NBUF_Appearance {
 					'reset'         => __( 'Password Reset', 'nobloat-user-foundry' ),
 					'account'       => __( 'Account Page', 'nobloat-user-foundry' ),
 					'2fa'           => __( '2FA Verify', 'nobloat-user-foundry' ),
-					'2fa-setup'     => __( '2FA Setup', 'nobloat-user-foundry' ),
-					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
+					'2fa-setup'      => __( '2FA Setup', 'nobloat-user-foundry' ),
+					'backup-codes'   => __( 'Backup Codes', 'nobloat-user-foundry' ),
+					'backup-verify'  => __( 'Backup Verify', 'nobloat-user-foundry' ),
 				),
 			),
 			'pages'    => array(
@@ -301,6 +303,7 @@ class NBUF_Appearance {
 				'2fa'                => 'templates/2fa.php',
 				'password-reset'     => 'templates/password-reset.php',
 				'admin-notification' => 'templates/admin-notification.php',
+				'security-alert'     => 'templates/security-alert.php',
 			),
 			/* Policy Templates */
 			'policies' => array(
@@ -317,6 +320,7 @@ class NBUF_Appearance {
 				'2fa'           => 'forms/2fa.php',
 				'2fa-setup'     => 'forms/2fa-setup.php',
 				'backup-codes'  => 'forms/backup-codes.php',
+				'backup-verify' => 'forms/backup-verify.php',
 			),
 			/* Page Templates */
 			'pages'    => array(

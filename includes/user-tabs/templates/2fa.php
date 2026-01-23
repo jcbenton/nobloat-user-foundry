@@ -11,23 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Load current templates */
-$nbuf_twofa_email_html = NBUF_Options::get( 'nbuf_2fa_email_html', '' );
-$nbuf_twofa_email_text = NBUF_Options::get( 'nbuf_2fa_email_text', '' );
-
-/* If empty, load from default templates */
-if ( empty( $nbuf_twofa_email_html ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.html';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_twofa_email_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_twofa_email_text ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . '2fa-email-code.txt';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_twofa_email_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
+/* Load current templates using Template Manager (checks DB first, then falls back to file) */
+$nbuf_twofa_email_html = NBUF_Template_Manager::load_template( '2fa-email-code-html' );
+$nbuf_twofa_email_text = NBUF_Template_Manager::load_template( '2fa-email-code-text' );
 ?>
 
 <div class="nbuf-templates-tab">

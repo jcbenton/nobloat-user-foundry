@@ -329,7 +329,7 @@ if ( NBUF_User_Data::is_verified( $user_id ) ) {
 NBUF_User_Data::set_disabled( $user_id, 'Violation of terms' );
 
 // Set account expiration
-NBUF_User_Data::set_expiration( $user_id, '2025-12-31 23:59:59' );
+NBUF_User_Data::set_expiration( $user_id, '2026-12-31 23:59:59' );
 
 // Update profile data
 NBUF_Profile_Data::update( $user_id, array(

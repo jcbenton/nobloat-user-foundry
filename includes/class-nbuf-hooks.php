@@ -303,9 +303,10 @@ class NBUF_Hooks {
 	}
 
 	/**
-	 * REWRITE PASSWORD RESET LINK.
+	 * CUSTOMIZE PASSWORD RESET EMAIL.
 	 *
-	 * Replaces wp-login.php reset URLs with our custom page.
+	 * Replaces WordPress default password reset email with our custom template
+	 * if one is saved, otherwise just rewrites the URL to use our custom page.
 	 *
 	 * @param  string $message    Message content.
 	 * @param  string $key        Reset key.
@@ -313,7 +314,7 @@ class NBUF_Hooks {
 	 * @param  object $user_data  User data object.
 	 * @return string Modified message.
 	 */
-	public static function rewrite_password_reset_link( $message, $key, $user_login, $user_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	public static function rewrite_password_reset_link( $message, $key, $user_login, $user_data ) {
 		/* Get password reset page URL - use Universal Router if available */
 		$reset_url = '';
 		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_reset_password_url' ) ) {
@@ -332,6 +333,37 @@ class NBUF_Hooks {
 			$reset_url
 		);
 
+		/* Check if custom password reset template is saved */
+		$custom_template = NBUF_Options::get( 'nbuf_password_reset_email_html', '' );
+		$text_template   = NBUF_Options::get( 'nbuf_password_reset_email_text', '' );
+
+		/* If custom template exists, use it instead of WordPress default */
+		if ( ! empty( $custom_template ) || ! empty( $text_template ) ) {
+			$use_html = ! empty( $custom_template );
+			$template = $use_html ? $custom_template : $text_template;
+
+			/* Get user display name */
+			$display_name = '';
+			if ( is_object( $user_data ) && isset( $user_data->display_name ) ) {
+				$display_name = $user_data->display_name ? $user_data->display_name : $user_login;
+			} else {
+				$display_name = $user_login;
+			}
+
+			/* Prepare placeholders */
+			$placeholders = array(
+				'{site_name}'    => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+				'{site_url}'     => home_url(),
+				'{display_name}' => sanitize_text_field( $display_name ),
+				'{username}'     => sanitize_text_field( $user_login ),
+				'{reset_link}'   => esc_url( $reset_url ),
+			);
+
+			/* Replace placeholders and return custom message */
+			return str_replace( array_keys( $placeholders ), array_values( $placeholders ), $template );
+		}
+
+		/* No custom template - just rewrite the URL in the default WordPress message */
 		$encoded = strpos( $message, '<' ) !== false ? esc_url( $reset_url ) : $reset_url;
 
 		return preg_replace(

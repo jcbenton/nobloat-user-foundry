@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.5.5
+ * Version: 1.5.6
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Jerry Benton

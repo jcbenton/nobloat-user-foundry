@@ -135,7 +135,7 @@ $nbuf_antibot_enabled  = NBUF_Options::get( 'nbuf_antibot_enabled', true );
 	<div class="notice notice-warning inline" style="margin: 10px 0 20px;">
 		<p>
 			<?php esc_html_e( 'Anti-bot protection is currently disabled.', 'nobloat-user-foundry' ); ?>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=registration&subtab=antibot' ) ); ?>">
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=security&subtab=registration' ) ); ?>">
 				<?php esc_html_e( 'Enable anti-bot protection', 'nobloat-user-foundry' ); ?>
 			</a>
 		</p>
@@ -462,7 +462,7 @@ $nbuf_antibot_enabled  = NBUF_Options::get( 'nbuf_antibot_enabled', true );
 
 	<p class="description" style="margin-top: 15px;">
 		<?php esc_html_e( 'Anti-bot challenges are validated during registration form submission. Failed challenges are logged to the security log.', 'nobloat-user-foundry' ); ?>
-		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=registration&subtab=antibot' ) ); ?>">
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=nobloat-foundry-users&tab=security&subtab=registration' ) ); ?>">
 			<?php esc_html_e( 'Configure anti-bot settings', 'nobloat-user-foundry' ); ?>
 		</a>
 	</p>

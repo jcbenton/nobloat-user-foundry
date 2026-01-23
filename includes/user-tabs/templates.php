@@ -26,8 +26,15 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
 		'welcome-email-text',
 		'expiration-warning-html',
 		'expiration-warning-text',
+		'expiration-notice-html',
+		'expiration-notice-text',
 		'2fa-email-code-html',
 		'2fa-email-code-text',
+		'password-reset-html',
+		'password-reset-text',
+		'admin-new-user-html',
+		'admin-new-user-text',
+		'security-alert-email-html',
 		'login-form',
 		'registration-form',
 		'account-page',
@@ -56,23 +63,30 @@ if ( isset( $_POST['nbuf_save_templates'] ) && check_admin_referer( 'nbuf_templa
  * Load current template values from custom table
  */
 $nbuf_templates_data = array(
-	'email_verification_html' => NBUF_Template_Manager::load_template( 'email-verification-html' ),
-	'email_verification_text' => NBUF_Template_Manager::load_template( 'email-verification-text' ),
-	'welcome_email_html'      => NBUF_Template_Manager::load_template( 'welcome-email-html' ),
-	'welcome_email_text'      => NBUF_Template_Manager::load_template( 'welcome-email-text' ),
-	'expiration_warning_html' => NBUF_Template_Manager::load_template( 'expiration-warning-html' ),
-	'expiration_warning_text' => NBUF_Template_Manager::load_template( 'expiration-warning-text' ),
-	'2fa_email_code_html'     => NBUF_Template_Manager::load_template( '2fa-email-code-html' ),
-	'2fa_email_code_text'     => NBUF_Template_Manager::load_template( '2fa-email-code-text' ),
-	'login_form'              => NBUF_Template_Manager::load_template( 'login-form' ),
-	'registration_form'       => NBUF_Template_Manager::load_template( 'registration-form' ),
-	'account_page'            => NBUF_Template_Manager::load_template( 'account-page' ),
-	'request_reset_form'      => NBUF_Template_Manager::load_template( 'request-reset-form' ),
-	'reset_form'              => NBUF_Template_Manager::load_template( 'reset-form' ),
-	'2fa_verify'              => NBUF_Template_Manager::load_template( '2fa-verify' ),
-	'2fa_setup_totp'          => NBUF_Template_Manager::load_template( '2fa-setup-totp' ),
-	'2fa_backup_codes'        => NBUF_Template_Manager::load_template( '2fa-backup-codes' ),
-	'2fa_backup_verify'       => NBUF_Template_Manager::load_template( '2fa-backup-verify' ),
+	'email_verification_html'  => NBUF_Template_Manager::load_template( 'email-verification-html' ),
+	'email_verification_text'  => NBUF_Template_Manager::load_template( 'email-verification-text' ),
+	'welcome_email_html'       => NBUF_Template_Manager::load_template( 'welcome-email-html' ),
+	'welcome_email_text'       => NBUF_Template_Manager::load_template( 'welcome-email-text' ),
+	'expiration_warning_html'  => NBUF_Template_Manager::load_template( 'expiration-warning-html' ),
+	'expiration_warning_text'  => NBUF_Template_Manager::load_template( 'expiration-warning-text' ),
+	'expiration_notice_html'   => NBUF_Template_Manager::load_template( 'expiration-notice-html' ),
+	'expiration_notice_text'   => NBUF_Template_Manager::load_template( 'expiration-notice-text' ),
+	'2fa_email_code_html'      => NBUF_Template_Manager::load_template( '2fa-email-code-html' ),
+	'2fa_email_code_text'      => NBUF_Template_Manager::load_template( '2fa-email-code-text' ),
+	'password_reset_html'      => NBUF_Template_Manager::load_template( 'password-reset-html' ),
+	'password_reset_text'      => NBUF_Template_Manager::load_template( 'password-reset-text' ),
+	'admin_new_user_html'      => NBUF_Template_Manager::load_template( 'admin-new-user-html' ),
+	'admin_new_user_text'      => NBUF_Template_Manager::load_template( 'admin-new-user-text' ),
+	'security_alert_email_html' => NBUF_Template_Manager::load_template( 'security-alert-email-html' ),
+	'login_form'               => NBUF_Template_Manager::load_template( 'login-form' ),
+	'registration_form'        => NBUF_Template_Manager::load_template( 'registration-form' ),
+	'account_page'             => NBUF_Template_Manager::load_template( 'account-page' ),
+	'request_reset_form'       => NBUF_Template_Manager::load_template( 'request-reset-form' ),
+	'reset_form'               => NBUF_Template_Manager::load_template( 'reset-form' ),
+	'2fa_verify'               => NBUF_Template_Manager::load_template( '2fa-verify' ),
+	'2fa_setup_totp'           => NBUF_Template_Manager::load_template( '2fa-setup-totp' ),
+	'2fa_backup_codes'         => NBUF_Template_Manager::load_template( '2fa-backup-codes' ),
+	'2fa_backup_verify'        => NBUF_Template_Manager::load_template( '2fa-backup-verify' ),
 );
 ?>
 
@@ -224,6 +238,171 @@ $nbuf_templates_data = array(
 						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
 						esc_html( NBUF_Template_Manager::get_placeholders( '2fa-email-code-text' ) );
 						?>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Account Expiration Notice -->
+		<div class="nbuf-accordion">
+			<button type="button" class="nbuf-accordion-header">
+				<span class="nbuf-accordion-title">
+					<?php esc_html_e( 'Account Expiration Notice Templates', 'nobloat-user-foundry' ); ?>
+				</span>
+				<span class="nbuf-accordion-icon">▼</span>
+			</button>
+			<div class="nbuf-accordion-content">
+				<p class="description" style="margin: 1.5rem; margin-bottom: 0;">
+					<?php esc_html_e( 'Sent to users after their account has expired and been disabled.', 'nobloat-user-foundry' ); ?>
+				</p>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="expiration_notice_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['expiration_notice_html'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-notice-html' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="expiration-notice-html">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="expiration_notice_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['expiration_notice_text'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'expiration-notice-text' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="expiration-notice-text">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Password Reset Email -->
+		<div class="nbuf-accordion">
+			<button type="button" class="nbuf-accordion-header">
+				<span class="nbuf-accordion-title">
+					<?php esc_html_e( 'Password Reset Email Templates', 'nobloat-user-foundry' ); ?>
+				</span>
+				<span class="nbuf-accordion-icon">▼</span>
+			</button>
+			<div class="nbuf-accordion-content">
+				<p class="description" style="margin: 1.5rem; margin-bottom: 0;">
+					<?php esc_html_e( 'Sent when users request a password reset. Replaces the default WordPress password reset email.', 'nobloat-user-foundry' ); ?>
+				</p>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="password_reset_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['password_reset_html'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'password-reset-html' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="password-reset-html">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="password_reset_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['password_reset_text'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'password-reset-text' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="password-reset-text">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Admin New User Notification -->
+		<div class="nbuf-accordion">
+			<button type="button" class="nbuf-accordion-header">
+				<span class="nbuf-accordion-title">
+					<?php esc_html_e( 'Admin New User Notification Templates', 'nobloat-user-foundry' ); ?>
+				</span>
+				<span class="nbuf-accordion-icon">▼</span>
+			</button>
+			<div class="nbuf-accordion-content">
+				<p class="description" style="margin: 1.5rem; margin-bottom: 0;">
+					<?php esc_html_e( 'Sent to site administrators when a new user registers (if enabled in settings).', 'nobloat-user-foundry' ); ?>
+				</p>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="admin_new_user_html" rows="15" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['admin_new_user_html'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'admin-new-user-html' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="admin-new-user-html">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'Plain Text Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="admin_new_user_text" rows="10" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['admin_new_user_text'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'admin-new-user-text' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="admin-new-user-text">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Security Alert Email -->
+		<div class="nbuf-accordion">
+			<button type="button" class="nbuf-accordion-header">
+				<span class="nbuf-accordion-title">
+					<?php esc_html_e( 'Security Alert Email Template', 'nobloat-user-foundry' ); ?>
+				</span>
+				<span class="nbuf-accordion-icon">▼</span>
+			</button>
+			<div class="nbuf-accordion-content">
+				<p class="description" style="margin: 1.5rem; margin-bottom: 0;">
+					<?php esc_html_e( 'Sent to administrators when critical security events are detected (if security alerts are enabled).', 'nobloat-user-foundry' ); ?>
+				</p>
+				<div class="nbuf-template-section">
+					<h3><?php esc_html_e( 'HTML Template', 'nobloat-user-foundry' ); ?></h3>
+					<textarea name="security_alert_email_html" rows="20" class="large-text code nbuf-template-editor"><?php echo esc_textarea( $nbuf_templates_data['security_alert_email_html'] ); ?></textarea>
+					<p class="description">
+						<?php
+						echo esc_html__( 'Placeholders: ', 'nobloat-user-foundry' ) .
+						esc_html( NBUF_Template_Manager::get_placeholders( 'security-alert-email-html' ) );
+						?>
+					</p>
+					<p>
+						<button type="button" class="button nbuf-reset-template" data-template="security-alert-email-html">
+							<?php esc_html_e( 'Reset to Default', 'nobloat-user-foundry' ); ?>
+						</button>
 					</p>
 				</div>
 			</div>

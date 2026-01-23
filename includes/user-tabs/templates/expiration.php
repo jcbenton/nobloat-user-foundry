@@ -11,37 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Load current templates */
-$nbuf_expiration_warning_html = NBUF_Options::get( 'nbuf_expiration_warning_email_html', '' );
-$nbuf_expiration_warning_text = NBUF_Options::get( 'nbuf_expiration_warning_email_text', '' );
-$nbuf_expiration_notice_html  = NBUF_Options::get( 'nbuf_expiration_notice_email_html', '' );
-$nbuf_expiration_notice_text  = NBUF_Options::get( 'nbuf_expiration_notice_email_text', '' );
-
-/* If empty, load from default templates */
-if ( empty( $nbuf_expiration_warning_html ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'expiration-warning.html';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_expiration_warning_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_expiration_warning_text ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'expiration-warning.txt';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_expiration_warning_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_expiration_notice_html ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'expiration-notice.html';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_expiration_notice_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_expiration_notice_text ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'expiration-notice.txt';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_expiration_notice_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
+/* Load current templates using Template Manager (checks DB first, then falls back to file) */
+$nbuf_expiration_warning_html = NBUF_Template_Manager::load_template( 'expiration-warning-html' );
+$nbuf_expiration_warning_text = NBUF_Template_Manager::load_template( 'expiration-warning-text' );
+$nbuf_expiration_notice_html  = NBUF_Template_Manager::load_template( 'expiration-notice-html' );
+$nbuf_expiration_notice_text  = NBUF_Template_Manager::load_template( 'expiration-notice-text' );
 ?>
 
 <div class="nbuf-templates-tab">

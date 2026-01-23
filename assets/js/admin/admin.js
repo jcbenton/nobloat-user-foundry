@@ -97,6 +97,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         /* Admin notification */
                         "admin-new-user-html": "nbuf_admin_new_user_html",
                         "admin-new-user-text": "nbuf_admin_new_user_text",
+                        /* Security alert */
+                        "security-alert-email-html": "nbuf_security_alert_email_html",
                         /* Policy templates */
                         "policy-privacy-html": "nbuf_policy_privacy_html",
                         "policy-terms-html": "nbuf_policy_terms_html",
@@ -118,7 +120,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
 
                     const fieldName = templateMap[type];
-                    const targetTextarea = fieldName ? document.querySelector(`textarea[name='${fieldName}']`) : null;
+                    let targetTextarea = fieldName ? document.querySelector(`textarea[name='${fieldName}']`) : null;
+
+                    /* Fallback: try simple form name (template-name with hyphens to underscores) */
+                    if (!targetTextarea) {
+                        const simpleFieldName = type.replace(/-/g, "_");
+                        targetTextarea = document.querySelector(`textarea[name='${simpleFieldName}']`);
+                    }
 
                     if (targetTextarea && data.data.content) {
                         targetTextarea.value = data.data.content;

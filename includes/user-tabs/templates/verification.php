@@ -11,23 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Load current templates */
-$nbuf_verification_html = NBUF_Options::get( 'nbuf_email_template_html', '' );
-$nbuf_verification_text = NBUF_Options::get( 'nbuf_email_template_text', '' );
-
-/* If empty, load from default templates */
-if ( empty( $nbuf_verification_html ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'email-verification.html';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_verification_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_verification_text ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'email-verification.txt';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_verification_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
+/* Load current templates using Template Manager (checks DB first, then falls back to file) */
+$nbuf_verification_html = NBUF_Template_Manager::load_template( 'email-verification-html' );
+$nbuf_verification_text = NBUF_Template_Manager::load_template( 'email-verification-text' );
 ?>
 
 <div class="nbuf-templates-tab">

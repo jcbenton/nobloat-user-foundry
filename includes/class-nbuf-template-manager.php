@@ -889,6 +889,10 @@ class NBUF_Template_Manager {
 			'expiration-warning-html'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}',
 			'expiration-warning-text'     => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}, {days_until_expiration}, {login_url}',
 
+			// Expiration notice (account expired).
+			'expiration-notice-html'      => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}',
+			'expiration-notice-text'      => '{site_name}, {site_url}, {display_name}, {username}, {expires_date}, {expiration_date}',
+
 			// 2FA email code.
 			'2fa-email-code-html'         => '{site_name}, {display_name}, {code}, {user_email}',
 			'2fa-email-code-text'         => '{site_name}, {display_name}, {code}, {user_email}',

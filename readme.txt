@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.5.5
+Stable tag: 1.5.6
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,17 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.5.6 =
+* Added: Password Reset email templates to editor (replaces WordPress default)
+* Added: Admin New User Notification templates to editor
+* Added: Account Expiration Notice templates to editor
+* Added: Security Alert email template to editor
+* Improved: All template subtab files now use Template Manager for consistent DB-first loading
+* Improved: JavaScript template reset with fallback for simplified form field names
+* Fixed: Anti-bot settings link now correctly points to Security > Registration
+* Fixed: Added missing `nbuf_is_reserved_username` filter to hooks documentation
+* Fixed: Updated example date in API documentation
+
 = 1.5.5 =
 * Security: Consolidated IP address handling into new NBUF_IP utility class
 * Security: IPv6 normalization prevents rate limit bypass via address variations
@@ -394,6 +405,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.5.6 =
+Adds missing email templates to the editor (Password Reset, Admin Notification, Expiration Notice, Security Alert). No database changes required.
 
 = 1.5.5 =
 Security and code quality release. Consolidated IP handling, PHPCS compliance, and various fixes. No database changes required.

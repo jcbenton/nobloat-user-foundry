@@ -11,23 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/* Load current templates */
-$nbuf_welcome_html = NBUF_Options::get( 'nbuf_welcome_email_html', '' );
-$nbuf_welcome_text = NBUF_Options::get( 'nbuf_welcome_email_text', '' );
-
-/* If empty, load from default templates */
-if ( empty( $nbuf_welcome_html ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'welcome-email.html';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_welcome_html = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
-if ( empty( $nbuf_welcome_text ) ) {
-	$nbuf_template_path = NBUF_TEMPLATES_DIR . 'welcome-email.txt';
-	if ( file_exists( $nbuf_template_path ) ) {
-		$nbuf_welcome_text = file_get_contents( $nbuf_template_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	}
-}
+/* Load current templates using Template Manager (checks DB first, then falls back to file) */
+$nbuf_welcome_html = NBUF_Template_Manager::load_template( 'welcome-email-html' );
+$nbuf_welcome_text = NBUF_Template_Manager::load_template( 'welcome-email-text' );
 ?>
 
 <div class="nbuf-templates-tab">

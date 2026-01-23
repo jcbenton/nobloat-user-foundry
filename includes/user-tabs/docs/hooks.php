@@ -140,6 +140,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td><?php esc_html_e( 'Filter BuddyPress profile field mapping during migration.', 'nobloat-user-foundry' ); ?></td>
 			<td><code>$mapping</code>, <code>$bp_fields</code></td>
 		</tr>
+		<tr>
+			<td><code>nbuf_is_reserved_username</code></td>
+			<td><?php esc_html_e( 'Filter whether a username is reserved and cannot be registered.', 'nobloat-user-foundry' ); ?></td>
+			<td><code>$is_reserved</code>, <code>$username</code></td>
+		</tr>
 	</tbody>
 </table>
 
@@ -174,4 +179,10 @@ add_filter( 'nbuf_profile_registration_fields', function( $fields ) {
 	unset( $fields['company'] );
 	return $fields;
 } );
+
+// Reserve specific usernames from registration
+add_filter( 'nbuf_is_reserved_username', function( $is_reserved, $username ) {
+	$reserved = array( 'admin', 'support', 'help', 'info' );
+	return in_array( strtolower( $username ), $reserved, true );
+}, 10, 2 );
 </pre>

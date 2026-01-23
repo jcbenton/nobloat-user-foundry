@@ -598,6 +598,9 @@ class NBUF_Settings {
 			'nbuf_admin_new_user_text'                => function ( $value ) {
 				return NBUF_Template_Manager::sanitize_template( $value, 'admin-new-user-text' );
 			},
+			'nbuf_security_alert_email_html'          => function ( $value ) {
+				return NBUF_Template_Manager::sanitize_template( $value, 'security-alert-email-html' );
+			},
 			'nbuf_policy_privacy_html'                => function ( $value ) {
 				return NBUF_Template_Manager::sanitize_template( $value, 'policy-privacy-html' );
 			},
@@ -2211,6 +2214,8 @@ class NBUF_Settings {
 			/* Password reset email */
 			'password-reset-html'         => 'password-reset.html',
 			'password-reset-text'         => 'password-reset.txt',
+			/* Security alert email */
+			'security-alert-email-html'   => 'security-alert-email.html',
 			/* Form templates */
 			'login-form'                  => 'login-form.html',
 			'registration-form'           => 'registration-form.html',
@@ -2251,6 +2256,8 @@ class NBUF_Settings {
 			/* Password reset email */
 			'password-reset-html'         => 'nbuf_password_reset_email_html',
 			'password-reset-text'         => 'nbuf_password_reset_email_text',
+			/* Security alert email */
+			'security-alert-email-html'   => 'nbuf_security_alert_email_html',
 			/* Form templates */
 			'login-form'                  => 'nbuf_login_form_template',
 			'registration-form'           => 'nbuf_registration_form_template',

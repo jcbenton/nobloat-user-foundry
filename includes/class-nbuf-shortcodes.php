@@ -1004,14 +1004,19 @@ class NBUF_Shortcodes {
 				if ( ! $bypass ) {
 					// Log the blocked attempt.
 					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						$restriction_mode = NBUF_IP_Restrictions::get_mode();
+						$log_message      = ( 'blacklist' === $restriction_mode )
+							? 'Login blocked: IP address is blacklisted'
+							: 'Login blocked: IP address is not in whitelist';
+
 						NBUF_Security_Log::log_or_update(
 							'ip_blocked',
 							'critical',
-							'Login blocked: IP not in allowed list',
+							$log_message,
 							array(
 								'ip_address' => $client_ip,
 								'username'   => $username,
-								'mode'       => NBUF_IP_Restrictions::get_mode(),
+								'mode'       => $restriction_mode,
 							)
 						);
 					}
@@ -1052,6 +1057,8 @@ class NBUF_Shortcodes {
 				$login_status = 'expired';
 			} elseif ( 'awaiting_approval' === $error_code ) {
 				$login_status = 'pending';
+			} elseif ( 'ip_blocked' === $error_code ) {
+				$login_status = 'ip_blocked';
 			}
 
 			wp_safe_redirect( add_query_arg( 'login', $login_status, $current_url ) );
@@ -3890,7 +3897,7 @@ Best regards,
 	 * @param  mixed  $default Default value if parameter not found.
 	 * @return mixed Parameter value or default.
 	 */
-	private static function get_query_param( $param, $default = '' ) {
+	private static function get_query_param( $param, $default = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound -- Matches WordPress get_option() convention.
 		/* First try $_GET */
 		if ( isset( $_GET[ $param ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return sanitize_text_field( wp_unslash( $_GET[ $param ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended

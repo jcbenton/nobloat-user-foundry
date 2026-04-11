@@ -223,6 +223,24 @@ $nbuf_settings_fields = array(
 		'desc'     => __( 'Enter custom email address for security alerts (only used when "Custom Email Address" is selected above).', 'nobloat-user-foundry' ),
 	),
 
+	array(
+		'id'       => 'nbuf_security_log_alert_cooldown',
+		'title'    => __( 'Alert Cooldown', 'nobloat-user-foundry' ),
+		'type'     => 'select',
+		'default'  => '60',
+		'category' => 'security_log',
+		'options'  => array(
+			'5'    => __( '5 Minutes', 'nobloat-user-foundry' ),
+			'15'   => __( '15 Minutes', 'nobloat-user-foundry' ),
+			'30'   => __( '30 Minutes', 'nobloat-user-foundry' ),
+			'60'   => __( '1 Hour (Recommended)', 'nobloat-user-foundry' ),
+			'120'  => __( '2 Hours', 'nobloat-user-foundry' ),
+			'360'  => __( '6 Hours', 'nobloat-user-foundry' ),
+			'1440' => __( '24 Hours', 'nobloat-user-foundry' ),
+		),
+		'desc'     => __( 'Minimum time between repeated email alerts for the same event type. Prevents email flooding during sustained attacks.', 'nobloat-user-foundry' ),
+	),
+
 	/*
 	 * ===========================================
 	 * PRIVACY SETTINGS (applies to all logs)

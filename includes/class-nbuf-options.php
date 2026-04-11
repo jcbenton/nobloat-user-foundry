@@ -231,6 +231,19 @@ class NBUF_Options {
 		/* Get old value for audit logging before update */
 		$old_value = self::get( $key );
 
+		/*
+		 * Skip the write if the value hasn't actually changed.
+		 *
+		 * Compare serialized forms to catch all type variations.
+		 * Also compare with type coercion for common mismatches
+		 * (e.g., activator stores int 5, form saves string '5').
+		 * This prevents unnecessary DB writes, cache invalidation,
+		 * and spurious audit log entries on every settings save.
+		 */
+		if ( self::values_equal( $old_value, $value ) ) {
+			return true;
+		}
+
 		$serialized_value = maybe_serialize( $value );
 
 		$result = $wpdb->replace(
@@ -264,18 +277,68 @@ class NBUF_Options {
 			 * Fire action hook when option is updated.
 			 *
 			 * Mimics WordPress's update_option_{$option} hook but for custom options table.
-			 * Only fires if value actually changed.
 			 *
 			 * @param mixed  $old_value Previous option value.
 			 * @param mixed  $value     New option value.
 			 * @param string $key       Option name.
 			 */
-			if ( $old_value !== $value ) {
-				do_action( 'nbuf_update_option_' . $key, $old_value, $value, $key );
-			}
+			do_action( 'nbuf_update_option_' . $key, $old_value, $value, $key );
 		}
 
 		return false !== $result;
+	}
+
+	/**
+	 * Compare two option values for equality.
+	 *
+	 * Handles type mismatches between stored values and form submissions.
+	 * For example, activator may store integer 5 while forms submit string '5'.
+	 * Arrays are compared element-by-element with the same type tolerance.
+	 *
+	 * @param mixed $old_value Existing value from database.
+	 * @param mixed $new_value New value to be saved.
+	 * @return bool True if values are effectively equal.
+	 */
+	private static function values_equal( $old_value, $new_value ): bool {
+		/* Strict match covers identical types */
+		if ( $old_value === $new_value ) {
+			return true;
+		}
+
+		/* Scalar type coercion for common mismatches */
+		if ( is_scalar( $old_value ) && is_scalar( $new_value ) ) {
+			/*
+			 * Numeric comparison: handles activator storing int 5 while
+			 * form submissions produce string '5' via sanitize_text_field().
+			 */
+			if ( is_numeric( $old_value ) && is_numeric( $new_value ) && ! is_bool( $old_value ) && ! is_bool( $new_value ) ) {
+				return (string) $old_value === (string) $new_value;
+			}
+
+			/*
+			 * For non-numeric scalars (booleans, strings), compare serialized
+			 * forms so that bool true ('b:1;') doesn't falsely match string '1'.
+			 */
+			return maybe_serialize( $old_value ) === maybe_serialize( $new_value );
+		}
+
+		/* Array comparison: same keys and values (with type tolerance per element) */
+		if ( is_array( $old_value ) && is_array( $new_value ) ) {
+			if ( count( $old_value ) !== count( $new_value ) ) {
+				return false;
+			}
+			foreach ( $old_value as $k => $v ) {
+				if ( ! array_key_exists( $k, $new_value ) ) {
+					return false;
+				}
+				if ( ! self::values_equal( $v, $new_value[ $k ] ) ) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -286,8 +349,8 @@ class NBUF_Options {
 	 * @param mixed  $new_value New value.
 	 */
 	private static function maybe_log_setting_change( string $key, $old_value, $new_value ): void {
-		/* Skip if values are the same */
-		if ( $old_value === $new_value ) {
+		/* Skip if values are effectively the same (type-aware comparison) */
+		if ( self::values_equal( $old_value, $new_value ) ) {
 			return;
 		}
 

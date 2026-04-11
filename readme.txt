@@ -4,12 +4,12 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.5.6
+Stable tag: 1.5.7
 Requires PHP: 7.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
+Enterprise-grade user management for business WordPress sites with email verification, 2FA, passkeys, roles, GDPR tools, audit logs, and lifecycle control.
 
 == Description ==
 
@@ -324,6 +324,17 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.5.7 =
+* Fixed: IP blacklist now blocks restricted IPs before credential validation on wp-login.php
+* Fixed: Security alert email flooding during sustained attacks (configurable cooldown, default 1 hour)
+* Fixed: Settings save logging every setting as changed even when unchanged
+* Added: Activity summary digest in security alert emails showing all IPs and attempt counts
+* Added: Alert Cooldown setting in GDPR > Logging (5 min to 24 hours)
+* Added: {recent_activity} placeholder for security alert email template
+* Improved: Options update skips DB write and cache invalidation when value unchanged
+* Improved: Type-aware value comparison handles int/string mismatches from activation defaults
+* Improved: Meta fields (nbuf_form_checkboxes, nbuf_form_arrays) excluded from settings processing loop
+
 = 1.5.6 =
 * Added: Password Reset email templates to editor (replaces WordPress default)
 * Added: Admin New User Notification templates to editor
@@ -405,6 +416,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.5.7 =
+Security fix: IP blacklist now blocks before authentication. Alert email throttling and digest summaries. Settings save no longer logs unchanged values. No database changes required.
 
 = 1.5.6 =
 Adds missing email templates to the editor (Password Reset, Admin Notification, Expiration Notice, Security Alert). No database changes required.

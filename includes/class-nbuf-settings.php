@@ -459,6 +459,10 @@ class NBUF_Settings {
 				return in_array( $value, array( 'admin', 'custom' ), true ) ? $value : 'admin';
 			},
 			'nbuf_security_log_custom_email'          => 'sanitize_email',
+			'nbuf_security_log_alert_cooldown'        => function ( $value ) {
+				$allowed = array( '5', '15', '30', '60', '120', '360', '1440' );
+				return in_array( (string) $value, $allowed, true ) ? (string) $value : '60';
+			},
 
 			/* Logging - Privacy */
 			'nbuf_logging_anonymize_ip'               => array( __CLASS__, 'sanitize_checkbox' ),
@@ -729,7 +733,7 @@ class NBUF_Settings {
 		/* Process each submitted field */
 		foreach ( $_POST as $key => $value ) {
 			/* Skip non-nbuf fields and meta fields */
-			if ( strpos( $key, 'nbuf_' ) !== 0 || in_array( $key, array( 'nbuf_settings_nonce', 'nbuf_active_tab', 'nbuf_active_subtab' ), true ) ) {
+			if ( strpos( $key, 'nbuf_' ) !== 0 || in_array( $key, array( 'nbuf_settings_nonce', 'nbuf_active_tab', 'nbuf_active_subtab', 'nbuf_form_checkboxes', 'nbuf_form_arrays' ), true ) ) {
 				continue;
 			}
 

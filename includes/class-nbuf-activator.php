@@ -451,6 +451,7 @@ class NBUF_Activator {
 				'nbuf_security_log_alerts_enabled' => false,
 				'nbuf_security_log_recipient_type' => 'admin',
 				'nbuf_security_log_custom_email'   => '',
+				'nbuf_security_log_alert_cooldown' => '60',
 			);
 			NBUF_Options::batch_insert( $security_log_defaults, true, 'security_log' );
 
@@ -1348,6 +1349,10 @@ class NBUF_Activator {
 				'autoload' => true,
 			),
 			'nbuf_security_log_custom_email'         => array(
+				'group'    => 'security_log',
+				'autoload' => true,
+			),
+			'nbuf_security_log_alert_cooldown'       => array(
 				'group'    => 'security_log',
 				'autoload' => true,
 			),

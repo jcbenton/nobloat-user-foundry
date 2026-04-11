@@ -31,13 +31,12 @@ class NBUF_IP_Restrictions {
 	public static function init(): void {
 		/*
 		 * Hook into authenticate filter for wp-login.php access.
-		 * Priority 25: Run AFTER WordPress authentication (priority 20) completes,
-		 * but BEFORE 2FA intercept (priority 30) which redirects and exits.
-		 *
-		 * Note: Custom login pages (Universal Router) check IP directly in
-		 * NBUF_Shortcodes::process_login_form() before wp_signon() is called.
+		 * Priority 1: Run BEFORE WordPress authentication (priority 20) so that
+		 * blacklisted IPs are blocked regardless of whether credentials are valid.
+		 * This prevents brute-force attacks from restricted IPs and matches the
+		 * behavior of the custom login form which checks IP before wp_signon().
 		 */
-		add_filter( 'authenticate', array( __CLASS__, 'check_ip_restrictions' ), 25, 3 );
+		add_filter( 'authenticate', array( __CLASS__, 'check_ip_restrictions' ), 1, 3 );
 	}
 
 	/**
@@ -311,15 +310,19 @@ class NBUF_IP_Restrictions {
 	/**
 	 * Check IP restrictions during authentication.
 	 *
+	 * Blocks restricted IPs regardless of whether credentials are valid,
+	 * matching the behavior of the custom login form. This prevents
+	 * blacklisted IPs from brute-forcing passwords on wp-login.php.
+	 *
 	 * @since  1.5.2
 	 * @param  WP_User|WP_Error|null $user     User object or error.
 	 * @param  string                $username Username.
 	 * @param  string                $password Password.
-	 * @return WP_User|WP_Error Modified user object or error.
+	 * @return WP_User|WP_Error|null Modified user object or error.
 	 */
 	public static function check_ip_restrictions( $user, $username, $password ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by WordPress authenticate filter signature
-		/* Only check if user successfully authenticated (is WP_User) */
-		if ( ! $user instanceof \WP_User ) {
+		/* Skip if no login attempt (empty username means no form submission) */
+		if ( empty( $username ) ) {
 			return $user;
 		}
 
@@ -336,21 +339,38 @@ class NBUF_IP_Restrictions {
 			return $user;
 		}
 
-		/* Check admin bypass */
-		if ( self::admin_bypass_enabled() && user_can( $user, 'manage_options' ) ) {
-			return $user;
+		/* Check admin bypass - look up user if not already authenticated */
+		if ( self::admin_bypass_enabled() ) {
+			$bypass_user = ( $user instanceof \WP_User ) ? $user : null;
+
+			if ( ! $bypass_user ) {
+				$bypass_user = get_user_by( 'login', $username );
+				if ( ! $bypass_user ) {
+					$bypass_user = get_user_by( 'email', $username );
+				}
+			}
+
+			if ( $bypass_user && user_can( $bypass_user, 'manage_options' ) ) {
+				return $user;
+			}
 		}
+
+		/* Build log message based on mode */
+		$mode        = self::get_mode();
+		$log_message = ( 'blacklist' === $mode )
+			? 'Login blocked: IP address is blacklisted'
+			: 'Login blocked: IP address is not in whitelist';
 
 		/* Log blocked attempt */
 		if ( class_exists( 'NBUF_Security_Log' ) ) {
 			NBUF_Security_Log::log_or_update(
 				'ip_blocked',
 				'critical',
-				'Login blocked: IP not in allowed list',
+				$log_message,
 				array(
 					'ip_address' => $client_ip,
-					'username'   => $user->user_login,
-					'mode'       => self::get_mode(),
+					'username'   => $username,
+					'mode'       => $mode,
 				)
 			);
 		}

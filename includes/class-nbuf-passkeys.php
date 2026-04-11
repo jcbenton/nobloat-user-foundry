@@ -1433,14 +1433,19 @@ class NBUF_Passkeys {
 				if ( ! $bypass ) {
 					/* Log the blocked attempt */
 					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						$restriction_mode = NBUF_IP_Restrictions::get_mode();
+						$log_message      = ( 'blacklist' === $restriction_mode )
+							? 'Login blocked: IP address is blacklisted'
+							: 'Login blocked: IP address is not in whitelist';
+
 						NBUF_Security_Log::log_or_update(
 							'ip_blocked',
 							'critical',
-							'Login blocked: IP not in allowed list',
+							$log_message,
 							array(
 								'ip_address' => $client_ip,
 								'username'   => $login,
-								'mode'       => NBUF_IP_Restrictions::get_mode(),
+								'mode'       => $restriction_mode,
 							)
 						);
 					}

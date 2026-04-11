@@ -33,7 +33,7 @@ $nbuf_security_alert_html = NBUF_Template_Manager::load_template( 'security-aler
 				class="large-text code nbuf-template-editor"
 			><?php echo esc_textarea( $nbuf_security_alert_html ); ?></textarea>
 			<p class="description">
-				<?php esc_html_e( 'Available placeholders: {site_name}, {site_url}, {event_type}, {message}, {username}, {user_email}, {user_id}, {ip_address}, {timestamp}, {log_url}, {context}', 'nobloat-user-foundry' ); ?>
+				<?php esc_html_e( 'Available placeholders: {site_name}, {site_url}, {event_type}, {message}, {username}, {user_email}, {user_id}, {ip_address}, {timestamp}, {log_url}, {context}, {recent_activity}', 'nobloat-user-foundry' ); ?>
 			</p>
 			<p>
 				<button

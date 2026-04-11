@@ -301,14 +301,7 @@ class NBUF_Security_Log {
 
 		/* Send email alert for critical events with rate limiting */
 		if ( 'critical' === $severity ) {
-			$rate_limit_key = 'nbuf_security_alert_last_sent_' . md5( $event_type );
-			$last_sent      = get_transient( $rate_limit_key );
-
-			/* Only send if no alert was sent in last 5 minutes for this event type */
-			if ( false === $last_sent ) {
-				self::send_critical_alert( $event_type, $message, $context, $user_id );
-				set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
-			}
+			self::maybe_send_throttled_alert( $event_type, $message, $context, $user_id );
 		}
 
 		return false !== $result;
@@ -398,13 +391,7 @@ class NBUF_Security_Log {
 
 			/* Send email alert for critical events (rate limited) */
 			if ( 'critical' === $new_severity ) {
-				$rate_limit_key = 'nbuf_security_alert_last_sent_' . md5( $event_type . '_' . $ip_address );
-				$last_sent      = get_transient( $rate_limit_key );
-
-				if ( false === $last_sent ) {
-					self::send_critical_alert( $event_type, $message . ' (Occurrence #' . $new_count . ')', $context, $user_id );
-					set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
-				}
+				self::maybe_send_throttled_alert( $event_type, $message . ' (Occurrence #' . $new_count . ')', $context, $user_id );
 			}
 
 			return false !== $result;
@@ -433,13 +420,7 @@ class NBUF_Security_Log {
 
 		/* Send email alert for critical events */
 		if ( 'critical' === $severity ) {
-			$rate_limit_key = 'nbuf_security_alert_last_sent_' . md5( $event_type . '_' . $ip_address );
-			$last_sent      = get_transient( $rate_limit_key );
-
-			if ( false === $last_sent ) {
-				self::send_critical_alert( $event_type, $message, $context, $user_id );
-				set_transient( $rate_limit_key, time(), 5 * MINUTE_IN_SECONDS );
-			}
+			self::maybe_send_throttled_alert( $event_type, $message, $context, $user_id );
 		}
 
 		return false !== $result;
@@ -621,15 +602,141 @@ class NBUF_Security_Log {
 	}
 
 	/**
-	 * Send critical security alert email
+	 * Send a critical alert email if the cooldown period has elapsed.
+	 *
+	 * Throttles alerts per event type (not per IP) to prevent email flooding
+	 * during sustained attacks. Cooldown period is configurable in settings.
 	 *
 	 * @param string               $event_type Event type.
 	 * @param string               $message    Alert message.
 	 * @param array<string, mixed> $context    Event context.
 	 * @param int|null             $user_id    User ID.
+	 * @return void
+	 */
+	private static function maybe_send_throttled_alert( string $event_type, string $message, array $context, ?int $user_id ): void {
+		$rate_limit_key = 'nbuf_security_alert_' . md5( $event_type );
+		$last_sent      = get_transient( $rate_limit_key );
+
+		if ( false !== $last_sent ) {
+			return;
+		}
+
+		$cooldown_minutes = (int) NBUF_Options::get( 'nbuf_security_log_alert_cooldown', '60' );
+		$cooldown_seconds = $cooldown_minutes * MINUTE_IN_SECONDS;
+
+		/* Build recent activity summary from logged events */
+		$recent_activity = self::get_recent_activity_summary( $event_type, $cooldown_minutes );
+
+		self::send_critical_alert( $event_type, $message, $context, $user_id, $recent_activity );
+		set_transient( $rate_limit_key, time(), $cooldown_seconds );
+	}
+
+	/**
+	 * Query the security log for a summary of recent events by type.
+	 *
+	 * Groups events by IP address and returns total attempts per IP
+	 * within the cooldown window. Used to build email digest summaries.
+	 *
+	 * @param string $event_type      Event type to summarize.
+	 * @param int    $window_minutes  Lookback window in minutes.
+	 * @return array{ips: array<int, object>, total: int, window_minutes: int}
+	 */
+	private static function get_recent_activity_summary( string $event_type, int $window_minutes ): array {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . self::TABLE_NAME;
+		$since      = gmdate( 'Y-m-d H:i:s', time() - ( $window_minutes * 60 ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Security log summary query for email digest.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT ip_address, SUM(occurrence_count) AS total_attempts, MAX(timestamp) AS last_seen, COUNT(*) AS log_entries
+				FROM %i
+				WHERE event_type = %s AND timestamp >= %s
+				GROUP BY ip_address
+				ORDER BY total_attempts DESC
+				LIMIT 20',
+				$table_name,
+				$event_type,
+				$since
+			)
+		);
+
+		$total = 0;
+		if ( is_array( $results ) ) {
+			foreach ( $results as $row ) {
+				$total += (int) $row->total_attempts;
+			}
+		}
+
+		return array(
+			'ips'            => is_array( $results ) ? $results : array(),
+			'total'          => $total,
+			'window_minutes' => $window_minutes,
+		);
+	}
+
+	/**
+	 * Build HTML for the recent activity summary section in alert emails.
+	 *
+	 * @param array{ips: array<int, object>, total: int, window_minutes: int} $summary Summary data.
+	 * @return string HTML string, or empty if no activity.
+	 */
+	private static function build_activity_summary_html( array $summary ): string {
+		if ( empty( $summary['ips'] ) || $summary['total'] < 2 ) {
+			return '';
+		}
+
+		/* Format the window label */
+		$minutes = $summary['window_minutes'];
+		if ( $minutes >= 1440 ) {
+			$window_label = sprintf( '%d hour(s)', intdiv( $minutes, 60 ) );
+		} elseif ( $minutes >= 60 ) {
+			$hours        = intdiv( $minutes, 60 );
+			$window_label = sprintf( '%d hour%s', $hours, $hours > 1 ? 's' : '' );
+		} else {
+			$window_label = sprintf( '%d minutes', $minutes );
+		}
+
+		$html  = '<h3 style="color: #333; margin-top: 30px; margin-bottom: 15px; font-size: 16px;">';
+		$html .= sprintf( 'Activity Summary (last %s)', esc_html( $window_label ) );
+		$html .= '</h3>';
+		$html .= '<table style="width: 100%; border-collapse: collapse; background: #f9f9f9; border-radius: 4px;">';
+		$html .= '<tr style="background: #e5e5e5;">';
+		$html .= '<td style="padding: 10px 15px; font-weight: 600; color: #333;">IP Address</td>';
+		$html .= '<td style="padding: 10px 15px; font-weight: 600; color: #333; text-align: right;">Attempts</td>';
+		$html .= '<td style="padding: 10px 15px; font-weight: 600; color: #333;">Last Seen</td>';
+		$html .= '</tr>';
+
+		foreach ( $summary['ips'] as $row ) {
+			$html .= '<tr style="border-bottom: 1px solid #e5e5e5;">';
+			$html .= '<td style="padding: 10px 15px; font-family: monospace; color: #333;">' . esc_html( $row->ip_address ) . '</td>';
+			$html .= '<td style="padding: 10px 15px; color: #d63638; font-weight: 600; text-align: right;">' . (int) $row->total_attempts . '</td>';
+			$html .= '<td style="padding: 10px 15px; font-family: monospace; color: #666; font-size: 12px;">' . esc_html( $row->last_seen ) . '</td>';
+			$html .= '</tr>';
+		}
+
+		$html .= '<tr style="background: #e5e5e5;">';
+		$html .= '<td style="padding: 10px 15px; font-weight: 600; color: #333;">Total</td>';
+		$html .= '<td style="padding: 10px 15px; font-weight: 600; color: #d63638; text-align: right;">' . (int) $summary['total'] . '</td>';
+		$html .= '<td style="padding: 10px 15px;"></td>';
+		$html .= '</tr>';
+		$html .= '</table>';
+
+		return $html;
+	}
+
+	/**
+	 * Send critical security alert email
+	 *
+	 * @param string               $event_type      Event type.
+	 * @param string               $message         Alert message.
+	 * @param array<string, mixed> $context         Event context.
+	 * @param int|null             $user_id         User ID.
+	 * @param array<string, mixed> $recent_activity Recent activity summary from get_recent_activity_summary().
 	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
-	private static function send_critical_alert( string $event_type, string $message, array $context, ?int $user_id ) {
+	private static function send_critical_alert( string $event_type, string $message, array $context, ?int $user_id, array $recent_activity = array() ) {
 		/* Check if critical alerts are enabled */
 		if ( ! NBUF_Options::get( 'nbuf_security_log_alerts_enabled', false ) ) {
 			return new WP_Error( 'alerts_disabled', __( 'Security alerts are currently disabled.', 'nobloat-user-foundry' ) );
@@ -659,23 +766,59 @@ class NBUF_Security_Log {
 		/* Filter sensitive data from context before email transmission */
 		$filtered_context = self::filter_sensitive_context( $context );
 
+		/* Build recent activity summary HTML (already escaped internally) */
+		$activity_html = ! empty( $recent_activity ) ? self::build_activity_summary_html( $recent_activity ) : '';
+
 		/* Prepare replacements */
 		$replacements = array(
-			'{site_name}'  => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-			'{site_url}'   => home_url(),
-			'{event_type}' => esc_html( $event_type ),
-			'{message}'    => esc_html( $message ),
-			'{username}'   => esc_html( $username ),
-			'{user_email}' => esc_html( $user_email ),
-			'{user_id}'    => absint( $user_id ),
-			'{ip_address}' => esc_html( self::get_client_ip() ),
-			'{timestamp}'  => esc_html( wp_date( 'Y-m-d H:i:s T' ) ),
-			'{log_url}'    => admin_url( 'admin.php?page=nobloat-foundry-security-log' ),
-			'{context}'    => esc_html( wp_json_encode( $filtered_context, JSON_PRETTY_PRINT ) ),
+			'{site_name}'       => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'{site_url}'        => home_url(),
+			'{event_type}'      => esc_html( $event_type ),
+			'{message}'         => esc_html( $message ),
+			'{username}'        => esc_html( $username ),
+			'{user_email}'      => esc_html( $user_email ),
+			'{user_id}'         => absint( $user_id ),
+			'{ip_address}'      => esc_html( self::get_client_ip() ),
+			'{timestamp}'       => esc_html( wp_date( 'Y-m-d H:i:s T' ) ),
+			'{log_url}'         => admin_url( 'admin.php?page=nobloat-foundry-security-log' ),
+			'{context}'         => esc_html( wp_json_encode( $filtered_context, JSON_PRETTY_PRINT ) ),
+			'{recent_activity}' => $activity_html,
 		);
 
 		/* Replace placeholders */
 		$email_body = strtr( $template, $replacements );
+
+		/*
+		 * If the template doesn't contain {recent_activity} placeholder,
+		 * inject the summary before the action button / "Additional Context" section.
+		 */
+		if ( ! empty( $activity_html ) && strpos( $template, '{recent_activity}' ) === false ) {
+			/* Try to inject before "Additional Context" or before the action button */
+			$injection_markers = array(
+				'<!-- Activity Summary -->',
+				'Additional Context',
+				'What should I do',
+				'{log_url}',
+			);
+
+			foreach ( $injection_markers as $marker ) {
+				$pos = strpos( $email_body, $marker );
+				if ( false !== $pos ) {
+					/* Find the start of the containing div/section */
+					$div_pos = strrpos( substr( $email_body, 0, $pos ), '<div' );
+					if ( false === $div_pos ) {
+						$div_pos = strrpos( substr( $email_body, 0, $pos ), '<table' );
+					}
+					if ( false === $div_pos ) {
+						$div_pos = strrpos( substr( $email_body, 0, $pos ), '<p' );
+					}
+					if ( false !== $div_pos ) {
+						$email_body = substr( $email_body, 0, $div_pos ) . $activity_html . substr( $email_body, $div_pos );
+						break;
+					}
+				}
+			}
+		}
 
 		/* Subject - sanitize event_type to prevent email header injection */
 		$safe_event_type = str_replace( array( "\r", "\n", "\t" ), ' ', $event_type );
@@ -752,6 +895,8 @@ class NBUF_Security_Log {
             <td style="padding: 8px 0;">{timestamp}</td>
           </tr>
         </table>
+
+        {recent_activity}
 
         <div style="background: #f0f0f1; padding: 15px; margin: 20px 0; border-radius: 4px;">
           <strong>Additional Context:</strong><br>

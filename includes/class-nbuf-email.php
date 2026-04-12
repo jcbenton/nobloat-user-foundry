@@ -274,9 +274,9 @@ Thank you!',
 
 		$message_parts[] = '';
 		$message_parts[] = sprintf(
-			/* translators: %s: Site contact URL */
+			/* translators: %s: Site URL */
 			__( 'If you have questions, please contact us: %s', 'nobloat-user-foundry' ),
-			admin_url( 'admin.php?page=nobloat-foundry-users' )
+			home_url()
 		);
 
 		$message = implode( "\n", $message_parts );

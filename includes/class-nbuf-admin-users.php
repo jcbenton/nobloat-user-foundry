@@ -1802,7 +1802,7 @@ add_action(
 
 		/* Show expiration modal */
 		if ( isset( $_GET['nbuf_show_expiration_modal'] ) && '1' === $_GET['nbuf_show_expiration_modal'] ) {
-			$user_ids = get_transient( 'nbuf_bulk_expiration_users' );
+			$user_ids = get_transient( 'nbuf_bulk_expiration_users_' . get_current_user_id() );
 			if ( $user_ids ) {
 				$user_count = count( $user_ids );
 				?>
@@ -1842,7 +1842,7 @@ add_action(
 					++$count;
 				}
 
-				delete_transient( 'nbuf_bulk_expiration_users' );
+				delete_transient( 'nbuf_bulk_expiration_users_' . get_current_user_id() );
 
 				echo '<div class="notice notice-success is-dismissible"><p>' .
 				/* translators: %d: number of users */

@@ -33,7 +33,7 @@
 
 				searchTimeout = setTimeout(function() {
 					$.post(NBUF_UserNotes.ajax_url, {
-						action: 'nbuf_search_users',
+						action: 'nbuf_notes_search_users',
 						nonce: NBUF_UserNotes.nonce,
 						search: searchTerm
 					}, function(data) {
@@ -73,7 +73,7 @@
 			if (preselectedUserId) {
 				/* Load user info and display */
 				$.post(NBUF_UserNotes.ajax_url, {
-					action: 'nbuf_search_users',
+					action: 'nbuf_notes_search_users',
 					nonce: NBUF_UserNotes.nonce,
 					user_id: preselectedUserId
 				}, function(response) {

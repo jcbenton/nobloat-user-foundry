@@ -737,8 +737,11 @@ class NBUF_Settings {
 				continue;
 			}
 
-			/* Get sanitize callback */
-			$sanitize_callback = isset( $registry[ $key ] ) ? $registry[ $key ] : 'sanitize_text_field';
+			/* Only save keys that are registered in the settings registry */
+			if ( ! isset( $registry[ $key ] ) ) {
+				continue;
+			}
+			$sanitize_callback = $registry[ $key ];
 
 			/* Sanitize the value */
 			if ( is_callable( $sanitize_callback ) ) {

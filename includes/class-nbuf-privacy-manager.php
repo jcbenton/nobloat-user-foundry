@@ -89,8 +89,8 @@ class NBUF_Privacy_Manager {
 	 * @return bool Can view.
 	 */
 	public static function can_view_profile( $target_user_id, $viewer_user_id = 0 ) {
-		/* Always allow viewing own profile */
-		if ( $viewer_user_id === $target_user_id ) {
+		/* Always allow viewing own profile — but only for real authenticated users (prevent 0===0 guest bypass) */
+		if ( $viewer_user_id > 0 && $viewer_user_id === $target_user_id ) {
 			return true;
 		}
 
@@ -195,8 +195,8 @@ class NBUF_Privacy_Manager {
 	 * @return bool Can view field.
 	 */
 	public static function can_view_field( $user_id, $field_name, $viewer_id = 0 ) {
-		/* Own profile - always visible */
-		if ( $user_id === $viewer_id ) {
+		/* Own profile - always visible — but only for real authenticated users (prevent 0===0 guest bypass) */
+		if ( $viewer_id > 0 && $user_id === $viewer_id ) {
 			return true;
 		}
 
@@ -244,7 +244,10 @@ class NBUF_Privacy_Manager {
 
 		/* Overall privacy level */
 		if ( isset( $data['profile_privacy'] ) ) {
-			$privacy_data['profile_privacy'] = sanitize_text_field( $data['profile_privacy'] );
+			$level = sanitize_text_field( $data['profile_privacy'] );
+			if ( in_array( $level, array( 'public', 'members_only', 'private' ), true ) ) {
+				$privacy_data['profile_privacy'] = $level;
+			}
 		}
 
 		/* Directory opt-in */
@@ -259,9 +262,13 @@ class NBUF_Privacy_Manager {
 		$field_settings  = array();
 		$fields_to_check = array( 'profile_photo', 'bio', 'email', 'phone', 'social_links', 'location' );
 
+		$allowed_field_levels = array( 'public', 'members_only', 'private' );
 		foreach ( $fields_to_check as $field ) {
 			if ( isset( $data[ "privacy_{$field}" ] ) ) {
-				$field_settings[ $field ] = sanitize_text_field( $data[ "privacy_{$field}" ] );
+				$field_level = sanitize_text_field( $data[ "privacy_{$field}" ] );
+				if ( in_array( $field_level, $allowed_field_levels, true ) ) {
+					$field_settings[ $field ] = $field_level;
+				}
 			}
 		}
 

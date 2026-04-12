@@ -69,9 +69,9 @@ class NBUF_Passkeys_Login {
 			case 'custom':
 				$custom_url = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
 				if ( $custom_url ) {
-					/* Handle both absolute URLs and relative paths */
+					/* Handle both absolute URLs and relative paths — validate to prevent open redirect */
 					if ( strpos( $custom_url, 'http' ) === 0 ) {
-						return $custom_url;
+						return wp_validate_redirect( $custom_url, home_url( '/' ) );
 					}
 					return home_url( $custom_url );
 				}

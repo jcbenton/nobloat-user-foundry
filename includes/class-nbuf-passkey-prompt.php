@@ -139,7 +139,7 @@ class NBUF_Passkey_Prompt {
 				'path'     => COOKIEPATH,
 				'domain'   => COOKIE_DOMAIN,
 				'secure'   => is_ssl(),
-				'httponly' => false, /* Needs JS access for AJAX */
+				'httponly' => true, /* Device ID is rendered server-side into inline JS; no document.cookie access needed */
 				'samesite' => 'Lax',
 			)
 		);

@@ -680,6 +680,12 @@ class NBUF_Antibot {
 			? sanitize_text_field( $post_data['nbuf_session'] )
 			: '';
 
+		/* Validate session ID format matches what get_or_create_session_id() generates */
+		if ( ! empty( $session_id ) && ( strlen( $session_id ) !== 32 || ! preg_match( '/^[a-f0-9]{32}$/', $session_id ) ) ) {
+			$failed_checks[] = 'invalid_session';
+			$session_id      = '';
+		}
+
 		self::debug_log( 'Session ID from POST: ' . ( $session_id ? $session_id : '(empty)' ) );
 		self::debug_log( 'POST keys: ' . implode( ', ', array_keys( $post_data ) ) );
 

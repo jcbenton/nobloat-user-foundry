@@ -495,9 +495,9 @@ class NBUF_Password_Expiration {
 				exit;
 			}
 			$user_id = (int) $token_user;
-
-			/* Consume token on first use (form render) to prevent reuse if URL is leaked */
-			delete_transient( 'nbuf_password_change_token_' . $change_token );
+			/* Token is NOT consumed here — it must survive until the form POST.
+			 * The 10-minute TTL provides sufficient protection against URL reuse.
+			 * Token is consumed after successful password change (line ~556). */
 		}
 
 		if ( ! $user_id ) {

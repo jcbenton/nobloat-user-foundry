@@ -593,12 +593,13 @@ class NBUF_Hooks {
 		$template      = NBUF_Template_Manager::load_template( $template_name );
 
 		/* Prepare replacements */
+		/* Escape user-controlled values for HTML email context */
 		$replacements = array(
-			'{site_name}'         => wp_specialchars_decode( $site_name, ENT_QUOTES ),
-			'{site_url}'          => home_url(),
-			'{username}'          => sanitize_text_field( $user->user_login ),
-			'{user_email}'        => sanitize_email( $user->user_email ),
-			'{registration_date}' => current_time( 'mysql', true ),
+			'{site_name}'         => esc_html( wp_specialchars_decode( $site_name, ENT_QUOTES ) ),
+			'{site_url}'          => esc_url( home_url() ),
+			'{username}'          => esc_html( sanitize_text_field( $user->user_login ) ),
+			'{user_email}'        => esc_html( sanitize_email( $user->user_email ) ),
+			'{registration_date}' => esc_html( current_time( 'mysql', true ) ),
 			'{user_profile_link}' => esc_url( admin_url( 'user-edit.php?user_id=' . $user_id ) ),
 		);
 

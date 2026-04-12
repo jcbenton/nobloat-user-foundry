@@ -2,7 +2,10 @@
 /**
  * NoBloat User Foundry - Database Handler
  *
- * Handles inserts, lookups, and cleanup of verification tokens.
+ * Creates, migrates, and manages all plugin custom tables including
+ * tokens, user_data, options, profiles, login_attempts, 2fa, passkeys,
+ * audit logs, user notes, import history, restrictions, roles, profile
+ * versions, webhooks, webhook logs, TOS versions, and TOS acceptances.
  *
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes
@@ -52,17 +55,14 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	COLUMN EXISTS CHECK (PERFORMANCE HELPER)
-	----------------------------------------------------------
-	Efficiently check if a column exists using INFORMATION_SCHEMA.
-	Faster than SHOW COLUMNS as it returns boolean instead of
-	loading all column metadata.
+	 * Check if a column exists in a table.
 	 *
-		@param  string $table_name  Table name to check.
-	@param  string $column_name Column name to check.
-	@return bool True if column exists.
-	==========================================================
+	 * Uses INFORMATION_SCHEMA for an efficient boolean check rather
+	 * than loading all column metadata via SHOW COLUMNS.
+	 *
+	 * @param  string $table_name  Table name to check.
+	 * @param  string $column_name Column name to check.
+	 * @return bool True if column exists.
 	 */
 	private static function column_exists( $table_name, $column_name ) {
 		global $wpdb;
@@ -502,21 +502,21 @@ class NBUF_Database {
 	@return bool True on success.
 	==========================================================
 	 */
-	public static function insert_token( $user_id, $email, $token, $expires_at, $is_test = 0 ) {
+	public static function insert_token( $user_id, $email, $token, $expires_at, $is_test = 0, $type = 'verification' ) {
 		global $wpdb;
 		self::init();
 
-		/* CONSISTENCY: Use current_time('mysql', true) for UTC instead of gmdate() */
 		$data = array(
 			'user_id'    => (int) $user_id,
 			'user_email' => sanitize_email( $email ),
 			'token'      => sanitize_text_field( $token ),
+			'type'       => sanitize_text_field( $type ),
 			'expires_at' => is_numeric( $expires_at ) ? gmdate( 'Y-m-d H:i:s', $expires_at ) : gmdate( 'Y-m-d H:i:s', strtotime( $expires_at ) ),
 			'verified'   => 0,
 			'is_test'    => (int) $is_test,
 		);
 
-		$format = array( '%d', '%s', '%s', '%s', '%d', '%d' );
+		$format = array( '%d', '%s', '%s', '%s', '%s', '%d', '%d' );
 
 		return (bool) $wpdb->insert( self::$table_name, $data, $format );
 	}

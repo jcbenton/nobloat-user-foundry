@@ -1,9 +1,16 @@
 <?php
 /**
- * NoBloat User Foundry - Shortcodes
+ * NoBloat User Foundry - Shortcodes and frontend form handlers
  *
- * Provides the single reset shortcode and a simple verify
- * page shortcode. Also handles POST for password resets.
+ * Registers all public-facing shortcodes: [nbuf_reset_form],
+ * [nbuf_request_reset_form], [nbuf_verify_page], [nbuf_login_form],
+ * [nbuf_registration_form], [nbuf_account_page], [nbuf_logout],
+ * [nbuf_2fa_verify], [nbuf_totp_setup], [nbuf_restrict],
+ * [nbuf_profile], [nbuf_universal].
+ *
+ * Also wires template_redirect handlers for POST submissions:
+ * login, registration, password reset request, password reset,
+ * and account-page actions.
  *
  * @package    NoBloat_User_Foundry
  * @subpackage NoBloat_User_Foundry/includes
@@ -2586,8 +2593,8 @@ class NBUF_Shortcodes {
 			$token   = bin2hex( random_bytes( 32 ) );
 			$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
-			/* Store token with pending email */
-			NBUF_Database::insert_token( $user_id, $new_email, $token, $expires, 0 );
+			/* Store token with pending email — use dedicated type so the verifier can branch */
+			NBUF_Database::insert_token( $user_id, $new_email, $token, $expires, 0, 'email_change' );
 
 			/* Send verification to the NEW email */
 			NBUF_Email::send_verification_email( $new_email, $token, $current_user );

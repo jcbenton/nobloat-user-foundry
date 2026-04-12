@@ -1192,7 +1192,7 @@ class NBUF_Shortcodes {
 		/* Retrieve preserved form data from transient (if redirected back with error) */
 		$preserved_data = array();
 		$form_key       = self::get_query_param( 'form_key' );
-		if ( $form_key ) {
+		if ( $form_key && str_starts_with( $form_key, 'nbuf_reg_form_' ) ) {
 			$preserved_data = get_transient( $form_key );
 			if ( $preserved_data ) {
 				delete_transient( $form_key ); /* One-time use */

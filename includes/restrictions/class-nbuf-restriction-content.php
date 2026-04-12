@@ -58,12 +58,12 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @return WP_REST_Response Filtered response.
 	 */
 	public static function filter_rest_content( $response, $post, $request ) {
-		$restriction = self::get_post_restriction( $post->ID );
+		$restriction = NBUF_Restrictions::get_content_restriction( $post->ID, $post->post_type );
 		if ( empty( $restriction ) ) {
 			return $response;
 		}
 
-		if ( ! self::check_access( $restriction['allowed_roles'] ?? array(), $restriction ) ) {
+		if ( ! self::check_access( $restriction['visibility'], $restriction['allowed_roles'] ) ) {
 			$data            = $response->get_data();
 			$data['content'] = array( 'rendered' => '', 'protected' => true );
 			$data['excerpt'] = array( 'rendered' => '', 'protected' => true );

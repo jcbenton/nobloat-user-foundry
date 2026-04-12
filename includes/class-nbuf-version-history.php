@@ -460,24 +460,9 @@ class NBUF_Version_History {
 	 * @return string|null IP address
 	 */
 	private function get_ip_address( $anonymize = false ) {
-		$ip = '';
+		$ip = NBUF_IP::get_client_ip( true );
 
-		/* Check various headers for IP - parse first IP from comma-separated lists */
-		if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-			$client_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-			$ip_list   = array_map( 'trim', explode( ',', $client_ip ) );
-			$ip        = $ip_list[0];
-		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			$ip_list   = array_map( 'trim', explode( ',', $forwarded ) );
-			$ip        = $ip_list[0];
-		} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Validate IP */
-		$ip = filter_var( $ip, FILTER_VALIDATE_IP );
-		if ( ! $ip ) {
+		if ( empty( $ip ) ) {
 			return null;
 		}
 
@@ -905,6 +890,11 @@ class NBUF_Version_History {
 		/* Check permissions */
 		if ( ! $this->can_view_version_history( $version1->user_id ) ) {
 			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+		}
+
+		/* Both versions must belong to the same user to prevent cross-user data leak */
+		if ( (int) $version1->user_id !== (int) $version2->user_id ) {
+			wp_send_json_error( array( 'message' => 'Versions must belong to the same user.' ) );
 		}
 
 		$diff = $this->compare_versions( $version_id_1, $version_id_2 );

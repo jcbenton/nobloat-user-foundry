@@ -1307,7 +1307,7 @@ class NBUF_Passkeys {
 
 		if ( $twofa_required ) {
 			/* Generate 2FA token */
-			$twofa_token = wp_generate_password( 32, false );
+			$twofa_token = bin2hex( random_bytes( 32 ) );
 
 			/* Get user's 2FA method, falling back to admin-required method */
 			$method = NBUF_2FA::get_user_method( $user_id );

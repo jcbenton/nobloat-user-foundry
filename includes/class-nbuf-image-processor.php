@@ -137,6 +137,12 @@ class NBUF_Image_Processor {
 
 		$mime_type = $image_info['mime'];
 
+		/* Validate pixel dimensions to prevent decompression bombs */
+		$max_pixels = 25000000; /* 25 megapixels */
+		if ( $image_info[0] * $image_info[1] > $max_pixels ) {
+			return new WP_Error( 'image_too_large', __( 'Image dimensions are too large. Maximum 25 megapixels.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Validate image type */
 		$allowed_types = array( 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp' );
 		if ( ! in_array( $mime_type, $allowed_types, true ) ) {

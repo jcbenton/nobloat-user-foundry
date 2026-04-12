@@ -611,21 +611,19 @@ class NBUF_ToS_Admin {
 			)
 		);
 
-		/* CSV data */
+		/* CSV data — escape formula characters to prevent spreadsheet injection */
 		foreach ( $acceptances as $acceptance ) {
-			fputcsv(
-				$output,
-				array(
-					$acceptance->user_id,
-					$acceptance->user_login ? $acceptance->user_login : 'deleted',
-					$acceptance->user_email ? $acceptance->user_email : '',
-					$acceptance->display_name ? $acceptance->display_name : '',
-					$acceptance->version ? $acceptance->version : '',
-					$acceptance->accepted_at,
-					$acceptance->ip_address ? $acceptance->ip_address : '',
-					$acceptance->user_agent ? $acceptance->user_agent : '',
-				)
+			$row = array(
+				$acceptance->user_id,
+				$acceptance->user_login ? $acceptance->user_login : 'deleted',
+				$acceptance->user_email ? $acceptance->user_email : '',
+				$acceptance->display_name ? $acceptance->display_name : '',
+				$acceptance->version ? $acceptance->version : '',
+				$acceptance->accepted_at,
+				$acceptance->ip_address ? $acceptance->ip_address : '',
+				$acceptance->user_agent ? $acceptance->user_agent : '',
 			);
+			fputcsv( $output, array_map( array( __CLASS__, 'csv_escape' ), $row ) );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Writing to php://output for streaming CSV download.
@@ -662,5 +660,19 @@ class NBUF_ToS_Admin {
 		);
 
 		wp_send_json_success( array( 'content' => $content ) );
+	}
+
+	/**
+	 * Escape a CSV value to prevent formula injection in spreadsheet applications.
+	 *
+	 * @param mixed $value Value to escape.
+	 * @return string Escaped value.
+	 */
+	private static function csv_escape( $value ): string {
+		$value = (string) $value;
+		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+			$value = "'" . $value;
+		}
+		return $value;
 	}
 }

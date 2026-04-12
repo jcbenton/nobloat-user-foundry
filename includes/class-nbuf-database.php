@@ -489,18 +489,17 @@ class NBUF_Database {
 	}
 
 	/**
-	==========================================================
-	INSERT TOKEN
-	----------------------------------------------------------
-	Stores a new verification token.
+	 * Insert a token record.
 	 *
-		@param  int    $user_id    User ID.
-	@param  string $email      User email address.
-	@param  string $token      Verification token string.
-	@param  mixed  $expires_at Expiration timestamp or date string.
-	@param  int    $is_test    Whether this is a test token (default 0).
-	@return bool True on success.
-	==========================================================
+	 * Stores a new token (SHA-256 hash) with type and expiration.
+	 *
+	 * @param  int    $user_id    User ID.
+	 * @param  string $email      User email address.
+	 * @param  string $token      Token string (should be a SHA-256 hash of the plaintext token).
+	 * @param  mixed  $expires_at Expiration timestamp or date string.
+	 * @param  int    $is_test    Whether this is a test token (default 0).
+	 * @param  string $type       Token type: 'verification', 'magic_link', or 'email_change' (default 'verification').
+	 * @return bool True on success.
 	 */
 	public static function insert_token( $user_id, $email, $token, $expires_at, $is_test = 0, $type = 'verification' ) {
 		global $wpdb;

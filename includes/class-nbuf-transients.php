@@ -184,7 +184,7 @@ class NBUF_Transients {
 			$wpdb->prepare(
 				"UPDATE {$wpdb->options} SET option_value = option_value + %d WHERE option_name = %s",
 				$increment,
-				$key
+				$option_name
 			)
 		);
 		return (int) self::get( $category, $identifier );

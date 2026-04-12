@@ -263,8 +263,10 @@ class NBUF_Username_Changer {
 			return;
 		}
 
-		/* Clear user cache */
+		/* Clear user cache and invalidate all sessions */
 		clean_user_cache( $user_id );
+		$sessions = WP_Session_Tokens::get_instance( $user_id );
+		$sessions->destroy_all();
 
 		/* Log the change */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {

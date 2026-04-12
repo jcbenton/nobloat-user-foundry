@@ -429,8 +429,16 @@ class NBUF_2FA_Login {
 		}
 
 		/* Determine redirect URL from plugin settings */
-		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'custom' );
+		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'account' );
 		switch ( $login_redirect_setting ) {
+			case 'account':
+				if ( class_exists( 'NBUF_Universal_Router' ) ) {
+					$redirect_to = NBUF_Universal_Router::get_url( 'account' );
+				} else {
+					$account_page = NBUF_Options::get( 'nbuf_page_account', 0 );
+					$redirect_to  = $account_page ? get_permalink( $account_page ) : home_url( '/' );
+				}
+				break;
 			case 'admin':
 				$redirect_to = admin_url();
 				break;
@@ -439,8 +447,8 @@ class NBUF_2FA_Login {
 				break;
 			case 'custom':
 			default:
-				$custom_url  = NBUF_Options::get( 'nbuf_login_redirect_custom', '/nobloat-account' );
-				$redirect_to = $custom_url ? home_url( $custom_url ) : home_url( '/nobloat-account' );
+				$custom_url  = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
+				$redirect_to = $custom_url ? home_url( $custom_url ) : home_url( '/' );
 				break;
 		}
 

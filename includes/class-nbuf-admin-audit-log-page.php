@@ -270,7 +270,7 @@ class NBUF_Admin_Audit_Log_Page {
 					'<div class="nbuf-metadata-overlay"></div>' +
 					'<div class="nbuf-metadata-content">' +
 					'<h3><?php echo esc_js( __( 'Metadata Details', 'nobloat-user-foundry' ) ); ?></h3>' +
-					'<pre>' + formatted + '</pre>' +
+					'<pre>' + $('<div>').text(formatted).html() + '</pre>' +
 					'<button class="button nbuf-close-modal"><?php echo esc_js( __( 'Close', 'nobloat-user-foundry' ) ); ?></button>' +
 					'</div>' +
 					'</div>');

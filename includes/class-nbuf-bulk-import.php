@@ -808,7 +808,10 @@ class NBUF_Bulk_Import {
 		}
 
 		$error_key = isset( $_GET['error_key'] ) ? sanitize_text_field( wp_unslash( $_GET['error_key'] ) ) : '';
-		$errors    = get_transient( $error_key );
+		if ( ! str_starts_with( $error_key, 'nbuf_import_' ) ) {
+			wp_die( 'Invalid error report key.' );
+		}
+		$errors = get_transient( $error_key );
 
 		if ( ! $errors ) {
 			wp_die( 'Error report not found or expired' );

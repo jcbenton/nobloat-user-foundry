@@ -839,9 +839,32 @@ class NBUF_2FA_Account {
 	}
 
 	/**
+	 * Verify that the current request includes a valid password for re-authentication.
+	 *
+	 * @param int $user_id User ID to verify against.
+	 * @return bool True if the submitted password is correct.
+	 */
+	private static function verify_reauth( int $user_id ): bool {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password for hash comparison.
+		$password = isset( $_POST['current_password'] ) ? wp_unslash( $_POST['current_password'] ) : '';
+
+		if ( '' === $password ) {
+			return false;
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return false;
+		}
+
+		return wp_check_password( $password, $user->user_pass, $user_id );
+	}
+
+	/**
 	 * Handle 2FA account actions.
 	 *
 	 * Process 2FA enable/disable and backup code generation.
+	 * Requires current password re-authentication for all actions.
 	 *
 	 * @return void
 	 */
@@ -865,6 +888,11 @@ class NBUF_2FA_Account {
 				if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_enable_email' ) ) {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 				}
+				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
+					wp_safe_redirect( $redirect_url );
+					exit;
+				}
 				NBUF_2FA::enable_for_user( $user_id, 'email' );
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication enabled!', 'nobloat-user-foundry' ), 'success' );
 				wp_safe_redirect( $redirect_url );
@@ -873,6 +901,11 @@ class NBUF_2FA_Account {
 			case 'disable_email':
 				if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_disable_email' ) ) {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+				}
+				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
+					wp_safe_redirect( $redirect_url );
+					exit;
 				}
 				/* Check if user has TOTP as well */
 				$current_method = NBUF_2FA::get_user_method( $user_id );
@@ -889,6 +922,11 @@ class NBUF_2FA_Account {
 			case 'disable_totp':
 				if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_disable_totp' ) ) {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+				}
+				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
+					wp_safe_redirect( $redirect_url );
+					exit;
 				}
 				/* Check if user has email as well */
 				$current_method = NBUF_2FA::get_user_method( $user_id );
@@ -911,6 +949,11 @@ class NBUF_2FA_Account {
 			case 'generate_backup_codes':
 				if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_generate_backup' ) ) {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+				}
+				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to regenerate backup codes.', 'nobloat-user-foundry' ), 'error' );
+					wp_safe_redirect( $redirect_url );
+					exit;
 				}
 				/* Generate new backup codes */
 				$codes = NBUF_2FA::generate_backup_codes( $user_id );

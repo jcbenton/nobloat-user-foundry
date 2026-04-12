@@ -279,21 +279,16 @@ class NBUF_Registration {
 		$email_exists = email_exists( $data['email'] );
 
 		/*
-		 * Perform dummy password hash operation when email doesn't exist.
-		 * This matches the timing of the password hashing that occurs later for valid registrations.
-		 * Without this, attackers could measure response time to determine if email exists.
+		 * Perform dummy password hash when email EXISTS so the early-return
+		 * branch costs the same as the real-registration branch (which calls
+		 * wp_create_user → wp_hash_password). Without this, the exists-path
+		 * returns faster, leaking email enumeration via timing.
 		 */
-		if ( ! $email_exists ) {
-			/* SECURITY: Generate fresh dummy hash to match timing of real registrations */
-			$dummy_hash = wp_hash_password( 'timing_protection_' . wp_rand() . microtime() );
-
-			/* Always execute password check regardless of password presence */
+		if ( $email_exists ) {
+			$dummy_hash     = wp_hash_password( 'timing_protection_' . wp_rand() . microtime() );
 			$check_password = ! empty( $data['password'] ) ? $data['password'] : wp_generate_password();
 			wp_check_password( $check_password, $dummy_hash );
-		}
 
-		if ( $email_exists ) {
-			/* Use generic message to prevent email enumeration */
 			return new WP_Error( 'registration_error', __( 'Registration could not be completed. Please try again or contact support.', 'nobloat-user-foundry' ) );
 		}
 

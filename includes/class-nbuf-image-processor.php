@@ -880,21 +880,26 @@ class NBUF_Image_Processor {
 			return false;
 		}
 
-		$filename_base = ( self::TYPE_PROFILE === $type ) ? 'profile-photo' : 'cover-photo';
-
-		/*
-		 * Use glob to find all matching files (handles both old and new formats)
-		 * Old format: profile-photo.webp
-		 * New format: profile-photo-a3f8k2d9h5m7.webp
-		 */
-		$pattern = $upload_dir['path'] . $filename_base . '*';
-		$files   = glob( $pattern );
 		$deleted = false;
+
+		/* Try DB-stored path first (works for current random-token filenames) */
+		if ( class_exists( 'NBUF_User_Data' ) ) {
+			$path_key  = ( self::TYPE_PROFILE === $type ) ? 'profile_photo_path' : 'cover_photo_path';
+			$user_data = NBUF_User_Data::get( $user_id );
+			if ( $user_data && ! empty( $user_data->$path_key ) && is_file( $user_data->$path_key ) ) {
+				wp_delete_file( $user_data->$path_key );
+				$deleted = true;
+			}
+		}
+
+		/* Also glob for legacy filenames (profile-photo*.webp / cover-photo*.webp) */
+		$filename_base = ( self::TYPE_PROFILE === $type ) ? 'profile-photo' : 'cover-photo';
+		$pattern       = $upload_dir['path'] . $filename_base . '*';
+		$files         = glob( $pattern );
 
 		if ( ! empty( $files ) && is_array( $files ) ) {
 			foreach ( $files as $file_path ) {
 				if ( is_file( $file_path ) ) {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Direct file deletion required for user photos.
 					wp_delete_file( $file_path );
 					$deleted = true;
 				}

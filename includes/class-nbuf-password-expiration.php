@@ -68,6 +68,9 @@ class NBUF_Password_Expiration {
 		/* Password change form handler */
 		add_action( 'login_form_nbuf_change_expired_password', array( __CLASS__, 'handle_password_change_form' ) );
 
+		/* Redirect to password change form when required */
+		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_redirect_to_password_change' ), 10, 2 );
+
 		/* AJAX handler for force logout */
 		add_action( 'wp_ajax_nbuf_force_logout_user', array( __CLASS__, 'ajax_force_logout_user' ) );
 	}
@@ -215,20 +218,50 @@ class NBUF_Password_Expiration {
 		/* Check if password is expired */
 		$is_expired = self::is_password_expired( $user->ID );
 
-		/* If either condition is true, store user ID and redirect */
+		/* If either condition is true, store a random token and redirect */
 		if ( $force_change || $is_expired ) {
-			/* Store user ID in transient for password change form */
-			set_transient( 'nbuf_password_change_user_' . $user->ID, $user->ID, 600 );
+			$change_token = bin2hex( random_bytes( 32 ) );
+			set_transient( 'nbuf_password_change_token_' . $change_token, $user->ID, 600 );
 
-			/* Create error with redirect flag */
+			/* Create error with redirect flag — include token for the password change form */
 			$message = $force_change
 			? __( 'Your password must be changed before you can continue.', 'nobloat-user-foundry' )
 			: __( 'Your password has expired. Please choose a new password.', 'nobloat-user-foundry' );
+
+			/* Store the token so the login page can build the correct redirect URL */
+			set_transient( 'nbuf_password_change_redirect_' . $user->ID, $change_token, 600 );
 
 			return new WP_Error( 'nbuf_password_change_required', $message );
 		}
 
 		return $user;
+	}
+
+	/**
+	 * Redirect to the password change form when the login error indicates it's required.
+	 *
+	 * @param WP_Error $errors   Login errors.
+	 * @param string   $redirect Redirect URL.
+	 * @return WP_Error Errors (may not return if redirecting).
+	 */
+	public static function maybe_redirect_to_password_change( $errors, $redirect ) {
+		if ( is_wp_error( $errors ) && $errors->get_error_code() === 'nbuf_password_change_required' ) {
+			/* Find the token from the login attempt — look up by submitted username */
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Reading login field for redirect only.
+			$login = isset( $_POST['log'] ) ? sanitize_user( wp_unslash( $_POST['log'] ) ) : '';
+			$user  = get_user_by( 'login', $login );
+			if ( ! $user ) {
+				$user = get_user_by( 'email', $login );
+			}
+			if ( $user ) {
+				$token = get_transient( 'nbuf_password_change_redirect_' . $user->ID );
+				if ( $token ) {
+					wp_safe_redirect( site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . $token ) );
+					exit;
+				}
+			}
+		}
+		return $errors;
 	}
 
 	/**
@@ -450,19 +483,18 @@ class NBUF_Password_Expiration {
 	 * @return void
 	 */
 	public static function handle_password_change_form(): void {
-		/* Check if user ID is in transient */
+		/* Check if user is logged in */
 		$user_id = get_current_user_id();
 
-		/* If no user ID, try to get from URL parameter (for logged out users) */
-		if ( ! $user_id && isset( $_GET['user_id'] ) ) {
-			$user_id = (int) $_GET['user_id'];
-
-			/* Verify transient exists for this user */
-			$transient = get_transient( 'nbuf_password_change_user_' . $user_id );
-			if ( ! $transient ) {
+		/* If not logged in, verify via cryptographic token (not predictable user_id) */
+		if ( ! $user_id && isset( $_GET['change_token'] ) ) {
+			$change_token = sanitize_text_field( wp_unslash( $_GET['change_token'] ) );
+			$token_user   = get_transient( 'nbuf_password_change_token_' . $change_token );
+			if ( ! $token_user ) {
 				wp_safe_redirect( wp_login_url() );
 				exit;
 			}
+			$user_id = (int) $token_user;
 		}
 
 		if ( ! $user_id ) {
@@ -496,6 +528,10 @@ class NBUF_Password_Expiration {
 
 			$errors = array();
 
+			if ( empty( $new_password ) ) {
+				$errors[] = __( 'Password cannot be empty.', 'nobloat-user-foundry' );
+			}
+
 			/* Validate passwords match */
 			if ( $new_password !== $confirm_password ) {
 				$errors[] = __( 'Passwords do not match.', 'nobloat-user-foundry' );
@@ -513,8 +549,11 @@ class NBUF_Password_Expiration {
 			if ( empty( $errors ) ) {
 				wp_set_password( $new_password, $user_id );
 
-				/* Clear transient */
-				delete_transient( 'nbuf_password_change_user_' . $user_id );
+				/* Clear transients */
+				if ( isset( $change_token ) ) {
+					delete_transient( 'nbuf_password_change_token_' . $change_token );
+				}
+				delete_transient( 'nbuf_password_change_redirect_' . $user_id );
 
 				/* Regenerate session to prevent session fixation */
 				wp_clear_auth_cookie();
@@ -566,7 +605,7 @@ class NBUF_Password_Expiration {
 				</div>
 		<?php endif; ?>
 
-			<form name="nbuf_change_password_form" id="nbuf_change_password_form" action="<?php echo esc_url( site_url( 'wp-login.php?action=nbuf_change_expired_password&user_id=' . $user->ID, 'login_post' ) ); ?>" method="post">
+			<form name="nbuf_change_password_form" id="nbuf_change_password_form" action="<?php echo esc_url( site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . ( isset( $change_token ) ? $change_token : '' ), 'login_post' ) ); ?>" method="post">
 		<?php wp_nonce_field( 'nbuf_change_password_' . $user->ID, 'nbuf_change_password_nonce' ); ?>
 
 				<p>

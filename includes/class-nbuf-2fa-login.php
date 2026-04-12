@@ -626,6 +626,17 @@ class NBUF_2FA_Login {
 			}
 		}
 
+		/* Handle resend request — re-send the email code if the session is valid */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check to trigger email resend.
+		if ( isset( $_GET['resend'] ) && '1' === $_GET['resend'] && ( 'email' === $method || 'both' === $method ) ) {
+			$resend_result = NBUF_2FA::send_email_code( $user_id );
+			if ( ! is_wp_error( $resend_result ) ) {
+				$success_message = '<div class="nbuf-success">' . esc_html__( 'A new verification code has been sent to your email.', 'nobloat-user-foundry' ) . '</div>';
+			} else {
+				$error_message = '<div class="nbuf-error">' . esc_html( $resend_result->get_error_message() ) . '</div>';
+			}
+		}
+
 		/* Load template */
 		$template = NBUF_Template_Manager::load_template( '2fa-verify' );
 
@@ -696,7 +707,7 @@ class NBUF_2FA_Login {
 			'{action_url}'            => '',
 			'{nonce_field}'           => wp_nonce_field( 'nbuf_2fa_verify', 'nbuf_2fa_nonce', true, false ),
 			'{error_message}'         => $error_message,
-			'{success_message}'       => '',
+			'{success_message}'       => isset( $success_message ) ? $success_message : '',
 			'{grace_period_notice}'   => '',
 			'{locked_out_notice}'     => '',
 			'{instructions_text}'     => esc_html( $instructions ),

@@ -751,6 +751,12 @@ class NBUF_Antibot {
 			);
 		}
 
+		/* Consume challenge transients so they cannot be replayed */
+		if ( ! empty( $session_id ) ) {
+			delete_transient( self::SESSION_PREFIX . 'js_' . $session_id );
+			delete_transient( self::SESSION_PREFIX . 'pow_' . $session_id );
+		}
+
 		self::debug_log( 'ALL CHECKS PASSED - Registration allowed' );
 		self::debug_log( '========== ANTIBOT VALIDATION END ==========' );
 

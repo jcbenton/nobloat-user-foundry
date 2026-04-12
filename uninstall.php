@@ -91,7 +91,11 @@ function nbuf_run_uninstall() {
 			)
 		);
 
-		$nbuf_settings = $nbuf_settings_value ? maybe_unserialize( $nbuf_settings_value ) : array();
+		if ( $nbuf_settings_value && is_serialized( $nbuf_settings_value ) ) {
+			$nbuf_settings = unserialize( $nbuf_settings_value, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Safe unserialize during uninstall.
+		} else {
+			$nbuf_settings = is_array( $nbuf_settings_value ) ? $nbuf_settings_value : array();
+		}
 		$nbuf_cleanup  = isset( $nbuf_settings['cleanup'] ) ? (array) $nbuf_settings['cleanup'] : array();
 	}
 

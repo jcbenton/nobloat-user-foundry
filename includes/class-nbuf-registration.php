@@ -146,6 +146,8 @@ class NBUF_Registration {
 	 * @return bool True if reserved, false if allowed.
 	 */
 	public static function is_reserved_username( $username ) {
+		/* Normalize: strict sanitize strips non-ASCII, then lowercase */
+		$username = sanitize_user( $username, true );
 		$username = strtolower( trim( $username ) );
 
 		/* Check against reserved list */

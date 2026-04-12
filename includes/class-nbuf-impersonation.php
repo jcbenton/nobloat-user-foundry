@@ -399,8 +399,9 @@ class NBUF_Impersonation {
 		/* Clear current session */
 		wp_clear_auth_cookie();
 
-		/* Verify original user still exists before restoring */
-		if ( ! get_userdata( $original_user_id ) ) {
+		/* Verify original user still exists and has impersonation capability before restoring */
+		$original_user = get_userdata( $original_user_id );
+		if ( ! $original_user || ! user_can( $original_user, self::get_required_capability() ) ) {
 			wp_safe_redirect( wp_login_url() );
 			exit;
 		}

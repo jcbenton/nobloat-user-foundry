@@ -700,8 +700,7 @@ If you did not request this code, please ignore this email.
 					$remaining_time = max( 0, $expires - time() );
 					$new_expires    = time() + $remaining_time;
 
-					/* Remove old token and add new one atomically */
-					NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
+					/* Add new token BEFORE removing old one to prevent losing trust on partial failure */
 					$new_device_data = array(
 						'expires'    => $new_expires,
 						'created'    => is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time(),
@@ -709,6 +708,7 @@ If you did not request this code, please ignore this email.
 						'ip'         => is_array( $device_data ) ? ( $device_data['ip'] ?? '' ) : '',
 					);
 					NBUF_User_2FA_Data::add_trusted_device( $user_id, $new_token, $new_device_data );
+					NBUF_User_2FA_Data::remove_trusted_device( $user_id, $token );
 
 					/*
 					 * Update cookie with new token.

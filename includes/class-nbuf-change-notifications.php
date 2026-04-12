@@ -690,6 +690,9 @@ class NBUF_Change_Notifications {
 			return;
 		}
 
+		/* Delete transient BEFORE sending to prevent losing changes queued during email send */
+		delete_transient( $transient_key );
+
 		/* Get recipients */
 		$recipients = $this->get_notification_recipients();
 		if ( empty( $recipients ) ) {
@@ -704,9 +707,6 @@ class NBUF_Change_Notifications {
 		foreach ( $recipients as $recipient ) {
 			NBUF_Email::send( $recipient, $subject, $message );
 		}
-
-		/* Clear pending changes */
-		delete_transient( $transient_key );
 	}
 
 	/**

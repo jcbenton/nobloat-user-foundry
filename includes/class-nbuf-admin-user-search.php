@@ -556,7 +556,8 @@ class NBUF_Admin_User_Search {
 					$search_term
 				);
 
-				$search_sql = str_replace( 'WHERE 1=1 AND (', 'WHERE 1=1 AND (', $search_sql ) . $profile_search;
+				/* Insert profile OR-clauses inside the existing parenthetical group to preserve SQL precedence */
+				$search_sql = preg_replace( '/\)\s*$/', $profile_search . ')', $search_sql );
 
 				return $search_sql;
 			}

@@ -157,7 +157,7 @@ class NBUF_Transients {
 				'option_value' => $current, // WHERE clause ensures we only update if value hasn't changed.
 			),
 			array( '%d' ),
-			array( '%s', '%d' )
+			array( '%s', '%s' )
 		);
 
 		if ( $updated ) {

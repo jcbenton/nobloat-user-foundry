@@ -327,7 +327,7 @@ class NBUF_ToS {
 			return true;
 		}
 
-		return self::has_user_accepted_version( $user_id, $active_version->id );
+		return self::has_user_accepted_version( $user_id, (int) $active_version->id );
 	}
 
 	/**
@@ -673,7 +673,7 @@ class NBUF_ToS {
 		$user_id = get_current_user_id();
 
 		/* Check if already accepted */
-		if ( self::has_user_accepted_version( $user_id, $active_version->id ) ) {
+		if ( self::has_user_accepted_version( $user_id, (int) $active_version->id ) ) {
 			$redirect_url = self::get_redirect_url();
 			return '<div class="nbuf-tos-wrapper"><div class="nbuf-tos-message nbuf-tos-message-success">' .
 				esc_html__( 'You have already accepted the current Terms of Service.', 'nobloat-user-foundry' ) .

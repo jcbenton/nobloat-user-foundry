@@ -349,15 +349,50 @@ class NBUF_User_2FA_Data {
 	 * @return bool                True on success, false on failure
 	 */
 	public static function mark_backup_code_used( int $user_id, int $index ): bool {
-		$used   = self::get_backup_codes_used( $user_id );
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_user_2fa';
+
+		/*
+		 * Use SELECT ... FOR UPDATE to prevent parallel requests from reusing
+		 * the same backup code (read-modify-write race condition).
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic backup code marking requires row lock.
+		$wpdb->query( 'START TRANSACTION' );
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT backup_codes_used FROM %i WHERE user_id = %d FOR UPDATE', $table, $user_id )
+		);
+
+		$used = array();
+		if ( $row && ! empty( $row->backup_codes_used ) ) {
+			$decoded = json_decode( $row->backup_codes_used, true );
+			if ( is_array( $decoded ) ) {
+				$used = $decoded;
+			}
+		}
+
+		/* Check if code was already used (concurrent request beat us) */
+		if ( in_array( $index, $used, true ) ) {
+			$wpdb->query( 'COMMIT' );
+			return false;
+		}
+
 		$used[] = $index;
 
-		return self::update(
-			$user_id,
-			array(
-				'backup_codes_used' => wp_json_encode( $used ),
-			)
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic update within transaction.
+		$result = $wpdb->update(
+			$table,
+			array( 'backup_codes_used' => wp_json_encode( $used ) ),
+			array( 'user_id' => $user_id ),
+			array( '%s' ),
+			array( '%d' )
 		);
+		$wpdb->query( 'COMMIT' );
+
+		if ( false !== $result ) {
+			self::clear_cache( $user_id );
+		}
+
+		return false !== $result;
 	}
 
 	/**

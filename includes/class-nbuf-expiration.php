@@ -157,7 +157,7 @@ class NBUF_Expiration {
 		}
 
 		// Get warning threshold (default: 7 days).
-		$warning_days = NBUF_Options::get( 'nbuf_expiration_warning_days', 7 );
+		$warning_days = max( 1, (int) NBUF_Options::get( 'nbuf_expiration_warning_days', 7 ) );
 		$warning_date = gmdate( 'Y-m-d H:i:s', time() + ( $warning_days * DAY_IN_SECONDS ) );
 
 		$users_needing_warning = NBUF_User_Data::get_needing_warning( $warning_date );
@@ -336,7 +336,7 @@ class NBUF_Expiration {
 			// Check for recent orders.
 			$prevent_recent_orders = NBUF_Options::get( 'nbuf_wc_prevent_recent_orders', false );
 			if ( $prevent_recent_orders ) {
-				$days = NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
+				$days = (int) NBUF_Options::get( 'nbuf_wc_recent_order_days', 90 );
 				if ( self::has_recent_orders( $user_id, $days ) ) {
 					return true;
 				}

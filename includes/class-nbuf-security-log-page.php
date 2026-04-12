@@ -179,7 +179,7 @@ class NBUF_Security_Log_Page {
      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['deleted'] ) ) {
          // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
-			$count = intval( $_GET['deleted'] );
+			$count = absint( $_GET['deleted'] );
 			printf(
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
 				/* translators: %d: number of deleted entries */
@@ -200,7 +200,7 @@ class NBUF_Security_Log_Page {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
 		if ( ! empty( $_GET['unblocked'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only success message display
-			$count = intval( $_GET['unblocked'] );
+			$count = absint( $_GET['unblocked'] );
 			if ( $count > 0 ) {
 				printf(
 					'<div class="notice notice-success is-dismissible"><p>%s</p></div>',

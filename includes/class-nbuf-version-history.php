@@ -678,7 +678,10 @@ class NBUF_Version_History {
 			$user->set_role( sanitize_key( $snapshot['role'] ) );
 		}
 
-		wp_update_user( $user_data );
+		$update_result = wp_update_user( $user_data );
+		if ( is_wp_error( $update_result ) ) {
+			return false;
+		}
 
 		/* Update user meta — sanitize to prevent stored XSS from tampered snapshots */
 		if ( isset( $snapshot['first_name'] ) ) {
@@ -703,11 +706,12 @@ class NBUF_Version_History {
 
 			$data            = $snapshot['nbuf_user_data'];
 			$data['user_id'] = $user_id;
+			$format          = array_fill( 0, count( $data ), '%s' );
 
 			if ( $exists ) {
-				$wpdb->update( $user_data_table, $data, array( 'user_id' => $user_id ) );
+				$wpdb->update( $user_data_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
 			} else {
-				$wpdb->insert( $user_data_table, $data );
+				$wpdb->insert( $user_data_table, $data, $format );
 			}
 		}
 
@@ -726,11 +730,12 @@ class NBUF_Version_History {
 
 			$data            = $snapshot['nbuf_profile'];
 			$data['user_id'] = $user_id;
+			$format          = array_fill( 0, count( $data ), '%s' );
 
 			if ( $exists ) {
-				$wpdb->update( $profile_table, $data, array( 'user_id' => $user_id ) );
+				$wpdb->update( $profile_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
 			} else {
-				$wpdb->insert( $profile_table, $data );
+				$wpdb->insert( $profile_table, $data, $format );
 			}
 		}
 

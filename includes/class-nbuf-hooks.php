@@ -352,12 +352,12 @@ class NBUF_Hooks {
 				$display_name = $user_login;
 			}
 
-			/* Prepare placeholders */
+			/* Prepare placeholders — escape for HTML context when using HTML template */
 			$placeholders = array(
-				'{site_name}'    => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
-				'{site_url}'     => home_url(),
-				'{display_name}' => sanitize_text_field( $display_name ),
-				'{username}'     => sanitize_text_field( $user_login ),
+				'{site_name}'    => $use_html ? esc_html( wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ) : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+				'{site_url}'     => $use_html ? esc_url( home_url() ) : home_url(),
+				'{display_name}' => $use_html ? esc_html( sanitize_text_field( $display_name ) ) : sanitize_text_field( $display_name ),
+				'{username}'     => $use_html ? esc_html( sanitize_text_field( $user_login ) ) : sanitize_text_field( $user_login ),
 				'{reset_link}'   => esc_url( $reset_url ),
 			);
 
@@ -521,19 +521,19 @@ class NBUF_Hooks {
 			$reset_base
 		);
 
-		/* Prepare placeholders */
-		$placeholders = array(
-			'{site_name}'           => $blogname,
-			'{display_name}'        => $display_name,
-			'{user_email}'          => $user_email,
-			'{username}'            => $user_login,
-			'{site_url}'            => site_url(),
-			'{password_reset_link}' => $password_reset_link,
-		);
-
 		/* Use HTML template if available, otherwise text */
 		$use_html = ! empty( $html_template );
 		$template = $use_html ? $html_template : $text_template;
+
+		/* Prepare placeholders — escape user-controlled values for HTML context */
+		$placeholders = array(
+			'{site_name}'           => $use_html ? esc_html( $blogname ) : $blogname,
+			'{display_name}'        => $use_html ? esc_html( $display_name ) : $display_name,
+			'{user_email}'          => $use_html ? esc_html( $user_email ) : $user_email,
+			'{username}'            => $use_html ? esc_html( $user_login ) : $user_login,
+			'{site_url}'            => $use_html ? esc_url( site_url() ) : site_url(),
+			'{password_reset_link}' => $use_html ? esc_url( $password_reset_link ) : $password_reset_link,
+		);
 
 		/* Replace placeholders */
 		$message = str_replace( array_keys( $placeholders ), array_values( $placeholders ), $template );

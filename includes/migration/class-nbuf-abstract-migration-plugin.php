@@ -195,7 +195,7 @@ abstract class NBUF_Abstract_Migration_Plugin {
 	 * @return mixed Sanitized value
 	 */
 	protected function sanitize_field( $value, $type = 'text' ) {
-		if ( empty( $value ) ) {
+		if ( null === $value || '' === $value ) {
 			return null;
 		}
 

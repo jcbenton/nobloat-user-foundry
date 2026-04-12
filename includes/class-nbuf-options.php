@@ -392,8 +392,8 @@ class NBUF_Options {
 		}
 
 		/* Format values for logging */
-		$old_str = is_bool( $old_value ) ? ( $old_value ? 'enabled' : 'disabled' ) : (string) $old_value;
-		$new_str = is_bool( $new_value ) ? ( $new_value ? 'enabled' : 'disabled' ) : (string) $new_value;
+		$old_str = is_bool( $old_value ) ? ( $old_value ? 'enabled' : 'disabled' ) : ( is_scalar( $old_value ) ? (string) $old_value : wp_json_encode( $old_value ) );
+		$new_str = is_bool( $new_value ) ? ( $new_value ? 'enabled' : 'disabled' ) : ( is_scalar( $new_value ) ? (string) $new_value : wp_json_encode( $new_value ) );
 
 		/* Log the setting change */
 		NBUF_Admin_Audit_Log::log(

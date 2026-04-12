@@ -1052,6 +1052,9 @@ class NBUF_GDPR_Export {
 			);
 		}
 
+		/* Set rate limit BEFORE generating to prevent parallel request bypass */
+		NBUF_User_Data::set_last_data_export( $user_id );
+
 		/* Generate export */
 		$export_file = self::generate_export( $user_id );
 
@@ -1059,8 +1062,7 @@ class NBUF_GDPR_Export {
 			wp_send_json_error( __( 'Failed to generate export. Please try again.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Update rate limit timestamp */
-		NBUF_User_Data::set_last_data_export( $user_id );
+		/* Rate limit already set above before generation */
 
 		/* Log to admin audit log */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {

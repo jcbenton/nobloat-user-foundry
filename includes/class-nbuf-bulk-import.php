@@ -536,7 +536,7 @@ class NBUF_Bulk_Import {
 		}
 
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
-		$batch_size    = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
+		$batch_size    = max( 1, (int) NBUF_Options::get( 'nbuf_import_batch_size', 50 ) );
 		$offset        = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
 
 		/* Validate transient key prefix to prevent reading arbitrary transients */

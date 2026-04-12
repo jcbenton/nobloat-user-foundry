@@ -242,8 +242,8 @@ class NBUF_Multi_Role {
 			return;
 		}
 
-		/* Get all available roles */
-		$all_roles = wp_roles()->get_names();
+		/* Get only editable roles to match save_roles() filtering */
+		$all_roles = wp_list_pluck( get_editable_roles(), 'name' );
 
 		/* Get user's current roles */
 		$user_roles = $user->roles;

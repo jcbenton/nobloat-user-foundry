@@ -887,8 +887,13 @@ class NBUF_Image_Processor {
 			$path_key  = ( self::TYPE_PROFILE === $type ) ? 'profile_photo_path' : 'cover_photo_path';
 			$user_data = NBUF_User_Data::get( $user_id );
 			if ( $user_data && ! empty( $user_data->$path_key ) && is_file( $user_data->$path_key ) ) {
-				wp_delete_file( $user_data->$path_key );
-				$deleted = true;
+				/* Validate path is within uploads directory to prevent arbitrary file deletion */
+				$real_path     = realpath( $user_data->$path_key );
+				$real_base     = realpath( $upload_dir['basedir'] );
+				if ( $real_path && $real_base && 0 === strpos( $real_path, $real_base . DIRECTORY_SEPARATOR ) ) {
+					wp_delete_file( $real_path );
+					$deleted = true;
+				}
 			}
 		}
 

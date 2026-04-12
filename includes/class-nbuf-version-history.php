@@ -680,12 +680,12 @@ class NBUF_Version_History {
 
 		wp_update_user( $user_data );
 
-		/* Update user meta */
+		/* Update user meta — sanitize to prevent stored XSS from tampered snapshots */
 		if ( isset( $snapshot['first_name'] ) ) {
-			update_user_meta( $user_id, 'first_name', $snapshot['first_name'] );
+			update_user_meta( $user_id, 'first_name', sanitize_text_field( $snapshot['first_name'] ) );
 		}
 		if ( isset( $snapshot['last_name'] ) ) {
-			update_user_meta( $user_id, 'last_name', $snapshot['last_name'] );
+			update_user_meta( $user_id, 'last_name', sanitize_text_field( $snapshot['last_name'] ) );
 		}
 
 		/* Update NBUF user_data table */

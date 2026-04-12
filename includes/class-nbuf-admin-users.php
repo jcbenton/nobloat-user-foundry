@@ -390,6 +390,10 @@ class NBUF_Admin_Users {
 	 * @return string Modified redirect URL.
 	 */
 	public static function handle_bulk_actions( string $redirect_to, string $action, array $user_ids ): string {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $redirect_to;
+		}
+
 		$count = 0;
 
 		/* Mark as Verified */
@@ -469,7 +473,7 @@ class NBUF_Admin_Users {
 		/* Set Expiration Date - store user IDs and show modal */
 		if ( 'nbuf_bulk_set_expiration' === $action ) {
 			/* Store user IDs in transient for processing after date selection */
-			set_transient( 'nbuf_bulk_expiration_users', $user_ids, 300 );
+			set_transient( 'nbuf_bulk_expiration_users_' . get_current_user_id(), $user_ids, 300 );
 			return add_query_arg( 'nbuf_show_expiration_modal', '1', $redirect_to );
 		}
 
@@ -888,6 +892,7 @@ class NBUF_Admin_Users {
 		$expiration_enabled = NBUF_Options::get( 'nbuf_enable_expiration', false );
 		?>
 		<h2><?php esc_html_e( 'NoBloat User Options', 'nobloat-user-foundry' ); ?></h2>
+		<?php wp_nonce_field( 'nbuf_update_profile_' . $user_id, 'nbuf_profile_nonce' ); ?>
 		<table class="form-table">
 			<tr>
 				<th><?php esc_html_e( 'User ID', 'nobloat-user-foundry' ); ?></th>
@@ -1702,8 +1707,8 @@ class NBUF_Admin_Users {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Verify permissions */
-		if ( ! current_user_can( 'edit_users' ) ) {
+		/* Verify permissions — use manage_options consistent with other admin mutation actions */
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to perform this action.', 'nobloat-user-foundry' ) ) );
 		}
 
@@ -1824,7 +1829,7 @@ add_action(
 
 		/* Process bulk expiration setting */
 		if ( isset( $_POST['nbuf_bulk_expires_at'] ) && check_admin_referer( 'nbuf_bulk_set_expiration', 'nbuf_bulk_expiration_nonce' ) ) {
-			$user_ids          = get_transient( 'nbuf_bulk_expiration_users' );
+			$user_ids          = get_transient( 'nbuf_bulk_expiration_users_' . get_current_user_id() );
 			$expires_input     = sanitize_text_field( wp_unslash( $_POST['nbuf_bulk_expires_at'] ) );
 			$expires_timestamp = strtotime( $expires_input );
 

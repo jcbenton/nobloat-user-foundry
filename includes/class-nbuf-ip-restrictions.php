@@ -190,8 +190,11 @@ class NBUF_IP_Restrictions {
 				return false;
 			}
 
-			/* Build mask */
+			/* Build mask — validate IPv6 CIDR range */
 			$mask_int = (int) $mask;
+			if ( $mask_int < 0 || $mask_int > 128 ) {
+				return false;
+			}
 			$mask_bin = str_repeat( "\xff", intdiv( $mask_int, 8 ) );
 
 			if ( $mask_int % 8 ) {

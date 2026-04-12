@@ -229,7 +229,7 @@ class NBUF_GDPR_Export {
 		}
 
 		/* Create ZIP archive */
-		$zip_filename = 'nobloat-user-data-' . $user->ID . '-' . $timestamp . '.zip';
+		$zip_filename = 'nobloat-user-data-' . $user->ID . '-' . $timestamp . '-' . $random_suffix . '.zip';
 		$zip_path     = $temp_dir . '/' . $zip_filename;
 
 		if ( ! self::create_zip( $export_subdir, $zip_path ) ) {
@@ -1103,7 +1103,7 @@ class NBUF_GDPR_Export {
 			/* Generate secure download token */
 			$token = wp_generate_password( 32, false );
 			set_transient(
-				'nbuf_export_token_' . $user_id,
+				'nbuf_export_token_' . $user_id . '_' . get_current_user_id(),
 				array(
 					'token' => $token,
 					'file'  => $export_file,
@@ -1159,7 +1159,7 @@ class NBUF_GDPR_Export {
 		}
 
 		/* Get token data */
-		$token_data = get_transient( 'nbuf_export_token_' . $request_user_id );
+		$token_data = get_transient( 'nbuf_export_token_' . $request_user_id . '_' . get_current_user_id() );
 
 		if ( ! $token_data || ! isset( $token_data['token'] ) || ! isset( $token_data['file'] ) ) {
 			wp_die( esc_html__( 'Download link expired or invalid.', 'nobloat-user-foundry' ) );
@@ -1187,7 +1187,7 @@ class NBUF_GDPR_Export {
 		}
 
 		/* Delete transient (one-time use) */
-		delete_transient( 'nbuf_export_token_' . $request_user_id );
+		delete_transient( 'nbuf_export_token_' . $request_user_id . '_' . get_current_user_id() );
 
 		/* Send file */
 		header( 'Content-Type: application/zip' );
@@ -1221,7 +1221,7 @@ class NBUF_GDPR_Export {
 		/* Generate secure download token valid for 48 hours */
 		$token = wp_generate_password( 32, false );
 		set_transient(
-			'nbuf_export_token_' . $user_id,
+			'nbuf_export_token_' . $user_id . '_' . get_current_user_id(),
 			array(
 				'token' => $token,
 				'file'  => $file_path,
@@ -1362,7 +1362,7 @@ class NBUF_GDPR_Export {
 		/* Generate admin download token (15 minute expiry) */
 		$token = wp_generate_password( 32, false );
 		set_transient(
-			'nbuf_export_token_' . $user_id,
+			'nbuf_export_token_' . $user_id . '_' . get_current_user_id(),
 			array(
 				'token' => $token,
 				'file'  => $export_file,

@@ -800,12 +800,26 @@ class NBUF_Admin_User_Search {
 				gmdate( 'Y-m-d H:i:s', strtotime( $user->user_registered ) ),
 			);
 
-			fputcsv( $output, $row );
+			fputcsv( $output, array_map( array( __CLASS__, 'csv_escape' ), $row ) );
 		}
 
      // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Direct output stream closure for CSV export.
 		fclose( $output );
 		exit;
+	}
+
+	/**
+	 * Escape a value for safe CSV export (prevent formula injection).
+	 *
+	 * @param  mixed $value Value to escape.
+	 * @return string Escaped value.
+	 */
+	private static function csv_escape( $value ): string {
+		$value = (string) $value;
+		if ( ! empty( $value ) && preg_match( '/^[\\\'"]*[=+\-@|\t\r]/', $value ) ) {
+			$value = "'" . $value;
+		}
+		return $value;
 	}
 
 	/**

@@ -192,28 +192,22 @@ function nbuf_run_uninstall() {
 
 			/* Verify nobloat directory is within uploads directory */
 			if ( $nbuf_dir_real && $nbuf_upload_base && 0 === strpos( $nbuf_dir_real, $nbuf_upload_base ) ) {
-				/* Get all user directories */
-				$nbuf_user_dirs = glob( $nbuf_dir_real . '/*', GLOB_ONLYDIR );
-
-				if ( ! empty( $nbuf_user_dirs ) && is_array( $nbuf_user_dirs ) ) {
-					foreach ( $nbuf_user_dirs as $nbuf_user_dir ) {
-						/* Delete all files in user directory */
-						$nbuf_files = glob( $nbuf_user_dir . '/*' );
-						if ( ! empty( $nbuf_files ) && is_array( $nbuf_files ) ) {
-							foreach ( $nbuf_files as $nbuf_file ) {
-								// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Required for file deletion validation.
-								if ( is_file( $nbuf_file ) && is_writable( $nbuf_file ) ) {
-									wp_delete_file( $nbuf_file );
-								}
-							}
-						}
-
-						/* Delete user directory if empty */
-						nbuf_safe_rmdir( $nbuf_user_dir );
+				/* Recursively delete all files and subdirectories (handles nested user/{id}/ paths) */
+				$nbuf_iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $nbuf_dir_real, RecursiveDirectoryIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::CHILD_FIRST
+				);
+				foreach ( $nbuf_iterator as $nbuf_fileinfo ) {
+					$nbuf_real_item = $nbuf_fileinfo->getRealPath();
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Required for file deletion validation.
+					if ( $nbuf_fileinfo->isDir() ) {
+						nbuf_safe_rmdir( $nbuf_real_item );
+					} elseif ( $nbuf_fileinfo->isFile() && is_writable( $nbuf_real_item ) ) {
+						wp_delete_file( $nbuf_real_item );
 					}
 				}
 
-				/* Delete main nobloat directory if empty */
+				/* Delete main nobloat directory */
 				nbuf_safe_rmdir( $nbuf_dir_real );
 			}
 		}

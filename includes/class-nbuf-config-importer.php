@@ -212,6 +212,9 @@ class NBUF_Config_Importer {
 
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
 		$import_mode   = isset( $_POST['import_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['import_mode'] ) ) : 'overwrite';
+		if ( ! in_array( $import_mode, array( 'overwrite', 'merge' ), true ) ) {
+			$import_mode = 'overwrite';
+		}
 
 		/* Validate transient key prefix to prevent reading arbitrary transients */
 		if ( ! str_starts_with( $transient_key, 'nbuf_import_config_' ) ) {
@@ -270,6 +273,14 @@ class NBUF_Config_Importer {
 				/* Only allow nbuf_ prefixed option names to prevent injection of arbitrary settings */
 				if ( ! str_starts_with( $option_name, 'nbuf_' ) ) {
 					continue;
+				}
+
+				/* Apply settings registry sanitizer if available to prevent bypass of validation */
+				if ( class_exists( 'NBUF_Settings' ) && method_exists( 'NBUF_Settings', 'get_settings_registry' ) ) {
+					$registry = NBUF_Settings::get_settings_registry();
+					if ( isset( $registry[ $option_name ] ) && is_callable( $registry[ $option_name ] ) ) {
+						$option_value = call_user_func( $registry[ $option_name ], $option_value );
+					}
 				}
 
 				/* Skip if merge mode and option already exists */

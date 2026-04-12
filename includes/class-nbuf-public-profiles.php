@@ -93,7 +93,9 @@ class NBUF_Public_Profiles {
 		/* Get user's visible fields preference */
 		$visible_fields = array();
 		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
-			$visible_fields = maybe_unserialize( $user_data->visible_fields );
+			$visible_fields = is_serialized( $user_data->visible_fields )
+				? unserialize( $user_data->visible_fields, array( 'allowed_classes' => false ) ) // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- User data with class instantiation blocked.
+				: maybe_unserialize( $user_data->visible_fields );
 			if ( ! is_array( $visible_fields ) ) {
 				$visible_fields = array();
 			}

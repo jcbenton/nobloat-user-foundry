@@ -547,6 +547,20 @@ class NBUF_Account_Merger {
 			}
 		}
 
+		/* Prevent merging (deleting/disabling) administrator accounts as secondary */
+		foreach ( $secondary_ids as $sec_id ) {
+			if ( user_can( $sec_id, 'manage_options' ) ) {
+				return array(
+					'success' => false,
+					'message' => sprintf(
+						/* translators: %d: User ID */
+						__( 'Cannot merge administrator account (ID: %d) as a secondary account. Demote the account first.', 'nobloat-user-foundry' ),
+						$sec_id
+					),
+				);
+			}
+		}
+
 		/* Verify transaction support */
 		global $wpdb;
 		$engine_check = self::verify_transaction_support();

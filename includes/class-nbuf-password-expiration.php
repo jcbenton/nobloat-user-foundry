@@ -495,6 +495,9 @@ class NBUF_Password_Expiration {
 				exit;
 			}
 			$user_id = (int) $token_user;
+
+			/* Consume token on first use (form render) to prevent reuse if URL is leaked */
+			delete_transient( 'nbuf_password_change_token_' . $change_token );
 		}
 
 		if ( ! $user_id ) {

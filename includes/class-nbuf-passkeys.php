@@ -1183,13 +1183,13 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Verify passkey belongs to user */
+		/* Verify passkey exists and belongs to user */
 		$passkey = NBUF_User_Passkeys_Data::get_by_id( $passkey_id );
-		if ( ! $passkey || (int) $passkey->user_id !== $user_id ) {
-			/* Check if admin with capability */
-			if ( ! current_user_can( 'edit_users' ) ) {
-				wp_send_json_error( array( 'message' => __( 'You do not have permission to delete this passkey.', 'nobloat-user-foundry' ) ) );
-			}
+		if ( ! $passkey ) {
+			wp_send_json_error( array( 'message' => __( 'Passkey not found.', 'nobloat-user-foundry' ) ) );
+		}
+		if ( (int) $passkey->user_id !== $user_id && ! current_user_can( 'edit_users' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to delete this passkey.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$result = NBUF_User_Passkeys_Data::delete( $passkey_id );

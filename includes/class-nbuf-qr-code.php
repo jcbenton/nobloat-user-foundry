@@ -4,6 +4,12 @@
  *
  * Generates QR codes for TOTP provisioning URIs using api.qrserver.com.
  *
+ * SECURITY NOTICE: The otpauth:// URI contains the user's TOTP shared
+ * secret. Calling generate_external() transmits that secret to
+ * api.qrserver.com via an HTTPS GET request. Operators who cannot accept
+ * this third-party exposure should consider a self-hosted QR generator
+ * or a client-side library.
+ *
  * @package NoBloat_User_Foundry
  */
 

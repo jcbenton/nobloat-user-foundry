@@ -170,9 +170,15 @@ class NBUF_Cron {
 	}
 
 	/**
-	 * Register cron hooks.
+	 * Register this class's cron handler functions.
 	 *
-	 * Links the cron hook to the cleanup routine.
+	 * Binds 7 cleanup handlers + 1 migration handler. Other hooks from
+	 * get_cron_definitions() are bound by their owning classes:
+	 *  - nbuf_daily_security_log_prune  -> NBUF_Security_Log::init()
+	 *  - nbuf_check_expirations         -> NBUF_Expiration
+	 *  - nbuf_send_expiration_warnings  -> NBUF_Expiration
+	 *  - nbuf_send_change_digest_*      -> NBUF_Change_Notifications
+	 *  - nbuf_cleanup_exports           -> NBUF_GDPR_Export
 	 *
 	 * @since 1.0.0
 	 * @return void

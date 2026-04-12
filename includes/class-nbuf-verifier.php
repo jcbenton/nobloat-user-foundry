@@ -37,7 +37,6 @@ class NBUF_Verifier {
 	 * Render for shortcode.
 	 *
 	 * Entry point used by [nbuf_verify_page].
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token-based verification, not form submission.
 	 * Returns HTML (never echoes) so WP can place it in content.
 	 *
 	 * @return string HTML output.
@@ -87,8 +86,10 @@ class NBUF_Verifier {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'START TRANSACTION' );
 
+		try {
+
 		$entry = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type = 'verification' FOR UPDATE", $table, $token )
+			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type IN ('verification', 'email_change') FOR UPDATE", $table, $token )
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
@@ -218,6 +219,15 @@ class NBUF_Verifier {
 		$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 		$wpdb->query( 'COMMIT' );
+
+		} catch ( \Throwable $e ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction rollback on error.
+			$wpdb->query( 'ROLLBACK' );
+			return self::wrap_notice(
+				__( 'An error occurred during verification. Please try again.', 'nobloat-user-foundry' ),
+				false
+			);
+		}
 
 		/**
 		 * Fire hook for integrations.

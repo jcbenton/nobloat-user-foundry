@@ -2482,6 +2482,11 @@ class NBUF_Shortcodes {
 			array( 'method' => 'profile_update' )
 		);
 
+		/* Clear 2FA trusted devices so stolen trust cookies cannot bypass 2FA post-compromise */
+		if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
+			NBUF_User_2FA_Data::update( $user_id, array( 'trusted_devices' => wp_json_encode( array() ) ) );
+		}
+
 		/* Re-authenticate user - must clear old cookie, reset user, then set new cookie */
 		wp_clear_auth_cookie();
 		wp_set_current_user( $user_id );

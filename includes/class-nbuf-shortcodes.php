@@ -1402,7 +1402,7 @@ class NBUF_Shortcodes {
 			/* Store form data (except passwords) in transient for repopulating form */
 			$preserved_data = $data;
 			unset( $preserved_data['password'], $preserved_data['password_confirm'] );
-			$transient_key = 'nbuf_reg_form_' . wp_hash( session_id() . wp_get_session_token() );
+			$transient_key = 'nbuf_reg_form_' . wp_generate_password( 16, false );
 			set_transient( $transient_key, $preserved_data, 5 * MINUTE_IN_SECONDS );
 
 			/* Redirect back with error */

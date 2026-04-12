@@ -460,7 +460,8 @@ class NBUF_Roles_Page {
 		$role_name    = isset( $_POST['role_name'] ) ? sanitize_text_field( wp_unslash( $_POST['role_name'] ) ) : '';
 		$parent       = isset( $_POST['parent_role'] ) ? sanitize_text_field( wp_unslash( $_POST['parent_role'] ) ) : null;
 		$priority     = isset( $_POST['priority'] ) ? absint( $_POST['priority'] ) : 0;
-		$capabilities = isset( $_POST['capabilities'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['capabilities'] ) ) : array();
+		$raw_caps     = isset( $_POST['capabilities'] ) ? wp_unslash( $_POST['capabilities'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
+		$capabilities = is_array( $raw_caps ) ? array_map( 'sanitize_text_field', $raw_caps ) : array();
      // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/* Convert capabilities array to associative (cap => true) */

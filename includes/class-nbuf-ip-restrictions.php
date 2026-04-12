@@ -167,9 +167,14 @@ class NBUF_IP_Restrictions {
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) &&
 			filter_var( $subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 
+			$mask_int = (int) $mask;
+			if ( $mask_int < 0 || $mask_int > 32 ) {
+				return false;
+			}
+
 			$ip_long     = ip2long( $ip );
 			$subnet_long = ip2long( $subnet );
-			$mask_long   = -1 << ( 32 - (int) $mask );
+			$mask_long   = $mask_int > 0 ? ( -1 << ( 32 - $mask_int ) ) : 0;
 
 			return ( $ip_long & $mask_long ) === ( $subnet_long & $mask_long );
 		}

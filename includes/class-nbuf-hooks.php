@@ -753,7 +753,7 @@ class NBUF_Hooks {
 
 			/* Preserve redirect_to from WordPress login URL so user lands at the right page after login */
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect_to parameter from WordPress core login flow.
-			$redirect_to_param = isset( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : '';
+			$redirect_to_param = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
 
 			/* Use Universal Router URL if available */
 			$login_url = '';

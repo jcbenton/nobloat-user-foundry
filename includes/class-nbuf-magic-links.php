@@ -142,13 +142,7 @@ class NBUF_Magic_Links {
 	 * @return string IP address.
 	 */
 	private static function get_client_ip(): string {
-		if ( class_exists( 'NBUF_Login_Limiting' ) && method_exists( 'NBUF_Login_Limiting', 'get_client_ip' ) ) {
-			return NBUF_Login_Limiting::get_client_ip();
-		}
-
-		/* Fallback */
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-		return $ip;
+		return NBUF_IP::get_client_ip( true );
 	}
 
 	/**

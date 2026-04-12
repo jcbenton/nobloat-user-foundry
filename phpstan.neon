@@ -63,7 +63,6 @@ parameters:
         # WordPress callback parameter counts
         - '#Callback expects \d+ parameters?, \$accepted_args is set to \d+#'
         # Conditional method calls guarded by method_exists
-        - '#Call to an undefined static method NBUF_Login_Limiting::get_client_ip#'
         # Image processor - Imagick version-specific methods
         - '#Imagick::autoOrientImage#'
         - '#Negated boolean expression is always false#'

@@ -313,8 +313,12 @@ class NBUF_2FA {
 				return $result;
 			}
 		} finally {
-			/* Always release lock, even if an exception occurred */
-			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+			/* Release lock — log on failure. MySQL session locks auto-release on connection close. */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock management.
+			$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+			if ( '1' !== (string) $released ) {
+				error_log( sprintf( 'NBUF 2FA: RELEASE_LOCK returned %s for %s', var_export( $released, true ), $lock_name ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, WordPress.PHP.DevelopmentFunctions.error_log_var_export -- Lock diagnostic.
+			}
 		}
 
 		/* Send email with plain text code (user needs to read it) */

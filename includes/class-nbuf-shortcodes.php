@@ -791,6 +791,27 @@ class NBUF_Shortcodes {
 				break;
 		}
 
+		/*
+		 * Allow redirect_to URL parameter to override the default redirect.
+		 * This preserves the intended destination when users are sent to login
+		 * from restricted content or the wp-login.php interceptor.
+		 * Same-host validation matches maybe_handle_login() to prevent open redirect.
+		 */
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only redirect_to parameter; no data modification.
+		if ( isset( $_GET['redirect_to'] ) && ! empty( $_GET['redirect_to'] ) ) {
+			$redirect_candidate = esc_url_raw( wp_unslash( $_GET['redirect_to'] ) );
+			$redirect_parsed    = wp_parse_url( $redirect_candidate );
+			$redirect_host      = wp_parse_url( home_url(), PHP_URL_HOST );
+
+			if ( empty( $redirect_parsed['host'] ) || $redirect_parsed['host'] === $redirect_host ) {
+				$validated_redirect = wp_validate_redirect( $redirect_candidate, $default_redirect );
+				if ( $validated_redirect ) {
+					$default_redirect = $validated_redirect;
+				}
+			}
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
 		// Get redirect URL from shortcode attribute or use settings default.
 		$atts = shortcode_atts(
 			array(

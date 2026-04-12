@@ -112,6 +112,19 @@ class NBUF_URL {
 	}
 
 	/**
+	 * Check if Universal Mode is enabled.
+	 *
+	 * Universal Mode uses virtual page routing (no WordPress pages needed).
+	 * Always true when the Universal Router class is loaded.
+	 *
+	 * @since  1.6.1
+	 * @return bool True if Universal Mode is active.
+	 */
+	public static function is_universal_mode(): bool {
+		return class_exists( 'NBUF_Universal_Router' ) && (bool) NBUF_Options::get( 'nbuf_universal_mode_enabled', true );
+	}
+
+	/**
 	 * Check if currently on a plugin page.
 	 *
 	 * @return bool True if on a plugin virtual page.

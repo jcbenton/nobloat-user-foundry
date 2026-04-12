@@ -211,7 +211,9 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 				/* Get redirect URL */
 				$url = ! empty( $restriction['redirect_url'] )
 				? esc_url( $restriction['redirect_url'] )
-				: wp_login_url( get_permalink( $post->ID ) );
+				: ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_login_url' )
+					? NBUF_Shortcodes::get_login_url( get_permalink( $post->ID ) )
+					: wp_login_url( get_permalink( $post->ID ) ) );
 
 				/* Log access denial to security log */
 				if ( class_exists( 'NBUF_Security_Log' ) ) {

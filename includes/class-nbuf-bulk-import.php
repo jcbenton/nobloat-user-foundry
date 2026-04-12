@@ -194,40 +194,16 @@ class NBUF_Bulk_Import {
 		$sanitized         = str_replace( array_keys( $unicode_dangerous ), array_values( $unicode_dangerous ), $sanitized );
 
 		/*
-		 * SECURITY: Block CSV formula injection characters.
-		 * These characters at the start of a field can trigger formula/command execution in Excel/LibreOffice.
+		 * SECURITY: Block CSV formula injection.
+		 * Characters at the start of a field (possibly preceded by quotes/backslashes)
+		 * can trigger formula/command execution in Excel/LibreOffice.
 		 */
-		$dangerous_chars = array( '=', '+', '-', '@', '|', "\t", "\r", "\n" );
-		$first_char      = substr( $sanitized, 0, 1 );
-
-		if ( in_array( $first_char, $dangerous_chars, true ) ) {
-			/* SECURITY: Prefix with single quote to neutralize formula execution */
-			$sanitized = "'" . $sanitized;
-
-			if ( class_exists( 'NBUF_Security_Log' ) ) {
-				NBUF_Security_Log::log(
-					'csv_injection_prevented',
-					'warning',
-					'CSV field prefixed to prevent injection',
-					array(
-						'field'    => $field_name,
-						'line'     => $line_number,
-						'original' => $value,
-					)
-				);
-			}
-		}
-
-		/*
-		 * SECURITY: Block escaped formula injection.
-		 * Patterns like '\t=', '"=', or "'=" can bypass simple first-character checks.
-		 */
-		if ( preg_match( '/^[\\\'"]*[=+\-@|]/', $sanitized ) ) {
+		if ( preg_match( '/^[\\\'"]*[=@|]/', $sanitized ) ) {
 			return new WP_Error(
 				'csv_injection',
 				sprintf(
 					/* translators: 1: line number, 2: field name */
-					__( 'Line %1$d: Field "%2$s" contains escaped formula pattern (CSV injection prevention)', 'nobloat-user-foundry' ),
+					__( 'Line %1$d: Field "%2$s" contains a formula pattern (CSV injection prevention)', 'nobloat-user-foundry' ),
 					$line_number,
 					$field_name
 				)
@@ -340,6 +316,19 @@ class NBUF_Bulk_Import {
 					'line' => $line_number,
 					'data' => array_combine( $headers, $row ),
 					'raw'  => $row,
+				);
+			} else {
+				$rows[] = array(
+					'line'  => $line_number,
+					'data'  => array(),
+					'raw'   => $row,
+					'error' => sprintf(
+						/* translators: 1: line number, 2: expected count, 3: actual count */
+						__( 'Line %1$d: expected %2$d columns but found %3$d (row skipped)', 'nobloat-user-foundry' ),
+						$line_number,
+						count( $headers ),
+						count( $row )
+					),
 				);
 			}
 			++$line_number;

@@ -452,9 +452,10 @@ class NBUF_Registration {
 			/* Send verification email directly (more reliable than hook-based approach) */
 			$user = get_userdata( $user_id );
 			if ( $user && class_exists( 'NBUF_Database' ) && class_exists( 'NBUF_Email' ) ) {
-				$token   = bin2hex( random_bytes( 32 ) );
-				$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
-				NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
+				$token      = bin2hex( random_bytes( 32 ) );
+				$token_hash = hash( 'sha256', $token );
+				$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+				NBUF_Database::insert_token( $user_id, $user->user_email, $token_hash, $expires, 0 );
 				NBUF_Email::send_verification_email( $user->user_email, $token, $user );
 
 				/* Mark that verification email was sent - prevents duplicate from hook */

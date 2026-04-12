@@ -133,10 +133,11 @@ class NBUF_Test {
 	 * @return bool True if sent successfully.
 	 */
 	private static function send_test_verification( $recipient ) {
-		/* Create test token */
-		$token   = 'test-' . wp_generate_password( 20, false );
-		$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 hour' ) );
-		NBUF_Database::insert_token( 0, $recipient, $token, $expires, 1 );
+		/* Create test token — store hash, send plaintext */
+		$token      = 'test-' . wp_generate_password( 20, false );
+		$token_hash = hash( 'sha256', $token );
+		$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 hour' ) );
+		NBUF_Database::insert_token( 0, $recipient, $token_hash, $expires, 1 );
 
 		return NBUF_Email::send_verification_email( $recipient, $token );
 	}

@@ -328,8 +328,8 @@ class NBUF_Webhooks {
 		/* Track timing */
 		$start_time = microtime( true );
 
-		/* Send the webhook */
-		$response = wp_remote_post(
+		/* Send the webhook — wp_safe_remote_post validates the URL at connect time, preventing DNS rebinding */
+		$response = wp_safe_remote_post(
 			$webhook->url,
 			array(
 				'headers'     => $headers,

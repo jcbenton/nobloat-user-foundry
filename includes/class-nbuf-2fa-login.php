@@ -36,8 +36,8 @@ class NBUF_2FA_Login {
 	 * @return void
 	 */
 	public static function init(): void {
-		/* Hook into authentication after password validation */
-		add_filter( 'authenticate', array( __CLASS__, 'intercept_login' ), 30, 3 );
+		/* Hook into authentication after password validation and login limiter (priority 30) */
+		add_filter( 'authenticate', array( __CLASS__, 'intercept_login' ), 31, 3 );
 
 		/* Handle 2FA verification on dedicated page */
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_handle_2fa_verification' ) );

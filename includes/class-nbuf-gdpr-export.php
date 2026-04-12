@@ -202,15 +202,13 @@ class NBUF_GDPR_Export {
 
 		if ( ! file_exists( $temp_dir ) ) {
 			wp_mkdir_p( $temp_dir );
-			/* Create .htaccess to protect directory */
-			file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Temporary file in protected directory.
-				$temp_dir . '/.htaccess',
-				"Deny from all\n"
-			);
+			/* Protect directory from direct access (Apache + Nginx/LiteSpeed fallback) */
+			file_put_contents( $temp_dir . '/.htaccess', "Deny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $temp_dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
 
 		$timestamp     = gmdate( 'Y-m-d-His' );
-		$export_subdir = $temp_dir . '/' . $user->user_login . '-' . $timestamp;
+		$export_subdir = $temp_dir . '/' . $user->ID . '-' . $timestamp;
 		wp_mkdir_p( $export_subdir );
 
 		/* Generate README.html */
@@ -230,7 +228,7 @@ class NBUF_GDPR_Export {
 		}
 
 		/* Create ZIP archive */
-		$zip_filename = 'nobloat-user-data-' . $user->user_login . '-' . $timestamp . '.zip';
+		$zip_filename = 'nobloat-user-data-' . $user->ID . '-' . $timestamp . '.zip';
 		$zip_path     = $temp_dir . '/' . $zip_filename;
 
 		if ( ! self::create_zip( $export_subdir, $zip_path ) ) {
@@ -366,7 +364,6 @@ class NBUF_GDPR_Export {
 			'verification'     => array(
 				'is_verified'       => NBUF_User_Data::is_verified( $user_id ),
 				'verified_date'     => ( $user_data && property_exists( $user_data, 'verified_date' ) ) ? $user_data->verified_date : null,
-				'verification_code' => ( $user_data && property_exists( $user_data, 'verification_code' ) ) ? $user_data->verification_code : null,
 			),
 			'account_settings' => array(
 				'expiration_enabled' => ( $user_data && property_exists( $user_data, 'expiration_enabled' ) ) ? (bool) $user_data->expiration_enabled : false,
@@ -1018,7 +1015,7 @@ class NBUF_GDPR_Export {
 				wp_send_json_error( __( 'Password is required.', 'nobloat-user-foundry' ) );
 			}
 
-			$password = sanitize_text_field( wp_unslash( $_POST['password'] ) );
+			$password = wp_unslash( $_POST['password'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password for hash comparison only.
 			$user     = wp_get_current_user();
 
 			if ( ! wp_check_password( $password, $user->user_pass ) ) {
@@ -1161,8 +1158,8 @@ class NBUF_GDPR_Export {
 			wp_die( esc_html__( 'Download link expired or invalid.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Verify token */
-		if ( $token !== $token_data['token'] ) {
+		/* Verify token (timing-safe comparison) */
+		if ( ! hash_equals( $token_data['token'], $token ) ) {
 			wp_die( esc_html__( 'Invalid download token.', 'nobloat-user-foundry' ) );
 		}
 

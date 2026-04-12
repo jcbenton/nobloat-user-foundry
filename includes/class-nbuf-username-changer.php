@@ -241,9 +241,12 @@ class NBUF_Username_Changer {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required; user_login cannot be changed via wp_update_user().
 		$result = $wpdb->update(
 			$wpdb->users,
-			array( 'user_login' => $new_username ),
+			array(
+				'user_login'    => $new_username,
+				'user_nicename' => sanitize_title( $new_username ),
+			),
 			array( 'ID' => $user_id ),
-			array( '%s' ),
+			array( '%s', '%s' ),
 			array( '%d' )
 		);
 

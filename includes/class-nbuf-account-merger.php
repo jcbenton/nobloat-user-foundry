@@ -598,22 +598,10 @@ class NBUF_Account_Merger {
 				self::handle_role_conflicts( $args['primary_id'], $args['conflict_selections'] );
 			}
 
-			/* Handle secondary accounts */
-			foreach ( $secondary_ids as $secondary_id ) {
-				if ( 'delete' === $args['secondary_action'] ) {
-					include_once ABSPATH . 'wp-admin/includes/user.php';
-					$delete_result = wp_delete_user( $secondary_id, $args['primary_id'] );
-
-					/* wp_delete_user returns true on success, false/WP_Error on failure */
-					if ( is_wp_error( $delete_result ) ) {
-						throw new Exception( 'Failed to delete secondary user ' . $secondary_id . ': ' . $delete_result->get_error_message() );
-					} elseif ( false === $delete_result ) {
-						throw new Exception( 'Failed to delete secondary user ' . $secondary_id );
-					}
-				} elseif ( 'disable' === $args['secondary_action'] ) {
+			/* Disable secondary accounts inside the transaction (reversible on rollback) */
+			if ( 'disable' === $args['secondary_action'] ) {
+				foreach ( $secondary_ids as $secondary_id ) {
 					$disable_result = NBUF_User_Data::set_disabled( $secondary_id, 'merged' );
-
-					/* Check if disable operation failed */
 					if ( false === $disable_result ) {
 						throw new Exception( 'Failed to disable secondary user ' . $secondary_id );
 					}
@@ -647,6 +635,18 @@ class NBUF_Account_Merger {
 
 			if ( false === $commit_result ) {
 				throw new Exception( 'Transaction commit failed: ' . ( $wpdb->last_error ? $wpdb->last_error : 'Unknown database error' ) );
+			}
+
+			/*
+			 * Delete secondary users AFTER commit so wp_delete_user's own
+			 * DB writes are not inside our transaction (they commit independently
+			 * and cannot be rolled back).
+			 */
+			if ( 'delete' === $args['secondary_action'] ) {
+				include_once ABSPATH . 'wp-admin/includes/user.php';
+				foreach ( $secondary_ids as $secondary_id ) {
+					wp_delete_user( $secondary_id, $args['primary_id'] );
+				}
 			}
 
 			/* Send notification */

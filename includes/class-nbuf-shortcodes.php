@@ -2589,14 +2589,14 @@ class NBUF_Shortcodes {
 			 */
 			NBUF_User_Data::set_pending_email( $user_id, $new_email );
 
-			/* Generate verification token */
-			$token   = bin2hex( random_bytes( 32 ) );
-			$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+			/* Generate verification token — store hash, send plaintext in email */
+			$token      = bin2hex( random_bytes( 32 ) );
+			$token_hash = hash( 'sha256', $token );
+			$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
-			/* Store token with pending email — use dedicated type so the verifier can branch */
-			NBUF_Database::insert_token( $user_id, $new_email, $token, $expires, 0, 'email_change' );
+			NBUF_Database::insert_token( $user_id, $new_email, $token_hash, $expires, 0, 'email_change' );
 
-			/* Send verification to the NEW email */
+			/* Send plaintext token to the NEW email */
 			NBUF_Email::send_verification_email( $new_email, $token, $current_user );
 
 			/* Log pending email change */

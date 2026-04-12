@@ -1299,9 +1299,9 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => $status_error->get_error_message() ) );
 		}
 
-		/* Check if 2FA is enabled for this user */
+		/* Check if 2FA should be challenged (covers both user-enabled and admin-required) */
 		$twofa_required = false;
-		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::is_enabled( $user_id ) ) {
+		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
 			$twofa_required = true;
 		}
 
@@ -1372,10 +1372,8 @@ class NBUF_Passkeys {
 		 * Get redirect URL.
 		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
-		$redirect_url = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
-		if ( empty( $redirect_url ) ) {
-			$redirect_url = admin_url();
-		}
+		$redirect_candidate = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
+		$redirect_url       = wp_validate_redirect( $redirect_candidate, admin_url() );
 
 		wp_send_json_success(
 			array(

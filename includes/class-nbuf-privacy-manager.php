@@ -106,7 +106,7 @@ class NBUF_Privacy_Manager {
 				return true;
 
 			case self::PRIVACY_MEMBERS_ONLY:
-				return is_user_logged_in();
+				return $viewer_user_id > 0 || is_user_logged_in();
 
 			case self::PRIVACY_PRIVATE:
 				return false;

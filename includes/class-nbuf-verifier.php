@@ -88,8 +88,11 @@ class NBUF_Verifier {
 
 		try {
 
+		/* Hash the submitted token — DB stores SHA-256 hashes, not plaintext */
+		$token_hash = hash( 'sha256', $token );
+
 		$entry = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type IN ('verification', 'email_change') FOR UPDATE", $table, $token )
+			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type IN ('verification', 'email_change') FOR UPDATE", $table, $token_hash )
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 

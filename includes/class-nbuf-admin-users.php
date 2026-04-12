@@ -589,11 +589,12 @@ class NBUF_Admin_Users {
 		 * SECURITY: Generate cryptographically secure verification token.
 		 * Use random_bytes() instead of wp_generate_password() for security tokens.
 		 */
-		$token   = bin2hex( random_bytes( 32 ) ); /* 64 hex characters, cryptographically secure */
-		$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
-		NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
+		$token      = bin2hex( random_bytes( 32 ) );
+		$token_hash = hash( 'sha256', $token );
+		$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+		NBUF_Database::insert_token( $user_id, $user->user_email, $token_hash, $expires, 0 );
 
-		/* Send email */
+		/* Send plaintext token in email */
 		NBUF_Email::send_verification_email( $user->user_email, $token );
 
 		/* Redirect with admin notice */

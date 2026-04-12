@@ -497,20 +497,64 @@ class NBUF_Magic_Links {
 		$result = self::verify_magic_link( $token );
 
 		if ( is_wp_error( $result ) ) {
-			/* Store error for display */
-			set_transient( 'nbuf_magic_link_error', $result->get_error_message(), 60 );
+			wp_safe_redirect( add_query_arg( 'ml_error', rawurlencode( $result->get_error_message() ), NBUF_Universal_Router::get_url( 'magic-link' ) ) );
+			exit;
+		}
 
-			/* Redirect to magic link page without token to show form */
-			wp_safe_redirect( NBUF_Universal_Router::get_url( 'magic-link' ) );
+		$user_id = $result;
+		$user    = get_user_by( 'id', $user_id );
+
+		if ( ! $user ) {
+			wp_safe_redirect( add_query_arg( 'ml_error', rawurlencode( __( 'User account not found.', 'nobloat-user-foundry' ) ), NBUF_Universal_Router::get_url( 'magic-link' ) ) );
+			exit;
+		}
+
+		/* Enforce the same login-status checks as password and passkey flows */
+		$status = self::check_user_login_status( $user_id );
+		if ( is_wp_error( $status ) ) {
+			wp_safe_redirect( add_query_arg( 'ml_error', rawurlencode( $status->get_error_message() ), NBUF_Universal_Router::get_url( 'magic-link' ) ) );
+			exit;
+		}
+
+		/* If 2FA is required, create a 2FA session and redirect to the challenge page */
+		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
+			$tfa_token = bin2hex( random_bytes( 32 ) );
+			$method    = NBUF_2FA::get_user_method( $user_id );
+			if ( ! $method && NBUF_2FA::is_required( $user_id ) ) {
+				$method = NBUF_2FA::get_required_method();
+			}
+
+			set_transient( 'nbuf_2fa_pending_' . $tfa_token, array(
+				'user_id'   => $user_id,
+				'timestamp' => time(),
+				'method'    => $method,
+			), 300 );
+
+			setcookie( 'nbuf_2fa_token', $tfa_token, array(
+				'expires'  => time() + 300,
+				'path'     => COOKIEPATH,
+				'domain'   => COOKIE_DOMAIN,
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Strict',
+			) );
+
+			if ( 'email' === $method || 'both' === $method ) {
+				NBUF_2FA::send_email_code( $user_id );
+			}
+
+			$tfa_url = class_exists( 'NBUF_Universal_Router' )
+				? NBUF_Universal_Router::get_url( '2fa' )
+				: home_url( '/2fa-verify/' );
+			wp_safe_redirect( $tfa_url );
 			exit;
 		}
 
 		/* Log the user in */
-		wp_set_auth_cookie( $result, true );
-		wp_set_current_user( $result );
+		wp_set_auth_cookie( $user_id, true );
+		wp_set_current_user( $user_id );
 
 		/* Trigger wp_login action for other plugins */
-		$user = get_user_by( 'id', $result );
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- This is a WordPress core hook.
 		do_action( 'wp_login', $user->user_login, $user );
 
@@ -579,17 +623,13 @@ class NBUF_Magic_Links {
 				'</div>';
 		}
 
-		/* Check for error from failed verification */
-		$error = get_transient( 'nbuf_magic_link_error' );
-		if ( $error ) {
-			delete_transient( 'nbuf_magic_link_error' );
-		}
+		/* Check for error from failed verification (passed via query param, not global transient) */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Error display from redirect, no action taken.
+		$error = isset( $_GET['ml_error'] ) ? sanitize_text_field( wp_unslash( $_GET['ml_error'] ) ) : '';
 
 		/* Check for success message */
-		$success = get_transient( 'nbuf_magic_link_success' );
-		if ( $success ) {
-			delete_transient( 'nbuf_magic_link_success' );
-		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Success display from redirect, no action taken.
+		$success = isset( $_GET['ml_success'] ) ? sanitize_text_field( wp_unslash( $_GET['ml_success'] ) ) : '';
 
 		/* Handle form submission */
 		if ( isset( $_POST['nbuf_magic_link_email'] ) && isset( $_POST['nbuf_magic_link_nonce'] ) ) {
@@ -705,5 +745,37 @@ class NBUF_Magic_Links {
 				gmdate( 'Y-m-d H:i:s' )
 			)
 		);
+	}
+
+	/**
+	 * Check if user is allowed to log in (disabled, expired, unverified, unapproved).
+	 *
+	 * Mirrors the checks in NBUF_2FA_Login::check_user_login_status().
+	 *
+	 * @param int $user_id User ID.
+	 * @return true|WP_Error True if allowed, WP_Error if blocked.
+	 */
+	private static function check_user_login_status( int $user_id ) {
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return true;
+		}
+
+		if ( class_exists( 'NBUF_User_Data' ) ) {
+			if ( NBUF_User_Data::is_disabled( $user_id ) ) {
+				return new WP_Error( 'user_disabled', __( 'Your account has been disabled.', 'nobloat-user-foundry' ) );
+			}
+			if ( NBUF_User_Data::is_expired( $user_id ) ) {
+				return new WP_Error( 'account_expired', __( 'Your account has expired.', 'nobloat-user-foundry' ) );
+			}
+			$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
+			if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
+				return new WP_Error( 'nbuf_unverified', __( 'Your email address has not been verified.', 'nobloat-user-foundry' ) );
+			}
+			if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
+				return new WP_Error( 'awaiting_approval', __( 'Your account is pending administrator approval.', 'nobloat-user-foundry' ) );
+			}
+		}
+
+		return true;
 	}
 }

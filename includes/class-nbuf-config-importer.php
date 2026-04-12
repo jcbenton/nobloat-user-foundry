@@ -262,6 +262,11 @@ class NBUF_Config_Importer {
 
 		foreach ( $settings as $category => $category_settings ) {
 			foreach ( $category_settings as $option_name => $option_value ) {
+				/* Only allow nbuf_ prefixed option names to prevent injection of arbitrary settings */
+				if ( ! str_starts_with( $option_name, 'nbuf_' ) ) {
+					continue;
+				}
+
 				/* Skip if merge mode and option already exists */
 				if ( 'merge' === $mode ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.

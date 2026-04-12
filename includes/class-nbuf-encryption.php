@@ -237,10 +237,13 @@ class NBUF_Encryption {
 	 * If value is not encrypted, just encrypts it.
 	 *
 	 * @param string $value The value to re-encrypt.
-	 * @return string Re-encrypted value.
+	 * @return string|false Re-encrypted value, or false on failure.
 	 */
-	public static function reencrypt( string $value ): string {
+	public static function reencrypt( string $value ): string|false {
 		$decrypted = self::decrypt( $value );
+		if ( false === $decrypted ) {
+			return false;
+		}
 		return self::encrypt( $decrypted );
 	}
 }

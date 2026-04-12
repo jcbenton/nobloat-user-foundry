@@ -224,22 +224,23 @@ class NBUF_Hooks {
 		$user_email = $user->user_email;
 
 		/* Generate cryptographically secure token and expiration */
-		$token   = bin2hex( random_bytes( 16 ) ); // 32 hex characters
-		$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+		$token      = bin2hex( random_bytes( 16 ) ); // 32 hex characters
+		$token_hash = hash( 'sha256', $token );
+		$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
 		/*
-		 * Atomically insert token only if no valid token exists.
+		 * Atomically insert hashed token only if no valid token exists.
 		 * This prevents race conditions where concurrent requests both
 		 * check for tokens and then both insert, causing duplicate emails.
 		 * Returns false if a valid token already exists for this email.
 		 */
-		if ( ! NBUF_Database::insert_token_atomic( $user_id, $user_email, $token, $expires, 0 ) ) {
+		if ( ! NBUF_Database::insert_token_atomic( $user_id, $user_email, $token_hash, $expires, 0 ) ) {
 			/* Token already exists, skip sending duplicate email */
 			self::$verification_sent_to[] = $user_id;
 			return;
 		}
 
-		/* Token was inserted, send verification email */
+		/* Token was inserted, send plaintext token in verification email */
 		NBUF_Email::send_verification_email( $user_email, $token );
 
 		/* Track that we sent to this user */
@@ -294,10 +295,11 @@ class NBUF_Hooks {
 			 * SECURITY: Generate cryptographically secure verification token.
 			 * Use random_bytes() instead of wp_generate_password() for security tokens.
 			 */
-			$token   = bin2hex( random_bytes( 32 ) ); /* 64 hex characters, cryptographically secure */
-			$expires = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
+			$token      = bin2hex( random_bytes( 32 ) );
+			$token_hash = hash( 'sha256', $token );
+			$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 
-			NBUF_Database::insert_token( $user_id, $user->user_email, $token, $expires, 0 );
+			NBUF_Database::insert_token( $user_id, $user->user_email, $token_hash, $expires, 0 );
 			NBUF_Email::send_verification_email( $user->user_email, $token );
 		}
 	}

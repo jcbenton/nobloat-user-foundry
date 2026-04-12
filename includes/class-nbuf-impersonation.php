@@ -231,6 +231,11 @@ class NBUF_Impersonation {
 			return;
 		}
 
+		/* Prevent nested impersonation — would lose the return-to-original session */
+		if ( self::is_impersonating() ) {
+			wp_die( esc_html__( 'Cannot impersonate while already impersonating another user. End the current impersonation first.', 'nobloat-user-foundry' ) );
+		}
+
 		$target_user_id = absint( $_GET['user_id'] );
 
 		/* Verify nonce */

@@ -289,6 +289,8 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_email">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="2fa-email">';
+			$html .= '<div class="nbuf-form-group"><label>' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+			$html .= '<input type="password" name="current_password" class="nbuf-form-input" required autocomplete="current-password"></div>';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-danger" onclick="return confirm(\'' . esc_js( __( 'Are you sure you want to disable Email 2FA? This will reduce your account security.', 'nobloat-user-foundry' ) ) . '\')">' . esc_html__( 'Disable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		} else {
@@ -297,6 +299,8 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="enable_email">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="2fa-email">';
+			$html .= '<div class="nbuf-form-group"><label>' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+			$html .= '<input type="password" name="current_password" class="nbuf-form-input" required autocomplete="current-password"></div>';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Enable Email 2FA', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		}
@@ -341,6 +345,8 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="disable_totp">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="authenticator">';
+			$html .= '<div class="nbuf-form-group"><label>' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+			$html .= '<input type="password" name="current_password" class="nbuf-form-input" required autocomplete="current-password"></div>';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-danger">' . esc_html__( 'Disable Authenticator', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		} else {
@@ -446,6 +452,8 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="backup-codes">';
+			$html .= '<div class="nbuf-form-group"><label>' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+			$html .= '<input type="password" name="current_password" class="nbuf-form-input" required autocomplete="current-password"></div>';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-secondary" onclick="return confirm(\'' . esc_js( __( 'This will invalidate existing codes. Continue?', 'nobloat-user-foundry' ) ) . '\')">';
 			$html .= esc_html__( 'Generate New Codes', 'nobloat-user-foundry' );
 			$html .= '</button>';
@@ -471,6 +479,8 @@ class NBUF_2FA_Account {
 			$html .= '<input type="hidden" name="nbuf_2fa_action" value="generate_backup_codes">';
 			$html .= '<input type="hidden" name="nbuf_active_tab" value="security">';
 			$html .= '<input type="hidden" name="nbuf_active_subtab" value="backup-codes">';
+			$html .= '<div class="nbuf-form-group"><label>' . esc_html__( 'Current Password', 'nobloat-user-foundry' ) . '</label>';
+			$html .= '<input type="password" name="current_password" class="nbuf-form-input" required autocomplete="current-password"></div>';
 			$html .= '<button type="submit" class="nbuf-button nbuf-button-primary">' . esc_html__( 'Generate Backup Codes', 'nobloat-user-foundry' ) . '</button>';
 			$html .= '</form>';
 		}

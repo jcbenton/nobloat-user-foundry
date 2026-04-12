@@ -563,6 +563,7 @@ class NBUF_Database {
 				WHERE NOT EXISTS (
 					SELECT 1 FROM %i
 					WHERE user_email = %s
+					AND type = 'verification'
 					AND verified = 0
 					AND expires_at > %s
 					LIMIT 1
@@ -581,53 +582,6 @@ class NBUF_Database {
 
 		/* $result is the number of rows affected (1 if inserted, 0 if skipped) */
 		return ( 1 === $result );
-	}
-
-	/**
-	==========================================================
-	GET TOKEN
-	----------------------------------------------------------
-	Retrieves a single token record by string.
-	 *
-		@param  string $token Token string to retrieve.
-	@return object|null Token object or null if not found.
-	==========================================================
-	 */
-	public static function get_token( $token ) {
-		global $wpdb;
-		self::init();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query prepared above.
-		return $wpdb->get_row(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE token = %s LIMIT 1',
-				self::$table_name,
-				$token
-			)
-		);
-	}
-
-	/**
-	==========================================================
-	MARK VERIFIED
-	----------------------------------------------------------
-	Sets verified flag for a given token.
-	 *
-		@param  string $token Token string to mark as verified.
-	@return bool True on success.
-	==========================================================
-	 */
-	public static function mark_verified( $token ) {
-		global $wpdb;
-		self::init();
-
-		return (bool) $wpdb->update(
-			self::$table_name,
-			array( 'verified' => 1 ),
-			array( 'token' => sanitize_text_field( $token ) ),
-			array( '%d' ),
-			array( '%s' )
-		);
 	}
 
 	/**

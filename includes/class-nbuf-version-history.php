@@ -658,24 +658,24 @@ class NBUF_Version_History {
 
 		$snapshot = $version->snapshot_data;
 
-		/* Update WordPress core user fields */
+		/* Update WordPress core user fields — sanitize all values from snapshot */
 		$user_data = array( 'ID' => $user_id );
 
-		if ( isset( $snapshot['user_email'] ) ) {
-			$user_data['user_email'] = $snapshot['user_email'];
+		if ( isset( $snapshot['user_email'] ) && is_email( $snapshot['user_email'] ) ) {
+			$user_data['user_email'] = sanitize_email( $snapshot['user_email'] );
 		}
 		if ( isset( $snapshot['display_name'] ) ) {
-			$user_data['display_name'] = $snapshot['display_name'];
+			$user_data['display_name'] = sanitize_text_field( $snapshot['display_name'] );
 		}
 		if ( isset( $snapshot['user_url'] ) ) {
-			$user_data['user_url'] = $snapshot['user_url'];
+			$user_data['user_url'] = esc_url_raw( $snapshot['user_url'] );
 		}
 		if ( isset( $snapshot['description'] ) ) {
-			$user_data['description'] = $snapshot['description'];
+			$user_data['description'] = sanitize_textarea_field( $snapshot['description'] );
 		}
-		if ( isset( $snapshot['role'] ) && ! empty( $snapshot['role'] ) ) {
+		if ( isset( $snapshot['role'] ) && ! empty( $snapshot['role'] ) && wp_roles()->is_role( $snapshot['role'] ) ) {
 			$user = new WP_User( $user_id );
-			$user->set_role( $snapshot['role'] );
+			$user->set_role( sanitize_key( $snapshot['role'] ) );
 		}
 
 		wp_update_user( $user_data );

@@ -534,7 +534,7 @@ class NBUF_User_Notes {
 	public static function ajax_profile_add_note(): void {
 		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_users' ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
 		}
 
@@ -568,7 +568,7 @@ class NBUF_User_Notes {
 	public static function ajax_profile_delete_note(): void {
 		check_ajax_referer( 'nbuf_profile_notes_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'edit_users' ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized.', 'nobloat-user-foundry' ) ) );
 		}
 

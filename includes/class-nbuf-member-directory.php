@@ -617,6 +617,17 @@ class NBUF_Member_Directory {
 			)
 		);
 
+		/* Strip email addresses from response to prevent information disclosure */
+		if ( isset( $result['members'] ) && is_array( $result['members'] ) ) {
+			$result['members'] = array_map(
+				function ( $member ) {
+					unset( $member->user_email );
+					return $member;
+				},
+				$result['members']
+			);
+		}
+
 		wp_send_json_success( $result );
 	}
 

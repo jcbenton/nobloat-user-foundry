@@ -1260,8 +1260,9 @@ class NBUF_Security_Log {
 		/* Convert to string */
 		$value = (string) $value;
 
-		/* Check if value starts with dangerous characters */
-		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+		/* Strip leading quotes/backslashes before checking for formula characters,
+		 * matching the bulk import pattern to prevent bypass via quoting. */
+		if ( ! empty( $value ) && preg_match( '/^[\\\'"]*[=+\-@|\t\r]/', $value ) ) {
 			/* Prefix with single quote to neutralize formula execution */
 			$value = "'" . $value;
 		}
@@ -1281,6 +1282,12 @@ class NBUF_Security_Log {
 		$filters['limit']  = self::MAX_EXPORT_LIMIT;
 		$filters['offset'] = 0;
 		$logs              = self::get_logs( $filters );
+
+		/* Prime user cache to avoid N+1 queries */
+		$user_ids = array_unique( array_filter( wp_list_pluck( $logs, 'user_id' ) ) );
+		if ( ! empty( $user_ids ) ) {
+			cache_users( $user_ids );
+		}
 
 		// Build CSV content.
 		$csv = '';

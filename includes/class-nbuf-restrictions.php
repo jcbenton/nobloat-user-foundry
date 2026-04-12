@@ -129,7 +129,7 @@ class NBUF_Restrictions {
 		}
 
 		/* Use abstract class method to check access */
-		return Abstract_NBUF_Restriction::check_access(
+		return NBUF_Abstract_Restriction::check_access(
 			$restriction['visibility'],
 			$restriction['allowed_roles'],
 			$user_id

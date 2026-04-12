@@ -213,6 +213,11 @@ class NBUF_Config_Importer {
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
 		$import_mode   = isset( $_POST['import_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['import_mode'] ) ) : 'overwrite';
 
+		/* Validate transient key prefix to prevent reading arbitrary transients */
+		if ( ! str_starts_with( $transient_key, 'nbuf_import_config_' ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid import key.' ) );
+		}
+
 		/* Get config data from transient */
 		$config_data = get_transient( $transient_key );
 

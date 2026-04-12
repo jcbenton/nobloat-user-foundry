@@ -138,7 +138,11 @@ class NBUF_Webhooks {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhooks';
 
-		$secret = sanitize_text_field( $data['secret'] ?? '' );
+		/* Use wp_unslash instead of sanitize_text_field for secrets — STF strips special chars that are valid in HMAC secrets */
+		$secret = isset( $data['secret'] ) ? wp_unslash( $data['secret'] ) : '';
+		if ( strlen( $secret ) > 256 ) {
+			return false;
+		}
 
 		$encrypted_secret = '';
 		if ( ! empty( $secret ) ) {
@@ -183,7 +187,10 @@ class NBUF_Webhooks {
 			$update_data['url'] = esc_url_raw( $data['url'] );
 		}
 		if ( isset( $data['secret'] ) ) {
-			$secret = sanitize_text_field( $data['secret'] );
+			$secret = wp_unslash( $data['secret'] );
+			if ( strlen( $secret ) > 256 ) {
+				return false;
+			}
 			if ( ! empty( $secret ) ) {
 				$encrypted = NBUF_Encryption::encrypt( $secret );
 				if ( false === $encrypted ) {

@@ -333,9 +333,9 @@ class NBUF_Multi_Role {
 		/* Get selected roles */
 		$new_roles = isset( $_POST['nbuf_user_roles'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_user_roles'] ) ) : array();
 
-		/* Validate roles exist */
-		$valid_roles = array_keys( wp_roles()->get_names() );
-		$new_roles   = array_intersect( $new_roles, $valid_roles );
+		/* Validate roles exist and filter against editable roles to prevent privilege escalation */
+		$editable_roles = array_keys( get_editable_roles() );
+		$new_roles      = array_intersect( $new_roles, $editable_roles );
 
 		/* Get user object */
 		$user = get_userdata( $user_id );

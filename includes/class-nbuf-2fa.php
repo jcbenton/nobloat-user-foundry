@@ -579,6 +579,14 @@ If you did not request this code, please ignore this email.
 	 * @return bool|WP_Error True if code is valid and unused, WP_Error on failure.
 	 */
 	public static function verify_backup_code( int $user_id, string $code ) {
+		/* Check for lockout (consistent with verify_email_code and verify_totp_code) */
+		if ( self::is_locked_out( $user_id ) ) {
+			return new WP_Error(
+				'2fa_locked_out',
+				__( 'Too many failed attempts. Please try again later.', 'nobloat-user-foundry' )
+			);
+		}
+
 		/* Get stored codes and used indexes */
 		$stored_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
 		$used_indexes = NBUF_User_2FA_Data::get_backup_codes_used( $user_id );
@@ -616,7 +624,9 @@ If you did not request this code, please ignore this email.
 			}
 		}
 
-		/* No matching code found */
+		/* No matching code found — record failed attempt for lockout tracking */
+		self::record_failed_attempt( $user_id );
+
 		return new WP_Error(
 			'nbuf_2fa_invalid_backup_code',
 			__( 'Invalid backup code or code has already been used.', 'nobloat-user-foundry' )

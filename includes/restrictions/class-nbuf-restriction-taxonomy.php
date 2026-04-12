@@ -482,10 +482,11 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 		}
 		update_term_meta( $term_id, '_nbuf_redirect_url', $redirect_url );
 
-		/* Clear cache */
+		/* Clear cache — use serialize(array()) to match the creation format in get_excluded_term_ids() */
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Must match cache key format.
 		$cache_keys = array(
-			'nbuf_excluded_terms_' . md5( $taxonomy ) . '_guest',
-			'nbuf_excluded_terms_' . md5( $taxonomy ) . '_' . get_current_user_id(),
+			'nbuf_excluded_terms_' . md5( serialize( array( $taxonomy ) ) ) . '_guest',
+			'nbuf_excluded_terms_' . md5( serialize( array( $taxonomy ) ) ) . '_' . get_current_user_id(),
 		);
 		foreach ( $cache_keys as $key ) {
 			wp_cache_delete( $key, 'nbuf_restrictions' );

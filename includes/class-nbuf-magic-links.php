@@ -387,7 +387,7 @@ class NBUF_Magic_Links {
 	 * @return int|WP_Error User ID on success, WP_Error on failure.
 	 */
 	public static function verify_magic_link( string $token ) {
-		if ( empty( $token ) ) {
+		if ( empty( $token ) || strlen( $token ) !== 64 || ! ctype_xdigit( $token ) ) {
 			return new WP_Error( 'invalid_token', __( 'Invalid magic link.', 'nobloat-user-foundry' ) );
 		}
 
@@ -397,10 +397,17 @@ class NBUF_Magic_Links {
 		/* Hash the submitted token — DB stores the SHA-256 hash, not plaintext */
 		$token_hash = hash( 'sha256', $token );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
+		/*
+		 * Use transaction with FOR UPDATE to prevent TOCTOU race conditions
+		 * where two concurrent requests could both use the same token.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table with row locking.
+		$wpdb->query( 'START TRANSACTION' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table with row locking.
 		$token_data = $wpdb->get_row(
 			$wpdb->prepare(
-				'SELECT * FROM %i WHERE token = %s AND type = %s AND verified = 0',
+				'SELECT * FROM %i WHERE token = %s AND type = %s AND verified = 0 FOR UPDATE',
 				$table_name,
 				$token_hash,
 				self::TOKEN_TYPE
@@ -408,25 +415,30 @@ class NBUF_Magic_Links {
 		);
 
 		if ( ! $token_data ) {
+			$wpdb->query( 'COMMIT' );
 			return new WP_Error( 'invalid_token', __( 'This magic link is invalid or has already been used.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Check expiration */
 		if ( strtotime( $token_data->expires_at ) < time() ) {
-			/*
-			 * Delete expired token.
-			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 			$wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
+			$wpdb->query( 'COMMIT' );
 
 			return new WP_Error( 'expired_token', __( 'This magic link has expired. Please request a new one.', 'nobloat-user-foundry' ) );
 		}
 
 		/*
 		 * Delete token after use (one-time use).
+		 * Verify deletion succeeded to prevent race condition exploitation.
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
-		$wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
+		$deleted = $wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
+		$wpdb->query( 'COMMIT' );
+
+		if ( ! $deleted ) {
+			return new WP_Error( 'invalid_token', __( 'This magic link has already been used.', 'nobloat-user-foundry' ) );
+		}
 
 		/* Get user */
 		$user = get_user_by( 'id', $token_data->user_id );

@@ -32,7 +32,7 @@ abstract class NBUF_Abstract_Restriction {
 	 * @param  int|null           $user_id       Optional user ID (defaults to current user).
 	 * @return bool True if user has access, false otherwise.
 	 */
-	protected static function check_access( $visibility, $allowed_roles = array(), $user_id = null ): bool {
+	public static function check_access( $visibility, $allowed_roles = array(), $user_id = null ): bool {
 		/* Get user */
 		if ( null === $user_id ) {
 			$user = wp_get_current_user();

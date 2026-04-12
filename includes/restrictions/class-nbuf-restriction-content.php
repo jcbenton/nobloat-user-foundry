@@ -34,13 +34,19 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	public static function init(): void {
 		/* Content filtering (high priority to run late) */
 		add_filter( 'the_content', array( __CLASS__, 'filter_content' ), 999999 );
+		add_filter( 'the_excerpt', array( __CLASS__, 'filter_content' ), 999999 );
 
 		/* Template redirect for redirect and 404 actions */
 		add_action( 'template_redirect', array( __CLASS__, 'handle_redirect' ), 1 );
 
-		/* Enforce restrictions on REST API responses */
-		add_filter( 'rest_prepare_post', array( __CLASS__, 'filter_rest_content' ), 10, 3 );
-		add_filter( 'rest_prepare_page', array( __CLASS__, 'filter_rest_content' ), 10, 3 );
+		/* Enforce restrictions on REST API responses for all configured post types */
+		$restricted_types = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
+		if ( ! is_array( $restricted_types ) ) {
+			$restricted_types = array( 'post', 'page' );
+		}
+		foreach ( $restricted_types as $post_type ) {
+			add_filter( 'rest_prepare_' . $post_type, array( __CLASS__, 'filter_rest_content' ), 10, 3 );
+		}
 
 		/* Optionally hide from queries */
 		$hide_from_queries = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
@@ -86,8 +92,8 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @return string Filtered content or restriction message.
 	 */
 	public static function filter_content( $content ) {
-		/* Only filter singular posts/pages */
-		if ( ! is_singular() ) {
+		/* Filter on singular views, feeds, and excerpts — skip only admin */
+		if ( is_admin() ) {
 			return $content;
 		}
 

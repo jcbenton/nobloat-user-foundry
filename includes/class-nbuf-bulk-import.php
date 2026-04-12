@@ -198,7 +198,7 @@ class NBUF_Bulk_Import {
 		 * Characters at the start of a field (possibly preceded by quotes/backslashes)
 		 * can trigger formula/command execution in Excel/LibreOffice.
 		 */
-		if ( preg_match( '/^[\\\'"]*[=@|]/', $sanitized ) ) {
+		if ( preg_match( '/^[\\\'"]*[=+\-@|]/', $sanitized ) ) {
 			return new WP_Error(
 				'csv_injection',
 				sprintf(
@@ -493,11 +493,11 @@ class NBUF_Bulk_Import {
 			$validated['last_name'] = $last_name;
 		}
 
-		/* Optional: Role */
+		/* Optional: Role — filter against editable_roles to prevent privilege escalation */
 		if ( ! empty( $row['role'] ) ) {
-			$valid_roles = array_keys( wp_roles()->roles );
-			if ( ! in_array( $row['role'], $valid_roles, true ) ) {
-				return new WP_Error( 'invalid_role', sprintf( 'Line %d: Invalid role: %s', $line_number, $row['role'] ) );
+			$editable_roles = array_keys( get_editable_roles() );
+			if ( ! in_array( $row['role'], $editable_roles, true ) ) {
+				return new WP_Error( 'invalid_role', sprintf( 'Line %d: Invalid or non-assignable role: %s', $line_number, $row['role'] ) );
 			}
 			$validated['role'] = $row['role'];
 		} else {
@@ -538,6 +538,11 @@ class NBUF_Bulk_Import {
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
 		$batch_size    = NBUF_Options::get( 'nbuf_import_batch_size', 50 );
 		$offset        = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
+
+		/* Validate transient key prefix to prevent reading arbitrary transients */
+		if ( ! str_starts_with( $transient_key, 'nbuf_import_' ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid import key.' ) );
+		}
 
 		/* Get CSV data from transient */
 		$csv_data = get_transient( $transient_key );

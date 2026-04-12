@@ -424,7 +424,7 @@ class NBUF_Passkeys {
 		$challenge = self::generate_challenge();
 
 		/* Generate session ID for tracking this auth attempt */
-		$session_id = wp_generate_password( 32, false );
+		$session_id = bin2hex( random_bytes( 32 ) );
 
 		/* Store challenge with session ID (base64 encoded to avoid binary storage issues) */
 		set_transient(
@@ -1367,7 +1367,8 @@ class NBUF_Passkeys {
 			);
 		}
 
-		/* Log user in */
+		/* Log user in — clear any existing session first to prevent stale cookies */
+		wp_clear_auth_cookie();
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 

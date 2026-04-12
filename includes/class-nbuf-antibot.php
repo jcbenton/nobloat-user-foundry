@@ -221,7 +221,7 @@ class NBUF_Antibot {
 			? sanitize_text_field( wp_unslash( $_COOKIE[ $session_key ] ) )
 			: '';
 
-		if ( empty( $session_id ) || strlen( $session_id ) !== 32 ) {
+		if ( empty( $session_id ) || strlen( $session_id ) !== 32 || ! preg_match( '/^[a-f0-9]{32}$/', $session_id ) ) {
 			$session_id = bin2hex( random_bytes( 16 ) );
 		}
 

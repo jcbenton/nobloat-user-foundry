@@ -208,7 +208,8 @@ class NBUF_GDPR_Export {
 		}
 
 		$timestamp     = gmdate( 'Y-m-d-His' );
-		$export_subdir = $temp_dir . '/' . $user->ID . '-' . $timestamp;
+		$random_suffix = bin2hex( random_bytes( 8 ) );
+		$export_subdir = $temp_dir . '/' . $user->ID . '-' . $timestamp . '-' . $random_suffix;
 		wp_mkdir_p( $export_subdir );
 
 		/* Generate README.html */
@@ -1170,6 +1171,15 @@ class NBUF_GDPR_Export {
 		}
 
 		$file_path = $token_data['file'];
+
+		/* Validate file path is within the expected exports directory */
+		$upload_dir  = wp_upload_dir();
+		$exports_dir = realpath( trailingslashit( $upload_dir['basedir'] ) . 'nbuf-exports' );
+		$real_file   = realpath( $file_path );
+
+		if ( ! $real_file || ! $exports_dir || 0 !== strpos( $real_file, $exports_dir . DIRECTORY_SEPARATOR ) ) {
+			wp_die( esc_html__( 'Invalid export file path.', 'nobloat-user-foundry' ) );
+		}
 
 		/* Verify file exists */
 		if ( ! file_exists( $file_path ) ) {

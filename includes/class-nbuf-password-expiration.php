@@ -570,7 +570,7 @@ class NBUF_Password_Expiration {
 		}
 
 		/* Display password change form */
-		self::render_password_change_form( $user, $errors ?? array() );
+		self::render_password_change_form( $user, $errors ?? array(), $change_token ?? '' );
 		exit;
 	}
 
@@ -581,7 +581,7 @@ class NBUF_Password_Expiration {
 	 * @param array<int, string> $errors Array of error messages.
 	 * @return void
 	 */
-	public static function render_password_change_form( WP_User $user, array $errors = array() ): void {
+	public static function render_password_change_form( WP_User $user, array $errors = array(), string $change_token = '' ): void {
 		/* Load WordPress login header */
 		login_header( __( 'Password Change Required', 'nobloat-user-foundry' ), '', $errors );
 
@@ -605,7 +605,7 @@ class NBUF_Password_Expiration {
 				</div>
 		<?php endif; ?>
 
-			<form name="nbuf_change_password_form" id="nbuf_change_password_form" action="<?php echo esc_url( site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . ( isset( $change_token ) ? $change_token : '' ), 'login_post' ) ); ?>" method="post">
+			<form name="nbuf_change_password_form" id="nbuf_change_password_form" action="<?php echo esc_url( site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . $change_token, 'login_post' ) ); ?>" method="post">
 		<?php wp_nonce_field( 'nbuf_change_password_' . $user->ID, 'nbuf_change_password_nonce' ); ?>
 
 				<p>

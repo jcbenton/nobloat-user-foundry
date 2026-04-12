@@ -415,6 +415,7 @@ class NBUF_Magic_Links {
 		);
 
 		if ( ! $token_data ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; COMMIT cannot use WP_Cache.
 			$wpdb->query( 'COMMIT' );
 			return new WP_Error( 'invalid_token', __( 'This magic link is invalid or has already been used.', 'nobloat-user-foundry' ) );
 		}
@@ -423,6 +424,7 @@ class NBUF_Magic_Links {
 		if ( strtotime( $token_data->expires_at ) < time() ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 			$wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; COMMIT cannot use WP_Cache.
 			$wpdb->query( 'COMMIT' );
 
 			return new WP_Error( 'expired_token', __( 'This magic link has expired. Please request a new one.', 'nobloat-user-foundry' ) );
@@ -434,6 +436,7 @@ class NBUF_Magic_Links {
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$deleted = $wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; COMMIT cannot use WP_Cache.
 		$wpdb->query( 'COMMIT' );
 
 		if ( ! $deleted ) {

@@ -563,7 +563,7 @@ class NBUF_Database {
 				WHERE NOT EXISTS (
 					SELECT 1 FROM %i
 					WHERE user_email = %s
-					AND type = 'verification'
+					AND type = \'verification\'
 					AND verified = 0
 					AND expires_at > %s
 					LIMIT 1

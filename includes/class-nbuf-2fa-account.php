@@ -855,7 +855,7 @@ class NBUF_2FA_Account {
 	 * @return bool True if the submitted password is correct.
 	 */
 	private static function verify_reauth( int $user_id ): bool {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password for hash comparison.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Raw password passed to wp_check_password(); sanitizing would corrupt it. Nonce is verified by the calling action handler before this helper is invoked.
 		$password = isset( $_POST['current_password'] ) ? wp_unslash( $_POST['current_password'] ) : '';
 
 		if ( '' === $password ) {

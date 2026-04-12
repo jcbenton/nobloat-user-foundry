@@ -199,9 +199,9 @@ function nbuf_run_uninstall() {
 				);
 				foreach ( $nbuf_iterator as $nbuf_fileinfo ) {
 					$nbuf_real_item = $nbuf_fileinfo->getRealPath();
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- Required for file deletion validation.
 					if ( $nbuf_fileinfo->isDir() ) {
 						nbuf_safe_rmdir( $nbuf_real_item );
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- WP_Filesystem not available in uninstall context; is_writable() used only to guard wp_delete_file().
 					} elseif ( $nbuf_fileinfo->isFile() && is_writable( $nbuf_real_item ) ) {
 						wp_delete_file( $nbuf_real_item );
 					}

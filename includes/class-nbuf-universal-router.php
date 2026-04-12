@@ -351,8 +351,8 @@ class NBUF_Universal_Router {
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 		$path        = trim( wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
-		/* Check if path starts with base slug */
-		if ( strpos( $path, $base_slug ) !== 0 ) {
+		/* Require exact match or a trailing slash boundary */
+		if ( $path !== $base_slug && strpos( $path, $base_slug . '/' ) !== 0 ) {
 			return false;
 		}
 

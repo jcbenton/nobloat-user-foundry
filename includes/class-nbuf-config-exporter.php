@@ -153,10 +153,9 @@ class NBUF_Config_Exporter {
 				}
 			}
 
-			/* Unserialize if needed */
-			$maybe_unserialized = maybe_unserialize( $option_value );
-			if ( $maybe_unserialized !== $option_value ) {
-				$option_value = $maybe_unserialized;
+			/* Unserialize if needed — block object instantiation to prevent gadget chains */
+			if ( is_serialized( $option_value ) ) {
+				$option_value = unserialize( $option_value, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Intentional safe unserialize with allowed_classes=false.
 			}
 
 			/* Categorize setting */

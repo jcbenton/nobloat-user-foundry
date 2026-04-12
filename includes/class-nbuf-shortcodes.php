@@ -673,6 +673,14 @@ class NBUF_Shortcodes {
 			wp_die( esc_html__( 'Passwords do not match.', 'nobloat-user-foundry' ) );
 		}
 
+		/* Enforce password policy if configured for reset flow */
+		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'reset' ) ) {
+			$validation = NBUF_Password_Validator::validate( $pass1, $user->ID );
+			if ( is_wp_error( $validation ) ) {
+				wp_die( esc_html( $validation->get_error_message() ) );
+			}
+		}
+
 		reset_password( $user, $pass1 );
 
 		/* Log password reset completion */

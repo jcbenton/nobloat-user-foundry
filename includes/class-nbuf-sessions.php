@@ -194,7 +194,8 @@ class NBUF_Sessions {
 	 *
 	 * @since  1.5.2
 	 * @param  int $user_id User ID.
-	 * @return int Number of sessions revoked.
+	 * @return int 1 if revocation was dispatched, 0 if no current session.
+	 *             Not a count — WP_Session_Tokens::destroy_others() does not report one.
 	 */
 	public static function revoke_other_sessions( int $user_id ): int {
 		$manager       = WP_Session_Tokens::get_instance( $user_id );
@@ -225,6 +226,10 @@ class NBUF_Sessions {
 	 * @since 1.5.2
 	 */
 	public static function ajax_revoke_session(): void {
+		if ( ! self::is_enabled() ) {
+			wp_send_json_error( array( 'message' => __( 'Session management is disabled.', 'nobloat-user-foundry' ) ) );
+		}
+
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_sessions', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
@@ -264,6 +269,10 @@ class NBUF_Sessions {
 	 * @since 1.5.2
 	 */
 	public static function ajax_revoke_other_sessions(): void {
+		if ( ! self::is_enabled() ) {
+			wp_send_json_error( array( 'message' => __( 'Session management is disabled.', 'nobloat-user-foundry' ) ) );
+		}
+
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_sessions', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );

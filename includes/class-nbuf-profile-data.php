@@ -300,10 +300,10 @@ class NBUF_Profile_Data {
 					/* Text areas */
 					if ( in_array( $key, array( 'bio', 'professional_memberships', 'certifications', 'emergency_contact' ), true ) ) {
 						$sanitized = sanitize_textarea_field( $value );
-					} elseif ( in_array( $key, array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok' ), true ) ) {
+					} elseif ( in_array( $key, array( 'website', 'twitter', 'facebook', 'linkedin', 'instagram', 'github', 'youtube', 'tiktok', 'twitch', 'reddit', 'soundcloud', 'vimeo', 'spotify', 'pinterest' ), true ) ) {
 						/* URLs */
 						$sanitized = esc_url_raw( $value );
-					} elseif ( in_array( $key, array( 'work_email', 'supervisor_email' ), true ) ) {
+					} elseif ( in_array( $key, array( 'work_email', 'supervisor_email', 'secondary_email' ), true ) ) {
 						/* Emails */
 						$sanitized = sanitize_email( $value );
 					} elseif ( in_array( $key, array( 'date_of_birth', 'hire_date', 'termination_date' ), true ) ) {

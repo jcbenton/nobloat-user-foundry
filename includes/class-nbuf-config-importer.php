@@ -353,6 +353,11 @@ class NBUF_Config_Importer {
 	private function import_templates( $templates, $mode = 'overwrite' ): void {
 		foreach ( $templates as $type => $type_templates ) {
 			foreach ( $type_templates as $option_name => $option_value ) {
+				/* Only allow nbuf_ prefixed option names */
+				if ( ! str_starts_with( $option_name, 'nbuf_' ) ) {
+					continue;
+				}
+
 				/* Skip if merge mode and option already exists */
 				if ( 'merge' === $mode ) {
 					$existing = NBUF_Options::get( $option_name );

@@ -347,9 +347,9 @@ class NBUF_Impersonation {
 			return;
 		}
 
-		/* Verify nonce */
+		/* Verify nonce — show error instead of silently trapping the admin in impersonation */
 		if ( ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'nbuf_end_impersonation' ) ) {
-			return;
+			wp_die( esc_html__( 'Security check failed. Please use the End Impersonation link again.', 'nobloat-user-foundry' ) );
 		}
 
 		$impersonation_data = self::get_impersonation_data();
@@ -385,13 +385,25 @@ class NBUF_Impersonation {
 			);
 		}
 
-		/* Clear impersonation transient */
+		/* Destroy the target user's session token created during impersonation */
 		$session_token = wp_get_session_token();
+		if ( $session_token && isset( $impersonation_data['target_user_id'] ) ) {
+			$target_manager = WP_Session_Tokens::get_instance( $impersonation_data['target_user_id'] );
+			$target_manager->destroy( $session_token );
+		}
+
+		/* Clear impersonation transient */
 		$transient_key = self::TRANSIENT_PREFIX . hash( 'sha256', $session_token );
 		delete_transient( $transient_key );
 
 		/* Clear current session */
 		wp_clear_auth_cookie();
+
+		/* Verify original user still exists before restoring */
+		if ( ! get_userdata( $original_user_id ) ) {
+			wp_safe_redirect( wp_login_url() );
+			exit;
+		}
 
 		/* Restore original user session */
 		wp_set_auth_cookie( $original_user_id, false );

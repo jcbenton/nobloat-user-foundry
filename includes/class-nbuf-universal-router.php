@@ -361,7 +361,7 @@ class NBUF_Universal_Router {
 		$segments  = $remaining ? explode( '/', $remaining ) : array();
 
 		$view    = isset( $segments[0] ) && '' !== $segments[0] ? $segments[0] : self::get_default_view();
-		$subview = isset( $segments[1] ) ? $segments[1] : '';
+		$subview = isset( $segments[1] ) ? sanitize_key( $segments[1] ) : '';
 
 		/* Validate view */
 		if ( ! isset( self::$views[ $view ] ) ) {

@@ -178,8 +178,16 @@ class NBUF_Transients {
 			return $new_value;
 		}
 
-		/* Update failed (value changed by another process) - retry once */
-		return self::increment( $category, $identifier, $increment, $expiration );
+		/* Update failed (value changed by another process) - use atomic SQL instead */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment requires direct query.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = option_value + %d WHERE option_name = %s",
+				$increment,
+				$key
+			)
+		);
+		return (int) self::get( $category, $identifier );
 	}
 
 	/**

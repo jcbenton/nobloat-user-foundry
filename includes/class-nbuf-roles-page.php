@@ -464,10 +464,13 @@ class NBUF_Roles_Page {
 		$capabilities = is_array( $raw_caps ) ? array_map( 'sanitize_text_field', $raw_caps ) : array();
      // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		/* Convert capabilities array to associative (cap => true) */
-		$caps_assoc = array();
+		/* Convert capabilities array to associative — only allow caps the current user holds */
+		$current_user_caps = array_keys( array_filter( wp_get_current_user()->allcaps ) );
+		$caps_assoc        = array();
 		foreach ( $capabilities as $cap ) {
-			$caps_assoc[ $cap ] = true;
+			if ( in_array( $cap, $current_user_caps, true ) ) {
+				$caps_assoc[ $cap ] = true;
+			}
 		}
 
 		if ( $is_edit ) {

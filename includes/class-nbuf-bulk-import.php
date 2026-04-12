@@ -710,14 +710,14 @@ class NBUF_Bulk_Import {
 				array( '%d' )
 			);
 		} else {
-			/* Insert new */
+			/* Insert new — build format array matching data key order */
 			$profile_data['user_id'] = $user_id;
+			$formats                 = array();
+			foreach ( $profile_data as $key => $val ) {
+				$formats[] = ( 'user_id' === $key ) ? '%d' : '%s';
+			}
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-			$wpdb->insert(
-				$table_name,
-				$profile_data,
-				array_merge( array( '%d' ), array_fill( 0, count( $profile_data ) - 1, '%s' ) )
-			);
+			$wpdb->insert( $table_name, $profile_data, $formats );
 		}
 	}
 

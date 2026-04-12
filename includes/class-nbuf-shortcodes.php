@@ -754,7 +754,8 @@ class NBUF_Shortcodes {
 			 */
 			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Just reading redirect URL, no data modification.
 			if ( isset( $_GET['redirect_to'] ) && ! empty( $_GET['redirect_to'] ) ) {
-				$redirect_url = esc_url_raw( wp_unslash( $_GET['redirect_to'] ) );
+				$candidate    = esc_url_raw( wp_unslash( $_GET['redirect_to'] ) );
+				$redirect_url = wp_validate_redirect( $candidate, $redirect_url );
 			}
 			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
@@ -2559,6 +2560,16 @@ class NBUF_Shortcodes {
 			self::set_flash_message( $user_id, __( 'Please enter a valid email address.', 'nobloat-user-foundry' ), 'error' );
 			wp_safe_redirect( self::build_account_redirect() );
 			exit;
+		}
+
+		/* Enforce email domain restrictions (same as registration) */
+		if ( class_exists( 'NBUF_Email_Restrictions' ) ) {
+			$domain_check = NBUF_Email_Restrictions::validate( $new_email );
+			if ( is_wp_error( $domain_check ) ) {
+				self::set_flash_message( $user_id, $domain_check->get_error_message(), 'error' );
+				wp_safe_redirect( self::build_account_redirect() );
+				exit;
+			}
 		}
 
 		/* Check if email is the same */

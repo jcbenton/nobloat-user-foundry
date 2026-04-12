@@ -38,11 +38,39 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		/* Template redirect for redirect and 404 actions */
 		add_action( 'template_redirect', array( __CLASS__, 'handle_redirect' ), 1 );
 
+		/* Enforce restrictions on REST API responses */
+		add_filter( 'rest_prepare_post', array( __CLASS__, 'filter_rest_content' ), 10, 3 );
+		add_filter( 'rest_prepare_page', array( __CLASS__, 'filter_rest_content' ), 10, 3 );
+
 		/* Optionally hide from queries */
 		$hide_from_queries = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
 		if ( $hide_from_queries ) {
 			add_action( 'pre_get_posts', array( __CLASS__, 'exclude_from_queries' ) );
 		}
+	}
+
+	/**
+	 * Filter REST API responses to enforce content restrictions.
+	 *
+	 * @param WP_REST_Response $response Response object.
+	 * @param WP_Post          $post     Post object.
+	 * @param WP_REST_Request  $request  Request object.
+	 * @return WP_REST_Response Filtered response.
+	 */
+	public static function filter_rest_content( $response, $post, $request ) {
+		$restriction = self::get_post_restriction( $post->ID );
+		if ( empty( $restriction ) ) {
+			return $response;
+		}
+
+		if ( ! self::check_access( $restriction['allowed_roles'] ?? array(), $restriction ) ) {
+			$data            = $response->get_data();
+			$data['content'] = array( 'rendered' => '', 'protected' => true );
+			$data['excerpt'] = array( 'rendered' => '', 'protected' => true );
+			$response->set_data( $data );
+		}
+
+		return $response;
 	}
 
 	/**

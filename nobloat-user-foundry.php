@@ -33,7 +33,7 @@ define( 'NBUF_INCLUDE_DIR', NBUF_PLUGIN_DIR . 'includes/' );
 define( 'NBUF_DB_TABLE', 'nbuf_tokens' );
 
 /**
- * Register PSR-4 autoloader
+ * Register WordPress-style class autoloader
  *
  * Automatically loads classes when first used. Converts class names
  * to file names (e.g., NBUF_User_Data → class-nbuf-user-data.php).
@@ -43,7 +43,7 @@ define( 'NBUF_DB_TABLE', 'nbuf_tokens' );
 spl_autoload_register( 'nbuf_autoload' );
 
 /**
- * PSR-4 compliant autoloader for NBUF classes
+ * WordPress-style autoloader for NBUF classes
  *
  * @param string $class_name Fully qualified class name.
  * @return void

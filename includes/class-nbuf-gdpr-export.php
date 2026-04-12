@@ -948,11 +948,17 @@ class NBUF_GDPR_Export {
 			WP_Filesystem();
 		}
 
+		$real_base = realpath( $dir );
 		foreach ( $files as $fileinfo ) {
+			$real_path = $fileinfo->getRealPath();
+			/* Skip symlinks pointing outside the export directory */
+			if ( false === $real_path || ( $real_base && 0 !== strpos( $real_path, $real_base ) ) ) {
+				continue;
+			}
 			if ( $fileinfo->isDir() ) {
-				$wp_filesystem->rmdir( $fileinfo->getRealPath() );
+				$wp_filesystem->rmdir( $real_path );
 			} else {
-				wp_delete_file( $fileinfo->getRealPath() );
+				wp_delete_file( $real_path );
 			}
 		}
 

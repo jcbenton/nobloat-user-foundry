@@ -1309,8 +1309,11 @@ class NBUF_Passkeys {
 			/* Generate 2FA token */
 			$twofa_token = wp_generate_password( 32, false );
 
-			/* Get user's 2FA method */
+			/* Get user's 2FA method, falling back to admin-required method */
 			$method = NBUF_2FA::get_user_method( $user_id );
+			if ( ! $method && NBUF_2FA::is_required( $user_id ) ) {
+				$method = NBUF_2FA::get_required_method();
+			}
 
 			/* Store pending 2FA data in same format as regular login */
 			set_transient(
@@ -1367,6 +1370,13 @@ class NBUF_Passkeys {
 		/* Log user in */
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
+
+		/* Fire wp_login so login limiting clears attempts and other plugins track the login */
+		$user = get_userdata( $user_id );
+		if ( $user ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core hook.
+			do_action( 'wp_login', $user->user_login, $user );
+		}
 
 		/*
 		 * Get redirect URL.

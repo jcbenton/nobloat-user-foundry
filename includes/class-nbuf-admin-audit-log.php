@@ -376,23 +376,21 @@ class NBUF_Admin_Audit_Log {
 
 			/* Write data rows */
 			foreach ( $logs as $log ) {
-				fputcsv(
-					$output,
-					array(
-						$log['id'],
-						$log['created_at'],
-						$log['admin_id'],
-						$log['admin_username'],
-						$log['target_user_id'],
-						$log['target_username'],
-						$log['action_type'],
-						$log['action_status'],
-						$log['action_message'],
-						$log['ip_address'],
-						$log['user_agent'],
-						$log['metadata'],
-					)
+				$row = array(
+					$log['id'],
+					$log['created_at'],
+					$log['admin_id'],
+					$log['admin_username'],
+					$log['target_user_id'],
+					$log['target_username'],
+					$log['action_type'],
+					$log['action_status'],
+					$log['action_message'],
+					$log['ip_address'],
+					$log['user_agent'],
+					$log['metadata'],
 				);
+				fputcsv( $output, array_map( array( __CLASS__, 'csv_escape' ), $row ) );
 				++$total;
 			}
 
@@ -735,16 +733,7 @@ class NBUF_Admin_Audit_Log {
 	 * @return string IP address (potentially anonymized).
 	 */
 	private static function get_ip_address() {
-		$ip = '';
-
-		/* Get IP from various server variables */
-		if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-		} elseif ( isset( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
+		$ip = NBUF_IP::get_client_ip( true );
 
 		/* Anonymize if enabled */
 		if ( NBUF_Options::get( 'nbuf_logging_anonymize_ip', false ) ) {
@@ -779,5 +768,19 @@ class NBUF_Admin_Audit_Log {
 		}
 
 		return $ip;
+	}
+
+	/**
+	 * Escape a CSV value to prevent formula injection in spreadsheet applications.
+	 *
+	 * @param mixed $value Value to escape.
+	 * @return string Escaped value.
+	 */
+	private static function csv_escape( $value ): string {
+		$value = (string) $value;
+		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+			$value = "'" . $value;
+		}
+		return $value;
 	}
 }

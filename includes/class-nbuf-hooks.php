@@ -224,7 +224,7 @@ class NBUF_Hooks {
 		$user_email = $user->user_email;
 
 		/* Generate cryptographically secure token and expiration */
-		$token      = bin2hex( random_bytes( 16 ) ); // 32 hex characters
+		$token      = bin2hex( random_bytes( 32 ) ); // 64 hex characters — must match verifier's length check
 		$token_hash = hash( 'sha256', $token );
 		$expires    = gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) );
 

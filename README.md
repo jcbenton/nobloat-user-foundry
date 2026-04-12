@@ -329,7 +329,45 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 ## Requirements
 
 - WordPress 6.2 or higher
-- PHP 7.4 or higher
+- PHP 8.0 or higher
+
+## Changelog
+
+### 1.6.0 — Security Hardening Release
+
+**Breaking:** Minimum PHP version raised from 7.4 to 8.0.
+
+**Security Fixes:**
+- All verification and magic link tokens stored as SHA-256 hashes
+- Encryption hard-fails instead of silently storing plaintext when OpenSSL unavailable
+- 2FA changes require password re-authentication
+- Magic link login enforces disabled/expired/unverified/2FA checks
+- Passkey login enforces admin-mandated 2FA policy
+- Password expiration form uses cryptographic token (prevents account takeover)
+- Webhook SSRF protection (private IP blocking, DNS rebinding prevention)
+- Content restrictions enforced on REST API responses
+- X-Forwarded-For parsed right-to-left for correct client IP behind proxies
+- All IP retrieval consolidated to NBUF_IP utility class
+- Role editor restricts capability assignment to admin's own capabilities
+- Impersonation: full capability comparison, nested impersonation blocked
+- Antibot tokens consumed after use to prevent replay
+- TOTP replay protection via last-used counter
+- CSV formula injection protection on all log exports
+- Image upload decompression bomb protection (25MP limit)
+- GDPR export: symlink protection, hash_equals token comparison, user ID paths
+
+**Bug Fixes:**
+- Passkey login scripts enqueue on WP-page-based login pages
+- 2FA login redirect includes 'account' case
+- 2FA "Resend code" link now functional
+- Password policy enforced on reset form
+- Email domain restrictions enforced on email change
+- Username changer updates user_nicename and invalidates sessions
+- Webhook delivery dispatched asynchronously
+- Image processor deletes old photos via DB path (prevents orphan files)
+- Passkey login fires wp_login hook
+
+See [readme.txt](readme.txt) for full changelog.
 
 ## Support
 

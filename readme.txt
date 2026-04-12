@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.5.7
+Stable tag: 1.6.0
 Requires PHP: 8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,52 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.0 =
+* **Breaking:** Minimum PHP version raised from 7.4 to 8.0 (PHP 7.4 reached EOL November 2022)
+* Security: All verification and magic link tokens now stored as SHA-256 hashes (DB read no longer yields replayable credentials)
+* Security: Encryption hard-fails when OpenSSL unavailable instead of silently storing plaintext
+* Security: 2FA enable/disable/backup code regeneration now requires password re-authentication
+* Security: Magic link login enforces disabled/expired/unverified/2FA checks (previously bypassed all login protections)
+* Security: Passkey login enforces admin-mandated 2FA policy via should_challenge()
+* Security: Password expiration form uses cryptographic token instead of predictable user_id (prevents account takeover)
+* Security: Webhook delivery protected against SSRF (private IP blocking + wp_safe_remote_post for DNS rebinding)
+* Security: Content restrictions enforced on REST API responses (previously bypassed via /wp-json/)
+* Security: X-Forwarded-For parsed right-to-left to prevent IP spoofing behind trusted proxies
+* Security: All IP retrieval consolidated to NBUF_IP::get_client_ip() (audit log, admin audit, ToS, version history, magic links)
+* Security: Role editor restricts capability assignment to caps the admin user holds
+* Security: Impersonation compares full capability sets, blocks nested impersonation, destroys target session on end
+* Security: Antibot challenge tokens consumed after use to prevent replay attacks
+* Security: TOTP replay protection via last-used counter tracking
+* Security: Registration timing-attack dummy hash moved to correct branch
+* Security: Config import/export uses allowed_classes=false on unserialize, validates nbuf_ prefix
+* Security: CSV formula injection protection on admin audit log and ToS acceptance exports
+* Security: Encryption fallback key uses random bytes instead of guessable siteurl+admin_email
+* Security: Image upload rejects decompression bombs (>25 megapixel limit)
+* Security: GDPR export uses user ID in filesystem paths, hash_equals for token comparison, symlink protection
+* Security: Admin audit log metadata modal HTML-encoded to prevent stored XSS
+* Fixed: Passkey login scripts now enqueue on WP-page-based login (corrected option key names)
+* Fixed: 2FA login redirect now includes 'account' case (previously fell through to hardcoded path)
+* Fixed: 2FA trust cookie upgraded to SameSite=Strict
+* Fixed: 2FA "Resend code" link on verification page now functional with rate limiting
+* Fixed: Password policy enforced on password reset form (previously skipped)
+* Fixed: Password change clears 2FA trusted device cookies
+* Fixed: Verifier restricts token lookup to verification/email_change types (prevents magic link cross-consumption)
+* Fixed: Universal router requires exact base-slug boundary match
+* Fixed: Username changer updates user_nicename and invalidates sessions
+* Fixed: Email domain restrictions enforced on email change (not just registration)
+* Fixed: Image processor deletes old photos via DB-stored path (prevents orphan files on re-upload)
+* Fixed: Registration form preserve key uses random token instead of empty session identifiers
+* Fixed: Webhook delivery dispatched asynchronously via wp_schedule_single_event
+* Fixed: Transient increment uses correct option_name for atomic fallback
+* Fixed: Bulk import format string order matches data key order
+* Fixed: Passkey login fires wp_login hook for third-party plugin compatibility
+* Improved: Verification token format validation tightened to hex-only (ctype_xdigit)
+* Improved: IP wildcard matching uses preg_quote and validates octet range 0-255
+* Improved: Session AJAX handlers gated on session_management_enabled setting
+* Improved: Profile data sanitization covers all social URL fields and secondary_email
+* Improved: Registration form_key and bulk import error_key validated against expected prefixes
+* Improved: PHPDoc blocks updated across codebase for accuracy after security fixes
+
 = 1.5.7 =
 * Fixed: IP blacklist now blocks restricted IPs before credential validation on wp-login.php
 * Fixed: Security alert email flooding during sustained attacks (configurable cooldown, default 1 hour)
@@ -416,6 +462,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Major security hardening release. Requires PHP 8.0+. Fixes critical auth bypass in magic link login, account takeover in password expiration flow, and SSRF in webhooks. All tokens now stored as SHA-256 hashes. REST API content restrictions enforced. No database schema changes required — existing tokens will be re-hashed on next use.
 
 = 1.5.7 =
 Security fix: IP blacklist now blocks before authentication. Alert email throttling and digest summaries. Settings save no longer logs unchanged values. No database changes required.

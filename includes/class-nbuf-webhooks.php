@@ -247,13 +247,32 @@ class NBUF_Webhooks {
 				continue;
 			}
 
-			/* Queue webhook delivery (async to not block user requests) */
-			self::deliver( $webhook, $event, $payload );
+			/* Schedule async delivery via WP cron so the user request is not blocked */
+			wp_schedule_single_event( time(), 'nbuf_deliver_webhook', array( (int) $webhook->id, $event, $payload ) );
 		}
+
+		/* Spawn the cron runner so delivery happens promptly */
+		spawn_cron();
 	}
 
 	/**
-	 * Deliver a webhook.
+	 * WP cron callback for async webhook delivery.
+	 *
+	 * @param int                  $webhook_id Webhook ID.
+	 * @param string               $event      Event type.
+	 * @param array<string, mixed> $payload    Event payload.
+	 * @return void
+	 */
+	public static function deliver_scheduled( int $webhook_id, string $event, array $payload ): void {
+		$webhook = self::get( $webhook_id );
+		if ( ! $webhook || empty( $webhook->enabled ) ) {
+			return;
+		}
+		self::deliver( $webhook, $event, $payload );
+	}
+
+	/**
+	 * Deliver a webhook synchronously.
 	 *
 	 * @param object               $webhook Webhook object.
 	 * @param string               $event   Event type.
@@ -448,6 +467,9 @@ class NBUF_Webhooks {
 	 * @return void
 	 */
 	public static function init(): void {
+		/* Cron callback for async webhook delivery */
+		add_action( 'nbuf_deliver_webhook', array( __CLASS__, 'deliver_scheduled' ), 10, 3 );
+
 		/* User registration */
 		add_action( 'user_register', array( __CLASS__, 'on_user_register' ), 100 );
 

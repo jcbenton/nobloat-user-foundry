@@ -110,46 +110,7 @@ class NBUF_IP_Restrictions {
 	 * @return string Client IP address.
 	 */
 	public static function get_client_ip(): string {
-		$ip = '';
-
-		/* Get trusted proxies configuration */
-		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-
-		/* Only trust X-Forwarded-For if request comes from trusted proxy */
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
-			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			} elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-			}
-		}
-
-		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
-		if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Handle multiple IPs from proxy (take first one) */
-		if ( strpos( $ip, ',' ) !== false ) {
-			$ip_array = explode( ',', $ip );
-			$ip       = trim( $ip_array[0] );
-		}
-
-		/* Validate and normalize IP address */
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-		}
-
-		/* Normalize IPv6 addresses to canonical form */
-		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
-			$normalized = inet_ntop( inet_pton( $ip ) );
-			if ( false !== $normalized ) {
-				$ip = $normalized;
-			}
-		}
-
-		return strtolower( $ip );
+		return NBUF_IP::get_client_ip( true );
 	}
 
 	/**

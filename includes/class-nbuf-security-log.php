@@ -493,44 +493,7 @@ class NBUF_Security_Log {
 	 * @return string IP address.
 	 */
 	private static function get_client_ip() {
-		$ip = '';
-
-		/*
-		 * SECURITY: Prevent IP spoofing via X-Forwarded-For header
-		 *
-		 * Only trust proxy headers if request originates from a trusted proxy.
-		 * This prevents attackers from bypassing security logging by sending fake
-		 * X-Forwarded-For headers.
-		 */
-		$trusted_proxies = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-
-		/* Only trust X-Forwarded-For/Client-IP if request comes from trusted proxy */
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
-			if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			} elseif ( isset( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-			}
-		}
-
-		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
-		if ( empty( $ip ) && isset( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Handle multiple IPs from proxy (take first one) */
-		if ( strpos( $ip, ',' ) !== false ) {
-			$ip_array = explode( ',', $ip );
-			$ip       = trim( $ip_array[0] );
-		}
-
-		/* Validate IP address format */
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-			$ip = '0.0.0.0';
-		}
-
-		return $ip;
+		return NBUF_IP::get_client_ip( false );
 	}
 
 	/**

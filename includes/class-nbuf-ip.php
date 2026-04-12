@@ -51,7 +51,22 @@ class NBUF_IP {
 		/* Only trust X-Forwarded-For if request comes from trusted proxy */
 		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
 			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+				$xff = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+
+				/*
+				 * Walk the chain right-to-left (closest proxy → farthest).
+				 * Stop at the first IP that is NOT a trusted proxy — that is
+				 * the real client. The leftmost entry is attacker-controlled
+				 * and must never be trusted.
+				 */
+				$parts = array_map( 'trim', explode( ',', $xff ) );
+				$parts = array_reverse( $parts );
+				foreach ( $parts as $candidate ) {
+					if ( ! in_array( $candidate, $trusted_proxies, true ) ) {
+						$ip = $candidate;
+						break;
+					}
+				}
 			} elseif ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
 			}
@@ -60,12 +75,6 @@ class NBUF_IP {
 		/* Fallback to REMOTE_ADDR (cannot be spoofed) */
 		if ( empty( $ip ) && ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
 			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		/* Handle multiple IPs from proxy (take first one - closest to client) */
-		if ( strpos( $ip, ',' ) !== false ) {
-			$ip_array = explode( ',', $ip );
-			$ip       = trim( $ip_array[0] );
 		}
 
 		/* Validate IP address */

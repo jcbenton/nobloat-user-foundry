@@ -1,0 +1,2 @@
+- [Batch commits](feedback_commit_batching.md) — don't create 30 individual commits; batch to minimize approval prompts
+- [Forensic review status](project_forensic_review_status.md) — 5a done (25 fixes), round 5b next with another reshuffle

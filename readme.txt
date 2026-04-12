@@ -347,6 +347,41 @@ Configuration guides, troubleshooting, and examples are available online.
 * Security: Image upload rejects decompression bombs (>25 megapixel limit)
 * Security: GDPR export uses user ID in filesystem paths, hash_equals for token comparison, symlink protection
 * Security: Admin audit log metadata modal HTML-encoded to prevent stored XSS
+* Security: Multi-role save and render filter against get_editable_roles() to prevent privilege escalation
+* Security: Magic link verification uses FOR UPDATE transaction to prevent TOCTOU token replay
+* Security: Content restrictions enforced on RSS feeds, excerpts, and all configured custom post types
+* Security: Member directory AJAX response strips user_email to prevent information disclosure
+* Security: Backup code verification enforces lockout and records failed attempts (consistent with email/TOTP 2FA)
+* Security: Backup code mark-used wrapped in SELECT...FOR UPDATE transaction to prevent parallel reuse
+* Security: Bulk import role assignment filtered against editable_roles (prevents importing administrators)
+* Security: GDPR export download validates file path against exports directory via realpath()
+* Security: GDPR export ZIP filename and subdirectory include random suffix to prevent enumeration
+* Security: GDPR export rate limit set before generation to prevent parallel request bypass
+* Security: GDPR export download token scoped to requesting user to prevent cross-admin collision
+* Security: Config import applies settings sanitization registry to prevent bypass of validation rules
+* Security: Admin user search CSV export protected against formula injection
+* Security: Bulk actions handler requires manage_options capability (previously relied on WP hook gating only)
+* Security: Account merger blocks administrator accounts from being used as secondary (deleted) account
+* Security: Passkey rename/delete admin override requires manage_options instead of edit_users
+* Security: Passkey prompt device cookie set to httponly=true (value rendered server-side, not read via JS)
+* Security: Passkey login redirect URL validated with wp_validate_redirect() to prevent open redirect
+* Security: maybe_unserialize() on visible_fields replaced with allowed_classes=false to block object injection
+* Security: Image processor delete_photo() validates path is within uploads directory via realpath()
+* Security: Privacy manager can_view_profile/can_view_field: guard against 0===0 guest bypass
+* Security: Privacy settings validated against public/members_only/private allowlist
+* Security: Impersonation end verifies original user retains impersonation capability before restoring session
+* Security: 2FA device trust rotation reordered to add-then-remove (partial failure leaves two tokens, not zero)
+* Security: HTML email template placeholders escaped with esc_html() in HTML context (welcome, reset, admin notification)
+* Security: Rejection email uses home_url() instead of leaking admin panel URL
+* Security: Settings save only processes POST keys registered in the settings registry
+* Security: Antibot validate() enforces session ID hex format (consistent with generation)
+* Security: Security log CSV formula check strips leading quotes/backslashes before pattern match
+* Security: User notes profile AJAX handlers require manage_options (consistent with dedicated notes page)
+* Fixed: Password expiration form: $change_token passed to render method (form submission was silently broken)
+* Fixed: Admin profile section: missing wp_nonce_field caused all NoBloat profile saves to silently fail
+* Fixed: insert_token_atomic: NOT EXISTS filter includes type column (prevents cross-type token blocking)
+* Fixed: Taxonomy restriction cache: invalidation key format matches creation format
+* Fixed: can_access_content() API: corrected class name to NBUF_Abstract_Restriction and made check_access public
 * Fixed: Passkey login scripts now enqueue on WP-page-based login (corrected option key names)
 * Fixed: 2FA login redirect now includes 'account' case (previously fell through to hardcoded path)
 * Fixed: 2FA trust cookie upgraded to SameSite=Strict
@@ -360,14 +395,36 @@ Configuration guides, troubleshooting, and examples are available online.
 * Fixed: Image processor deletes old photos via DB-stored path (prevents orphan files on re-upload)
 * Fixed: Registration form preserve key uses random token instead of empty session identifiers
 * Fixed: Webhook delivery dispatched asynchronously via wp_schedule_single_event
-* Fixed: Transient increment uses correct option_name for atomic fallback
+* Fixed: Transient increment uses correct option_name and %s format for atomic fallback WHERE clause
 * Fixed: Bulk import format string order matches data key order
 * Fixed: Passkey login fires wp_login hook for third-party plugin compatibility
+* Fixed: Passkey login clears existing auth cookie before setting new session
+* Fixed: Passkey rename: null passkey check separated from ownership check for correct error message
+* Fixed: Bulk expiration transient scoped to current admin user (prevents cross-admin race condition)
+* Fixed: User search SQL grouping: profile OR-clauses placed inside parenthetical group (preserves query precedence)
+* Fixed: wp_update_user() return value checked in version history revert (prevents silent partial revert)
+* Fixed: Version history revert includes $wpdb format specifiers and sanitizes first_name/last_name
+* Fixed: Digest notification: transient deleted before email send to prevent losing changes queued during I/O
+* Fixed: AJAX action collision: user-notes search renamed to nbuf_notes_search_users (was colliding with account merger)
+* Fixed: Options audit log handles non-scalar values with wp_json_encode instead of (string) cast
 * Improved: Verification token format validation tightened to hex-only (ctype_xdigit)
 * Improved: IP wildcard matching uses preg_quote and validates octet range 0-255
+* Improved: IPv6 CIDR mask validated for range 0-128
 * Improved: Session AJAX handlers gated on session_management_enabled setting
 * Improved: Profile data sanitization covers all social URL fields and secondary_email
-* Improved: Registration form_key and bulk import error_key validated against expected prefixes
+* Improved: Registration form_key, bulk import error_key, and config import transient_key validated against expected prefixes
+* Improved: Config import mode validated against overwrite/merge allowlist
+* Improved: $warning_days, $batch_size, $days options cast to (int) with sane minimums to prevent type confusion
+* Improved: Security log page uses absint() instead of intval() for admin notice counts
+* Improved: ToS version_id cast to (int) for PHP 8 strict type compatibility
+* Improved: Migration sanitize_field() uses null/empty-string check instead of empty() to preserve "0" values
+* Improved: Dead code get_token()/mark_verified() removed (incompatible with hashed token storage)
+* Improved: Passkey auth session ID uses bin2hex(random_bytes(32)) for consistency
+* Improved: Antibot session ID validated with hex regex on both creation and validation paths
+* Improved: Security log CSV export primes user cache with cache_users() to prevent N+1 queries
+* Improved: Webhook secret uses wp_unslash() instead of sanitize_text_field() (preserves special chars in HMAC secrets)
+* Improved: CSV injection regex includes + and - characters across all export paths
+* Improved: Uninstall uses recursive directory iteration for nested user photo cleanup
 * Improved: PHPDoc blocks updated across codebase for accuracy after security fixes
 
 = 1.5.7 =

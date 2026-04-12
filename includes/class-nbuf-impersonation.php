@@ -114,8 +114,11 @@ class NBUF_Impersonation {
 			return false;
 		}
 
-		/* Cannot impersonate users with higher capabilities */
-		if ( user_can( $target_user, 'manage_options' ) && ! current_user_can( 'manage_options' ) ) {
+		/* Cannot impersonate users who have any capability the impersonator lacks */
+		$target_caps  = array_keys( array_filter( $target_user->allcaps ) );
+		$current_caps = array_keys( array_filter( $current_user->allcaps ) );
+		$extra_caps   = array_diff( $target_caps, $current_caps );
+		if ( ! empty( $extra_caps ) ) {
 			return false;
 		}
 

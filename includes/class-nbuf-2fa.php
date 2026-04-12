@@ -215,7 +215,7 @@ class NBUF_2FA {
 	 * Generate and send email 2FA code
 	 *
 	 * Creates a random numeric code and emails it to the user.
-	 * Code is hashed with bcrypt before storage for security.
+	 * Code is hashed with wp_hash_password() before storage for security.
 	 *
 	 * SECURITY: Codes are hashed before storage to protect against database compromise.
 	 * Even if an attacker gains database access, they cannot retrieve usable codes.
@@ -358,7 +358,7 @@ If you did not request this code, please ignore this email.
 	 * Checks if the provided code matches the stored hashed code.
 	 * Implements rate limiting, attempt tracking, and timing attack protection.
 	 *
-	 * SECURITY: Uses bcrypt verification for constant-time comparison and to prevent
+	 * SECURITY: Uses wp_check_password() for constant-time comparison and to prevent
 	 * brute force attacks. Even if database is compromised, hashed codes cannot be
 	 * reversed to obtain usable verification codes.
 	 *
@@ -387,8 +387,8 @@ If you did not request this code, please ignore this email.
 
 		/*
 		 * SECURITY: Normalize code length to prevent timing attack.
-		 * Pad or truncate to expected length BEFORE bcrypt verification.
-		 * This ensures all code paths perform the expensive bcrypt operation.
+		 * Pad or truncate to expected length BEFORE hash verification.
+		 * This ensures all code paths perform the expensive hash operation.
 		 */
 		$code_length = strlen( $code );
 		if ( $code_length < $expected_length ) {
@@ -400,13 +400,13 @@ If you did not request this code, please ignore this email.
 		}
 
 		/*
-		 * SECURITY: Always perform bcrypt operation for timing attack protection.
+		 * SECURITY: Always perform hash operation for timing attack protection.
 		 *
 		 * Both code paths (expired vs valid) must take the same time (~50-100ms).
 		 * If we return early without hashing, timing differences reveal code validity.
 		 *
 		 * Solution: Use dummy hash when code expired, real hash when valid.
-		 * Both paths perform bcrypt verification for constant-time behavior.
+		 * Both paths perform hash verification for constant-time behavior.
 		 */
 		$stored_hash = get_transient( $transient_key );
 		$code_valid  = false;
@@ -414,7 +414,7 @@ If you did not request this code, please ignore this email.
 
 		if ( ! $code_exists ) {
 			/*
-			 * SECURITY: Generate dummy hash with same bcrypt cost factor.
+			 * SECURITY: Generate dummy hash with same cost factor.
 			 * Ensures timing protection even if WordPress changes cost in future.
 			 */
 			static $dummy_hash = null;
@@ -425,7 +425,7 @@ If you did not request this code, please ignore this email.
 		}
 
 		/*
-		 * SECURITY: Always perform bcrypt verification regardless of whether code exists.
+		 * SECURITY: Always perform hash verification regardless of whether code exists.
 		 * This makes timing identical for both expired and valid codes.
 		 */
 		$code_valid = wp_check_password( $code, $stored_hash );
@@ -506,6 +506,17 @@ If you did not request this code, please ignore this email.
 			);
 		}
 
+		/* Replay protection: reject codes whose time counter was already used */
+		$current_counter = (int) floor( time() / $time_window );
+		$last_counter    = (int) get_user_meta( $user_id, '_nbuf_totp_last_counter', true );
+		if ( $current_counter <= $last_counter ) {
+			return new WP_Error(
+				'2fa_code_reused',
+				__( 'This code has already been used. Please wait for a new code.', 'nobloat-user-foundry' )
+			);
+		}
+		update_user_meta( $user_id, '_nbuf_totp_last_counter', $current_counter );
+
 		/* Success - clear attempts */
 		self::clear_attempts( $user_id );
 
@@ -519,7 +530,7 @@ If you did not request this code, please ignore this email.
 	 * Generate backup codes for user
 	 *
 	 * Creates a set of one-time use backup codes.
-	 * Codes are bcrypt hashed before storage.
+	 * Codes are hashed via wp_hash_password() before storage.
 	 * Uses settings from Security > Backup Codes tab.
 	 *
 	 * @param  int      $user_id User ID.
@@ -706,9 +717,9 @@ If you did not request this code, please ignore this email.
 							'expires'  => $new_expires,
 							'path'     => COOKIEPATH,
 							'domain'   => COOKIE_DOMAIN,
-							'secure'   => true, /* Always use secure flag for 2FA cookies */
+							'secure'   => true,
 							'httponly' => true,
-							'samesite' => 'Lax',
+							'samesite' => 'Strict',
 						)
 					);
 				} finally {
@@ -761,9 +772,9 @@ If you did not request this code, please ignore this email.
 				'expires'  => $expires,
 				'path'     => COOKIEPATH,
 				'domain'   => COOKIE_DOMAIN,
-				'secure'   => true, /* Always use secure flag for 2FA cookies */
+				'secure'   => true,
 				'httponly' => true,
-				'samesite' => 'Lax',
+				'samesite' => 'Strict',
 			)
 		);
 

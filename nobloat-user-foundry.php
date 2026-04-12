@@ -5,7 +5,7 @@
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
  * Version: 1.5.7
  * Requires at least: 6.2
- * Requires PHP: 7.4
+ * Requires PHP: 8.0
  * Author: Jerry Benton
  * Author URI: https://www.mailborder.com
  * License: GPLv3 or later

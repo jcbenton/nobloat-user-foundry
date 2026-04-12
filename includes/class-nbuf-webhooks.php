@@ -85,7 +85,8 @@ class NBUF_Webhooks {
 			$webhook->events = $decoded_events ? $decoded_events : array();
 			/* Decrypt the webhook secret */
 			if ( ! empty( $webhook->secret ) ) {
-				$webhook->secret = NBUF_Encryption::decrypt( $webhook->secret );
+				$decrypted       = NBUF_Encryption::decrypt( $webhook->secret );
+				$webhook->secret = ( false === $decrypted ) ? '' : $decrypted;
 			}
 		}
 
@@ -117,7 +118,8 @@ class NBUF_Webhooks {
 			$webhook->events = $decoded_events ? $decoded_events : array();
 			/* Decrypt the webhook secret */
 			if ( ! empty( $webhook->secret ) ) {
-				$webhook->secret = NBUF_Encryption::decrypt( $webhook->secret );
+				$decrypted       = NBUF_Encryption::decrypt( $webhook->secret );
+				$webhook->secret = ( false === $decrypted ) ? '' : $decrypted;
 			}
 		}
 
@@ -138,10 +140,18 @@ class NBUF_Webhooks {
 
 		$secret = sanitize_text_field( $data['secret'] ?? '' );
 
+		$encrypted_secret = '';
+		if ( ! empty( $secret ) ) {
+			$encrypted_secret = NBUF_Encryption::encrypt( $secret );
+			if ( false === $encrypted_secret ) {
+				return false;
+			}
+		}
+
 		$insert_data = array(
 			'name'    => sanitize_text_field( $data['name'] ?? '' ),
 			'url'     => esc_url_raw( $data['url'] ?? '' ),
-			'secret'  => ! empty( $secret ) ? NBUF_Encryption::encrypt( $secret ) : '',
+			'secret'  => $encrypted_secret,
 			'events'  => wp_json_encode( $data['events'] ?? array() ),
 			'enabled' => ! empty( $data['enabled'] ) ? 1 : 0,
 		);
@@ -173,8 +183,16 @@ class NBUF_Webhooks {
 			$update_data['url'] = esc_url_raw( $data['url'] );
 		}
 		if ( isset( $data['secret'] ) ) {
-			$secret                = sanitize_text_field( $data['secret'] );
-			$update_data['secret'] = ! empty( $secret ) ? NBUF_Encryption::encrypt( $secret ) : '';
+			$secret = sanitize_text_field( $data['secret'] );
+			if ( ! empty( $secret ) ) {
+				$encrypted = NBUF_Encryption::encrypt( $secret );
+				if ( false === $encrypted ) {
+					return false;
+				}
+				$update_data['secret'] = $encrypted;
+			} else {
+				$update_data['secret'] = '';
+			}
 		}
 		if ( isset( $data['events'] ) ) {
 			$update_data['events'] = wp_json_encode( $data['events'] );

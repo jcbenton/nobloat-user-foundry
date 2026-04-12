@@ -129,8 +129,8 @@ class NBUF_User_2FA_Data {
 		if ( ! $data || empty( $data->totp_secret ) ) {
 			return null;
 		}
-		/* Decrypt the TOTP secret */
-		return NBUF_Encryption::decrypt( $data->totp_secret );
+		$decrypted = NBUF_Encryption::decrypt( $data->totp_secret );
+		return ( false === $decrypted ) ? null : $decrypted;
 	}
 
 	/**
@@ -278,7 +278,11 @@ class NBUF_User_2FA_Data {
 		);
 
 		if ( 'totp' === $method && $totp_secret ) {
-			$data['totp_secret'] = NBUF_Encryption::encrypt( $totp_secret );
+			$encrypted = NBUF_Encryption::encrypt( $totp_secret );
+			if ( false === $encrypted ) {
+				return false;
+			}
+			$data['totp_secret'] = $encrypted;
 		}
 
 		return self::update( $user_id, $data );
@@ -306,10 +310,14 @@ class NBUF_User_2FA_Data {
 	 * @return bool                   True on success, false on failure
 	 */
 	public static function set_totp_secret( int $user_id, string $secret ): bool {
+		$encrypted = NBUF_Encryption::encrypt( $secret );
+		if ( false === $encrypted ) {
+			return false;
+		}
 		return self::update(
 			$user_id,
 			array(
-				'totp_secret' => NBUF_Encryption::encrypt( $secret ),
+				'totp_secret' => $encrypted,
 			)
 		);
 	}

@@ -95,9 +95,9 @@ class NBUF_Encryption {
 	 * Returns prefixed base64 string: $nbuf_enc$base64(iv + ciphertext + tag)
 	 *
 	 * @param string $plaintext The value to encrypt.
-	 * @return string Encrypted value with prefix, or original if encryption unavailable.
+	 * @return string|false Encrypted value with prefix, or false on failure.
 	 */
-	public static function encrypt( string $plaintext ): string {
+	public static function encrypt( string $plaintext ): string|false {
 		/* Return empty string as-is */
 		if ( '' === $plaintext ) {
 			return '';
@@ -108,9 +108,11 @@ class NBUF_Encryption {
 			return $plaintext;
 		}
 
-		/* Check if encryption is available */
 		if ( ! self::is_available() ) {
-			return $plaintext;
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log( 'encryption_unavailable', 'critical', 'OpenSSL with AES-256-GCM is not available; refusing to store sensitive data in plaintext.' );
+			}
+			return false;
 		}
 
 		$key = self::get_key();
@@ -132,8 +134,10 @@ class NBUF_Encryption {
 		);
 
 		if ( false === $ciphertext ) {
-			/* Encryption failed - return original */
-			return $plaintext;
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log( 'encryption_failed', 'critical', 'openssl_encrypt returned false; refusing to store sensitive data in plaintext.' );
+			}
+			return false;
 		}
 
 		/* Combine IV + ciphertext + tag and encode */
@@ -148,22 +152,24 @@ class NBUF_Encryption {
 	 * Expects format: $nbuf_enc$base64(iv + ciphertext + tag)
 	 *
 	 * @param string $encrypted The encrypted value.
-	 * @return string Decrypted value, or original if not encrypted/decryption fails.
+	 * @return string|false Decrypted value, original if not encrypted, or false on failure.
 	 */
-	public static function decrypt( string $encrypted ): string {
+	public static function decrypt( string $encrypted ): string|false {
 		/* Return empty string as-is */
 		if ( '' === $encrypted ) {
 			return '';
 		}
 
-		/* Check if this is an encrypted value */
+		/* Not encrypted — return as-is (legacy plaintext data) */
 		if ( ! self::is_encrypted( $encrypted ) ) {
 			return $encrypted;
 		}
 
-		/* Check if decryption is available */
 		if ( ! self::is_available() ) {
-			return '';
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log( 'decryption_unavailable', 'critical', 'OpenSSL unavailable; cannot decrypt stored data.' );
+			}
+			return false;
 		}
 
 		$key = self::get_key();
@@ -173,7 +179,7 @@ class NBUF_Encryption {
 		$combined = base64_decode( $encoded, true );
 
 		if ( false === $combined ) {
-			return '';
+			return false;
 		}
 
 		/* IV is 12 bytes, tag is 16 bytes, rest is ciphertext */
@@ -181,7 +187,7 @@ class NBUF_Encryption {
 		$tag_length = 16;
 
 		if ( strlen( $combined ) < $iv_length + $tag_length + 1 ) {
-			return '';
+			return false;
 		}
 
 		$iv         = substr( $combined, 0, $iv_length );
@@ -199,7 +205,10 @@ class NBUF_Encryption {
 		);
 
 		if ( false === $plaintext ) {
-			return '';
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log( 'decryption_failed', 'error', 'Decryption failed — possible data corruption or key mismatch.' );
+			}
+			return false;
 		}
 
 		return $plaintext;

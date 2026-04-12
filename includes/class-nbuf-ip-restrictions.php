@@ -249,19 +249,26 @@ class NBUF_IP_Restrictions {
 	 * @return bool True if IP matches pattern.
 	 */
 	private static function ip_matches_wildcard( string $ip, string $pattern ): bool {
-		/* Only support IPv4 wildcards for simplicity */
 		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			return false;
 		}
 
-		/* Convert wildcard pattern to regex */
-		$regex = '/^' . str_replace(
-			array( '.', '*' ),
-			array( '\\.', '\\d{1,3}' ),
-			$pattern
-		) . '$/';
+		/* Escape all regex metacharacters first, then replace escaped \* with octet pattern */
+		$escaped = preg_quote( $pattern, '/' );
+		$regex   = '/^' . str_replace( '\\*', '(\\d{1,3})', $escaped ) . '$/';
 
-		return (bool) preg_match( $regex, $ip );
+		if ( ! preg_match( $regex, $ip, $matches ) ) {
+			return false;
+		}
+
+		/* Validate that wildcard-matched octets are 0-255 */
+		foreach ( array_slice( $matches, 1 ) as $octet ) {
+			if ( (int) $octet > 255 ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

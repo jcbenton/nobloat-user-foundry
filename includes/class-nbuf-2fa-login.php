@@ -445,12 +445,17 @@ class NBUF_2FA_Login {
 		}
 
 		/*
-		 * Allow override via redirect_to parameter.
+		 * Allow override via redirect_to parameter — validate it the same way
+		 * the login form handler does (esc_url_raw + same-host check).
 		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification earlier.
 		if ( isset( $_REQUEST['redirect_to'] ) && ! empty( $_REQUEST['redirect_to'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Protected by nonce verification earlier.
-			$redirect_to = sanitize_text_field( wp_unslash( $_REQUEST['redirect_to'] ) );
+			$candidate = esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) );
+			$validated = wp_validate_redirect( $candidate, '' );
+			if ( ! empty( $validated ) ) {
+				$redirect_to = $validated;
+			}
 		}
 
 		/* Apply filter for customization */

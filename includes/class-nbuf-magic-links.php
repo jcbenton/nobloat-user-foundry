@@ -251,13 +251,16 @@ class NBUF_Magic_Links {
 			global $wpdb;
 			$table_name = $wpdb->prefix . NBUF_DB_TABLE;
 
+			/* Store SHA-256 hash of token so a DB leak cannot be replayed */
+			$token_hash = hash( 'sha256', $token );
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom tokens table.
 			$result = $wpdb->insert(
 				$table_name,
 				array(
 					'user_id'    => $user->ID,
 					'user_email' => $email,
-					'token'      => $token,
+					'token'      => $token_hash,
 					'expires_at' => $expiration,
 					'verified'   => 0,
 					'type'       => self::TOKEN_TYPE,
@@ -397,15 +400,15 @@ class NBUF_Magic_Links {
 		global $wpdb;
 		$table_name = $wpdb->prefix . NBUF_DB_TABLE;
 
-		/*
-		 * Find token.
-		 */
+		/* Hash the submitted token — DB stores the SHA-256 hash, not plaintext */
+		$token_hash = hash( 'sha256', $token );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$token_data = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE token = %s AND type = %s AND verified = 0',
 				$table_name,
-				$token,
+				$token_hash,
 				self::TOKEN_TYPE
 			)
 		);

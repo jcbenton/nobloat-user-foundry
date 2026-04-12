@@ -57,7 +57,7 @@ class NBUF_Passkeys_Login {
 				if ( class_exists( 'NBUF_Universal_Router' ) ) {
 					return NBUF_Universal_Router::get_url( 'account' );
 				}
-				$account_page = NBUF_Options::get( 'nbuf_account_page', 0 );
+				$account_page = NBUF_Options::get( 'nbuf_page_account', 0 );
 				return $account_page ? get_permalink( $account_page ) : home_url( '/' );
 
 			case 'admin':
@@ -164,7 +164,7 @@ class NBUF_Passkeys_Login {
 		$is_login_page = false;
 
 		/* Check page ID */
-		$login_page_id = NBUF_Options::get( 'nbuf_login_page', 0 );
+		$login_page_id = NBUF_Options::get( 'nbuf_page_login', 0 );
 		if ( $login_page_id && is_page( $login_page_id ) ) {
 			$is_login_page = true;
 		}

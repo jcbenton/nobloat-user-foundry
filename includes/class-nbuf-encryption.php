@@ -61,9 +61,15 @@ class NBUF_Encryption {
 			$base_key = defined( 'SECURE_AUTH_KEY' ) && SECURE_AUTH_KEY ? SECURE_AUTH_KEY : '';
 		}
 
-		/* If still no key, use a site-specific fallback (not ideal but prevents errors) */
+		/* Generate and persist a random fallback key if WP salts are unconfigured */
 		if ( empty( $base_key ) || 'put your unique phrase here' === $base_key ) {
-			$base_key = get_option( 'siteurl' ) . get_option( 'admin_email' );
+			$stored = get_option( 'nbuf_encryption_fallback_key' );
+			if ( ! empty( $stored ) ) {
+				$base_key = $stored;
+			} else {
+				$base_key = bin2hex( random_bytes( 32 ) );
+				add_option( 'nbuf_encryption_fallback_key', $base_key, '', false );
+			}
 		}
 
 		/*

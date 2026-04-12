@@ -4,12 +4,12 @@ Donate link: https://donate.stripe.com/14AdRa6XJ1Xn8yT8KObfO00
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 Requires PHP: 8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Enterprise-grade user management for business WordPress sites with email verification, 2FA, passkeys, roles, GDPR tools, audit logs, and lifecycle control.
+Enterprise-grade user management for WordPress with email verification, 2FA, passkeys, roles, GDPR tools, audit logs, and lifecycle control.
 
 == Description ==
 
@@ -324,6 +324,12 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.1 =
+* Fix: Login redirect_to parameter now preserved when wp-login.php intercept redirects to NoBloat login page
+* Fix: Login form reads redirect_to URL parameter so users return to their intended page after login (content restrictions, bookmarks)
+* Fix: Content restriction redirect uses NoBloat login URL instead of wp-login.php when NoBloat login is active
+* Fix: NBUF_URL::is_universal_mode() method was undefined, causing a fatal error when the [nbuf_universal] shortcode ran
+
 = 1.6.0 =
 * **Breaking:** Minimum PHP version raised from 7.4 to 8.0 (PHP 7.4 reached EOL November 2022)
 * Security: All verification and magic link tokens now stored as SHA-256 hashes (DB read no longer yields replayable credentials)
@@ -520,8 +526,11 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Upgrade Notice ==
 
+= 1.6.1 =
+Bug fix release. Corrects login redirect_to propagation so users return to their intended page after login, fixes content restriction login redirect, and resolves a fatal error in the [nbuf_universal] shortcode. No database changes required.
+
 = 1.6.0 =
-Major security hardening release. Requires PHP 8.0+. Fixes critical auth bypass in magic link login, account takeover in password expiration flow, and SSRF in webhooks. All tokens now stored as SHA-256 hashes. REST API content restrictions enforced. No database schema changes required — existing tokens will be re-hashed on next use.
+Major security hardening release. Requires PHP 8.0+. Fixes auth bypass in magic link login, account takeover in password expiration, and SSRF in webhooks. Tokens now stored as SHA-256 hashes. No database changes required.
 
 = 1.5.7 =
 Security fix: IP blacklist now blocks before authentication. Alert email throttling and digest summaries. Settings save no longer logs unchanged values. No database changes required.

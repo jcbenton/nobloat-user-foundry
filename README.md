@@ -333,6 +333,14 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.6.1 — Bug Fix Release
+
+**Bug Fixes:**
+- Login `redirect_to` parameter now preserved when wp-login.php intercept redirects to NoBloat login page
+- Login form reads `redirect_to` URL parameter so users return to their intended page after login
+- Content restriction redirect uses NoBloat login URL instead of `wp-login.php` when NoBloat login is active
+- `NBUF_URL::is_universal_mode()` method was undefined — fatal error when `[nbuf_universal]` shortcode ran
+
 ### 1.6.0 — Security Hardening Release
 
 **Breaking:** Minimum PHP version raised from 7.4 to 8.0.

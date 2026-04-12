@@ -308,6 +308,23 @@ class NBUF_Webhooks {
 			$headers['X-Webhook-Signature'] = 'sha256=' . $signature;
 		}
 
+		/* SSRF check: resolve host and reject private/loopback/link-local/metadata IPs */
+		if ( ! self::is_url_safe( $webhook->url ) ) {
+			/* Log and abort - do not reveal internal network topology in response */
+			$wpdb->insert(
+				$log_table,
+				array(
+					'webhook_id'    => $webhook->id,
+					'event_type'    => $event,
+					'payload'       => $json_payload,
+					'response_code' => 0,
+					'response_body' => 'Blocked: URL resolves to a private/reserved IP address.',
+					'duration_ms'   => 0,
+				)
+			);
+			return false;
+		}
+
 		/* Track timing */
 		$start_time = microtime( true );
 
@@ -729,6 +746,47 @@ class NBUF_Webhooks {
 				'reason'     => $reason,
 			)
 		);
+	}
+
+	/**
+	 * Check whether a webhook URL is safe to request (not SSRF).
+	 *
+	 * Resolves the hostname and rejects loopback, private, link-local,
+	 * multicast, and cloud metadata IP ranges.
+	 *
+	 * @param string $url URL to validate.
+	 * @return bool True if the URL is safe to request.
+	 */
+	public static function is_url_safe( string $url ): bool {
+		$parsed = wp_parse_url( $url );
+		if ( ! $parsed || empty( $parsed['host'] ) ) {
+			return false;
+		}
+
+		$host = $parsed['host'];
+
+		/* Resolve hostname to IPs */
+		$ips = gethostbynamel( $host );
+		if ( false === $ips || empty( $ips ) ) {
+			return false;
+		}
+
+		foreach ( $ips as $ip ) {
+			if ( ! filter_var(
+				$ip,
+				FILTER_VALIDATE_IP,
+				FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+			) ) {
+				return false;
+			}
+
+			/* Block AWS/GCP/Azure metadata endpoints (169.254.169.254) */
+			if ( str_starts_with( $ip, '169.254.' ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
 

@@ -53,8 +53,8 @@ class NBUF_Verifier {
 			);
 		}
 
-		/* SECURITY: Validate token format (64 alphanumeric characters) */
-		if ( strlen( $token ) !== 64 || ! ctype_alnum( $token ) ) {
+		/* SECURITY: Validate token format (64 hex characters from bin2hex) */
+		if ( strlen( $token ) !== 64 || ! ctype_xdigit( $token ) ) {
 			return self::wrap_notice(
 				__( 'Invalid token format.', 'nobloat-user-foundry' ),
 				false
@@ -88,7 +88,7 @@ class NBUF_Verifier {
 		$wpdb->query( 'START TRANSACTION' );
 
 		$entry = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE token = %s FOR UPDATE', $table, $token )
+			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type = 'verification' FOR UPDATE", $table, $token )
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 

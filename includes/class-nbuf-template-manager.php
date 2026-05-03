@@ -393,11 +393,18 @@ class NBUF_Template_Manager {
 			'html'       => array( 'lang' => true ),
 			'head'       => array(),
 			'body'       => $style_attr,
+
+			/*
+			 * SECURITY: drop `http-equiv` from the meta allowlist. Modern
+			 * email clients ignore it; legitimate Content-Type/charset
+			 * is set via the `charset` attribute. Keeping http-equiv
+			 * leaves a stored-XSS / refresh-redirect surface in any
+			 * preview-rendering admin context.
+			 */
 			'meta'       => array(
-				'charset'    => true,
-				'name'       => true,
-				'content'    => true,
-				'http-equiv' => true,
+				'charset' => true,
+				'name'    => true,
+				'content' => true,
 			),
 			'title'      => array(),
 			'style'      => array( 'type' => true ),
@@ -524,11 +531,19 @@ class NBUF_Template_Manager {
 	 * @return string Sanitized content with HTML structure preserved.
 	 */
 	private static function sanitize_page_template( $content ) {
-		// Common attributes for most elements.
+		/*
+		 * SECURITY: drop `style` from common attributes. Page templates
+		 * are user-facing and they str_replace placeholders such as
+		 * {display_name} into element bodies — if a placeholder ever
+		 * lands inside a `style="..."` context, a user-controlled value
+		 * (CSS expression, url(...) data exfiltration) becomes a sink.
+		 * Customisation should go through the admin CSS Styles tabs,
+		 * which run NBUF_CSS_Manager::sanitize_css against a stricter
+		 * vector list than wp_kses sees inside an attribute.
+		 */
 		$common_attrs = array(
 			'class' => true,
 			'id'    => true,
-			'style' => true,
 		);
 
 		// Data attributes commonly used in templates.

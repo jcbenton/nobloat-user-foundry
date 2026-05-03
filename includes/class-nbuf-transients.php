@@ -178,7 +178,7 @@ class NBUF_Transients {
 			return $new_value;
 		}
 
-		/* Update failed (value changed by another process) - use atomic SQL instead */
+		// Update failed (value changed by another process) - use atomic SQL instead.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment requires direct query.
 		$wpdb->query(
 			$wpdb->prepare(

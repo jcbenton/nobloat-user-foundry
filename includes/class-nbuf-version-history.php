@@ -704,14 +704,38 @@ class NBUF_Version_History {
 				)
 			);
 
-			$data            = $snapshot['nbuf_user_data'];
-			$data['user_id'] = $user_id;
-			$format          = array_fill( 0, count( $data ), '%s' );
-
-			if ( $exists ) {
-				$wpdb->update( $user_data_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
-			} else {
-				$wpdb->insert( $user_data_table, $data, $format );
+			/*
+			 * SECURITY: revert mass-assignment is constrained to a known-
+			 * safe column set. Without this allowlist, a tampered or
+			 * imported snapshot could revive privileged columns
+			 * (e.g., is_disabled=0, is_verified=1, expires_at) bypassing
+			 * the admin-controlled state-change paths. Drop any unknown
+			 * keys before the UPDATE/INSERT.
+			 */
+			$allowed_user_data_columns = array(
+				'is_verified',
+				'verified_date',
+				'verification_sent_at',
+				'profile_privacy',
+				'show_in_directory',
+				'visible_fields',
+				'use_gravatar',
+				'cover_photo_url',
+				'cover_photo_path',
+				'profile_photo_url',
+				'profile_photo_path',
+				'pending_email',
+				'last_login_at',
+			);
+			$data                      = array_intersect_key( (array) $snapshot['nbuf_user_data'], array_flip( $allowed_user_data_columns ) );
+			if ( ! empty( $data ) ) {
+				$data['user_id'] = $user_id;
+				$format          = array_fill( 0, count( $data ), '%s' );
+				if ( $exists ) {
+					$wpdb->update( $user_data_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
+				} else {
+					$wpdb->insert( $user_data_table, $data, $format );
+				}
 			}
 		}
 
@@ -728,14 +752,25 @@ class NBUF_Version_History {
 				)
 			);
 
-			$data            = $snapshot['nbuf_profile'];
-			$data['user_id'] = $user_id;
-			$format          = array_fill( 0, count( $data ), '%s' );
-
-			if ( $exists ) {
-				$wpdb->update( $profile_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
-			} else {
-				$wpdb->insert( $profile_table, $data, $format );
+			/*
+			 * SECURITY: same allowlist treatment for nbuf_user_profile.
+			 * Use NBUF_Profile_Data's known field keys when available so
+			 * the revert column set stays in sync with profile-data.
+			 */
+			$allowed_profile_columns = class_exists( 'NBUF_Profile_Data' ) && method_exists( 'NBUF_Profile_Data', 'get_all_field_keys' )
+				? NBUF_Profile_Data::get_all_field_keys()
+				: array();
+			$data                    = ! empty( $allowed_profile_columns )
+				? array_intersect_key( (array) $snapshot['nbuf_profile'], array_flip( $allowed_profile_columns ) )
+				: (array) $snapshot['nbuf_profile'];
+			if ( ! empty( $data ) ) {
+				$data['user_id'] = $user_id;
+				$format          = array_fill( 0, count( $data ), '%s' );
+				if ( $exists ) {
+					$wpdb->update( $profile_table, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
+				} else {
+					$wpdb->insert( $profile_table, $data, $format );
+				}
 			}
 		}
 
@@ -750,6 +785,31 @@ class NBUF_Version_History {
 			'revert',
 			get_current_user_id()
 		);
+
+		/*
+		 * Record the revert in the admin audit log so privileged
+		 * profile changes via this path leave the same forensic trail
+		 * as direct admin profile edits. Previously reverts only
+		 * appeared in nbuf_profile_versions and bypassed admin-audit-log.
+		 */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'profile_edited_by_admin',
+				'success',
+				sprintf(
+					/* translators: 1: target user ID, 2: version ID being reverted to */
+					__( 'Reverted user %1$d to version %2$d', 'nobloat-user-foundry' ),
+					$user_id,
+					$version_id
+				),
+				$user_id,
+				array(
+					'version_id'      => $version_id,
+					'reverted_fields' => $all_fields,
+				)
+			);
+		}
 
 		return true;
 	}
@@ -882,6 +942,21 @@ class NBUF_Version_History {
 	public function ajax_get_version_diff(): void {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
+		/*
+		 * Rate-limit per user. Each diff decodes two JSON snapshots and
+		 * compares them — for users with rich profiles the snapshots can
+		 * be tens of kilobytes each, so an unbounded request rate is a
+		 * cheap way to spike DB IO. Mirror the timeline endpoint's cap.
+		 */
+		$current_user_id = get_current_user_id();
+		$rate_key        = 'nbuf_vh_diff_rate_' . $current_user_id;
+		$requests        = (int) get_transient( $rate_key );
+		if ( $requests >= 30 ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait a moment.', 'nobloat-user-foundry' ) ) );
+			return;
+		}
+		set_transient( $rate_key, $requests + 1, MINUTE_IN_SECONDS );
+
 		$version_id_1 = isset( $_POST['version_id_1'] ) ? absint( $_POST['version_id_1'] ) : 0;
 		$version_id_2 = isset( $_POST['version_id_2'] ) ? absint( $_POST['version_id_2'] ) : 0;
 
@@ -890,6 +965,7 @@ class NBUF_Version_History {
 
 		if ( ! $version1 || ! $version2 ) {
 			wp_send_json_error( array( 'message' => __( 'Versions not found.', 'nobloat-user-foundry' ) ) );
+			return;
 		}
 
 		/* Check permissions */
@@ -926,15 +1002,31 @@ class NBUF_Version_History {
 		check_ajax_referer( 'nbuf_version_history', 'nonce' );
 
 		$version_id = isset( $_POST['version_id'] ) ? absint( $_POST['version_id'] ) : 0;
+		$posted_uid = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
 		$version    = $this->get_version_by_id( $version_id );
 
 		if ( ! $version ) {
 			wp_send_json_error( array( 'message' => __( 'Version not found.', 'nobloat-user-foundry' ) ) );
+			return;
+		}
+
+		/*
+		 * SECURITY: cross-check the posted user_id against the version
+		 * row's user_id. Without this, an admin viewing user A's history
+		 * UI who is tricked into submitting a version_id from user B's
+		 * snapshot would silently revert user B. Nonces protect against
+		 * cross-site forgery; this check protects against same-site UI
+		 * confusion / clickjacking.
+		 */
+		if ( $posted_uid && (int) $posted_uid !== (int) $version->user_id ) {
+			wp_send_json_error( array( 'message' => __( 'User mismatch. Refresh and try again.', 'nobloat-user-foundry' ) ) );
+			return;
 		}
 
 		/* Check permissions */
 		if ( ! $this->can_revert_version( $version->user_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
+			return;
 		}
 
 		$success = $this->revert_to_version( $version->user_id, $version_id );

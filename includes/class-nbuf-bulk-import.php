@@ -404,11 +404,20 @@ class NBUF_Bulk_Import {
 			} else {
 				++$preview['valid'];
 
-				/* Add to samples */
+				/*
+				 * Add to samples. SECURITY: strip user_pass from the preview
+				 * data before sending to the admin's browser. The preview
+				 * round-trips through the AJAX response and lives in
+				 * browser memory / proxy logs / the network tab — leaving
+				 * plaintext passwords from the CSV is unnecessary PII
+				 * exposure. The actual import still uses the real password.
+				 */
 				if ( $sample_count < $max_samples ) {
+					$sample_data = $validation;
+					unset( $sample_data['user_pass'] );
 					$preview['samples'][] = array(
 						'line' => $row['line'],
-						'data' => $validation,
+						'data' => $sample_data,
 					);
 					++$sample_count;
 				}
@@ -513,9 +522,31 @@ class NBUF_Bulk_Import {
 
 		$validated['user_login'] = sanitize_user( $row['user_login'] );
 
-		/* Optional: Password (generate if not provided) */
+		/*
+		 * Optional: Password (generate if not provided).
+		 *
+		 * SECURITY: do NOT sanitize_text_field on passwords (it strips
+		 * legitimate special characters), but DO strip C0 control bytes
+		 * (NUL/CR/LF/etc.) so a CSV-injected `\r\n` cannot break out of
+		 * the welcome-email body or the password column. Cap to 256
+		 * chars to bound bcrypt cost (wp_hash_password truncates at 72
+		 * regardless, so the cap only prevents pathologically large
+		 * cells from slowing the import pipeline).
+		 */
 		if ( ! empty( $row['user_pass'] ) ) {
-			$validated['user_pass'] = $row['user_pass']; // Don't sanitize passwords.
+			$pass = (string) $row['user_pass'];
+			$pass = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $pass );
+			if ( strlen( $pass ) > 256 ) {
+				return new WP_Error(
+					'password_too_long',
+					sprintf(
+						/* translators: %d: CSV line number */
+						__( 'Line %d: Password exceeds 256 characters.', 'nobloat-user-foundry' ),
+						$line_number
+					)
+				);
+			}
+			$validated['user_pass'] = $pass;
 		} else {
 			$validated['user_pass'] = wp_generate_password( 16, true, true );
 		}

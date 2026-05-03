@@ -659,13 +659,22 @@ class NBUF_Shortcodes {
 		$login = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
 		$key   = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 
+		/*
+		 * Redirect-with-error rather than wp_die() so the user sees a
+		 * styled "request a new link" page consistent with the rest of
+		 * the flow. wp_die produced a bare error page that was easier
+		 * to fingerprint and broke the visual identity of the site.
+		 */
+		$forgot_url = self::get_forgot_password_url();
 		if ( empty( $login ) || empty( $key ) ) {
-			wp_die( esc_html__( 'Invalid reset link.', 'nobloat-user-foundry' ) );
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Invalid reset link. Please request a new one.', 'nobloat-user-foundry' ) ), $forgot_url ) );
+			exit;
 		}
 
 		$user = check_password_reset_key( $key, $login );
 		if ( is_wp_error( $user ) ) {
-			wp_die( esc_html__( 'Invalid or expired reset key.', 'nobloat-user-foundry' ) );
+			wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'This reset link is invalid or has expired. Please request a new one.', 'nobloat-user-foundry' ) ), $forgot_url ) );
+			exit;
 		}
 
      // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are not sanitized.
@@ -2440,8 +2449,17 @@ class NBUF_Shortcodes {
 			NBUF_User::invalidate_cache( $user_id );
 		}
 
-		/* Fire action for extensions (privacy settings, etc.) */
-		do_action( 'nbuf_after_profile_update', $user_id, $_POST );
+		/*
+		 * Fire action for extensions (privacy settings, etc.).
+		 *
+		 * SECURITY: pass the SANITISED $profile_data array, not raw $_POST.
+		 * Earlier callers received the entire superglobal — extensions
+		 * naively reading $_POST['role'], $_POST['wp_capabilities'], or
+		 * $_POST['user_id'] could become a privilege-escalation footgun.
+		 * The contract is now: extensions receive only the validated
+		 * profile-field map this handler accepted.
+		 */
+		do_action( 'nbuf_after_profile_update', $user_id, $profile_data );
 
 		/* Set flash message and redirect (preserving tab state) */
 		self::set_flash_message( $user_id, __( 'Profile updated successfully!', 'nobloat-user-foundry' ), 'success' );
@@ -2480,6 +2498,21 @@ class NBUF_Shortcodes {
 
 		/* Validate current password */
 		if ( ! wp_check_password( $current_password, $current_user->user_pass, $user_id ) ) {
+			/*
+			 * Audit failed re-confirm attempts so a stolen-cookie attacker
+			 * brute-forcing the password under the current user's session
+			 * leaves a forensic trail. The attempt count from the per-user
+			 * 2FA/login limiter does NOT cover this path.
+			 */
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$user_id,
+					'password_change_failed',
+					'failure',
+					'Current-password re-confirm failed during password change',
+					array()
+				);
+			}
 			self::set_flash_message( $user_id, __( 'Current password is incorrect.', 'nobloat-user-foundry' ), 'error' );
 			wp_safe_redirect( self::build_account_redirect() );
 			exit;
@@ -2571,6 +2604,15 @@ class NBUF_Shortcodes {
 
 		/* Validate password */
 		if ( ! wp_check_password( $confirm_password, $current_user->user_pass, $user_id ) ) {
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$user_id,
+					'email_change_failed',
+					'failure',
+					'Password re-confirm failed during email change',
+					array( 'attempted_new_email' => $new_email )
+				);
+			}
 			self::set_flash_message( $user_id, __( 'Password is incorrect.', 'nobloat-user-foundry' ), 'error' );
 			wp_safe_redirect( self::build_account_redirect() );
 			exit;
@@ -2618,18 +2660,15 @@ class NBUF_Shortcodes {
 			 * PENDING EMAIL FLOW
 			 * Store new email as pending, send verification to new email.
 			 * Actual email change happens only after verification.
-			 */
-			NBUF_User_Data::set_pending_email( $user_id, $new_email );
-
-			/*
-			 * SECURITY: invalidate any prior unredeemed `email_change` tokens
-			 * for this user before issuing a new one. Without this cleanup, a
-			 * user who requests change-to-A then change-to-B leaves token A
-			 * still valid in the DB; clicking the older A link silently
-			 * applies the (now overwritten) pending email B or — depending
-			 * on race — apply A as the new account email despite the user
-			 * having moved on to B. Keeping at most one outstanding email-
-			 * change token per user closes the multi-stage replay window.
+			 *
+			 * SECURITY ordering matters here. Earlier code updated
+			 * `pending_email` first and THEN deleted prior tokens. That
+			 * left a small window where the verifier could observe
+			 * (old_token + new_pending_email) and silently promote the
+			 * new pending email under the old token. Delete prior tokens
+			 * BEFORE rotating the pending value so the verifier never
+			 * sees a token whose stored user_email and the user's
+			 * pending_email disagree.
 			 */
 			global $wpdb;
 			$tokens_table = $wpdb->prefix . NBUF_DB_TABLE;
@@ -2643,6 +2682,8 @@ class NBUF_Shortcodes {
 				array( '%d', '%s' )
 			);
 
+			NBUF_User_Data::set_pending_email( $user_id, $new_email );
+
 			/* Generate verification token — store hash, send plaintext in email */
 			$token      = bin2hex( random_bytes( 32 ) );
 			$token_hash = hash( 'sha256', $token );
@@ -2652,6 +2693,17 @@ class NBUF_Shortcodes {
 
 			/* Send plaintext token to the NEW email */
 			NBUF_Email::send_verification_email( $new_email, $token, $current_user );
+
+			/*
+			 * Notify the OLD email that a change is pending so a stolen
+			 * session cannot quietly pivot the account to an attacker's
+			 * inbox without the legitimate owner being warned. Use the
+			 * existing notification helper but suffix "(pending)" so the
+			 * recipient understands the change has not yet completed.
+			 */
+			if ( $old_email ) {
+				self::send_email_change_notification( $user_id, $old_email, $new_email, true );
+			}
 
 			/* Log pending email change */
 			NBUF_Audit_Log::log(
@@ -2729,26 +2781,50 @@ class NBUF_Shortcodes {
 	 * Send notification to old email when email is changed.
 	 * ==========================================================
 	 *
-	 * @param int    $user_id   User ID.
-	 * @param string $old_email Old email address.
-	 * @param string $new_email New email address.
+	 * @param int    $user_id    User ID.
+	 * @param string $old_email  Old email address.
+	 * @param string $new_email  New email address.
+	 * @param bool   $is_pending True when the change is pending verification (sends a "pending" advisory rather than a completed notice).
 	 * @return void
 	 */
-	public static function send_email_change_notification( int $user_id, string $old_email, string $new_email ): void {
+	public static function send_email_change_notification( int $user_id, string $old_email, string $new_email, bool $is_pending = false ): void {
 		$user      = get_userdata( $user_id );
 		$site_name = get_bloginfo( 'name' );
 
-		/* Build email */
-		$subject = sprintf(
-			/* translators: %s: site name */
-			__( '[%s] Email Address Changed', 'nobloat-user-foundry' ),
-			$site_name
-		);
+		if ( $is_pending ) {
+			$subject = sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Email Change Requested', 'nobloat-user-foundry' ),
+				$site_name
+			);
+			$message = sprintf(
+				/* translators: 1: display name, 2: site name, 3: requested email address, 4: admin email */
+				__(
+					'Hi %1$s,
 
-		$message = sprintf(
-			/* translators: 1: display name, 2: site name, 3: new email address, 4: admin email */
-			__(
-				'Hi %1$s,
+A change of email address was just requested on your account at %2$s. The new address is %3$s.
+
+This change is NOT yet active — it only takes effect after the verification link sent to the new address is clicked. If you did not request this change, contact the site administrator immediately at %4$s and consider changing your password.
+
+Best regards,
+%2$s',
+					'nobloat-user-foundry'
+				),
+				$user->display_name ? $user->display_name : $user->user_login,
+				$site_name,
+				$new_email,
+				get_option( 'admin_email' )
+			);
+		} else {
+			$subject = sprintf(
+				/* translators: %s: site name */
+				__( '[%s] Email Address Changed', 'nobloat-user-foundry' ),
+				$site_name
+			);
+			$message = sprintf(
+				/* translators: 1: display name, 2: site name, 3: new email address, 4: admin email */
+				__(
+					'Hi %1$s,
 
 This is a notification that the email address associated with your account on %2$s has been changed.
 
@@ -2758,13 +2834,14 @@ If you did not make this change, please contact the site administrator immediate
 
 Best regards,
 %2$s',
-				'nobloat-user-foundry'
-			),
-			$user->display_name ? $user->display_name : $user->user_login,
-			$site_name,
-			$new_email,
-			get_option( 'admin_email' )
-		);
+					'nobloat-user-foundry'
+				),
+				$user->display_name ? $user->display_name : $user->user_login,
+				$site_name,
+				$new_email,
+				get_option( 'admin_email' )
+			);
+		}
 
 		/* Send to old email */
 		NBUF_Email::send( $old_email, $subject, $message );
@@ -2937,6 +3014,27 @@ Best regards,
 		}
 
 		$user_id = get_current_user_id();
+
+		/*
+		 * SECURITY: rate limit per user. ZIP generation does DB scans,
+		 * file writes, and packaging — repeating it in a tight loop from
+		 * a compromised session is a DoS vector against the worker pool
+		 * and temp disk. Cap to 3 exports per hour by default; admins
+		 * can override via the filter for high-throughput environments.
+		 */
+		if ( class_exists( 'NBUF_Transients' ) ) {
+			$max_exports_per_hour = (int) apply_filters( 'nbuf_data_export_rate_limit', 3 );
+			$export_attempts      = NBUF_Transients::increment( 'data_export_rate', (string) $user_id, 1, HOUR_IN_SECONDS );
+			if ( $max_exports_per_hour > 0 && $export_attempts > $max_exports_per_hour ) {
+				self::set_flash_message(
+					$user_id,
+					__( 'You can only export your data a limited number of times per hour. Please try again later.', 'nobloat-user-foundry' ),
+					'error'
+				);
+				wp_safe_redirect( self::build_account_redirect() );
+				exit;
+			}
+		}
 
 		/* Check if GDPR export is available */
 		if ( ! class_exists( 'NBUF_GDPR_Export' ) ) {
@@ -3704,14 +3802,21 @@ Best regards,
 			}
 		}
 
-		/* User not found */
+		/*
+		 * SECURITY: collapse "user not found" and "private profile" to a
+		 * single message. Distinct messages let an attacker enumerate
+		 * which usernames exist on the site (?user=alice → "private",
+		 * ?user=bob → "not found"), which combines with login error
+		 * codes for credential-stuffing prioritisation.
+		 */
+		$unavailable_message = '<div class="nbuf-restricted-content">' . esc_html__( 'This profile is unavailable.', 'nobloat-user-foundry' ) . '</div>';
 		if ( ! $user ) {
-			return '<div class="nbuf-error">' . esc_html__( 'User not found.', 'nobloat-user-foundry' ) . '</div>';
+			return $unavailable_message;
 		}
 
 		/* Check privacy settings */
 		if ( ! NBUF_Public_Profiles::can_view_profile( $user->ID ) ) {
-			return '<div class="nbuf-restricted-content">' . esc_html__( 'This profile is private.', 'nobloat-user-foundry' ) . '</div>';
+			return $unavailable_message;
 		}
 
 		/* Get user data */

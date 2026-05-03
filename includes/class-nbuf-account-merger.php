@@ -185,10 +185,19 @@ class NBUF_Account_Merger {
 				$cover_photo_url   = NBUF_Profile_Photos::get_cover_photo( $user_id );
 			}
 
-			/* Get user data to check for custom uploaded photos */
+			/*
+			 * Get user data to check for custom uploaded photos.
+			 *
+			 * NBUF_User_Data::get() returns ?object (stdClass), not array.
+			 * Earlier code used array offsets here which would fatal on
+			 * PHP 8 the moment any user with a photo loaded the merge UI,
+			 * preventing the photo-conflict / MIME-recheck path from
+			 * ever running. Use object-property access throughout this
+			 * file for $user_data values.
+			 */
 			$user_data          = NBUF_User_Data::get( $user_id );
-			$has_custom_profile = ! empty( $user_data['profile_photo_url'] );
-			$has_cover          = ! empty( $user_data['cover_photo_url'] );
+			$has_custom_profile = $user_data && ! empty( $user_data->profile_photo_url );
+			$has_cover          = $user_data && ! empty( $user_data->cover_photo_url );
 
 			$accounts[ $user_id ] = array(
 				'user_login'         => $user->user_login,
@@ -296,10 +305,10 @@ class NBUF_Account_Merger {
 		$profile_photos = array();
 		foreach ( $account_ids as $user_id ) {
 			$user_data = NBUF_User_Data::get( $user_id );
-			if ( ! empty( $user_data['profile_photo_url'] ) ) {
+			if ( $user_data && ! empty( $user_data->profile_photo_url ) ) {
 				$profile_photos[ $user_id ] = array(
-					'url'  => $user_data['profile_photo_url'],
-					'path' => $user_data['profile_photo_path'],
+					'url'  => $user_data->profile_photo_url,
+					'path' => $user_data->profile_photo_path ?? '',
 				);
 			}
 		}
@@ -317,10 +326,10 @@ class NBUF_Account_Merger {
 		$cover_photos = array();
 		foreach ( $account_ids as $user_id ) {
 			$user_data = NBUF_User_Data::get( $user_id );
-			if ( ! empty( $user_data['cover_photo_url'] ) ) {
+			if ( $user_data && ! empty( $user_data->cover_photo_url ) ) {
 				$cover_photos[ $user_id ] = array(
-					'url'  => $user_data['cover_photo_url'],
-					'path' => $user_data['cover_photo_path'],
+					'url'  => $user_data->cover_photo_url,
+					'path' => $user_data->cover_photo_path ?? '',
 				);
 			}
 		}
@@ -1243,11 +1252,19 @@ If you did not request this merge or have questions, please contact the site adm
 									$dest_hash   = hash_file( 'sha256', $dest_path );
 
 									if ( $source_hash === $dest_hash ) {
-										/* Update primary user's profile photo */
-										$user_data                       = NBUF_User_Data::get( $primary_id );
-										$user_data['profile_photo_url']  = $dest_dir['url'] . $filename;
-										$user_data['profile_photo_path'] = $dest_path;
-										NBUF_User_Data::update( $primary_id, $user_data );
+										/*
+										 * Update primary user's profile photo. Pass an explicit
+										 * change-set array to NBUF_User_Data::update — earlier
+										 * code mutated the stdClass row returned by ::get() with
+										 * array offsets (PHP 8 fatal) and re-saved the entire row.
+										 */
+										NBUF_User_Data::update(
+											$primary_id,
+											array(
+												'profile_photo_url'  => $dest_dir['url'] . $filename,
+												'profile_photo_path' => $dest_path,
+											)
+										);
 
 										/* Log photo copy to admin audit trail */
 										if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
@@ -1458,11 +1475,14 @@ If you did not request this merge or have questions, please contact the site adm
 									$dest_hash   = hash_file( 'sha256', $dest_path );
 
 									if ( $source_hash === $dest_hash ) {
-										/* Update primary user's cover photo */
-										$user_data                     = NBUF_User_Data::get( $primary_id );
-										$user_data['cover_photo_url']  = $dest_dir['url'] . $filename;
-										$user_data['cover_photo_path'] = $dest_path;
-										NBUF_User_Data::update( $primary_id, $user_data );
+										/* Update primary user's cover photo (explicit change-set, PHP 8 safe). */
+										NBUF_User_Data::update(
+											$primary_id,
+											array(
+												'cover_photo_url'  => $dest_dir['url'] . $filename,
+												'cover_photo_path' => $dest_path,
+											)
+										);
 
 										/* Log photo copy to admin audit trail */
 										if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {

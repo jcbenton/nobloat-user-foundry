@@ -233,17 +233,67 @@ class NBUF_Username_Changer {
 			return;
 		}
 
+		/*
+		 * SECURITY: WP's `illegal_user_logins` filter is enforced by
+		 * `wp_insert_user` but NOT by `wp_update_user` or direct $wpdb
+		 * writes. Apply the same blocklist here so site administrators
+		 * cannot rename accounts to reserved names like `admin`, `root`,
+		 * `wpadmin`, `support` (whatever the site's policy lists).
+		 */
+		$illegal_logins = (array) apply_filters( 'illegal_user_logins', array() );
+		if ( in_array( strtolower( $new_username ), array_map( 'strtolower', $illegal_logins ), true ) ) {
+			add_action(
+				'user_profile_update_errors',
+				function ( $errors ) {
+					$errors->add(
+						'username_illegal',
+						__( '<strong>Error:</strong> This username is reserved and cannot be used.', 'nobloat-user-foundry' )
+					);
+				}
+			);
+			return;
+		}
+
+		/*
+		 * Ensure the derived user_nicename does not collide with another
+		 * user's existing nicename. WP's wp_insert_user adds a numeric
+		 * suffix; mirror that behaviour here so /author/{slug} archives
+		 * remain unambiguous.
+		 */
+		$base_nicename = sanitize_title( $new_username );
+		$nicename      = $base_nicename;
+		global $wpdb;
+		$suffix = 2;
+		while ( true ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe on wp_users.user_nicename.
+			$collision = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT ID FROM {$wpdb->users} WHERE user_nicename = %s AND ID != %d LIMIT 1",
+					$nicename,
+					$user_id
+				)
+			);
+			if ( ! $collision ) {
+				break;
+			}
+			$nicename = $base_nicename . '-' . $suffix;
+			++$suffix;
+			if ( $suffix > 50 ) {
+				$nicename = $base_nicename . '-' . wp_generate_password( 6, false );
+				break;
+			}
+		}
+
 		/* Store old username for logging */
 		$old_username = $user->user_login;
 
-		/* Perform the update - direct DB query required as wp_update_user() does not support changing user_login */
-		global $wpdb;
+		// Perform the update - direct DB query required as wp_update_user() does not support changing user_login.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required; user_login cannot be changed via wp_update_user().
 		$result = $wpdb->update(
 			$wpdb->users,
 			array(
 				'user_login'    => $new_username,
-				'user_nicename' => sanitize_title( $new_username ),
+				'user_nicename' => $nicename,
 			),
 			array( 'ID' => $user_id ),
 			array( '%s', '%s' ),

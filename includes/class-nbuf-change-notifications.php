@@ -485,21 +485,42 @@ class NBUF_Change_Notifications {
 		$digest_mode = NBUF_Options::get( 'nbuf_notify_profile_changes_digest', 'immediate' );
 
 		if ( 'immediate' === $digest_mode ) {
-			/* Send immediately */
-			$this->send_notification( $user_id, $changes );
-		} else {
+			/*
+			 * SECURITY: rate-limit per user so a misbehaving or malicious
+			 * frontend client that issues rapid profile updates can't
+			 * spam the admin mailbox. Cap to 5 immediate notifications
+			 * per 5-minute window per user; over-cap events fold into
+			 * the daily digest queue.
+			 */
+			$cap = (int) apply_filters( 'nbuf_profile_change_notify_cap', 5 );
+			if ( class_exists( 'NBUF_Transients' ) ) {
+				$count = NBUF_Transients::increment( 'profile_change_notify', (string) $user_id, 1, 5 * MINUTE_IN_SECONDS );
+				if ( $cap > 0 && $count > $cap ) {
+					/* Over cap — fold into daily digest queue. */
+					$digest_mode = 'daily';
+				} else {
+					$this->send_notification( $user_id, $changes );
+					return;
+				}
+			} else {
+				$this->send_notification( $user_id, $changes );
+				return;
+			}
+		}
+
+		{
 			/* Queue for digest - store directly in transient to persist across requests */
 			$transient_key = 'nbuf_pending_changes_' . $digest_mode;
 			$existing      = get_transient( $transient_key );
 
-			if ( ! is_array( $existing ) ) {
-				$existing = array();
-			}
+		if ( ! is_array( $existing ) ) {
+			$existing = array();
+		}
 
 			/* Initialize user's change array if not exists */
-			if ( ! isset( $existing[ $user_id ] ) || ! is_array( $existing[ $user_id ] ) ) {
-				$existing[ $user_id ] = array();
-			}
+		if ( ! isset( $existing[ $user_id ] ) || ! is_array( $existing[ $user_id ] ) ) {
+			$existing[ $user_id ] = array();
+		}
 
 			/* Append new change (don't overwrite previous changes) */
 			$existing[ $user_id ][] = array(
@@ -512,7 +533,7 @@ class NBUF_Change_Notifications {
 
 			/* Also update static property for current request consistency */
 			self::$pending_changes = $existing;
-		}
+			}
 	}
 
 	/**
@@ -534,13 +555,19 @@ class NBUF_Change_Notifications {
 			return;
 		}
 
-		/* Build email */
-		$subject = sprintf( 'Profile Changes for %s', $user->display_name );
+		/*
+		 * SECURITY: sanitize_text_field strips CR/LF/control chars from
+		 * the subject and any user-controlled value spliced into it,
+		 * defeating mail-header injection attempts via display_name.
+		 * Modern PHPMailer also rejects CRLF in subjects, so this is
+		 * defense-in-depth. The body is sent in plain-text mode.
+		 */
+		$subject = sanitize_text_field( sprintf( 'Profile Changes for %s', $user->display_name ) );
 		$message = $this->build_notification_email( $user, $changes );
 
 		/* Send email */
 		foreach ( $recipients as $recipient ) {
-			NBUF_Email::send( $recipient, $subject, $message );
+			NBUF_Email::send( $recipient, $subject, $message, 'text' );
 		}
 	}
 

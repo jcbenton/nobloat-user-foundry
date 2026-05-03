@@ -379,7 +379,15 @@ class NBUF_User_Notes {
 	 * @return void
 	 */
 	public static function render_notes_section( WP_User $user ): void {
-		if ( ! current_user_can( 'edit_users' ) ) {
+		/*
+		 * SECURITY: gate read access on manage_options to match the AJAX
+		 * mutators (lines 537, 571, etc.). Previously the read gate was
+		 * `edit_users`, which on sites that grant `edit_users` to a custom
+		 * Site Manager / Editor role would expose admin notes (often PII
+		 * or security disposition like "suspected fraud") to roles that
+		 * cannot themselves create or edit notes — read-write asymmetry.
+		 */
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -405,10 +413,16 @@ class NBUF_User_Notes {
 							<div class="nbuf-note-header">
 								<span class="nbuf-note-meta">
 									<?php
+									/*
+									 * Use __() for the format string (NOT esc_html__) because
+									 * we are intentionally substituting an already-escaped
+									 * `<strong>...</strong>` fragment into %1$s. Both substitution
+									 * args have been esc_html'd individually above.
+									 */
 									printf(
-										/* translators: 1: author name, 2: date */
-										esc_html__( 'By %1$s on %2$s', 'nobloat-user-foundry' ),
-										'<strong>' . esc_html( $author ? $author->display_name : __( 'Unknown', 'nobloat-user-foundry' ) ) . '</strong>',
+										/* translators: 1: author name (already escaped, wrapped in <strong>), 2: date */
+										wp_kses_post( __( 'By %1$s on %2$s', 'nobloat-user-foundry' ) ),
+										'<strong>' . esc_html( $author ? $author->display_name : __( 'Unknown', 'nobloat-user-foundry' ) ) . '</strong>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML fragment.
 										esc_html( mysql2date( 'M j, Y \a\t g:i A', $note->created_at ) )
 									);
 									?>

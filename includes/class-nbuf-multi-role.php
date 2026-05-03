@@ -242,8 +242,22 @@ class NBUF_Multi_Role {
 			return;
 		}
 
-		/* Get only editable roles to match save_roles() filtering */
+		/*
+		 * Get only editable roles to match save_roles() filtering.
+		 *
+		 * SECURITY: explicitly hide the administrator role from anyone who
+		 * does not themselves hold manage_options. WordPress core's
+		 * `editable_roles` filter normally drops admin for non-admins on
+		 * the user-edit screen, but only when an explicit filter is
+		 * installed. Plugins like Members / User Role Editor frequently
+		 * grant `promote_users` to Editors with elevated caps; without
+		 * this guard, those users would see the administrator checkbox
+		 * in our custom grid and could escalate other users to admin.
+		 */
 		$all_roles = wp_list_pluck( get_editable_roles(), 'name' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			unset( $all_roles['administrator'] );
+		}
 
 		/* Get user's current roles */
 		$user_roles = $user->roles;
@@ -335,7 +349,11 @@ class NBUF_Multi_Role {
 
 		/* Validate roles exist and filter against editable roles to prevent privilege escalation */
 		$editable_roles = array_keys( get_editable_roles() );
-		$new_roles      = array_intersect( $new_roles, $editable_roles );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			/* Mirror the render-side guard: administrator may only be assigned by an admin. */
+			$editable_roles = array_diff( $editable_roles, array( 'administrator' ) );
+		}
+		$new_roles = array_intersect( $new_roles, $editable_roles );
 
 		/* Get user object */
 		$user = get_userdata( $user_id );

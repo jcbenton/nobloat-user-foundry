@@ -778,7 +778,17 @@ class NBUF_Admin_Audit_Log {
 	 */
 	private static function csv_escape( $value ): string {
 		$value = (string) $value;
-		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+		if ( '' === $value ) {
+			return $value;
+		}
+
+		/*
+		 * Match the standardised regex used by NBUF_Admin_Users and
+		 * NBUF_Security_Log: also catches the `|` pipe (DDE injection)
+		 * and any leading whitespace / quotes / backslashes that Excel
+		 * would strip before re-evaluating the cell as a formula.
+		 */
+		if ( preg_match( '/^[\s\x00-\x1f\\\'"]*[=+\-@|]/', $value ) ) {
 			$value = "'" . $value;
 		}
 		return $value;

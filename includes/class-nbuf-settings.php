@@ -207,11 +207,17 @@ class NBUF_Settings {
 			'nbuf_view_override_2fa-setup'            => array( __CLASS__, 'sanitize_page_id' ),
 			'nbuf_view_override_members'              => array( __CLASS__, 'sanitize_page_id' ),
 
-			/* CSS options */
-			'nbuf_reset_page_css'                     => 'wp_strip_all_tags',
-			'nbuf_login_page_css'                     => 'wp_strip_all_tags',
-			'nbuf_registration_page_css'              => 'wp_strip_all_tags',
-			'nbuf_account_page_css'                   => 'wp_strip_all_tags',
+			/*
+			 * CSS options. Use NBUF_CSS_Manager::sanitize_css (not
+			 * wp_strip_all_tags) so admin-supplied CSS is also stripped
+			 * of `javascript:`/`data:` URIs in url(...), `@import`,
+			 * `expression(...)`, `-moz-binding`, and `behavior:` —
+			 * the standard CSS-side XSS / data-exfiltration vectors.
+			 */
+			'nbuf_reset_page_css'                     => array( 'NBUF_CSS_Manager', 'sanitize_css' ),
+			'nbuf_login_page_css'                     => array( 'NBUF_CSS_Manager', 'sanitize_css' ),
+			'nbuf_registration_page_css'              => array( 'NBUF_CSS_Manager', 'sanitize_css' ),
+			'nbuf_account_page_css'                   => array( 'NBUF_CSS_Manager', 'sanitize_css' ),
 			'nbuf_css_load_on_pages'                  => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_css_use_minified'                   => array( __CLASS__, 'sanitize_checkbox' ),
 
@@ -442,18 +448,18 @@ class NBUF_Settings {
 
 			/* Logging - User Audit Log */
 			'nbuf_audit_log_enabled'                  => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_audit_log_retention'                => 'sanitize_text_field',
+			'nbuf_audit_log_retention'                => array( __CLASS__, 'sanitize_log_retention' ),
 			'nbuf_audit_log_events'                   => array( __CLASS__, 'sanitize_checkbox_group' ),
 			'nbuf_audit_log_max_message_length'       => 'absint',
 
 			/* Logging - Admin Audit Log */
 			'nbuf_logging_admin_audit_enabled'        => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_logging_admin_audit_retention'      => 'sanitize_text_field',
+			'nbuf_logging_admin_audit_retention'      => array( __CLASS__, 'sanitize_log_retention' ),
 			'nbuf_logging_admin_audit_categories'     => array( __CLASS__, 'sanitize_checkbox_group' ),
 
 			/* Logging - Security Log */
 			'nbuf_security_log_enabled'               => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_security_log_retention'             => 'sanitize_text_field',
+			'nbuf_security_log_retention'             => array( __CLASS__, 'sanitize_log_retention' ),
 			'nbuf_security_log_alerts_enabled'        => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_security_log_recipient_type'        => function ( $value ) {
 				return in_array( $value, array( 'admin', 'custom' ), true ) ? $value : 'admin';
@@ -479,7 +485,7 @@ class NBUF_Settings {
 			'nbuf_profile_allow_cover_photos'         => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_profile_max_photo_size'             => 'absint',
 			'nbuf_profile_max_cover_size'             => 'absint',
-			'nbuf_profile_custom_css'                 => 'wp_strip_all_tags',
+			'nbuf_profile_custom_css'                 => array( 'NBUF_CSS_Manager', 'sanitize_css' ),
 
 			/* Member Directory settings */
 			'nbuf_enable_member_directory'            => array( __CLASS__, 'sanitize_checkbox' ),
@@ -1166,8 +1172,24 @@ class NBUF_Settings {
 				continue;
 			}
 
-			/* Migrate to custom table */
-			$value = maybe_unserialize( $option->option_value );
+			/*
+			 * SECURITY: decode without instantiating arbitrary classes.
+			 * The reads in NBUF_Options were hardened with safe_unserialize
+			 * in v1.6.3, but this one-shot wp_options→nbuf_options
+			 * migration kept the default-unsafe maybe_unserialize, leaving
+			 * a narrow POP-gadget window any time a serialized object
+			 * payload happened to land under a `nbuf_%` key in wp_options
+			 * (legacy installs, tampered backups, or another plugin's
+			 * SQLi). Pin allowed_classes => false here too.
+			 */
+			if ( is_string( $option->option_value ) && is_serialized( $option->option_value ) ) {
+				$value = @unserialize( $option->option_value, array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, Generic.PHP.NoSilencedErrors -- safe-unserialize wrapper.
+				if ( false === $value && 'b:0;' !== $option->option_value ) {
+					$value = $option->option_value;
+				}
+			} else {
+				$value = $option->option_value;
+			}
 			NBUF_Options::update( $option->option_name, $value, true, 'settings' );
 		}
 
@@ -1625,6 +1647,25 @@ class NBUF_Settings {
 	 */
 	public static function sanitize_checkbox( $input ): bool {
 		return ! empty( $input ) && '0' !== $input;
+	}
+
+	/**
+	 * Sanitize log-retention dropdowns to a known allow-list.
+	 *
+	 * SECURITY: prevents an admin (or anyone tampering with the form via
+	 * DevTools) from storing an unparseable retention string. The
+	 * cleanup cron silently no-ops on unrecognised values, which would
+	 * let logs grow unbounded — a defense-in-depth issue, not a direct
+	 * vulnerability.
+	 *
+	 * @since  1.6.5
+	 * @param  mixed $input Raw input value.
+	 * @return string One of the allow-listed retention tokens, defaulting to '90days'.
+	 */
+	public static function sanitize_log_retention( $input ): string {
+		$allowed = array( '7days', '30days', '90days', '180days', '1year', '2years', 'forever' );
+		$value   = is_string( $input ) ? sanitize_text_field( $input ) : '';
+		return in_array( $value, $allowed, true ) ? $value : '90days';
 	}
 
 	/**

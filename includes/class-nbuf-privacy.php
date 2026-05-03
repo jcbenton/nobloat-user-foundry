@@ -531,35 +531,66 @@ class NBUF_Privacy {
 		$data_to_export = array();
 		$files          = array();
 
-		/* Scan user's upload directory for all files */
-		$upload_dir = wp_upload_dir();
-		$user_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nobloat/users/' . $user->ID;
+		/*
+		 * Scan user's upload directory and include only files that
+		 * (a) live under the canonical uploads-base path (no symlink
+		 *     escapes / restore-from-backup leaks),
+		 * (b) carry a known image extension — SVG dropped because it
+		 *     can carry executable JS,
+		 * (c) match the actual photo paths recorded in nbuf_user_data
+		 *     (so unrelated artifacts placed in the user's directory
+		 *     are not exposed via the privacy URL).
+		 */
+		$upload_dir   = wp_upload_dir();
+		$base_dir     = realpath( $upload_dir['basedir'] );
+		$user_dir     = $upload_dir['basedir'] . '/nobloat/users/' . $user->ID;
+		$user_dir_rp  = realpath( $user_dir );
+		$allowed_exts = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
-		if ( is_dir( $user_dir ) ) {
+		if ( $base_dir && $user_dir_rp && 0 === strpos( $user_dir_rp, $base_dir . DIRECTORY_SEPARATOR ) && is_dir( $user_dir_rp ) ) {
 			$base_url = trailingslashit( $upload_dir['baseurl'] ) . 'nobloat/users/' . $user->ID . '/';
 
-			/* Get all files in the directory (non-recursive for security) */
-			$dir_files = scandir( $user_dir );
+			/* Cross-reference against recorded photo paths if available. */
+			$expected_basenames = array();
+			if ( class_exists( 'NBUF_User_Data' ) ) {
+				$ud = NBUF_User_Data::get( (int) $user->ID );
+				if ( $ud ) {
+					if ( ! empty( $ud->profile_photo_path ) ) {
+						$expected_basenames[ basename( (string) $ud->profile_photo_path ) ] = true;
+					}
+					if ( ! empty( $ud->cover_photo_path ) ) {
+						$expected_basenames[ basename( (string) $ud->cover_photo_path ) ] = true;
+					}
+				}
+			}
+
+			$dir_files = scandir( $user_dir_rp );
 			if ( $dir_files ) {
 				foreach ( $dir_files as $file ) {
-					/* Skip . and .. and hidden files */
-					if ( '.' === $file[0] ) {
+					if ( '' === $file || '.' === $file[0] ) {
+						continue;
+					}
+					$file_path = $user_dir_rp . '/' . $file;
+					if ( ! is_file( $file_path ) ) {
+						continue;
+					}
+					$extension = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+					if ( ! in_array( $extension, $allowed_exts, true ) ) {
 						continue;
 					}
 
-					$file_path = $user_dir . '/' . $file;
-
-					/* Only include actual files, not directories */
-					if ( is_file( $file_path ) ) {
-						/* Determine file type for label */
-						$extension = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
-						$is_image  = in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg' ), true );
-
-						$files[] = array(
-							'name'  => $is_image ? __( 'Image', 'nobloat-user-foundry' ) : __( 'File', 'nobloat-user-foundry' ),
-							'value' => $base_url . $file,
-						);
+					/*
+					 * If we have recorded photo paths, restrict export to
+					 * those exact basenames; otherwise allow any image
+					 * matching the extension allowlist (back-compat).
+					 */
+					if ( ! empty( $expected_basenames ) && ! isset( $expected_basenames[ $file ] ) ) {
+						continue;
 					}
+					$files[] = array(
+						'name'  => __( 'Image', 'nobloat-user-foundry' ),
+						'value' => $base_url . rawurlencode( $file ),
+					);
 				}
 			}
 		}

@@ -73,6 +73,20 @@ class NBUF_Public_Profiles {
 	 * @return void
 	 */
 	public static function render_profile_page( WP_User $user ): void {
+		/*
+		 * SECURITY: gate the public render method on the same can_view_profile
+		 * check the shortcode performs. Without this, any future caller (or
+		 * a 3rd-party plugin) wiring this method up via a custom rewrite or
+		 * shortcode would silently bypass the privacy setting. Render a
+		 * single generic "unavailable" notice that does not distinguish
+		 * "private" from "user not found" / "members only", matching the
+		 * shortcode handler's anti-enumeration message.
+		 */
+		if ( ! self::can_view_profile( $user->ID ) ) {
+			echo '<div class="nbuf-restricted-content">' . esc_html__( 'This profile is unavailable.', 'nobloat-user-foundry' ) . '</div>';
+			return;
+		}
+
 		// Get user data.
 		$user_data = NBUF_User_Data::get( $user->ID );
 

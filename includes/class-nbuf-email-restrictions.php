@@ -103,8 +103,33 @@ class NBUF_Email_Restrictions {
 	 * @return string Domain portion of email.
 	 */
 	public static function get_email_domain( string $email ): string {
-		$parts = explode( '@', strtolower( $email ) );
-		return isset( $parts[1] ) ? $parts[1] : '';
+		/*
+		 * SECURITY: canonicalise the domain before comparison.
+		 *  - Use the LAST `@` so embedded `@` in the local-part can't pivot
+		 *    the domain a parser sees vs. the matcher.
+		 *  - rtrim trailing dots so RFC root-zone form `company.com.` matches
+		 *    `company.com` in allow/deny lists.
+		 *  - Convert IDN/Unicode to ASCII (punycode) so `cömpany.com` and
+		 *    `xn--cmpany-9wa.com` and `company.com` all collapse, otherwise
+		 *    a homoglyph bypass beats blacklist mode.
+		 */
+		$email = trim( $email );
+		$at    = strrpos( $email, '@' );
+		if ( false === $at ) {
+			return '';
+		}
+		$domain = strtolower( substr( $email, $at + 1 ) );
+		$domain = rtrim( $domain, '.' );
+		if ( '' === $domain ) {
+			return '';
+		}
+		if ( function_exists( 'idn_to_ascii' ) && defined( 'INTL_IDNA_VARIANT_UTS46' ) ) {
+			$ascii = idn_to_ascii( $domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
+			if ( false !== $ascii && '' !== $ascii ) {
+				$domain = strtolower( $ascii );
+			}
+		}
+		return $domain;
 	}
 
 	/**

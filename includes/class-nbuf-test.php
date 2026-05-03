@@ -700,6 +700,23 @@ class NBUF_Test {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'nobloat-user-foundry' ) ) );
 		}
 
+		/*
+		 * SECURITY: rate-limit per admin so a compromised admin session
+		 * (or a logged-in actor with elevated privileges) cannot use the
+		 * test endpoint as a high-volume SSRF probe / payload-exfiltration
+		 * channel. is_url_safe() blocks private IPs, but the response
+		 * body is stored in nbuf_webhook_log and rendered to admins —
+		 * an attacker who hosts a webhook target gets an authenticated
+		 * scanner. 5 calls per minute per admin is generous for testing
+		 * and tight enough to neutralise scripted abuse.
+		 */
+		if ( class_exists( 'NBUF_Transients' ) ) {
+			$attempts = NBUF_Transients::increment( 'webhook_test', (string) get_current_user_id(), 1, MINUTE_IN_SECONDS );
+			if ( $attempts > 5 ) {
+				wp_send_json_error( array( 'message' => __( 'Too many test requests. Please wait a moment.', 'nobloat-user-foundry' ) ) );
+			}
+		}
+
 		$webhook_id = isset( $_POST['webhook_id'] ) ? absint( $_POST['webhook_id'] ) : 0;
 
 		if ( ! $webhook_id ) {

@@ -692,8 +692,16 @@ class NBUF_Audit_Log {
 	private static function csv_escape( $value ): string {
 		$value = (string) $value;
 
-		/* Prefix dangerous formula characters with single quote */
-		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+		if ( '' === $value ) {
+			return $value;
+		}
+
+		/*
+		 * Match the standardised regex used by other exporters: catches
+		 * the `|` pipe (DDE) and leading whitespace/quotes/backslashes
+		 * that Excel strips before re-evaluating the cell as a formula.
+		 */
+		if ( preg_match( '/^[\s\x00-\x1f\\\'"]*[=+\-@|]/', $value ) ) {
 			$value = "'" . $value;
 		}
 

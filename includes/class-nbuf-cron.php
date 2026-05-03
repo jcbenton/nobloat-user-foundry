@@ -96,6 +96,11 @@ class NBUF_Cron {
 				'description' => __( 'Prunes all enterprise logging tables based on retention settings.', 'nobloat-user-foundry' ),
 				'schedule'    => 'daily',
 			),
+			'nbuf_cleanup_webhook_logs'        => array(
+				'label'       => __( 'Webhook Log Cleanup', 'nobloat-user-foundry' ),
+				'description' => __( 'Prunes old webhook delivery records (default 30 days).', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
 
 			/* Notifications */
 			'nbuf_send_change_digest_hourly'   => array(
@@ -191,9 +196,32 @@ class NBUF_Cron {
 		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
 		add_action( 'nbuf_enterprise_logging_cleanup', array( __CLASS__, 'run_enterprise_logging_cleanup' ) );
 		add_action( 'nbuf_cleanup_login_attempts', array( __CLASS__, 'run_login_attempts_cleanup' ) );
+		add_action( 'nbuf_cleanup_webhook_logs', array( __CLASS__, 'run_webhook_log_cleanup' ) );
 
 		/* One-time migration hooks */
 		add_action( 'nbuf_migrate_usermeta', array( __CLASS__, 'run_usermeta_migration' ) );
+	}
+
+	/**
+	 * Run webhook delivery log cleanup.
+	 *
+	 * SECURITY/GDPR: webhook delivery records contain user PII (emails,
+	 * usernames, profile changes) in their payload column. Without this
+	 * scheduled cleanup the table grew unbounded. Default retention is
+	 * 30 days; admins can override via the `nbuf_webhook_log_retention_days`
+	 * filter.
+	 *
+	 * @since  1.6.5
+	 * @return void
+	 */
+	public static function run_webhook_log_cleanup(): void {
+		if ( ! class_exists( 'NBUF_Webhooks' ) ) {
+			return;
+		}
+		$days = (int) apply_filters( 'nbuf_webhook_log_retention_days', 30 );
+		if ( $days > 0 ) {
+			NBUF_Webhooks::cleanup_logs( $days );
+		}
 	}
 
 	/**

@@ -222,6 +222,27 @@ class NBUF_Role_Manager {
 	public static function update_role( string $role_key, array $updates ) {
 		global $wpdb;
 
+		/*
+		 * SECURITY: refuse to modify the native WordPress roles via this
+		 * path. role_exists() returns true for native roles too, so
+		 * without this guard a `manage_options` user could rename the
+		 * `administrator` role itself or replace its capabilities (the
+		 * actor-cap containment in roles-page still constrains the new
+		 * cap set, but renaming/replacing the admin role itself is
+		 * destructive misuse). delete_role() already protects natives;
+		 * mirror that here.
+		 */
+		$native_roles = array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' );
+		if ( in_array( $role_key, $native_roles, true ) ) {
+			return new WP_Error( 'cannot_modify_native', __( 'Cannot modify WordPress native roles.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Require the role be present in the NBUF-managed set, not just wp_roles. */
+		$custom_roles = self::get_all_roles();
+		if ( ! isset( $custom_roles[ $role_key ] ) ) {
+			return new WP_Error( 'role_not_managed', __( 'Role is not managed by this plugin.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Check if role exists */
 		if ( ! self::role_exists( $role_key ) ) {
 			return new WP_Error( 'role_not_found', __( 'Role not found.', 'nobloat-user-foundry' ) );

@@ -444,6 +444,19 @@ class NBUF_User {
 		* property_exists() correctly identifies properties even when they are NULL.
 		*/
 
+		/*
+		 * SECURITY: deny-list sensitive WP_User properties so a caller that
+		 * naively serializes or echoes an NBUF_User cannot leak the
+		 * password hash, the activation key, or other security-sensitive
+		 * fields. Internal callers that legitimately need the password
+		 * hash should access $instance->wp_user->user_pass directly so
+		 * the access is auditable in code review.
+		 */
+		static $denied_passthrough = array( 'user_pass', 'user_activation_key' );
+		if ( in_array( $name, $denied_passthrough, true ) ) {
+			return null;
+		}
+
 		/* Check user data object first - including NULL values */
 		if ( property_exists( $this->data, $name ) ) {
 			return $this->data->$name;

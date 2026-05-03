@@ -144,6 +144,17 @@ class NBUF_Webhooks {
 			return false;
 		}
 
+		/*
+		 * SECURITY: enforce a minimum HMAC secret length. Previously any
+		 * non-empty string was accepted, including 4-byte values that are
+		 * trivially brute-forceable offline once an HMAC and matching
+		 * payload are recovered from log dumps. 16 bytes is the published
+		 * RFC 2104 floor and matches WordPress's own auth-key minimum.
+		 */
+		if ( '' !== $secret && strlen( $secret ) < 16 ) {
+			return false;
+		}
+
 		$encrypted_secret = '';
 		if ( ! empty( $secret ) ) {
 			$encrypted_secret = NBUF_Encryption::encrypt( $secret );
@@ -772,10 +783,39 @@ class NBUF_Webhooks {
 
 		$host = $parsed['host'];
 
-		/* Resolve hostname to IPs */
-		$ips = gethostbynamel( $host );
-		if ( false === $ips || empty( $ips ) ) {
-			return false;
+		/*
+		 * SECURITY: resolve BOTH A and AAAA records. gethostbynamel() only
+		 * returns IPv4 — a dual-stack target host that has a public A but
+		 * a private AAAA (or ::1, fc00::/7, fe80::/10, IPv4-mapped private
+		 * range like ::ffff:10.0.0.1) would pass the IPv4 inspection while
+		 * curl resolves to AAAA at request time. dns_get_record returns
+		 * both families.
+		 */
+		$ipv4_records = function_exists( 'dns_get_record' ) ? @dns_get_record( $host, DNS_A ) : array();
+		$ipv6_records = function_exists( 'dns_get_record' ) ? @dns_get_record( $host, DNS_AAAA ) : array();
+		$ips          = array();
+		if ( is_array( $ipv4_records ) ) {
+			foreach ( $ipv4_records as $r ) {
+				if ( isset( $r['ip'] ) ) {
+					$ips[] = $r['ip'];
+				}
+			}
+		}
+		if ( is_array( $ipv6_records ) ) {
+			foreach ( $ipv6_records as $r ) {
+				if ( isset( $r['ipv6'] ) ) {
+					$ips[] = $r['ipv6'];
+				}
+			}
+		}
+
+		/* Fallback for hosts without dns_get_record support. */
+		if ( empty( $ips ) ) {
+			$legacy = gethostbynamel( $host );
+			if ( false === $legacy || empty( $legacy ) ) {
+				return false;
+			}
+			$ips = $legacy;
 		}
 
 		foreach ( $ips as $ip ) {
@@ -787,9 +827,32 @@ class NBUF_Webhooks {
 				return false;
 			}
 
-			/* Block AWS/GCP/Azure metadata endpoints (169.254.169.254) */
+			/* Block AWS/GCP/Azure metadata endpoints (169.254.169.254). */
 			if ( str_starts_with( $ip, '169.254.' ) ) {
 				return false;
+			}
+
+			/*
+			 * Block IPv6 link-local, loopback, unique-local, and
+			 * IPv4-mapped private ranges in case FILTER_FLAG_NO_PRIV_RANGE
+			 * misses anything (PHP filter coverage of IPv6 ranges varies).
+			 */
+			$ip_lc = strtolower( $ip );
+			if ( '::1' === $ip_lc || str_starts_with( $ip_lc, 'fe80:' ) || str_starts_with( $ip_lc, 'fc' ) || str_starts_with( $ip_lc, 'fd' ) ) {
+				return false;
+			}
+			if ( str_starts_with( $ip_lc, '::ffff:' ) ) {
+				$mapped = substr( $ip_lc, 7 );
+				if ( ! filter_var(
+					$mapped,
+					FILTER_VALIDATE_IP,
+					FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+				) ) {
+					return false;
+				}
+				if ( str_starts_with( $mapped, '169.254.' ) ) {
+					return false;
+				}
 			}
 		}
 

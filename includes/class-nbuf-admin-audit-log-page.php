@@ -92,6 +92,17 @@ class NBUF_Admin_Audit_Log_Page {
 	 * @return void
 	 */
 	private static function handle_bulk_delete(): void {
+		/*
+		 * SECURITY: defense-in-depth capability recheck. The outer
+		 * handle_early_actions() already verifies manage_options before
+		 * dispatching here, but the public method must not rely solely
+		 * on its caller — a future refactor that re-orders the dispatch
+		 * would otherwise leave bulk-delete protected by nonce only.
+		 */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'nobloat-user-foundry' ), 403 );
+		}
+
 		/* Verify nonce */
 		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-admin_audit_logs' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );

@@ -487,11 +487,32 @@ class NBUF_Member_Directory {
 		        LEFT JOIN {$profile_table} up ON u.ID = up.user_id
 		        WHERE ud.show_in_directory = 1";
 
-		/* Privacy filter (respect viewer status) */
+		/*
+		 * Privacy filter (respect viewer status). Use COALESCE against the
+		 * site-default option so a user whose row has NULL profile_privacy
+		 * is treated identically to NBUF_Public_Profiles::can_view_profile().
+		 * Without the COALESCE, the IN clause excluded NULL rows entirely
+		 * and the directory disagreed with the public-profile gate (a
+		 * site-default of "public" let viewers reach the page directly
+		 * but never see the user listed in the directory, or vice versa).
+		 */
+		$default_privacy = NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+		if ( ! in_array( $default_privacy, array( 'public', 'members_only', 'private' ), true ) ) {
+			$default_privacy = 'private';
+		}
 		if ( is_user_logged_in() ) {
-			$sql .= " AND ud.profile_privacy IN ('public', 'members_only')";
+			$sql .= $wpdb->prepare(
+				' AND COALESCE(ud.profile_privacy, %s) IN (%s, %s)',
+				$default_privacy,
+				'public',
+				'members_only'
+			);
 		} else {
-			$sql .= " AND ud.profile_privacy = 'public'";
+			$sql .= $wpdb->prepare(
+				' AND COALESCE(ud.profile_privacy, %s) = %s',
+				$default_privacy,
+				'public'
+			);
 		}
 
 		/* Base role restriction - only show users with allowed roles (security) */
@@ -601,11 +622,36 @@ class NBUF_Member_Directory {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'nobloat-user-foundry' ) ) );
 		}
 
+		/*
+		 * Rate-limit per IP. The endpoint is registered for both logged-in
+		 * and unauthenticated users (wp_ajax_nopriv_*), and the underlying
+		 * SQL uses leading-wildcard LIKE on the bio TEXT column — an
+		 * unindexable scan that can be weaponised for sustained DoS.
+		 * 30 requests / 60 seconds is generous for human browsing and
+		 * tight enough to make scripted enumeration uneconomical.
+		 */
+		if ( class_exists( 'NBUF_IP' ) && class_exists( 'NBUF_Transients' ) ) {
+			$ip       = NBUF_IP::get_client_ip( true );
+			$bucket   = 'directory_search_ip_' . substr( hash( 'sha256', $ip ), 0, 20 );
+			$attempts = NBUF_Transients::increment( 'directory_search_rate', $bucket, 1, MINUTE_IN_SECONDS );
+			if ( $attempts > (int) apply_filters( 'nbuf_directory_search_rate_limit', 30 ) ) {
+				wp_send_json_error(
+					array( 'message' => __( 'Too many requests. Please slow down.', 'nobloat-user-foundry' ) ),
+					429
+				);
+			}
+		}
+
 		/* Get search parameters */
 		$search   = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$role     = isset( $_POST['role'] ) ? sanitize_text_field( wp_unslash( $_POST['role'] ) ) : '';
 		$page     = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
 		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 20;
+
+		/* Cap search-string length so the SQL LIKE pattern stays bounded. */
+		if ( strlen( $search ) > 100 ) {
+			$search = substr( $search, 0, 100 );
+		}
 
 		/* Get members */
 		$result = self::get_members(
@@ -617,11 +663,27 @@ class NBUF_Member_Directory {
 			)
 		);
 
-		/* Strip email addresses from response to prevent information disclosure */
+		/*
+		 * Strip email addresses AND apply per-field privacy. Server-rendered
+		 * cards already call NBUF_Privacy_Manager::can_view_field() per
+		 * row; the AJAX response previously returned raw bio/city/state/
+		 * country/website regardless of the user's field-visibility
+		 * preferences. A future template change consuming the AJAX payload
+		 * directly would have leaked members-only fields. Mirror the
+		 * server-side filter into the JSON response.
+		 */
 		if ( isset( $result['members'] ) && is_array( $result['members'] ) ) {
-			$result['members'] = array_map(
-				function ( $member ) {
+			$privacy_filterable = array( 'bio', 'city', 'state', 'country', 'website', 'job_title', 'company' );
+			$result['members']  = array_map(
+				function ( $member ) use ( $privacy_filterable ) {
 					unset( $member->user_email );
+					if ( class_exists( 'NBUF_Privacy_Manager' ) && method_exists( 'NBUF_Privacy_Manager', 'can_view_field' ) && isset( $member->ID ) ) {
+						foreach ( $privacy_filterable as $field ) {
+							if ( property_exists( $member, $field ) && ! NBUF_Privacy_Manager::can_view_field( (int) $member->ID, $field ) ) {
+								unset( $member->$field );
+							}
+						}
+					}
 					return $member;
 				},
 				$result['members']

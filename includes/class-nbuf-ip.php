@@ -62,6 +62,9 @@ class NBUF_IP {
 				$parts = array_map( 'trim', explode( ',', $xff ) );
 				$parts = array_reverse( $parts );
 				foreach ( $parts as $candidate ) {
+					if ( '' === $candidate ) {
+						continue;
+					}
 					if ( ! in_array( $candidate, $trusted_proxies, true ) ) {
 						$ip = $candidate;
 						break;

@@ -179,7 +179,10 @@ class NBUF_Passkeys {
 	 */
 	public static function get_rp_id(): string {
 		$site_url = wp_parse_url( home_url() );
-		return $site_url['host'];
+		if ( ! is_array( $site_url ) || empty( $site_url['host'] ) ) {
+			return '';
+		}
+		return (string) $site_url['host'];
 	}
 
 	/**
@@ -242,6 +245,18 @@ class NBUF_Passkeys {
 			base64_encode( $challenge ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 			self::CHALLENGE_EXPIRATION
 		);
+
+		if ( false === $set_result ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_challenge_storage_failed',
+					'error',
+					'Could not persist passkey registration challenge — object cache or DB unavailable',
+					array( 'user_id' => $user_id )
+				);
+			}
+			return new WP_Error( 'storage_failed', __( 'Could not start passkey registration. Please try again.', 'nobloat-user-foundry' ) );
+		}
 
 		/* Get existing credentials to exclude */
 		$existing_credentials = NBUF_User_Passkeys_Data::get_credential_ids( $user_id );
@@ -510,6 +525,18 @@ class NBUF_Passkeys {
 		/* Decode the stored challenge */
 		$expected_challenge = base64_decode( $stored_challenge ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
 
+		/*
+		 * Read (but don't yet delete) the user-binding transient. When the
+		 * options endpoint was called with a username, the resolved user ID was
+		 * captured here so that verify_authentication can refuse a presented
+		 * credential whose owner doesn't match. Without this check, on a shared
+		 * device an attacker could request options for username A and submit
+		 * a signed assertion from user B's passkey — verify_authentication
+		 * would log them in as B (the credential's true owner). The browser's
+		 * allowCredentials list is only advisory; the server must enforce it.
+		 */
+		$expected_user_id = get_transient( self::CHALLENGE_PREFIX . 'user_' . $session_id );
+
 		/* Delete challenge (one-time use) */
 		delete_transient( self::CHALLENGE_PREFIX . 'auth_' . $session_id );
 		delete_transient( self::CHALLENGE_PREFIX . 'user_' . $session_id );
@@ -528,6 +555,27 @@ class NBUF_Passkeys {
 		$passkey = NBUF_User_Passkeys_Data::get_by_credential_id( $credential_id );
 		if ( ! $passkey ) {
 			return new WP_Error( 'credential_not_found', __( 'Passkey not recognized.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * Enforce the user binding captured at options time. The transient is
+		 * only set when the options request supplied a username, so a truly
+		 * userless flow (no username field) leaves $expected_user_id empty and
+		 * skips this check.
+		 */
+		if ( ! empty( $expected_user_id ) && (int) $expected_user_id !== (int) $passkey->user_id ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_user_mismatch',
+					'critical',
+					'Passkey assertion presented credential owned by a different user than the one bound at options time',
+					array(
+						'expected_user_id' => (int) $expected_user_id,
+						'credential_owner' => (int) $passkey->user_id,
+					)
+				);
+			}
+			return new WP_Error( 'user_mismatch', __( 'Passkey does not match the requested user.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Verify client data */
@@ -581,17 +629,30 @@ class NBUF_Passkeys {
 		/* Verify sign count (detect cloned authenticator) */
 		$new_sign_count = $auth_data['signCount'];
 		if ( $new_sign_count > 0 && $new_sign_count <= (int) $passkey->sign_count ) {
-			/* Possible cloned authenticator - log security event */
+			/*
+			 * Possible cloned authenticator. NBUF_Security_Log::log signature
+			 * is ($event_type, $severity, $message, $context, $user_id) — the
+			 * previous call had severity and message swapped, which silently
+			 * downgraded the log entry to 'info' and bypassed the
+			 * critical-severity admin alert path. Use 'critical' so the
+			 * out-of-band alert fires for what is genuinely a possible
+			 * account-takeover signal.
+			 */
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
 					'passkey_clone_detected',
-					sprintf( 'Possible cloned authenticator for user %d', $passkey->user_id ),
-					'warning',
+					'critical',
+					sprintf(
+						/* translators: %d: user ID whose passkey may be cloned */
+						__( 'Possible cloned authenticator for user %d', 'nobloat-user-foundry' ),
+						$passkey->user_id
+					),
 					array(
 						'passkey_id'     => $passkey->id,
 						'old_sign_count' => $passkey->sign_count,
 						'new_sign_count' => $new_sign_count,
-					)
+					),
+					(int) $passkey->user_id
 				);
 			}
 			return new WP_Error( 'sign_count_invalid', __( 'Authenticator verification failed. Possible cloned device detected.', 'nobloat-user-foundry' ) );
@@ -1381,11 +1442,16 @@ class NBUF_Passkeys {
 		}
 
 		/*
-		 * Get redirect URL.
+		 * Get redirect URL. Default to NBUF_Passkeys_Login::get_redirect_url()
+		 * (account / admin / home / custom per setting) rather than admin_url(),
+		 * which is the wrong destination for non-admin users.
 		 */
+		$default_redirect = method_exists( 'NBUF_Passkeys_Login', 'get_redirect_url' )
+			? NBUF_Passkeys_Login::get_redirect_url()
+			: home_url();
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Pre-login passkey authentication endpoint.
 		$redirect_candidate = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
-		$redirect_url       = wp_validate_redirect( $redirect_candidate, admin_url() );
+		$redirect_url       = wp_validate_redirect( $redirect_candidate, $default_redirect );
 
 		wp_send_json_success(
 			array(
@@ -1419,6 +1485,20 @@ class NBUF_Passkeys {
 		if ( empty( $login ) ) {
 			wp_send_json_error( array( 'message' => __( 'Please enter a username or email.', 'nobloat-user-foundry' ) ) );
 		}
+
+		/*
+		 * SECURITY: also throttle per-username (case-folded) so an attacker
+		 * who rotates IPs cannot enumerate the entire user base for passkey
+		 * enrollment. Tight cap (5 checks per username per 15 minutes) is
+		 * enough for a real user to bounce between credentials and not enough
+		 * to scan a directory.
+		 */
+		$username_key = 'nbuf_pk_check_user_' . substr( hash( 'sha256', strtolower( $login ) ), 0, 20 );
+		$user_count   = (int) get_transient( $username_key );
+		if ( $user_count >= 5 ) {
+			self::send_rate_limit_error();
+		}
+		set_transient( $username_key, $user_count + 1, 15 * MINUTE_IN_SECONDS );
 
 		/* Find user by email or username */
 		$user = null;

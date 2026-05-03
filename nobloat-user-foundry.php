@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.6.1
+ * Version: 1.6.4
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -346,9 +346,9 @@ add_action(
 				*/
 
 				/*
-				* Check if this is a 2FA login by checking for the 2FA cookie.
-				*/
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie presence check only, not using value.
+				 * Check if this is a 2FA login by checking for the 2FA cookie.
+				 */
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie presence check only, not using value.
 				if ( ! isset( $_COOKIE['nbuf_2fa_token'] ) ) {
 					NBUF_Audit_Log::log(
 						$user->ID,

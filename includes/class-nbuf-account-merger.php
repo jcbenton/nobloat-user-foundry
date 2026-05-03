@@ -949,9 +949,26 @@ class NBUF_Account_Merger {
 					continue;
 				}
 
-				/* Copy meta to primary account */
+				/*
+				 * Copy meta to primary account.
+				 *
+				 * SECURITY: Do not call maybe_unserialize() on the raw value here.
+				 * get_user_meta() returns serialized strings, and add_user_meta()
+				 * re-serializes via maybe_serialize(). Calling maybe_unserialize()
+				 * first would deserialize attacker-influenced usermeta payloads
+				 * (POP-gadget surface) for no gain. If the value happens to be a
+				 * serialized string, decode it with allowed_classes => false so
+				 * no objects can be instantiated.
+				 */
 				foreach ( $meta_values as $meta_value ) {
-					add_user_meta( $primary_id, $meta_key, maybe_unserialize( $meta_value ) );
+					$value_to_copy = $meta_value;
+					if ( is_string( $value_to_copy ) && is_serialized( $value_to_copy ) ) {
+						$decoded = @unserialize( $value_to_copy, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed input.
+						if ( false !== $decoded || 'b:0;' === $value_to_copy ) {
+							$value_to_copy = $decoded;
+						}
+					}
+					add_user_meta( $primary_id, $meta_key, $value_to_copy );
 				}
 			}
 		}
@@ -1184,7 +1201,7 @@ If you did not request this merge or have questions, please contact the site adm
 								$finfo         = finfo_open( FILEINFO_MIME_TYPE );
 								$mime          = finfo_file( $finfo, $source_path );
 								$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
-								finfo_close( $finfo );
+								unset( $finfo );
 
 								if ( ! in_array( $mime, $allowed_mimes, true ) ) {
 									NBUF_Security_Log::log(
@@ -1399,7 +1416,7 @@ If you did not request this merge or have questions, please contact the site adm
 								$finfo         = finfo_open( FILEINFO_MIME_TYPE );
 								$mime          = finfo_file( $finfo, $source_path );
 								$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
-								finfo_close( $finfo );
+								unset( $finfo );
 
 								if ( ! in_array( $mime, $allowed_mimes, true ) ) {
 									NBUF_Security_Log::log(

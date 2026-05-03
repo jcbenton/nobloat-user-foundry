@@ -100,6 +100,27 @@ class NBUF_TOTP {
 	 * @return bool True if code matches within tolerance.
 	 */
 	public static function verify_code( $secret, $code, $tolerance = 1, $code_length = 6, $time_step = 30 ) {
+		return false !== self::verify_code_returning_counter( $secret, $code, $tolerance, $code_length, $time_step );
+	}
+
+	/**
+	 * Verify a TOTP code and return the matching time counter.
+	 *
+	 * SECURITY: callers that implement replay protection MUST use this method
+	 * (not verify_code) and store the returned counter as the user's
+	 * "last used" counter. Storing the verifier's clock counter instead of
+	 * the matched counter allows codes inside the tolerance window to be
+	 * replayed after a legitimate use — see the v1.6.4 audit for details.
+	 *
+	 * @since  1.6.4
+	 * @param  string $secret      Base32-encoded secret.
+	 * @param  string $code        Code submitted by user.
+	 * @param  int    $tolerance   Number of time windows to check (±N).
+	 * @param  int    $code_length Length of code (6 or 8 digits).
+	 * @param  int    $time_step   Time window in seconds (default 30).
+	 * @return int|false Matched time-step counter on success, false on failure.
+	 */
+	public static function verify_code_returning_counter( $secret, $code, $tolerance = 1, $code_length = 6, $time_step = 30 ) {
 		/* Sanitize code - remove spaces and non-numeric characters */
 		$code = preg_replace( '/[^0-9]/', '', $code );
 
@@ -118,7 +139,7 @@ class NBUF_TOTP {
 
 			/* Use constant-time comparison to prevent timing attacks */
 			if ( hash_equals( $valid_code, $code ) ) {
-				return true;
+				return (int) floor( $check_time / $time_step );
 			}
 		}
 
@@ -200,7 +221,7 @@ class NBUF_TOTP {
 	 * Decodes Base32 string back to binary data.
 	 *
 	 * @param  string $data Base32 encoded string.
-	 * @return string Raw bytes.
+	 * @return string Raw bytes, or empty string if input contained invalid characters.
 	 */
 	private static function base32_decode( $data ) {
 		/* Base32 alphabet (RFC 4648) */
@@ -208,6 +229,17 @@ class NBUF_TOTP {
 
 		/* Remove padding and convert to uppercase */
 		$data = strtoupper( rtrim( $data, '=' ) );
+
+		/*
+		 * Reject input that contains anything outside the alphabet. Silently
+		 * dropping invalid characters previously meant pasting an entire
+		 * otpauth:// URI into the secret field would partially decode and
+		 * yield a garbage TOTP — the user would not learn the secret was
+		 * malformed until first login failed.
+		 */
+		if ( '' !== $data && ! preg_match( '/^[A-Z2-7]+$/', $data ) ) {
+			return '';
+		}
 
 		/* Build reverse lookup array */
 		$lookup = array_flip( str_split( $alphabet ) );
@@ -219,7 +251,7 @@ class NBUF_TOTP {
 		$data_length = strlen( $data );
 		for ( $i = 0; $i < $data_length; $i++ ) {
 			if ( ! isset( $lookup[ $data[ $i ] ] ) ) {
-				/* Invalid character, skip */
+				/* Invalid character, skip (defensive — should be unreachable now) */
 				continue;
 			}
 			$bits .= str_pad( decbin( $lookup[ $data[ $i ] ] ), 5, '0', STR_PAD_LEFT );

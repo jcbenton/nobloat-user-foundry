@@ -47,6 +47,33 @@ class NBUF_2FA_Login {
 
 		/* Check TOTP setup requirement on every page load for logged-in users */
 		add_action( 'template_redirect', array( __CLASS__, 'check_totp_setup_required' ) );
+
+		/*
+		 * Start the 2FA grace-period clock the moment a user is granted a
+		 * role that requires 2FA — not at their first subsequent login.
+		 * Otherwise an admin promoted today gets a fresh 7-day window from
+		 * their next login, which can be days or weeks later.
+		 */
+		add_action( 'set_user_role', array( __CLASS__, 'on_user_role_change' ), 10, 3 );
+		add_action( 'add_user_role', array( __CLASS__, 'on_user_role_change' ), 10, 2 );
+	}
+
+	/**
+	 * Begin the 2FA grace period when a user gains a role that requires 2FA.
+	 *
+	 * @since  1.6.4
+	 * @param  int    $user_id  User whose role just changed.
+	 * @param  string $new_role Role being granted (set_user_role) or added (add_user_role).
+	 * @param  array  $old_roles Previous roles. Unused; only present for set_user_role.
+	 * @return void
+	 */
+	public static function on_user_role_change( $user_id, $new_role, $old_roles = array() ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_role/$old_roles required by WP action signatures.
+		unset( $new_role, $old_roles );
+
+		if ( ! class_exists( 'NBUF_2FA' ) ) {
+			return;
+		}
+		NBUF_2FA::ensure_grace_period_started( (int) $user_id );
 	}
 
 	/**
@@ -210,7 +237,8 @@ class NBUF_2FA_Login {
 	 */
 	public static function maybe_handle_2fa_verification(): void {
 		/* Early exit for non-POST requests - no need to check anything else */
-		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		if ( 'POST' !== $request_method ) {
 			return;
 		}
 
@@ -313,6 +341,30 @@ class NBUF_2FA_Login {
 					'code_type' => $code_type,
 				)
 			);
+
+			/*
+			 * Fire wp_login_failed so IP-level rate limiting (NBUF_Login_Limiting
+			 * + any other plugin listening on the same hook) sees the failure.
+			 * Without this, an attacker who has a valid password can brute-force
+			 * 2FA codes from the same IP without ever bumping the IP-level
+			 * counter; only the per-user 2FA lockout fires, leaving cross-victim
+			 * distributed credential-stuffing under-throttled.
+			 */
+			$failed_user = get_user_by( 'id', $user_id );
+			if ( $failed_user ) {
+				do_action( 'wp_login_failed', $failed_user->user_login, $result instanceof WP_Error ? $result : new WP_Error( '2fa_failed', $error_code ) );
+			}
+
+			/*
+			 * If the user just hit the 2FA lockout threshold, kill the
+			 * pending session so the cookie cannot keep brute-forcing a
+			 * still-valid pending token after the lockout window. The user
+			 * will need to re-enter their password to obtain a new pending
+			 * session.
+			 */
+			if ( 'locked' === $error_code ) {
+				self::clear_2fa_transient();
+			}
 
 			/* Redirect to 2FA page with specific error */
 			$current_url   = self::get_2fa_page_url();
@@ -626,7 +678,9 @@ class NBUF_2FA_Login {
 			}
 		}
 
-		/* Handle resend request — re-send the email code if the session is valid */
+		/*
+		 * Handle resend request — re-send the email code if the session is valid.
+		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only check to trigger email resend.
 		if ( isset( $_GET['resend'] ) && '1' === $_GET['resend'] && ( 'email' === $method || 'both' === $method ) ) {
 			$resend_result = NBUF_2FA::send_email_code( $user_id );

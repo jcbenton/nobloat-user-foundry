@@ -59,8 +59,8 @@ if ( file_exists( $nbuf_docs_path ) ) {
 
 	/* Extract and output the styles */
 	if ( preg_match( '/<style[^>]*>(.*?)<\/style>/s', $nbuf_content, $style_matches ) ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation CSS.
-		echo '';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted plugin documentation CSS extracted from packaged template.
+		echo '<style>' . $style_matches[1] . '</style>';
 		/* Remove style tag from content since we already output it */
 		$nbuf_content = preg_replace( '/<style[^>]*>.*?<\/style>/s', '', $nbuf_content );
 	}

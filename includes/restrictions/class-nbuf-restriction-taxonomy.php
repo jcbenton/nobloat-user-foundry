@@ -131,7 +131,7 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 					);
 				}
 
-				wp_safe_redirect( esc_url( $redirect_url ) );
+				wp_safe_redirect( esc_url_raw( $redirect_url ) );
 				exit;
 
 			case '404':
@@ -230,7 +230,8 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 				INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
 				INNER JOIN {$wpdb->termmeta} tm1 ON t.term_id = tm1.term_id AND tm1.meta_key = '_nbuf_visibility'
 				LEFT JOIN {$wpdb->termmeta} tm2 ON t.term_id = tm2.term_id AND tm2.meta_key = '_nbuf_allowed_roles'
-			WHERE tt.taxonomy IN ($placeholders) AND tm1.meta_value != 'everyone'",
+				WHERE tt.taxonomy IN ($placeholders)
+				AND tm1.meta_value IN ('logged_in','logged_out','role_based')",
 				...$taxonomies
 			)
 		);
@@ -482,7 +483,9 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 		}
 		update_term_meta( $term_id, '_nbuf_redirect_url', $redirect_url );
 
-		/* Clear cache — use serialize(array()) to match the creation format in get_excluded_term_ids() */
+		/*
+		 * Clear cache — use serialize(array()) to match the creation format in get_excluded_term_ids().
+		 */
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Must match cache key format.
 		$cache_keys = array(
 			'nbuf_excluded_terms_' . md5( serialize( array( $taxonomy ) ) ) . '_guest',

@@ -54,7 +54,9 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 	 * @param  object             $args  Menu arguments.
 	 * @return array<int, object> Filtered items.
 	 */
-	public static function filter_menu_items( $items, $args ): array {
+	public static function filter_menu_items( $items, $args ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $args required by hook signature.
+		unset( $args );
+
 		/* Get all menu item IDs */
 		$menu_item_ids = wp_list_pluck( $items, 'ID' );
 
@@ -65,41 +67,70 @@ class NBUF_Restriction_Menu extends NBUF_Abstract_Restriction {
 		/* Load all restrictions once per request. */
 		$restrictions = self::get_all_restrictions();
 
-		/* Filter items */
-		$filtered_items = array();
-		$hidden_parents = array();
-
+		/*
+		 * Two-pass filtering. The previous single-pass relied on parents
+		 * appearing before their children in $items, which is true for
+		 * default Walkers but NOT guaranteed for the block-based menu API
+		 * or for any custom Walker plugin that reorders. A child seen
+		 * before its hidden parent would render — leaking the child link.
+		 *
+		 * Pass 1: build the set of items hidden by their own restriction.
+		 * Pass 2: walk every item up the parent chain; hide if any
+		 * ancestor is in the hidden set.
+		 */
+		$by_id       = array();
+		$hidden_self = array();
 		foreach ( $items as $item ) {
-			/* Check if restricted */
-			if ( isset( $restrictions[ $item->ID ] ) ) {
-				$restriction = $restrictions[ $item->ID ];
-
-				/* Parse allowed_roles JSON */
-				$allowed_roles = array();
-				if ( ! empty( $restriction->allowed_roles ) ) {
-					$allowed_roles = json_decode( $restriction->allowed_roles, true );
-					if ( ! is_array( $allowed_roles ) ) {
-						$allowed_roles = array();
-					}
-				}
-
-				/* Check access */
-				if ( ! self::check_access( $restriction->visibility, $allowed_roles ) ) {
-					/* Mark as hidden and skip */
-					$hidden_parents[ $item->ID ] = true;
-					continue;
-				}
-			}
-
-			/* Check if parent is hidden */
-			if ( $item->menu_item_parent && isset( $hidden_parents[ $item->menu_item_parent ] ) ) {
-				/* Parent was hidden, hide this child too */
-				$hidden_parents[ $item->ID ] = true;
+			$by_id[ $item->ID ] = $item;
+			if ( ! isset( $restrictions[ $item->ID ] ) ) {
 				continue;
 			}
+			$restriction   = $restrictions[ $item->ID ];
+			$allowed_roles = array();
+			if ( ! empty( $restriction->allowed_roles ) ) {
+				$allowed_roles = json_decode( $restriction->allowed_roles, true );
+				if ( ! is_array( $allowed_roles ) ) {
+					$allowed_roles = array();
+				}
+			}
+			if ( ! self::check_access( $restriction->visibility, $allowed_roles ) ) {
+				$hidden_self[ $item->ID ] = true;
+			}
+		}
 
-			/* Item passed all checks, include it */
-			$filtered_items[ $item->ID ] = $item;
+		/* Pass 2: walk ancestors. Cache per-ID decision to keep this O(N). */
+		$hidden_effective = array();
+		foreach ( $items as $item ) {
+			$id      = $item->ID;
+			$cursor  = $id;
+			$hide_it = false;
+			$visited = array();
+			while ( $cursor && ! isset( $visited[ $cursor ] ) ) {
+				$visited[ $cursor ] = true;
+
+				if ( isset( $hidden_self[ $cursor ] ) || isset( $hidden_effective[ $cursor ] ) ) {
+					$hide_it = true;
+					break;
+				}
+				if ( ! isset( $by_id[ $cursor ] ) ) {
+					break;
+				}
+				$parent_id = (int) $by_id[ $cursor ]->menu_item_parent;
+				if ( ! $parent_id ) {
+					break;
+				}
+				$cursor = $parent_id;
+			}
+			if ( $hide_it ) {
+				$hidden_effective[ $id ] = true;
+			}
+		}
+
+		$filtered_items = array();
+		foreach ( $items as $item ) {
+			if ( ! isset( $hidden_effective[ $item->ID ] ) ) {
+				$filtered_items[ $item->ID ] = $item;
+			}
 		}
 
 		return array_values( $filtered_items );

@@ -166,6 +166,17 @@ class NBUF_Sessions {
 	 * @return bool True if revoked.
 	 */
 	public static function revoke_session( int $user_id, string $token_hash ): bool {
+		/*
+		 * SECURITY: defense-in-depth ownership gate. The AJAX handler binds
+		 * $user_id to the current user, but this method is public-static
+		 * and reusable by extensions. Refuse to revoke another user's
+		 * session unless the caller has edit_user on that target.
+		 */
+		$current_id = get_current_user_id();
+		if ( $current_id !== $user_id && ! current_user_can( 'edit_user', $user_id ) ) {
+			return false;
+		}
+
 		$manager = WP_Session_Tokens::get_instance( $user_id );
 		$tokens  = $manager->get_all();
 
@@ -198,6 +209,16 @@ class NBUF_Sessions {
 	 *             Not a count — WP_Session_Tokens::destroy_others() does not report one.
 	 */
 	public static function revoke_other_sessions( int $user_id ): int {
+		/*
+		 * SECURITY: same defense-in-depth gate as revoke_session(). The
+		 * AJAX handler binds $user_id to the current user; reuse-from-extensions
+		 * must not be able to wipe another user's sessions.
+		 */
+		$current_id = get_current_user_id();
+		if ( $current_id !== $user_id && ! current_user_can( 'edit_user', $user_id ) ) {
+			return 0;
+		}
+
 		$manager       = WP_Session_Tokens::get_instance( $user_id );
 		$current_token = wp_get_session_token();
 
@@ -205,7 +226,27 @@ class NBUF_Sessions {
 			return 0;
 		}
 
+		/* Capture pre-state so we can verify destroy_others actually ran. */
+		$before_count = count( (array) $manager->get_all() );
+
 		$manager->destroy_others( $current_token );
+
+		/*
+		 * Verify destruction took effect — third-party WP_Session_Tokens
+		 * implementations (Redis-backed managers, etc.) may silently fail.
+		 */
+		$after_count = count( (array) $manager->get_all() );
+		if ( $after_count >= $before_count ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'session_revoke_failed',
+					'error',
+					'destroy_others did not reduce session count',
+					array( 'user_id' => $user_id )
+				);
+			}
+			return 0;
+		}
 
 		/* Log revocation */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
@@ -285,7 +326,9 @@ class NBUF_Sessions {
 
 		$user_id = get_current_user_id();
 
-		self::revoke_other_sessions( $user_id );
+		if ( ! self::revoke_other_sessions( $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Could not revoke other sessions. Please try again.', 'nobloat-user-foundry' ) ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'All other sessions have been logged out.', 'nobloat-user-foundry' ) ) );
 	}

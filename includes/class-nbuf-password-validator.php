@@ -92,27 +92,34 @@ class NBUF_Password_Validator {
 		$weak_flagged = NBUF_User_Data::get_weak_password_flagged_at( $user->ID );
 
 		/*
-		 * For "once" timing: Flag user if not already flagged.
-		 * For "every" timing: Always process (re-flag on each login).
+		 * Set the "weak password since" timestamp on first detection only.
+		 *
+		 * SECURITY: previously the "every" timing branch unconditionally
+		 * re-flagged on every login, which reset the grace-period clock.
+		 * A weak-password user who logged in once a day could keep the
+		 * grace window indefinitely open and never be forced to change
+		 * their password. The `nbuf_password_check_timing` setting governs
+		 * how often we *re-check* the password's strength, NOT how often
+		 * we restart the grace clock. The clock starts the first time
+		 * weakness is detected and only ever advances when password is
+		 * actually changed.
 		 */
-		if ( 'once' === $check_timing && $weak_flagged ) {
-			/* Already flagged - check if they changed password since flagging */
+		if ( ! $weak_flagged ) {
+			NBUF_User_Data::flag_weak_password( $user->ID );
+			$weak_flagged = current_time( 'mysql', true );
+		} elseif ( 'once' === $check_timing ) {
+			/*
+			 * On "once" timing, also handle the rare case where the user
+			 * changed their password after being flagged but the new one
+			 * still fails strength (e.g., admin tightened requirements).
+			 * Re-anchor the clock to that change so they get a fresh grace
+			 * window from the new attempt rather than from the old flag.
+			 */
 			$password_changed = NBUF_User_Data::get_password_changed_at( $user->ID );
-			/* Both timestamps stored in GMT - append GMT for consistent interpretation */
 			if ( $password_changed && strtotime( $password_changed . ' GMT' ) > strtotime( $weak_flagged . ' GMT' ) ) {
-				/*
-				 * Password was changed after flagging but still doesn't meet requirements.
-				 * This shouldn't happen normally (password change form validates),
-				 * but could occur if requirements were tightened after they changed.
-				 * Re-flag them with new timestamp.
-				 */
 				NBUF_User_Data::flag_weak_password( $user->ID );
 				$weak_flagged = current_time( 'mysql', true );
 			}
-		} else {
-			/* Flag user (first time for "once", or every time for "every") */
-			NBUF_User_Data::flag_weak_password( $user->ID );
-			$weak_flagged = current_time( 'mysql', true );
 		}
 
 		/* Check grace period */

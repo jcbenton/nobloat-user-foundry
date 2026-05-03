@@ -222,19 +222,19 @@ class NBUF_Bulk_Import {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check if file was uploaded */
 		if ( ! isset( $_FILES['csv_file'] ) ) {
-			wp_send_json_error( array( 'message' => 'No file uploaded' ) );
+			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$file = isset( $_FILES['csv_file'] ) ? wp_unslash( $_FILES['csv_file'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File upload data validated below.
 
 		/* Validate file size (10MB max) */
 		if ( $file['size'] > 10485760 ) {
-			wp_send_json_error( array( 'message' => 'File too large. Maximum size is 10MB.' ) );
+			wp_send_json_error( array( 'message' => __( 'File too large. Maximum size is 10MB.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Validate file type using WordPress core function to prevent spoofing */
@@ -242,7 +242,7 @@ class NBUF_Bulk_Import {
 		$allowed_exts = array( 'csv' );
 
 		if ( ! in_array( $filetype['ext'], $allowed_exts, true ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid file type. Only CSV files are allowed.' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid file type. Only CSV files are allowed.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Parse CSV */
@@ -284,13 +284,13 @@ class NBUF_Bulk_Import {
 	 */
 	private function parse_csv( string $file_path ) {
 		if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
-			return new WP_Error( 'file_error', 'Cannot read CSV file' );
+			return new WP_Error( 'file_error', __( 'Cannot read CSV file.', 'nobloat-user-foundry' ) );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- CSV parsing requires direct file access
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {
-			return new WP_Error( 'file_error', 'Cannot open CSV file' );
+			return new WP_Error( 'file_error', __( 'Cannot open CSV file.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Read header row */
@@ -298,7 +298,7 @@ class NBUF_Bulk_Import {
 		if ( ! $headers ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- CSV parsing requires direct file access
 			fclose( $handle );
-			return new WP_Error( 'parse_error', 'CSV file is empty or invalid' );
+			return new WP_Error( 'parse_error', __( 'CSV file is empty or invalid.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Clean headers */
@@ -352,7 +352,7 @@ class NBUF_Bulk_Import {
 	private function validate_csv_structure( array $csv_data ) {
 		/* Check if CSV has data */
 		if ( empty( $csv_data['rows'] ) ) {
-			return new WP_Error( 'empty_csv', 'CSV file contains no data rows' );
+			return new WP_Error( 'empty_csv', __( 'CSV file contains no data rows.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Check for required fields */
@@ -361,7 +361,14 @@ class NBUF_Bulk_Import {
 
 		foreach ( $required_fields as $required ) {
 			if ( ! in_array( $required, $headers, true ) ) {
-				return new WP_Error( 'missing_field', sprintf( 'Required field "%s" not found in CSV headers', $required ) );
+				return new WP_Error(
+					'missing_field',
+					sprintf(
+						/* translators: %s: required CSV header name */
+						__( 'Required field "%s" not found in CSV headers.', 'nobloat-user-foundry' ),
+						$required
+					)
+				);
 			}
 		}
 
@@ -424,18 +431,41 @@ class NBUF_Bulk_Import {
 
 		/* Required: Email */
 		if ( empty( $row['user_email'] ) ) {
-			return new WP_Error( 'missing_email', sprintf( 'Line %d: Email is required', $line_number ) );
+			return new WP_Error(
+				'missing_email',
+				sprintf(
+					/* translators: %d: CSV line number */
+					__( 'Line %d: Email is required.', 'nobloat-user-foundry' ),
+					$line_number
+				)
+			);
 		}
 
 		if ( ! is_email( $row['user_email'] ) ) {
-			return new WP_Error( 'invalid_email', sprintf( 'Line %d: Invalid email format: %s', $line_number, $row['user_email'] ) );
+			return new WP_Error(
+				'invalid_email',
+				sprintf(
+					/* translators: 1: CSV line number, 2: bad email value */
+					__( 'Line %1$d: Invalid email format: %2$s', 'nobloat-user-foundry' ),
+					$line_number,
+					$row['user_email']
+				)
+			);
 		}
 
 		/* Check if email already exists */
 		if ( email_exists( $row['user_email'] ) ) {
 			$update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
 			if ( ! $update_existing ) {
-				return new WP_Error( 'duplicate_email', sprintf( 'Line %d: Email already exists: %s', $line_number, $row['user_email'] ) );
+				return new WP_Error(
+					'duplicate_email',
+					sprintf(
+						/* translators: 1: CSV line number, 2: duplicate email value */
+						__( 'Line %1$d: Email already exists: %2$s', 'nobloat-user-foundry' ),
+						$line_number,
+						$row['user_email']
+					)
+				);
 			}
 		}
 
@@ -443,18 +473,41 @@ class NBUF_Bulk_Import {
 
 		/* Required: Username */
 		if ( empty( $row['user_login'] ) ) {
-			return new WP_Error( 'missing_username', sprintf( 'Line %d: Username is required', $line_number ) );
+			return new WP_Error(
+				'missing_username',
+				sprintf(
+					/* translators: %d: CSV line number */
+					__( 'Line %d: Username is required.', 'nobloat-user-foundry' ),
+					$line_number
+				)
+			);
 		}
 
 		if ( ! validate_username( $row['user_login'] ) ) {
-			return new WP_Error( 'invalid_username', sprintf( 'Line %d: Invalid username: %s', $line_number, $row['user_login'] ) );
+			return new WP_Error(
+				'invalid_username',
+				sprintf(
+					/* translators: 1: CSV line number, 2: bad username value */
+					__( 'Line %1$d: Invalid username: %2$s', 'nobloat-user-foundry' ),
+					$line_number,
+					$row['user_login']
+				)
+			);
 		}
 
 		/* Check if username already exists */
 		if ( username_exists( $row['user_login'] ) ) {
 			$update_existing = NBUF_Options::get( 'nbuf_import_update_existing', false );
 			if ( ! $update_existing ) {
-				return new WP_Error( 'duplicate_username', sprintf( 'Line %d: Username already exists: %s', $line_number, $row['user_login'] ) );
+				return new WP_Error(
+					'duplicate_username',
+					sprintf(
+						/* translators: 1: CSV line number, 2: duplicate username value */
+						__( 'Line %1$d: Username already exists: %2$s', 'nobloat-user-foundry' ),
+						$line_number,
+						$row['user_login']
+					)
+				);
 			}
 		}
 
@@ -497,11 +550,48 @@ class NBUF_Bulk_Import {
 		if ( ! empty( $row['role'] ) ) {
 			$editable_roles = array_keys( get_editable_roles() );
 			if ( ! in_array( $row['role'], $editable_roles, true ) ) {
-				return new WP_Error( 'invalid_role', sprintf( 'Line %d: Invalid or non-assignable role: %s', $line_number, $row['role'] ) );
+				return new WP_Error(
+					'invalid_role',
+					sprintf(
+						/* translators: 1: CSV line number, 2: invalid role slug */
+						__( 'Line %1$d: Invalid or non-assignable role: %2$s', 'nobloat-user-foundry' ),
+						$line_number,
+						$row['role']
+					)
+				);
 			}
+
+			/*
+			 * SECURITY: On multisite, only a super admin may create administrator
+			 * accounts. get_editable_roles() can leak `administrator` to a network
+			 * role granted manage_options without true super-admin status.
+			 */
+			if ( 'administrator' === $row['role'] && is_multisite() && ! is_super_admin() ) {
+				return new WP_Error(
+					'invalid_role',
+					sprintf(
+						/* translators: %d: CSV line number */
+						__( 'Line %d: Only a network super admin may import administrator accounts.', 'nobloat-user-foundry' ),
+						$line_number
+					)
+				);
+			}
+
 			$validated['role'] = $row['role'];
 		} else {
-			$validated['role'] = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
+			$default_role = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
+
+			/*
+			 * SECURITY: Mirror the explicit-role super-admin guard above. A
+			 * malicious or careless setting of nbuf_import_default_role to
+			 * 'administrator' must not allow a non-super-admin to mass-mint
+			 * administrators on multisite by uploading a CSV with no role column.
+			 */
+			if ( 'administrator' === $default_role && is_multisite() && ! is_super_admin() ) {
+				$default_role = 'subscriber';
+			}
+
+			$validated['role'] = $default_role;
 		}
 
 		/* Process all other fields with comprehensive CSV injection prevention */
@@ -532,7 +622,7 @@ class NBUF_Bulk_Import {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
@@ -541,14 +631,14 @@ class NBUF_Bulk_Import {
 
 		/* Validate transient key prefix to prevent reading arbitrary transients */
 		if ( ! str_starts_with( $transient_key, 'nbuf_import_' ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid import key.' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid import key.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Get CSV data from transient */
 		$csv_data = get_transient( $transient_key );
 
 		if ( ! $csv_data ) {
-			wp_send_json_error( array( 'message' => 'Import session expired. Please upload CSV again.' ) );
+			wp_send_json_error( array( 'message' => __( 'Import session expired. Please upload CSV again.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Process batch */
@@ -809,17 +899,17 @@ class NBUF_Bulk_Import {
 		check_ajax_referer( 'nbuf_import_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( 'Unauthorized' );
+			wp_die( esc_html__( 'Unauthorized', 'nobloat-user-foundry' ) );
 		}
 
 		$error_key = isset( $_GET['error_key'] ) ? sanitize_text_field( wp_unslash( $_GET['error_key'] ) ) : '';
 		if ( ! str_starts_with( $error_key, 'nbuf_import_' ) ) {
-			wp_die( 'Invalid error report key.' );
+			wp_die( esc_html__( 'Invalid error report key.', 'nobloat-user-foundry' ) );
 		}
 		$errors = get_transient( $error_key );
 
 		if ( ! $errors ) {
-			wp_die( 'Error report not found or expired' );
+			wp_die( esc_html__( 'Error report not found or expired.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Generate CSV */

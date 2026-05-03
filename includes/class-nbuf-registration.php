@@ -262,6 +262,26 @@ class NBUF_Registration {
 	public static function validate_registration_data( array $data ) {
 		$reg_settings = NBUF_Options::get( 'nbuf_registration_fields', array() );
 
+		/*
+		 * SECURITY: enforce the antibot challenge here so EVERY caller of
+		 * validate_registration_data() / register_user() is protected — not
+		 * just the shortcode handler. Future REST routes, CLI commands, and
+		 * extension entry points calling register_user() directly must all
+		 * pay the antibot toll. The challenge expects the same $_POST keys
+		 * that the form handler emits; callers that don't have $_POST should
+		 * pass the values in $data['_antibot_post'] explicitly (NBUF_Antibot
+		 * inspects the array).
+		 */
+		if ( class_exists( 'NBUF_Antibot' ) ) {
+			$antibot_input  = isset( $data['_antibot_post'] ) && is_array( $data['_antibot_post'] )
+				? $data['_antibot_post']
+				: ( isset( $_POST ) && is_array( $_POST ) ? $_POST : array() ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Antibot challenge owns its own validation.
+			$antibot_result = NBUF_Antibot::validate( $antibot_input );
+			if ( is_wp_error( $antibot_result ) ) {
+				return $antibot_result;
+			}
+		}
+
 		/* Validate email (always required) */
 		if ( empty( $data['email'] ) || ! is_email( $data['email'] ) ) {
 			return new WP_Error( 'invalid_email', __( 'Please provide a valid email address.', 'nobloat-user-foundry' ) );

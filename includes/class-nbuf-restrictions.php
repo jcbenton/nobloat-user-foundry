@@ -63,6 +63,44 @@ class NBUF_Restrictions {
 		if ( is_admin() ) {
 			NBUF_Restriction_Metabox::init();
 		}
+
+		/*
+		 * Orphan-row cleanup. Custom restriction tables are NOT auto-cleaned
+		 * by WordPress when the underlying post or menu item is deleted.
+		 * Without these hooks, rows accumulate forever and a future
+		 * auto_increment ID collision (e.g., DB import that resets the
+		 * counter) could rebind a stale restriction onto a brand-new post.
+		 */
+		add_action( 'delete_post', array( __CLASS__, 'cleanup_on_post_delete' ), 10, 1 );
+		add_action( 'delete_nav_menu_item', array( __CLASS__, 'cleanup_on_menu_item_delete' ), 10, 1 );
+	}
+
+	/**
+	 * Delete content-restriction rows for a post that is being deleted.
+	 *
+	 * @since  1.6.4
+	 * @param  int $post_id Post ID.
+	 * @return void
+	 */
+	public static function cleanup_on_post_delete( $post_id ): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_content_restrictions';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table cleanup on post delete.
+		$wpdb->delete( $table, array( 'content_id' => (int) $post_id ), array( '%d' ) );
+	}
+
+	/**
+	 * Delete menu-restriction rows for a menu item that is being deleted.
+	 *
+	 * @since  1.6.4
+	 * @param  int $menu_item_id Menu item ID (post ID of nav_menu_item post).
+	 * @return void
+	 */
+	public static function cleanup_on_menu_item_delete( $menu_item_id ): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_menu_restrictions';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table cleanup on menu item delete.
+		$wpdb->delete( $table, array( 'menu_item_id' => (int) $menu_item_id ), array( '%d' ) );
 	}
 
 	/**

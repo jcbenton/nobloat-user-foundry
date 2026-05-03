@@ -114,6 +114,19 @@ class NBUF_Expiration {
 			return;
 		}
 
+		/*
+		 * Cap per-run work so a long-stalled site doesn't try to disable
+		 * tens of thousands of users in one cron tick. The hourly schedule
+		 * will drain any remaining backlog. Each iteration does a DB write,
+		 * a session-table churn, and an SMTP send — saturating SMTP across
+		 * thousands of accounts in a single PHP request is a real outage
+		 * vector. Cap at 100 by default, allow operators to override.
+		 */
+		$batch_cap = (int) apply_filters( 'nbuf_expiration_batch_cap', 100 );
+		if ( $batch_cap > 0 && count( $expired_users ) > $batch_cap ) {
+			$expired_users = array_slice( $expired_users, 0, $batch_cap );
+		}
+
 		foreach ( $expired_users as $user_id ) {
 			$user_id = (int) $user_id;
 

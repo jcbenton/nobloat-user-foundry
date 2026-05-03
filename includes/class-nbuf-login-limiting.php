@@ -45,6 +45,7 @@ class NBUF_Login_Limiting {
 		add_filter( 'authenticate', array( __CLASS__, 'check_login_attempts' ), 30, 3 );
 		add_action( 'wp_login_failed', array( __CLASS__, 'record_failed_attempt' ) );
 		add_action( 'wp_login', array( __CLASS__, 'clear_attempts_on_success' ), 10, 2 );
+		add_action( 'after_password_reset', array( __CLASS__, 'clear_attempts_on_password_reset' ), 10, 2 );
 	}
 
 	/**
@@ -126,11 +127,15 @@ class NBUF_Login_Limiting {
 		/*
 		 * Insert failed attempt record - use GMT for consistent timezone handling.
 		 * Limit username to 255 characters to match database column size.
+		 *
+		 * SECURITY: lower-case the username before persistence. WordPress's
+		 * `get_user_by( 'login', ... )` is case-insensitive, so `Admin`,
+		 * `ADMIN`, and `admin` all resolve to the same account. Without this
+		 * normalisation, an attacker can stay below the per-username threshold
+		 * (10/hr by default) by varying the case of the typed username while
+		 * still attacking the same actual account.
 		 */
-		$sanitized_username = sanitize_text_field( $username );
-		if ( strlen( $sanitized_username ) > 255 ) {
-			$sanitized_username = substr( $sanitized_username, 0, 255 );
-		}
+		$sanitized_username = self::normalize_username( $username );
 
 		$wpdb->insert(
 			$table_name,
@@ -191,21 +196,78 @@ class NBUF_Login_Limiting {
 	 * @param WP_User $user     User object.
 	 * @return void
 	 */
-	public static function clear_attempts_on_success( string $username, WP_User $user ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $user required by WordPress wp_login action signature
+	public static function clear_attempts_on_success( $username, $user ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $user required by WordPress wp_login action signature.
+		unset( $user ); /* WP signature contract; not needed here. */
+
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
 		$ip_address = self::get_ip_address();
 
-		/* Delete all attempts for this IP and username */
+		/* Delete all attempts for this IP and (case-folded) username. */
 		$wpdb->delete(
 			$table_name,
 			array(
 				'ip_address' => $ip_address,
-				'username'   => sanitize_text_field( $username ),
+				'username'   => self::normalize_username( (string) $username ),
 			),
 			array( '%s', '%s' )
 		);
+	}
+
+	/**
+	 * Clear failed login attempts after a successful password reset.
+	 *
+	 * Without this, a user who triggered the lockout by mistyping their
+	 * password and then went through the reset flow would still be blocked
+	 * by the rate limiter when trying to log in with the new password.
+	 *
+	 * Fires on WordPress's `after_password_reset` action so it covers both
+	 * this plugin's reset flow and any reset performed via wp-login.php.
+	 *
+	 * @param  WP_User $user     The user whose password was reset.
+	 * @param  string  $new_pass The new password (unused).
+	 * @return void
+	 */
+	public static function clear_attempts_on_password_reset( $user, $new_pass ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_pass required by after_password_reset action signature.
+		if ( ! $user instanceof WP_User ) {
+			return;
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+
+		/*
+		 * Use the same case-folded normalisation as record_failed_attempt()
+		 * so rows persisted there are reliably cleared.
+		 */
+		$user_login_key = self::normalize_username( $user->user_login );
+		$user_email_key = self::normalize_username( $user->user_email );
+
+		/* Clear by username (the value users typed in the login form). */
+		$wpdb->delete(
+			$table_name,
+			array( 'username' => $user_login_key ),
+			array( '%s' )
+		);
+
+		/* Users may have entered their email instead of username at login. */
+		if ( ! empty( $user_email_key ) && $user_email_key !== $user_login_key ) {
+			$wpdb->delete(
+				$table_name,
+				array( 'username' => $user_email_key ),
+				array( '%s' )
+			);
+		}
+
+		/*
+		 * Note: we deliberately do NOT clear all rows for the requester's IP.
+		 * An attacker who brute-forces several usernames from one IP and then
+		 * completes a reset on a single compromised victim must not have
+		 * lockouts cleared for the other targets they are still attacking.
+		 * The username-keyed deletes above already unblock the legitimate
+		 * "user reset their own password" flow for any IP they choose.
+		 */
 	}
 
 	/**
@@ -289,15 +351,57 @@ class NBUF_Login_Limiting {
 			)
 		);
 
-		/*
-		 * SECURITY: Fail-safe handling - if database query fails (returns null),
-		 * deny the login attempt rather than allowing bypass of rate limiting.
-		 */
-		if ( null === $count ) {
-			return PHP_INT_MAX;
+		return self::handle_count_result( $count, $wpdb->last_error, 'ip' );
+	}
+
+	/**
+	 * Map a COUNT() result to a usable attempt count.
+	 *
+	 * Distinguishes "table missing" from "DB error" so that a missing
+	 * nbuf_login_attempts table (typically a botched plugin upgrade) does
+	 * NOT lock every user out of the site. A genuine DB error still
+	 * fail-closes to PHP_INT_MAX so an attack cannot bypass rate limits by
+	 * inducing query failures.
+	 *
+	 * @since  1.6.4
+	 * @param  mixed  $count       Result of $wpdb->get_var(). Null on error/missing.
+	 * @param  string $last_error  $wpdb->last_error captured immediately after the query.
+	 * @param  string $context     Either 'ip' or 'username' — used for the security log entry.
+	 * @return int Attempt count, or PHP_INT_MAX to fail-closed, or 0 to fail-open on missing table.
+	 */
+	private static function handle_count_result( $count, string $last_error, string $context ): int {
+		if ( null !== $count ) {
+			return (int) $count;
 		}
 
-		return (int) $count;
+		/*
+		 * MySQL "Table 'X' doesn't exist" error 1146. Treat as a deployment
+		 * issue, not an attack: fail open (allow login) and surface a
+		 * critical-severity log entry so operators see it.
+		 */
+		$is_missing_table = false !== stripos( $last_error, "doesn't exist" )
+			|| false !== stripos( $last_error, 'no such table' );
+
+		if ( $is_missing_table ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log_or_update(
+					'login_attempts_table_missing',
+					'critical',
+					'nbuf_login_attempts table does not exist; rate limiting is currently disabled',
+					array(
+						'context'  => $context,
+						'db_error' => $last_error,
+					)
+				);
+			}
+			return 0;
+		}
+
+		/*
+		 * Genuine DB error — fail closed so an attacker cannot bypass rate
+		 * limiting by inducing query failures.
+		 */
+		return PHP_INT_MAX;
 	}
 
 	/**
@@ -321,20 +425,12 @@ class NBUF_Login_Limiting {
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE username = %s AND attempt_time > %s',
 				$table_name,
-				sanitize_text_field( $username ),
+				self::normalize_username( (string) $username ),
 				$cutoff_time
 			)
 		);
 
-		/*
-		 * SECURITY: Fail-safe handling - if database query fails (returns null),
-		 * deny the login attempt rather than allowing bypass of rate limiting.
-		 */
-		if ( null === $count ) {
-			return PHP_INT_MAX;
-		}
-
-		return (int) $count;
+		return self::handle_count_result( $count, $wpdb->last_error, 'username' );
 	}
 
 	/**
@@ -344,6 +440,40 @@ class NBUF_Login_Limiting {
 	 */
 	private static function get_ip_address(): string {
 		return NBUF_IP::get_client_ip( true );
+	}
+
+	/**
+	 * Normalize a username for comparison and storage in the rate-limit table.
+	 *
+	 * SECURITY: lowercases the input and clamps to the column width. The
+	 * lowercasing is essential — WordPress resolves user_login and user_email
+	 * case-insensitively, so without normalization an attacker could bypass
+	 * the per-username rate limit by varying case (`Admin`, `ADMIN`, `admin`).
+	 *
+	 * @since  1.6.4
+	 * @param  string $username Raw value the user typed in the login form.
+	 * @return string Sanitized, lowercased, length-clamped username.
+	 */
+	private static function normalize_username( string $username ): string {
+		$value = sanitize_text_field( $username );
+
+		/*
+		 * mb_strtolower is preferred for any unicode locales; fall back to
+		 * strtolower if mbstring is unavailable. Username and email lookups
+		 * in WP go through PHP comparisons on the DB side, so byte-equal
+		 * lowercase is sufficient for the rate-limit join.
+		 */
+		if ( function_exists( 'mb_strtolower' ) ) {
+			$value = mb_strtolower( $value, 'UTF-8' );
+		} else {
+			$value = strtolower( $value );
+		}
+
+		if ( strlen( $value ) > 255 ) {
+			$value = substr( $value, 0, 255 );
+		}
+
+		return $value;
 	}
 
 	/**

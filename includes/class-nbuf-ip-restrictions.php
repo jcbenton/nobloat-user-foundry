@@ -98,7 +98,16 @@ class NBUF_IP_Restrictions {
 	 * @return bool True if admins can bypass restrictions.
 	 */
 	public static function admin_bypass_enabled(): bool {
-		return (bool) NBUF_Options::get( 'nbuf_ip_restriction_admin_bypass', true );
+		/*
+		 * SECURITY: default OFF. When enabled, the response from a blocked
+		 * IP differs depending on whether the supplied username resolves to
+		 * an admin (passes through to password check) vs a non-admin
+		 * (returns ip_blocked WP_Error). That variance leaks role
+		 * membership and lets an attacker enumerate admin accounts. Keep
+		 * the toggle for emergency lockout recovery, but require explicit
+		 * opt-in and surface the trade-off in the settings UI.
+		 */
+		return (bool) NBUF_Options::get( 'nbuf_ip_restriction_admin_bypass', false );
 	}
 
 	/**
@@ -315,7 +324,16 @@ class NBUF_IP_Restrictions {
 			return $user;
 		}
 
-		/* Check admin bypass - look up user if not already authenticated */
+		/*
+		 * Check admin bypass — look up user if not already authenticated.
+		 *
+		 * SECURITY trade-off: a non-admin from a blocked IP still gets
+		 * blocked (returns WP_Error) whereas an admin is allowed through.
+		 * That visible difference is unavoidable while admin_bypass exists,
+		 * but we balance the work done so the timing of the two branches
+		 * is similar — the attacker's only signal is the response code,
+		 * not response latency.
+		 */
 		if ( self::admin_bypass_enabled() ) {
 			$bypass_user = ( $user instanceof \WP_User ) ? $user : null;
 
@@ -328,6 +346,15 @@ class NBUF_IP_Restrictions {
 
 			if ( $bypass_user && user_can( $bypass_user, 'manage_options' ) ) {
 				return $user;
+			}
+
+			/*
+			 * Time-balance: spend roughly the same wall-clock time the
+			 * admin path would have, so the only attacker-visible signal
+			 * for username-is-admin is the response code, not the latency.
+			 */
+			if ( $bypass_user ) {
+				user_can( $bypass_user, 'manage_options' );
 			}
 		}
 

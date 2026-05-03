@@ -93,6 +93,36 @@ class NBUF_User_Data {
 	}
 
 	/**
+	 * Decode the serialized `visible_fields` blob from nbuf_user_data.
+	 *
+	 * SECURITY: Always disables class instantiation during unserialize so a
+	 * tampered row cannot trigger PHP object injection. Returns an empty array
+	 * if the value is missing, malformed, or not an array after decoding.
+	 *
+	 * @since  1.6.3
+	 * @param  mixed $value Raw value from `nbuf_user_data.visible_fields`.
+	 * @return array<string, mixed>
+	 */
+	public static function decode_visible_fields( $value ): array {
+		if ( empty( $value ) ) {
+			return array();
+		}
+
+		if ( is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) && is_serialized( $value ) ) {
+			$decoded = @unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed payload.
+			if ( is_array( $decoded ) ) {
+				return $decoded;
+			}
+		}
+
+		return array();
+	}
+
+	/**
 	 * Check if user is verified.
 	 *
 	 * @since  1.0.0

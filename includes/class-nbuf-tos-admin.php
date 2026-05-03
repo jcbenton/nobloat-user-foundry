@@ -670,7 +670,17 @@ class NBUF_ToS_Admin {
 	 */
 	private static function csv_escape( $value ): string {
 		$value = (string) $value;
-		if ( ! empty( $value ) && preg_match( '/^[=+\-@\t\r]/', $value ) ) {
+		if ( '' === $value ) {
+			return $value;
+		}
+
+		/*
+		 * Excel/LibreOffice ignore leading whitespace and re-evaluate
+		 * formulas, so `"   =cmd|..."` would slip past a strict
+		 * begins-with-trigger regex. Detect the trigger character after
+		 * any leading whitespace/control characters.
+		 */
+		if ( preg_match( '/^[\s\x00-\x1f]*[=+\-@]/', $value ) ) {
 			$value = "'" . $value;
 		}
 		return $value;

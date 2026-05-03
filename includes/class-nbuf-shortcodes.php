@@ -2621,6 +2621,28 @@ class NBUF_Shortcodes {
 			 */
 			NBUF_User_Data::set_pending_email( $user_id, $new_email );
 
+			/*
+			 * SECURITY: invalidate any prior unredeemed `email_change` tokens
+			 * for this user before issuing a new one. Without this cleanup, a
+			 * user who requests change-to-A then change-to-B leaves token A
+			 * still valid in the DB; clicking the older A link silently
+			 * applies the (now overwritten) pending email B or — depending
+			 * on race — apply A as the new account email despite the user
+			 * having moved on to B. Keeping at most one outstanding email-
+			 * change token per user closes the multi-stage replay window.
+			 */
+			global $wpdb;
+			$tokens_table = $wpdb->prefix . NBUF_DB_TABLE;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table cleanup.
+			$wpdb->delete(
+				$tokens_table,
+				array(
+					'user_id' => $user_id,
+					'type'    => 'email_change',
+				),
+				array( '%d', '%s' )
+			);
+
 			/* Generate verification token — store hash, send plaintext in email */
 			$token      = bin2hex( random_bytes( 32 ) );
 			$token_hash = hash( 'sha256', $token );
@@ -3710,13 +3732,7 @@ Best regards,
 		$registered_date = mysql2date( get_option( 'date_format' ), $registered );
 
 		/* Get user's visible fields preference */
-		$visible_fields = array();
-		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
-			$visible_fields = maybe_unserialize( $user_data->visible_fields );
-			if ( ! is_array( $visible_fields ) ) {
-				$visible_fields = array();
-			}
-		}
+		$visible_fields = $user_data ? NBUF_User_Data::decode_visible_fields( $user_data->visible_fields ?? null ) : array();
 
 		/* Prepare profile fields to display */
 		$profile_fields = array();

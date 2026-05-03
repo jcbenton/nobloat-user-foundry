@@ -64,6 +64,33 @@ class NBUF_Options {
 	private static $all_options_loaded = false;
 
 	/**
+	 * Decode a stored option value safely.
+	 *
+	 * SECURITY: Replaces maybe_unserialize() to ensure that any tampered or
+	 * imported value cannot trigger PHP object instantiation. If the value is
+	 * a serialized scalar/array it is decoded with allowed_classes => false;
+	 * any other value (including JSON, plain strings, ints, bools) is returned
+	 * unchanged.
+	 *
+	 * @since  1.6.3
+	 * @param  mixed $value Raw value from the option_value column.
+	 * @return mixed
+	 */
+	private static function safe_unserialize_option( $value ) {
+		if ( ! is_string( $value ) || ! is_serialized( $value ) ) {
+			return $value;
+		}
+
+		$decoded = @unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed payload from a tampered DB row.
+
+		if ( false === $decoded && 'b:0;' !== $value ) {
+			return $value;
+		}
+
+		return $decoded;
+	}
+
+	/**
 	 * Table name
 	 *
 	 * @var string
@@ -129,7 +156,7 @@ class NBUF_Options {
 		/* Build cache array */
 		if ( is_array( $results ) ) {
 			foreach ( $results as $row ) {
-				self::$cache[ $row->option_name ] = maybe_unserialize( $row->option_value );
+				self::$cache[ $row->option_name ] = self::safe_unserialize_option( $row->option_value );
 			}
 		}
 
@@ -175,7 +202,7 @@ class NBUF_Options {
 		}
 
 		if ( null !== $value ) {
-			$unserialized        = maybe_unserialize( $value );
+			$unserialized        = self::safe_unserialize_option( $value );
 			self::$cache[ $key ] = $unserialized;
 			return $unserialized;
 		}
@@ -521,7 +548,7 @@ class NBUF_Options {
 
 		$options = array();
 		foreach ( $results as $row ) {
-			$value                            = maybe_unserialize( $row->option_value );
+			$value                            = self::safe_unserialize_option( $row->option_value );
 			$options[ $row->option_name ]     = $value;
 			self::$cache[ $row->option_name ] = $value;
 		}
@@ -551,7 +578,7 @@ class NBUF_Options {
 
 		$options = array();
 		foreach ( $results as $row ) {
-			$value                            = maybe_unserialize( $row->option_value );
+			$value                            = self::safe_unserialize_option( $row->option_value );
 			$options[ $row->option_name ]     = $value;
 			self::$cache[ $row->option_name ] = $value;
 		}

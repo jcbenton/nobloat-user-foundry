@@ -592,8 +592,7 @@ class NBUF_Hooks {
 		$template_name = ( 'html' === $mode ) ? 'admin-new-user-html' : 'admin-new-user-text';
 		$template      = NBUF_Template_Manager::load_template( $template_name );
 
-		/* Prepare replacements */
-		/* Escape user-controlled values for HTML email context */
+		// Prepare replacements (escape user-controlled values for HTML email context).
 		$replacements = array(
 			'{site_name}'         => esc_html( wp_specialchars_decode( $site_name, ENT_QUOTES ) ),
 			'{site_url}'          => esc_url( home_url() ),
@@ -640,7 +639,7 @@ class NBUF_Hooks {
 		/*
 		 * Get current action
 		 */
-     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only login redirect navigation
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only login redirect navigation
 		$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : 'login';
 
 		/* Handle lost password redirect (request reset form) */
@@ -751,7 +750,7 @@ class NBUF_Hooks {
 				return;
 			}
 
-			/* Preserve redirect_to from WordPress login URL so user lands at the right page after login */
+			// Preserve redirect_to from WordPress login URL so user lands at the right page after login.
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect_to parameter from WordPress core login flow.
 			$redirect_to_param = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
 
@@ -790,12 +789,12 @@ class NBUF_Hooks {
 		/*
 		 * Verify nonce before accessing $_POST
 		 */
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checking if nonce exists before verification
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checking if nonce exists before verification
 		if ( ! isset( $_POST['_wpnonce'] ) ) {
 			return;
 		}
 
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce retrieved for verification on next line
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce retrieved for verification on next line
 		$nonce = sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) );
 		if ( ! wp_verify_nonce( $nonce, 'update-user_' . $user->ID ) ) {
 			return;
@@ -804,12 +803,12 @@ class NBUF_Hooks {
 		/*
 		 * Check if password is being changed
 		 */
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification on line 529
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Protected by nonce verification on line 529
 		if ( ! isset( $_POST['pass1'] ) || empty( $_POST['pass1'] ) ) {
 			return; // Not changing password.
 		}
 
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Protected by nonce on line 529, password validated not sanitized
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Protected by nonce on line 529, password validated not sanitized
 		$password = wp_unslash( $_POST['pass1'] );
 		$user_id  = $update ? $user->ID : 0;
 
@@ -842,12 +841,12 @@ class NBUF_Hooks {
 		/*
 		* Check if password field exists
 		*/
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core registration hook, nonce verified by core.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core registration hook, nonce verified by core.
 		if ( ! isset( $_POST['pass1'] ) || empty( $_POST['pass1'] ) ) {
 			return $errors;
 		}
 
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WordPress core registration hook, validating password strength.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WordPress core registration hook, validating password strength.
 		$password = wp_unslash( $_POST['pass1'] );
 
 		$validation = NBUF_Password_Validator::validate( $password, 0 );
@@ -877,12 +876,12 @@ class NBUF_Hooks {
 		/*
 		* Check if password field exists
 		*/
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core password reset hook, nonce verified by core.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WordPress core password reset hook, nonce verified by core.
 		if ( ! isset( $_POST['pass1'] ) || empty( $_POST['pass1'] ) ) {
 			return;
 		}
 
-     // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WordPress core password reset hook, validating password strength.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WordPress core password reset hook, validating password strength.
 		$password = wp_unslash( $_POST['pass1'] );
 		$user_id  = $user->ID;
 

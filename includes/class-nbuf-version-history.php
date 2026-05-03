@@ -851,7 +851,7 @@ class NBUF_Version_History {
 
 		/* Check permissions */
 		if ( ! $this->can_view_version_history( $user_id ) ) {
-			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$versions = $this->get_user_versions( $user_id, $per_page, $offset );
@@ -889,17 +889,17 @@ class NBUF_Version_History {
 		$version2 = $this->get_version_by_id( $version_id_2 );
 
 		if ( ! $version1 || ! $version2 ) {
-			wp_send_json_error( array( 'message' => 'Versions not found.' ) );
+			wp_send_json_error( array( 'message' => __( 'Versions not found.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check permissions */
 		if ( ! $this->can_view_version_history( $version1->user_id ) ) {
-			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Both versions must belong to the same user to prevent cross-user data leak */
 		if ( (int) $version1->user_id !== (int) $version2->user_id ) {
-			wp_send_json_error( array( 'message' => 'Versions must belong to the same user.' ) );
+			wp_send_json_error( array( 'message' => __( 'Versions must belong to the same user.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$diff = $this->compare_versions( $version_id_1, $version_id_2 );
@@ -929,20 +929,20 @@ class NBUF_Version_History {
 		$version    = $this->get_version_by_id( $version_id );
 
 		if ( ! $version ) {
-			wp_send_json_error( array( 'message' => 'Version not found.' ) );
+			wp_send_json_error( array( 'message' => __( 'Version not found.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check permissions */
 		if ( ! $this->can_revert_version( $version->user_id ) ) {
-			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$success = $this->revert_to_version( $version->user_id, $version_id );
 
 		if ( $success ) {
-			wp_send_json_success( array( 'message' => 'Profile reverted successfully.' ) );
+			wp_send_json_success( array( 'message' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ) ) );
 		} else {
-			wp_send_json_error( array( 'message' => 'Revert failed.' ) );
+			wp_send_json_error( array( 'message' => __( 'Revert failed.', 'nobloat-user-foundry' ) ) );
 		}
 	}
 

@@ -258,18 +258,22 @@ class NBUF_Passkey_Prompt {
 			return;
 		}
 
-		/* Delete transient (one-time show) */
-		delete_transient( $trigger_key );
+		/*
+		 * Prerequisite gates first — only consume the trigger transient once
+		 * we know we're actually about to render. Otherwise a non-HTTPS view
+		 * (or a race that flipped should_show_prompt) would consume the
+		 * trigger and the user would never see the prompt this session.
+		 */
+		if ( ! is_ssl() ) {
+			return;
+		}
 
-		/* Verify should_show_prompt still true (in case of race) */
 		if ( ! self::should_show_prompt( $user_id ) ) {
 			return;
 		}
 
-		/* Check HTTPS (passkeys require secure context) */
-		if ( ! is_ssl() ) {
-			return;
-		}
+		/* All gates passed — consume the trigger and render. */
+		delete_transient( $trigger_key );
 
 		/* Mark for rendering and enqueue assets */
 		self::$render_modal = true;
@@ -647,9 +651,15 @@ class NBUF_Passkey_Prompt {
 			wp_send_json_error( array( 'message' => __( 'Not logged in.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Get and validate device ID */
-		$device_id = isset( $_POST['device_id'] ) ? sanitize_text_field( wp_unslash( $_POST['device_id'] ) ) : '';
-		if ( ! self::is_valid_uuid( $device_id ) ) {
+		/*
+		 * Trust the cookie, not the POST field. A POST-supplied device_id
+		 * lets a logged-in user fill their own dismissed-list with junk
+		 * UUIDs (50-entry cap evicts legitimate dismissals — self-DoS on
+		 * the prompt-display logic). The cookie was set by us at first
+		 * login and is the canonical device identifier.
+		 */
+		$device_id = self::get_device_id();
+		if ( empty( $device_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid device ID.', 'nobloat-user-foundry' ) ) );
 		}
 
@@ -674,9 +684,12 @@ class NBUF_Passkey_Prompt {
 			wp_send_json_error( array( 'message' => __( 'Not logged in.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* Get and validate device ID */
-		$device_id = isset( $_POST['device_id'] ) ? sanitize_text_field( wp_unslash( $_POST['device_id'] ) ) : '';
-		if ( ! self::is_valid_uuid( $device_id ) ) {
+		/*
+		 * Trust the cookie, not the POST field. See ajax_dismiss() for
+		 * rationale.
+		 */
+		$device_id = self::get_device_id();
+		if ( empty( $device_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid device ID.', 'nobloat-user-foundry' ) ) );
 		}
 

@@ -114,12 +114,22 @@ class NBUF_Impersonation {
 			return false;
 		}
 
-		/* Cannot impersonate users who have any capability the impersonator lacks */
-		$target_caps  = array_keys( array_filter( $target_user->allcaps ) );
-		$current_caps = array_keys( array_filter( $current_user->allcaps ) );
-		$extra_caps   = array_diff( $target_caps, $current_caps );
-		if ( ! empty( $extra_caps ) ) {
-			return false;
+		/*
+		 * Cannot impersonate users who have any capability the impersonator
+		 * lacks. Use user_can() rather than ->allcaps array_diff so dynamic
+		 * caps granted at runtime by the user_has_cap filter (membership
+		 * plugins, multi-role plugins, BuddyPress group caps, etc.) are
+		 * honored. ->allcaps is the static role-derived map and silently
+		 * drops anything granted by a filter, which would let the
+		 * impersonator escalate when they assume the target's identity.
+		 */
+		foreach ( (array) $target_user->allcaps as $cap => $granted ) {
+			if ( ! $granted ) {
+				continue;
+			}
+			if ( ! user_can( $current_user, $cap ) ) {
+				return false;
+			}
 		}
 
 		return true;
@@ -145,30 +155,74 @@ class NBUF_Impersonation {
 		}
 
 		/*
-		 * SECURITY: Validate IP address binding to prevent session hijacking.
-		 * If the IP address doesn't match, invalidate the impersonation session.
+		 * SECURITY: require BOTH ip_address and user_agent to have been bound
+		 * at start. The previous "only enforce when set" behaviour silently
+		 * skipped the check whenever the bound value was missing (because the
+		 * admin's original request lacked the header), letting an attacker
+		 * with the cookie pass without a binding match.
 		 */
-		if ( isset( $data['ip_address'] ) && ! empty( $data['ip_address'] ) ) {
-			$current_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-			if ( $current_ip !== $data['ip_address'] ) {
-				/* IP mismatch - log security event and invalidate session */
-				if ( class_exists( 'NBUF_Security_Log' ) ) {
-					NBUF_Security_Log::log(
-						'impersonation_ip_mismatch',
-						'warning',
-						'Impersonation session invalidated due to IP change',
-						array(
-							'original_ip' => $data['ip_address'],
-							'current_ip'  => $current_ip,
-							'admin_id'    => $data['original_user_id'] ?? 0,
-							'target_id'   => $data['target_user_id'] ?? 0,
-						)
-					);
-				}
-				/* Delete the transient to end the impersonation */
-				delete_transient( $transient_key );
-				return false;
+		if ( empty( $data['ip_address'] ) || empty( $data['user_agent'] ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'impersonation_binding_missing',
+					'warning',
+					'Impersonation session invalidated — IP or User-Agent binding was empty',
+					array(
+						'admin_id'  => $data['original_user_id'] ?? 0,
+						'target_id' => $data['target_user_id'] ?? 0,
+					)
+				);
 			}
+			delete_transient( $transient_key );
+			return false;
+		}
+
+		/*
+		 * Validate IP address binding. Use NBUF_IP::get_client_ip() to apply
+		 * the same trusted-proxy / IPv6-canonicalisation logic that wrote the
+		 * stored value at start, so a dual-stack client doesn't get logged
+		 * out by representation drift (`2001:db8::1` vs the expanded form).
+		 */
+		$current_ip = class_exists( 'NBUF_IP' )
+			? NBUF_IP::get_client_ip( true )
+			: ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
+		if ( $current_ip !== $data['ip_address'] ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'impersonation_ip_mismatch',
+					'warning',
+					'Impersonation session invalidated due to IP change',
+					array(
+						'original_ip' => $data['ip_address'],
+						'current_ip'  => $current_ip,
+						'admin_id'    => $data['original_user_id'] ?? 0,
+						'target_id'   => $data['target_user_id'] ?? 0,
+					)
+				);
+			}
+			delete_transient( $transient_key );
+			return false;
+		}
+
+		/*
+		 * Validate User-Agent binding. hash_equals() avoids timing-based
+		 * leaks on the comparison, though the value is not secret.
+		 */
+		$current_ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		if ( ! hash_equals( (string) $data['user_agent'], $current_ua ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'impersonation_ua_mismatch',
+					'warning',
+					'Impersonation session invalidated due to User-Agent change',
+					array(
+						'admin_id'  => $data['original_user_id'] ?? 0,
+						'target_id' => $data['target_user_id'] ?? 0,
+					)
+				);
+			}
+			delete_transient( $transient_key );
+			return false;
 		}
 
 		return $data;
@@ -298,6 +352,18 @@ class NBUF_Impersonation {
 			);
 		}
 
+		/*
+		 * Capture the original admin's session token BEFORE clearing the
+		 * cookie. We hash and store it in the transient so handle_impersonation_end
+		 * can verify the resume-target really matches an active admin session.
+		 * Without this binding, an attacker who can write a transient (e.g.,
+		 * via object-cache compromise) could call handle_impersonation_end
+		 * with a forged transient and have wp_set_auth_cookie() executed for
+		 * an arbitrary user_id holding the impersonation capability.
+		 */
+		$original_session_token      = wp_get_session_token();
+		$original_session_token_hash = $original_session_token ? hash( 'sha256', $original_session_token ) : '';
+
 		/* Clear current session and create new one for target user */
 		wp_clear_auth_cookie();
 
@@ -311,9 +377,13 @@ class NBUF_Impersonation {
 
 		/*
 		 * Store impersonation data using the token we created.
-		 * SECURITY: Bind to IP address and user agent to prevent session hijacking.
+		 * SECURITY: Bind to IP address (via NBUF_IP for normalised IPv6 and
+		 * trusted-proxy resolution), user agent, and the original admin's
+		 * session-token hash.
 		 */
-		$client_ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$client_ip  = class_exists( 'NBUF_IP' )
+			? NBUF_IP::get_client_ip( true )
+			: ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
 		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 		$expiration = 2 * HOUR_IN_SECONDS; /* Shorter expiration for security (2 hours instead of 1 day) */
 
@@ -321,13 +391,14 @@ class NBUF_Impersonation {
 		set_transient(
 			$transient_key,
 			array(
-				'original_user_id'  => $current_user->ID,
-				'original_username' => $current_user->user_login,
-				'target_user_id'    => $target_user_id,
-				'target_username'   => $target_user->user_login,
-				'started_at'        => time(),
-				'ip_address'        => $client_ip,
-				'user_agent'        => $user_agent,
+				'original_user_id'            => $current_user->ID,
+				'original_username'           => $current_user->user_login,
+				'original_session_token_hash' => $original_session_token_hash,
+				'target_user_id'              => $target_user_id,
+				'target_username'             => $target_user->user_login,
+				'started_at'                  => time(),
+				'ip_address'                  => $client_ip,
+				'user_agent'                  => $user_agent,
 			),
 			$expiration
 		);
@@ -385,28 +456,64 @@ class NBUF_Impersonation {
 			);
 		}
 
-		/* Destroy the target user's session token created during impersonation */
-		$session_token = wp_get_session_token();
-		if ( $session_token && isset( $impersonation_data['target_user_id'] ) ) {
-			$target_manager = WP_Session_Tokens::get_instance( $impersonation_data['target_user_id'] );
-			$target_manager->destroy( $session_token );
-		}
-
-		/* Clear impersonation transient */
-		$transient_key = self::TRANSIENT_PREFIX . hash( 'sha256', $session_token );
-		delete_transient( $transient_key );
-
-		/* Clear current session */
-		wp_clear_auth_cookie();
-
-		/* Verify original user still exists and has impersonation capability before restoring */
+		/*
+		 * SECURITY: verify the original admin still has the impersonation
+		 * capability BEFORE we destroy any session — otherwise a permission
+		 * change mid-impersonation locks the admin out entirely. Also verify
+		 * the bound original-session-token hash matches a still-active
+		 * session for that user, defeating transient-injection attacks that
+		 * would otherwise let an attacker call wp_set_auth_cookie() for any
+		 * user_id holding the impersonation cap.
+		 */
 		$original_user = get_userdata( $original_user_id );
 		if ( ! $original_user || ! user_can( $original_user, self::get_required_capability() ) ) {
 			wp_safe_redirect( wp_login_url() );
 			exit;
 		}
 
-		/* Restore original user session */
+		$bound_token_hash = isset( $impersonation_data['original_session_token_hash'] )
+			? (string) $impersonation_data['original_session_token_hash']
+			: '';
+		$binding_ok       = false;
+		if ( '' !== $bound_token_hash ) {
+			$original_manager = WP_Session_Tokens::get_instance( $original_user_id );
+			$all_tokens       = $original_manager->get_all();
+			foreach ( (array) $all_tokens as $stored_token => $session ) {
+				if ( hash_equals( $bound_token_hash, hash( 'sha256', (string) $stored_token ) ) ) {
+					$binding_ok = true;
+					break;
+				}
+			}
+		}
+		if ( ! $binding_ok ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'impersonation_end_binding_invalid',
+					'critical',
+					'Impersonation end refused — bound original-session token does not match any active session',
+					array(
+						'admin_id'  => $original_user_id,
+						'target_id' => $impersonation_data['target_user_id'] ?? 0,
+					)
+				);
+			}
+			wp_safe_redirect( wp_login_url() );
+			exit;
+		}
+
+		/* Destroy the target user's session token created during impersonation */
+		$session_token = wp_get_session_token();
+		if ( $session_token && isset( $impersonation_data['target_user_id'] ) ) {
+			$target_manager = WP_Session_Tokens::get_instance( $impersonation_data['target_user_id'] );
+			$target_manager->destroy( $session_token );
+
+			/* Clear impersonation transient — only when we have a real session token. */
+			$transient_key = self::TRANSIENT_PREFIX . hash( 'sha256', $session_token );
+			delete_transient( $transient_key );
+		}
+
+		/* Clear current session and restore original user. */
+		wp_clear_auth_cookie();
 		wp_set_auth_cookie( $original_user_id, false );
 		wp_set_current_user( $original_user_id );
 

@@ -155,16 +155,24 @@ class NBUF_Password_Expiration {
 		);
 
 		if ( $exists ) {
-			/* Update existing record */
+			/*
+			 * SECURITY: do NOT auto-clear `force_password_change` here.
+			 * Previously this UPDATE wrote `force_password_change = 0`
+			 * unconditionally, which meant an admin's "force this user to
+			 * rotate their password" could be silently undone by any
+			 * password_reset / profile_update / user_register hook flow
+			 * (e.g., the standard "Lost your password?" link). The flag
+			 * is cleared only by handle_password_change_form() once the
+			 * user has actually been forced through the dedicated form.
+			 */
 			$result = $wpdb->update(
 				$table_name,
 				array(
-					'password_changed_at'   => $now,
-					'password_expires_at'   => $expires_at,
-					'force_password_change' => 0,
+					'password_changed_at' => $now,
+					'password_expires_at' => $expires_at,
 				),
 				array( 'user_id' => $user_id ),
-				array( '%s', '%s', '%d' ),
+				array( '%s', '%s' ),
 				array( '%d' )
 			);
 		} else {
@@ -246,7 +254,7 @@ class NBUF_Password_Expiration {
 	 */
 	public static function maybe_redirect_to_password_change( $errors, $redirect ) {
 		if ( is_wp_error( $errors ) && $errors->get_error_code() === 'nbuf_password_change_required' ) {
-			/* Find the token from the login attempt — look up by submitted username */
+			// Find the token from the login attempt — look up by submitted username.
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Reading login field for redirect only.
 			$login = isset( $_POST['log'] ) ? sanitize_user( wp_unslash( $_POST['log'] ) ) : '';
 			$user  = get_user_by( 'login', $login );
@@ -495,9 +503,12 @@ class NBUF_Password_Expiration {
 				exit;
 			}
 			$user_id = (int) $token_user;
-			/* Token is NOT consumed here — it must survive until the form POST.
+
+			/*
+			 * Token is NOT consumed here — it must survive until the form POST.
 			 * The 10-minute TTL provides sufficient protection against URL reuse.
-			 * Token is consumed after successful password change (line ~556). */
+			 * Token is consumed after successful password change (line ~556).
+			 */
 		}
 
 		if ( ! $user_id ) {
@@ -518,15 +529,13 @@ class NBUF_Password_Expiration {
 		}
 
 		/* Handle form submission */
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['nbuf_change_password_nonce'] ) ) {
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		if ( 'POST' === $request_method && isset( $_POST['nbuf_change_password_nonce'] ) ) {
 			check_admin_referer( 'nbuf_change_password_' . $user_id, 'nbuf_change_password_nonce' );
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized upfront.
-
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized upfront.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized upfront.
 			$new_password = isset( $_POST['new_password'] ) ? wp_unslash( $_POST['new_password'] ) : '';
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords validated by wp_set_password, not sanitized.
 			$confirm_password = isset( $_POST['confirm_password'] ) ? wp_unslash( $_POST['confirm_password'] ) : '';
 
 			$errors = array();
@@ -552,11 +561,31 @@ class NBUF_Password_Expiration {
 			if ( empty( $errors ) ) {
 				wp_set_password( $new_password, $user_id );
 
-				/* Clear transients */
-				if ( isset( $change_token ) ) {
+				/*
+				 * SECURITY: clean up the change-token transient regardless of
+				 * which path the user reached the form through. If $user_id
+				 * came from get_current_user_id() (logged-in path), the
+				 * change_token transient pointed at by the redirect-key
+				 * transient was being orphaned for up to 10 minutes — leaving
+				 * a usable URL that could re-enter the form unauthenticated
+				 * after the user logged out (e.g., from browser history /
+				 * shared-device replay).
+				 */
+				if ( isset( $change_token ) && '' !== $change_token ) {
 					delete_transient( 'nbuf_password_change_token_' . $change_token );
+				} else {
+					$pending_token = get_transient( 'nbuf_password_change_redirect_' . $user_id );
+					if ( $pending_token ) {
+						delete_transient( 'nbuf_password_change_token_' . $pending_token );
+					}
 				}
 				delete_transient( 'nbuf_password_change_redirect_' . $user_id );
+
+				/*
+				 * Now that the user has actually been forced through the
+				 * password-change form, clear the force flag.
+				 */
+				self::clear_force_password_change( $user_id );
 
 				/* Regenerate session to prevent session fixation */
 				wp_clear_auth_cookie();
@@ -580,8 +609,9 @@ class NBUF_Password_Expiration {
 	/**
 	 * Render password change form.
 	 *
-	 * @param WP_User            $user   User object.
-	 * @param array<int, string> $errors Array of error messages.
+	 * @param WP_User            $user         User object.
+	 * @param array<int, string> $errors       Array of error messages.
+	 * @param string             $change_token Single-use token bound to this password-change session.
 	 * @return void
 	 */
 	public static function render_password_change_form( WP_User $user, array $errors = array(), string $change_token = '' ): void {
@@ -660,6 +690,21 @@ class NBUF_Password_Expiration {
 
 		if ( ! $user_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/*
+		 * SECURITY: enforce per-target capability and super-admin protection.
+		 *  - edit_user (singular, with $user_id) is the WP meta-cap that maps
+		 *    through map_meta_cap so plugins can deny editing of specific users.
+		 *  - On multisite, only a super admin may terminate another super
+		 *    admin's sessions.
+		 */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage this user.', 'nobloat-user-foundry' ) ) );
+		}
+
+		if ( is_multisite() && is_super_admin( $user_id ) && ! is_super_admin( get_current_user_id() ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage this user.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Force logout */

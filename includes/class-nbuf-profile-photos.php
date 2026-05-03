@@ -533,10 +533,19 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => __( 'Invalid request method.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* SECURITY: Verify request origin to prevent cross-site attacks */
-		$referer  = wp_get_referer();
-		$site_url = site_url();
-		if ( ! $referer || 0 !== strpos( $referer, $site_url ) ) {
+		/*
+		 * SECURITY: Verify request origin to prevent cross-site attacks.
+		 * Compare hostnames exactly, not by prefix — a strpos() check accepts
+		 * `https://victim.com.attacker.tld/...` which shares the prefix of
+		 * `https://victim.com`. Hostname equality plus a same-or-https scheme
+		 * check is the correct defense. (Nonce is the primary gate; this is
+		 * a layered check.)
+		 */
+		$referer       = wp_get_referer();
+		$site_url      = site_url();
+		$referer_host  = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
+		$site_host     = wp_parse_url( $site_url, PHP_URL_HOST );
+		if ( ! $referer || ! $referer_host || strtolower( (string) $referer_host ) !== strtolower( (string) $site_host ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
 					'csrf_origin_mismatch',
@@ -714,10 +723,19 @@ class NBUF_Profile_Photos {
 			wp_send_json_error( array( 'message' => __( 'Invalid request method.', 'nobloat-user-foundry' ) ) );
 		}
 
-		/* SECURITY: Verify request origin to prevent cross-site attacks */
-		$referer  = wp_get_referer();
-		$site_url = site_url();
-		if ( ! $referer || 0 !== strpos( $referer, $site_url ) ) {
+		/*
+		 * SECURITY: Verify request origin to prevent cross-site attacks.
+		 * Compare hostnames exactly, not by prefix — a strpos() check accepts
+		 * `https://victim.com.attacker.tld/...` which shares the prefix of
+		 * `https://victim.com`. Hostname equality plus a same-or-https scheme
+		 * check is the correct defense. (Nonce is the primary gate; this is
+		 * a layered check.)
+		 */
+		$referer       = wp_get_referer();
+		$site_url      = site_url();
+		$referer_host  = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
+		$site_host     = wp_parse_url( $site_url, PHP_URL_HOST );
+		if ( ! $referer || ! $referer_host || strtolower( (string) $referer_host ) !== strtolower( (string) $site_host ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
 					'csrf_origin_mismatch',
@@ -1105,7 +1123,7 @@ class NBUF_Profile_Photos {
 		if ( function_exists( 'finfo_open' ) ) {
 			$finfo = finfo_open( FILEINFO_MIME_TYPE );
 			$mime  = finfo_file( $finfo, $real_path );
-			finfo_close( $finfo );
+			unset( $finfo );
 
 			$allowed_mimes = array( 'image/jpeg', 'image/png', 'image/gif', 'image/webp' );
 			if ( ! in_array( $mime, $allowed_mimes, true ) ) {
@@ -1305,13 +1323,7 @@ class NBUF_Profile_Photos {
 		$show_in_directory = $user_data ? (int) $user_data->show_in_directory : 0;
 
 		/* Get user's visible fields preference (default to all enabled) */
-		$visible_fields = array();
-		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
-			$visible_fields = maybe_unserialize( $user_data->visible_fields );
-			if ( ! is_array( $visible_fields ) ) {
-				$visible_fields = array();
-			}
-		}
+		$visible_fields = $user_data ? NBUF_User_Data::decode_visible_fields( $user_data->visible_fields ?? null ) : array();
 		?>
 		<h3><?php esc_html_e( 'Profile Settings', 'nobloat-user-foundry' ); ?></h3>
 		<p class="nbuf-method-description"><?php esc_html_e( 'Configure your profile visibility and control which information appears on your public profile.', 'nobloat-user-foundry' ); ?></p>

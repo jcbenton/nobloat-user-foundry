@@ -29,7 +29,7 @@ NoBloat User Foundry is a comprehensive yet lightweight user management system f
 - Custom database tables - no wp_usermeta or wp_options bloat
 - Lazy class loading - only loads what's needed per request
 - Complete uninstall - removes all plugin data cleanly
-- Fully compliant with Wordpress coding standards.
+- Fully compliant with WordPress coding standards.
 
 ### Email Verification
 
@@ -332,6 +332,89 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 - PHP 8.0 or higher
 
 ## Changelog
+
+### 1.6.4 — Forensic Hardening Release (Pieces 1-3)
+
+This release ships fixes from a full-codebase forensic audit covering the authentication core, sessions/impersonation/IP-restrictions, and registration/verification/password-policy/ToS subsystems.
+
+**CRITICAL:**
+- ToS `handle_acceptance` now pins the posted `version_id` to the active version, blocking fabricated-evidence and stale-form attacks.
+
+**HIGH (security):**
+- Passkey `verify_authentication` enforces the user-binding transient (closes credential-confusion on shared devices).
+- TOTP replay protection records the matched counter, not the verifier clock; per-user `GET_LOCK` serializes parallel POSTs.
+- Login-limiting normalizes username case before insert/select (closes case-variation bypass of the per-username distributed brute-force threshold).
+- 2FA email/TOTP/backup-code lockouts use method-specific window settings.
+- Magic-link `verify_magic_link` checks the delete result before COMMIT and rolls back on DB error or zero-rows.
+- Magic-link SMTP send deferred via `wp_schedule_single_event` to neutralize timing-based email enumeration.
+- Magic-link verifier collapses distinct account-state messages and lower-cases token before SHA-256.
+- Passkey clone-detection log severity raised to critical and argument order corrected.
+- Impersonation `can_impersonate_user` uses `user_can()` per-cap loop (honors dynamically-granted caps from `user_has_cap` filter).
+- Impersonation start binds `original_session_token_hash`; end-path verifies that hash against an active session before restoring auth.
+- Impersonation IP/UA bindings required non-empty and use `NBUF_IP::get_client_ip(true)` for normalized comparison.
+- Sessions `revoke_session`/`revoke_other_sessions` require ownership or `edit_user`; `revoke_other_sessions` verifies destroy actually reduced the count.
+- IP-restrictions admin-bypass default flipped to off (eliminates admin-username-to-role oracle).
+- Restriction-content `filter_rest_content` returns `WP_Error 403` (closes title/meta/ACF REST data leak).
+- Restriction-content `access_denied_message` log gated by `is_singular()` (eliminates per-render log-spam DoS).
+- Restriction-taxonomy `get_excluded_term_ids` SQL filters by visibility allowlist.
+- Restriction-menu two-pass filter walks ancestor chain regardless of item order.
+- Restrictions module hooks `delete_post`/`delete_nav_menu_item` for orphan-row cleanup.
+- ToS `handle_acceptance` enforces the affirmative-consent checkbox server-side.
+- ToS `set_active_version` is transactional with rollback.
+- ToS-admin CSV escape blocks leading-whitespace formula-injection bypass.
+- Password-expiration `update_password_changed_date` no longer auto-clears `force_password_change`.
+- Password-expiration change-token cleaned up on logged-in form path.
+- Password-validator weak-password "every" timing no longer resets the grace clock on every login.
+- Registration `validate_registration_data` enforces the antibot challenge (protects any caller of `register_user`).
+- Shortcodes email-change deletes prior unredeemed `email_change` tokens before issuing a new one.
+- Verifier canonicalizes emails for comparison; failed `wp_update_user` writes an `email_change_failed` audit row.
+
+**MEDIUM:**
+- 2FA grace period starts on `set_user_role`/`add_user_role` (not next login).
+- 2FA pending transient cleared on lockout.
+- Backup-code failures use generic 2FA lockout window.
+- Device-trust GET_LOCK is per-token with 5-second timeout.
+- Login-limiting distinguishes missing-table from query-error (missing fail-opens with critical log).
+- Login-limiting `clear_attempts_on_password_reset` no longer wipes all IP rows.
+- TOTP `base32_decode` rejects invalid input.
+- Passkey `set_transient` failure surfaces as `WP_Error('storage_failed')`.
+- Passkey-prompt `is_ssl` checked before consuming the trigger transient.
+- Passkey-prompt AJAX trusts the cookie, not POST device_id.
+- Passkeys-login redirect uses strict `https?://` regex.
+- Passkey `ajax_authenticate` redirect default uses `NBUF_Passkeys_Login::get_redirect_url()`.
+- Impersonation end-path capability check moved before `wp_clear_auth_cookie`.
+- ToS `effective_date` validated via `DateTime::createFromFormat`.
+- Expiration cron batched to 100 users/run (filterable).
+
+**LOW:**
+- `wp_login_failed` fires on 2FA failure.
+- NBUF_IP XFF chain skips empty fields.
+- Restriction redirect URLs use `esc_url_raw()`.
+
+**Verified:** php -l clean across all 26 modified files; phpcs WordPress 0 errors / minimal pre-existing warnings.
+
+### 1.6.3 — Security & Standards Release
+
+**Security Fixes:**
+- Removed `maybe_unserialize()` on attacker-influenced usermeta during account merge; PHP object-injection / POP-gadget surface eliminated
+- Consolidated `visible_fields` decoding through a single safe helper (`allowed_classes => false`)
+- `NBUF_Options` decodes stored values via a safe-unserialize helper; config importer refuses pre-serialized strings
+- `force_logout_all_devices` AJAX handler now enforces per-target `edit_user` capability and blocks cross-super-admin termination on multisite
+- Bulk import rejects `administrator` role rows when the importer is not a network super admin (multisite); covers both explicit-role and default-role paths
+- Config importer also rejects pre-serialized template payloads (mirrors the settings-path rejection)
+- Impersonation session now validates User-Agent (in addition to IP) with `hash_equals`, matching documented behavior
+- Profile / cover photo upload referer check uses exact hostname equality (was a `strpos` prefix check)
+
+**Standards / WP.org Compliance:**
+- Donate link, license declaration, and trademark casing synchronized between `readme.txt` and the main plugin header
+- Wrapped 30+ user-facing AJAX, `wp_die`, and `WP_Error` strings in `__()` / `esc_html__()` with the `nobloat-user-foundry` text domain
+- Sanitized `$_SERVER['REQUEST_METHOD']` reads
+- Fixed dead `echo` in docs overview tab; corrected indentation and block-comment style on several `phpcs:ignore` lines
+
+### 1.6.2 — Bug Fix Release
+
+**Bug Fixes:**
+- Failed login attempts are now cleared after a successful password reset. Previously, users who tripped the brute-force rate limiter while forgetting their password remained locked out by IP/username after completing a reset, even though the new password was correct. Hooks `after_password_reset` so it covers both the plugin's reset flow and any direct wp-login reset.
 
 ### 1.6.1 — Bug Fix Release
 

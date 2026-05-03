@@ -260,7 +260,7 @@ class NBUF_User_Notes_Page {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Handle pre-selected user (direct ID) */
@@ -279,7 +279,7 @@ class NBUF_User_Notes_Page {
 				);
 			}
 
-			wp_send_json_error( array( 'message' => 'User not found' ) );
+			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
@@ -320,18 +320,18 @@ class NBUF_User_Notes_Page {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$user_id = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ) : 0;
 
 		if ( ! $user_id ) {
-			wp_send_json_error( array( 'message' => 'Invalid user ID' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$user = get_user_by( 'id', $user_id );
 		if ( ! $user ) {
-			wp_send_json_error( array( 'message' => 'User not found' ) );
+			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$notes = NBUF_User_Notes::get_user_notes( $user_id );
@@ -372,19 +372,19 @@ class NBUF_User_Notes_Page {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
 		$content = isset( $_POST['note_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note_content'] ) ) : '';
 
 		if ( ! $user_id || empty( $content ) ) {
-			wp_send_json_error( array( 'message' => 'Missing required fields' ) );
+			wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Verify target user exists */
 		if ( ! get_userdata( $user_id ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid user ID' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid user ID.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$current_user_id = get_current_user_id();
@@ -394,7 +394,7 @@ class NBUF_User_Notes_Page {
 			wp_send_json_success( array( 'note_id' => $note_id ) );
 		}
 
-		wp_send_json_error( array( 'message' => 'Failed to add note' ) );
+		wp_send_json_error( array( 'message' => __( 'Failed to add note.', 'nobloat-user-foundry' ) ) );
 	}
 
 	/**
@@ -407,14 +407,14 @@ class NBUF_User_Notes_Page {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$note_id = isset( $_POST['note_id'] ) ? absint( $_POST['note_id'] ) : 0;
 		$content = isset( $_POST['note_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note_content'] ) ) : '';
 
 		if ( ! $note_id || empty( $content ) ) {
-			wp_send_json_error( array( 'message' => 'Missing required fields' ) );
+			wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$success = NBUF_User_Notes::update_note( $note_id, $content );
@@ -423,7 +423,7 @@ class NBUF_User_Notes_Page {
 			wp_send_json_success();
 		}
 
-		wp_send_json_error( array( 'message' => 'Failed to update note' ) );
+		wp_send_json_error( array( 'message' => __( 'Failed to update note.', 'nobloat-user-foundry' ) ) );
 	}
 
 	/**
@@ -436,13 +436,13 @@ class NBUF_User_Notes_Page {
 		check_ajax_referer( 'nbuf_user_notes_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$note_id = isset( $_POST['note_id'] ) ? absint( $_POST['note_id'] ) : 0;
 
 		if ( ! $note_id ) {
-			wp_send_json_error( array( 'message' => 'Invalid note ID' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid note ID.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$success = NBUF_User_Notes::delete_note( $note_id );
@@ -451,7 +451,7 @@ class NBUF_User_Notes_Page {
 			wp_send_json_success();
 		}
 
-		wp_send_json_error( array( 'message' => 'Failed to delete note' ) );
+		wp_send_json_error( array( 'message' => __( 'Failed to delete note.', 'nobloat-user-foundry' ) ) );
 	}
 }
 

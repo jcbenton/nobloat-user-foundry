@@ -36,7 +36,7 @@ class NBUF_Config_Exporter {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Get export options */
@@ -70,7 +70,7 @@ class NBUF_Config_Exporter {
 		$json = wp_json_encode( $export_data, $json_flags );
 
 		if ( false === $json ) {
-			wp_send_json_error( array( 'message' => 'Failed to generate JSON' ) );
+			wp_send_json_error( array( 'message' => __( 'Failed to generate JSON.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Generate filename */

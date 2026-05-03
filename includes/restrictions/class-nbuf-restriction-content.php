@@ -63,20 +63,31 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @param WP_REST_Request  $request  Request object.
 	 * @return WP_REST_Response Filtered response.
 	 */
-	public static function filter_rest_content( $response, $post, $request ) {
+	public static function filter_rest_content( $response, $post, $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $request kept for hook signature.
+		unset( $request );
+
 		$restriction = NBUF_Restrictions::get_content_restriction( $post->ID, $post->post_type );
 		if ( empty( $restriction ) ) {
 			return $response;
 		}
 
-		if ( ! self::check_access( $restriction['visibility'], $restriction['allowed_roles'] ) ) {
-			$data            = $response->get_data();
-			$data['content'] = array( 'rendered' => '', 'protected' => true );
-			$data['excerpt'] = array( 'rendered' => '', 'protected' => true );
-			$response->set_data( $data );
+		if ( self::check_access( $restriction['visibility'], $restriction['allowed_roles'] ) ) {
+			return $response;
 		}
 
-		return $response;
+		/*
+		 * SECURITY: previously this only blanked content/excerpt, leaving
+		 * title, slug, status, meta, ACF/custom REST fields, taxonomies,
+		 * featured media, and the raw content (under context=edit) exposed
+		 * to any user who could query the REST endpoint. Refuse the
+		 * response entirely — a user who lacks access to a post should not
+		 * learn the post's title or any of its metadata via REST.
+		 */
+		return new WP_Error(
+			'rest_forbidden',
+			__( 'You do not have permission to view this content.', 'nobloat-user-foundry' ),
+			array( 'status' => 403 )
+		);
 	}
 
 	/**
@@ -129,9 +140,17 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 				? $restriction['custom_message']
 				: __( 'This content is restricted. Please log in to view.', 'nobloat-user-foundry' );
 
-				/* Log access denial to security log */
-				if ( class_exists( 'NBUF_Security_Log' ) ) {
-					NBUF_Security_Log::log(
+				/*
+				 * Log access denial to security log — but ONLY for the singular
+				 * page render. the_content / the_excerpt fires for archive
+				 * loops, search results, related-post widgets, RSS items,
+				 * sidebar excerpts, and Gutenberg recursive renders. Logging
+				 * every render floods the security log on busy sites with a
+				 * popular restricted post; the singular gate matches the
+				 * handle_redirect path.
+				 */
+				if ( is_singular() && class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log_or_update(
 						'access_denied_message',
 						'info',
 						sprintf(
@@ -210,7 +229,7 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 			case 'redirect':
 				/* Get redirect URL */
 				$url = ! empty( $restriction['redirect_url'] )
-				? esc_url( $restriction['redirect_url'] )
+				? esc_url_raw( $restriction['redirect_url'] )
 				: ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_login_url' )
 					? NBUF_Shortcodes::get_login_url( get_permalink( $post->ID ) )
 					: wp_login_url( get_permalink( $post->ID ) ) );

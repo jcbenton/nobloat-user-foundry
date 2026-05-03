@@ -91,15 +91,7 @@ class NBUF_Public_Profiles {
 		$registered_date = mysql2date( get_option( 'date_format' ), $registered );
 
 		/* Get user's visible fields preference */
-		$visible_fields = array();
-		if ( $user_data && ! empty( $user_data->visible_fields ) ) {
-			$visible_fields = is_serialized( $user_data->visible_fields )
-				? unserialize( $user_data->visible_fields, array( 'allowed_classes' => false ) ) // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- User data with class instantiation blocked.
-				: maybe_unserialize( $user_data->visible_fields );
-			if ( ! is_array( $visible_fields ) ) {
-				$visible_fields = array();
-			}
-		}
+		$visible_fields = $user_data ? NBUF_User_Data::decode_visible_fields( $user_data->visible_fields ?? null ) : array();
 
 		/* Prepare profile fields to display */
 		$profile_fields = array();

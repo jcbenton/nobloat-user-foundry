@@ -88,140 +88,167 @@ class NBUF_Verifier {
 
 		try {
 
-		/* Hash the submitted token — DB stores SHA-256 hashes, not plaintext */
-		$token_hash = hash( 'sha256', $token );
+			/* Hash the submitted token — DB stores SHA-256 hashes, not plaintext */
+			$token_hash = hash( 'sha256', $token );
 
-		$entry = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type IN ('verification', 'email_change') FOR UPDATE", $table, $token_hash )
-		);
+			$entry = $wpdb->get_row(
+				$wpdb->prepare( "SELECT * FROM %i WHERE token = %s AND type IN ('verification', 'email_change') FOR UPDATE", $table, $token_hash )
+			);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		if ( ! $entry ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
-			$wpdb->query( 'ROLLBACK' );
-			/* Log failed verification - invalid token (cannot log user_id since entry doesn't exist) */
-			return self::wrap_notice(
-				__( 'This verification link is invalid or has already been used.', 'nobloat-user-foundry' ),
-				false
-			);
-		}
-
-		$now = current_time( 'mysql', true );
-
-		// Expired token.
-		if ( (string) $entry->expires_at < $now ) {
-			/* Log failed verification - expired token */
-			if ( ! empty( $entry->user_id ) ) {
-				NBUF_Audit_Log::log(
-					$entry->user_id,
-					'email_verification_failed',
-					'failure',
-					'Verification link expired'
+			if ( ! $entry ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+				$wpdb->query( 'ROLLBACK' );
+				/* Log failed verification - invalid token (cannot log user_id since entry doesn't exist) */
+				return self::wrap_notice(
+					__( 'This verification link is invalid or has already been used.', 'nobloat-user-foundry' ),
+					false
 				);
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token update.
-			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
-			$wpdb->query( 'COMMIT' );
-			return self::wrap_notice(
-				__( 'This verification link has expired. Please request a new one.', 'nobloat-user-foundry' ),
-				false
-			);
-		}
 
-		// Test tokens: report success but do not mark verified.
-		if ( ! empty( $entry->is_test ) && 1 === (int) $entry->is_test ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token deletion.
-			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
-			$wpdb->query( 'COMMIT' );
-			return self::wrap_notice(
-				__( 'Test verification successful. The plugin is functioning correctly.', 'nobloat-user-foundry' ),
-				true
-			);
-		}
+			$now = current_time( 'mysql', true );
 
-		// Mark user verified (if a user_id exists).
-		$email_was_changed = false;
-		if ( ! empty( $entry->user_id ) ) {
-			$user_id = (int) $entry->user_id;
-
-			/*
-			 * Check for pending email change.
-			 * If this verification is for a pending email, apply the change.
-			 */
-			$pending_email = NBUF_User_Data::get_pending_email( $user_id );
-			if ( $pending_email && strtolower( $pending_email ) === strtolower( $entry->user_email ) ) {
-				/* Get old email for notification */
-				$user      = get_userdata( $user_id );
-				$old_email = $user ? $user->user_email : '';
-
-				/* Set flag to prevent hooks from triggering re-verification */
-				if ( class_exists( 'NBUF_Hooks' ) ) {
-					NBUF_Hooks::set_applying_pending_email( true );
-				}
-
-				/* Disable WordPress's built-in email change notification - we send our own */
-				add_filter( 'send_email_change_email', '__return_false' );
-
-				/* Apply the email change */
-				$result = wp_update_user(
-					array(
-						'ID'         => $user_id,
-						'user_email' => $pending_email,
-					)
-				);
-
-				/* Re-enable WordPress email change notification */
-				remove_filter( 'send_email_change_email', '__return_false' );
-
-				/* Reset flag */
-				if ( class_exists( 'NBUF_Hooks' ) ) {
-					NBUF_Hooks::set_applying_pending_email( false );
-				}
-
-				if ( ! is_wp_error( $result ) ) {
-					$email_was_changed = true;
-
-					/* Clear pending email */
-					NBUF_User_Data::clear_pending_email( $user_id );
-
-					/* Send notification to old email */
-					if ( $old_email && class_exists( 'NBUF_Shortcodes' ) ) {
-						NBUF_Shortcodes::send_email_change_notification( $user_id, $old_email, $pending_email );
-					}
-
-					/* Log email change completion */
+			// Expired token.
+			if ( (string) $entry->expires_at < $now ) {
+				/* Log failed verification - expired token */
+				if ( ! empty( $entry->user_id ) ) {
 					NBUF_Audit_Log::log(
-						$user_id,
-						'email_changed',
-						'success',
-						'Email address changed after verification',
-						array(
-							'old_email' => $old_email,
-							'new_email' => $pending_email,
-						)
+						$entry->user_id,
+						'email_verification_failed',
+						'failure',
+						'Verification link expired'
 					);
 				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token update.
+				$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+				$wpdb->query( 'COMMIT' );
+				return self::wrap_notice(
+					__( 'This verification link has expired. Please request a new one.', 'nobloat-user-foundry' ),
+					false
+				);
 			}
 
-			NBUF_User_Data::set_verified( $user_id );
+			// Test tokens: report success but do not mark verified.
+			if ( ! empty( $entry->is_test ) && 1 === (int) $entry->is_test ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural token deletion.
+				$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+				$wpdb->query( 'COMMIT' );
+				return self::wrap_notice(
+					__( 'Test verification successful. The plugin is functioning correctly.', 'nobloat-user-foundry' ),
+					true
+				);
+			}
 
-			/* Log successful email verification */
-			NBUF_Audit_Log::log(
-				$entry->user_id,
-				'email_verified',
-				'success',
-				'Email address verified successfully',
-				array( 'email' => $entry->user_email )
-			);
-		}
+			// Mark user verified (if a user_id exists).
+			$email_was_changed = false;
+			if ( ! empty( $entry->user_id ) ) {
+				$user_id = (int) $entry->user_id;
 
-		// One-time token: delete after use.
+				/*
+				 * Check for pending email change. If this verification is
+				 * for a pending email, apply the change.
+				 *
+				 * Compare canonicalised emails. sanitize_email() strips
+				 * control characters and normalises the form, so a stored
+				 * value with trailing whitespace or other artefacts matches
+				 * a freshly re-pended value with the same address.
+				 * strtolower folds case for the comparison only.
+				 */
+				$pending_email   = NBUF_User_Data::get_pending_email( $user_id );
+				$canonical_pend  = $pending_email ? strtolower( sanitize_email( $pending_email ) ) : '';
+				$canonical_entry = $entry->user_email ? strtolower( sanitize_email( $entry->user_email ) ) : '';
+				if ( $pending_email && '' !== $canonical_pend && $canonical_pend === $canonical_entry ) {
+					/* Get old email for notification */
+					$user      = get_userdata( $user_id );
+					$old_email = $user ? $user->user_email : '';
+
+					/* Set flag to prevent hooks from triggering re-verification */
+					if ( class_exists( 'NBUF_Hooks' ) ) {
+						NBUF_Hooks::set_applying_pending_email( true );
+					}
+
+					/* Disable WordPress's built-in email change notification - we send our own */
+					add_filter( 'send_email_change_email', '__return_false' );
+
+					/* Apply the email change */
+					$result = wp_update_user(
+						array(
+							'ID'         => $user_id,
+							'user_email' => $pending_email,
+						)
+					);
+
+					/* Re-enable WordPress email change notification */
+					remove_filter( 'send_email_change_email', '__return_false' );
+
+					/* Reset flag */
+					if ( class_exists( 'NBUF_Hooks' ) ) {
+						NBUF_Hooks::set_applying_pending_email( false );
+					}
+
+					if ( ! is_wp_error( $result ) ) {
+						$email_was_changed = true;
+
+						/* Clear pending email */
+						NBUF_User_Data::clear_pending_email( $user_id );
+
+						/* Send notification to old email */
+						if ( $old_email && class_exists( 'NBUF_Shortcodes' ) ) {
+							NBUF_Shortcodes::send_email_change_notification( $user_id, $old_email, $pending_email );
+						}
+
+						/* Log email change completion */
+						NBUF_Audit_Log::log(
+							$user_id,
+							'email_changed',
+							'success',
+							'Email address changed after verification',
+							array(
+								'old_email' => $old_email,
+								'new_email' => $pending_email,
+							)
+						);
+					} else {
+						/*
+						 * Surface email-change failure in the audit trail. The
+						 * preceding success log path was the only branch that
+						 * recorded the outcome; a failed wp_update_user() left
+						 * audit-trail silence even though the user-facing flow
+						 * still claimed verification.
+						 */
+						NBUF_Audit_Log::log(
+							$user_id,
+							'email_change_failed',
+							'failure',
+							'Email address change failed at apply step',
+							array(
+								'old_email' => $old_email,
+								'new_email' => $pending_email,
+								'error'     => $result->get_error_message(),
+							)
+						);
+					}
+				}
+
+				NBUF_User_Data::set_verified( $user_id );
+
+				/* Log successful email verification */
+				NBUF_Audit_Log::log(
+					$entry->user_id,
+					'email_verified',
+					'success',
+					'Email address verified successfully',
+					array( 'email' => $entry->user_email )
+				);
+			}
+
+			// One-time token: delete after use.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Architectural auto-login update.
-		$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
+			$wpdb->delete( $table, array( 'id' => (int) $entry->id ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
-		$wpdb->query( 'COMMIT' );
+			$wpdb->query( 'COMMIT' );
 
 		} catch ( \Throwable $e ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction rollback on error.

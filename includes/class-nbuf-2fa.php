@@ -236,9 +236,14 @@ class NBUF_2FA {
 
 		global $wpdb;
 
-		/* SECURITY: Atomic lock using MySQL GET_LOCK() to prevent race conditions */
+		/*
+		 * SECURITY: Atomic lock using MySQL GET_LOCK() to prevent race
+		 * conditions. Use a 5-second timeout; the previous 1-second timeout
+		 * intermittently rejected legitimate users on slow Redis/MySQL hosts
+		 * because set_transient itself can take >100ms under load.
+		 */
 		$lock_name = 'nbuf_2fa_' . $user_id;
-		$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock_name ) );
+		$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 
 		if ( ! $locked ) {
 			return new WP_Error(
@@ -313,7 +318,9 @@ class NBUF_2FA {
 				return $result;
 			}
 		} finally {
-			/* Release lock — log on failure. MySQL session locks auto-release on connection close. */
+			/*
+			 * Release lock — log on failure. MySQL session locks auto-release on connection close.
+			 */
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock management.
 			$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
 			if ( '1' !== (string) $released ) {
@@ -495,35 +502,55 @@ If you did not request this code, please ignore this email.
 		$time_window = (int) NBUF_Options::get( 'nbuf_2fa_totp_time_window', 30 );
 		$tolerance   = (int) NBUF_Options::get( 'nbuf_2fa_totp_tolerance', 1 );
 
-		/* Verify code */
-		$valid = NBUF_TOTP::verify_code( $secret, $code, $tolerance, $code_length, $time_window );
+		/*
+		 * Serialise verification per-user so that two parallel POSTs of the
+		 * same code (e.g. user double-clicks Submit) cannot both pass the
+		 * replay check at the same time.
+		 */
+		global $wpdb;
+		$lock_name = 'nbuf_totp_' . $user_id;
+		$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 
-		if ( ! $valid ) {
-			self::record_failed_attempt( $user_id, 'totp' );
-			return new WP_Error(
-				'2fa_invalid_code',
-				__( 'Invalid verification code. Please try again.', 'nobloat-user-foundry' )
-			);
+		try {
+			/*
+			 * Verify code AND get the matched counter back. Storing the
+			 * verifier-clock counter (not the matched counter) would let an
+			 * attacker replay a stolen code within the tolerance window after
+			 * the legitimate user used it. Recording the actual matched
+			 * counter closes that window.
+			 */
+			$matched_counter = NBUF_TOTP::verify_code_returning_counter( $secret, $code, $tolerance, $code_length, $time_window );
+
+			if ( false === $matched_counter ) {
+				self::record_failed_attempt( $user_id, 'totp' );
+				return new WP_Error(
+					'2fa_invalid_code',
+					__( 'Invalid verification code. Please try again.', 'nobloat-user-foundry' )
+				);
+			}
+
+			/* Replay protection: reject any counter at or before the last accepted one. */
+			$last_counter = (int) get_user_meta( $user_id, '_nbuf_totp_last_counter', true );
+			if ( $matched_counter <= $last_counter ) {
+				return new WP_Error(
+					'2fa_code_reused',
+					__( 'This code has already been used. Please wait for a new code.', 'nobloat-user-foundry' )
+				);
+			}
+			update_user_meta( $user_id, '_nbuf_totp_last_counter', $matched_counter );
+
+			/* Success - clear attempts */
+			self::clear_attempts( $user_id );
+
+			/* Update last used timestamp */
+			NBUF_User_2FA_Data::set_last_used( $user_id );
+
+			return true;
+		} finally {
+			if ( $locked ) {
+				$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+			}
 		}
-
-		/* Replay protection: reject codes whose time counter was already used */
-		$current_counter = (int) floor( time() / $time_window );
-		$last_counter    = (int) get_user_meta( $user_id, '_nbuf_totp_last_counter', true );
-		if ( $current_counter <= $last_counter ) {
-			return new WP_Error(
-				'2fa_code_reused',
-				__( 'This code has already been used. Please wait for a new code.', 'nobloat-user-foundry' )
-			);
-		}
-		update_user_meta( $user_id, '_nbuf_totp_last_counter', $current_counter );
-
-		/* Success - clear attempts */
-		self::clear_attempts( $user_id );
-
-		/* Update last used timestamp */
-		NBUF_User_2FA_Data::set_last_used( $user_id );
-
-		return true;
 	}
 
 	/**
@@ -624,8 +651,13 @@ If you did not request this code, please ignore this email.
 			}
 		}
 
-		/* No matching code found — record failed attempt for lockout tracking */
-		self::record_failed_attempt( $user_id );
+		/*
+		 * No matching code found — record failed attempt for lockout tracking.
+		 * Backup codes share the generic 2FA lockout window (not the email
+		 * one) so the threshold matches what an operator tuned for "TOTP/
+		 * authenticator-style" failures.
+		 */
+		self::record_failed_attempt( $user_id, 'backup' );
 
 		return new WP_Error(
 			'nbuf_2fa_invalid_backup_code',
@@ -673,10 +705,19 @@ If you did not request this code, please ignore this email.
 				 * Rotate token for enhanced security (prevents long-term token theft).
 				 * SECURITY: Use MySQL GET_LOCK to prevent race conditions when multiple
 				 * concurrent requests attempt to rotate the same token simultaneously.
+				 *
+				 * Use a per-token lock name (not just per-user) so concurrent
+				 * requests for *different* tokens of the same user don't
+				 * serialise against each other. Bump the timeout to 5 seconds
+				 * to ride out brief Redis/MySQL hiccups; granting trust on
+				 * lock failure was acceptable because the token had already
+				 * been validated above, but trusting indefinitely (when a
+				 * malicious co-tenant or a long-running query holds the lock)
+				 * could prevent rotation forever, defeating its purpose.
 				 */
 				global $wpdb;
-				$lock_name = 'nbuf_2fa_trust_' . $user_id;
-				$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 1)', $lock_name ) );
+				$lock_name = 'nbuf_2fa_trust_' . $user_id . '_' . substr( hash( 'sha256', (string) $token ), 0, 16 );
+				$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 
 				if ( ! $locked ) {
 					/* Could not acquire lock - another request is rotating, trust this request anyway */
@@ -816,20 +857,23 @@ If you did not request this code, please ignore this email.
 
 		++$attempts;
 
-		/* Rate window applies to both methods */
-		$rate_window = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 ) * 60;
-		set_transient( $attempts_key, $attempts, $rate_window );
-
 		/*
-		 * Check for lockout using method-specific settings.
-		 * Email 2FA uses settings from Security > Email Auth tab.
-		 * TOTP uses global settings from Security > 2FA Config tab.
+		 * Method-specific rate window AND threshold. Previously the email
+		 * window was used for both methods, which meant a TOTP user typing
+		 * five wrong codes was locked out for the email window (often longer
+		 * than the TOTP window the operator configured). Read the matching
+		 * window for the method that actually failed.
 		 */
 		if ( 'email' === $method ) {
+			$rate_window  = NBUF_Options::get( 'nbuf_2fa_email_rate_window', 15 ) * 60;
 			$max_attempts = NBUF_Options::get( 'nbuf_2fa_email_rate_limit', 5 );
 		} else {
+			/* 'totp' and 'backup' both use the generic 2FA lockout settings. */
+			$rate_window  = NBUF_Options::get( 'nbuf_2fa_lockout_window', 15 ) * 60;
 			$max_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
 		}
+
+		set_transient( $attempts_key, $attempts, $rate_window );
 
 		if ( $attempts >= $max_attempts ) {
 			$lockout_key = 'nbuf_2fa_lockout_' . $user_id;

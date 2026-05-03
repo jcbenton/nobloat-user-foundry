@@ -49,15 +49,15 @@ class NBUF_Config_Importer {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check if file was uploaded */
 		if ( ! isset( $_FILES['config_file'] ) ) {
-			wp_send_json_error( array( 'message' => 'No file uploaded' ) );
+			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'nobloat-user-foundry' ) ) );
 		}
 
-     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File validation performed below.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File validation performed below.
 		$file = $_FILES['config_file'];
 
 		/* SECURITY: Validate file type using WordPress core function to prevent spoofing */
@@ -67,12 +67,12 @@ class NBUF_Config_Importer {
 
 		if ( ! in_array( $filetype['ext'], $allowed_exts, true ) ||
 			! in_array( $filetype['type'], $allowed_types, true ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid file type. Only JSON files are allowed.' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid file type. Only JSON files are allowed.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Validate file size (5MB max) */
 		if ( $file['size'] > 5242880 ) {
-			wp_send_json_error( array( 'message' => 'File too large. Maximum size is 5MB.' ) );
+			wp_send_json_error( array( 'message' => __( 'File too large. Maximum size is 5MB.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/*
@@ -81,14 +81,22 @@ class NBUF_Config_Importer {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local uploaded file, not remote URL.
 		$json_content = file_get_contents( $file['tmp_name'], false, null, 0, 5242880 ); // 5MB limit
 		if ( false === $json_content ) {
-			wp_send_json_error( array( 'message' => 'Failed to read file' ) );
+			wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Parse JSON with depth limit to prevent XXE-style attacks */
 		$config_data = json_decode( $json_content, true, 512 );
 
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			wp_send_json_error( array( 'message' => 'Invalid JSON: ' . json_last_error_msg() ) );
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						/* translators: %s: JSON parse error message */
+						__( 'Invalid JSON: %s', 'nobloat-user-foundry' ),
+						json_last_error_msg()
+					),
+				)
+			);
 		}
 
 		/* Validate configuration structure */
@@ -127,11 +135,11 @@ class NBUF_Config_Importer {
 	private function validate_config_structure( $config_data ) {
 		/* Check required fields */
 		if ( ! isset( $config_data['nbuf_config_version'] ) ) {
-			return new WP_Error( 'invalid_config', 'Missing configuration version' );
+			return new WP_Error( 'invalid_config', __( 'Missing configuration version.', 'nobloat-user-foundry' ) );
 		}
 
 		if ( ! isset( $config_data['plugin_version'] ) ) {
-			return new WP_Error( 'invalid_config', 'Missing plugin version' );
+			return new WP_Error( 'invalid_config', __( 'Missing plugin version.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Check version compatibility */
@@ -146,7 +154,8 @@ class NBUF_Config_Importer {
 			return new WP_Error(
 				'version_mismatch',
 				sprintf(
-					'Version mismatch: Current plugin is v%s, config is from v%s. Major versions must match.',
+					/* translators: 1: current plugin version, 2: config-file plugin version */
+					__( 'Version mismatch: Current plugin is v%1$s, config is from v%2$s. Major versions must match.', 'nobloat-user-foundry' ),
 					$current_version,
 					$import_version
 				)
@@ -155,7 +164,7 @@ class NBUF_Config_Importer {
 
 		/* Check if config has data to import */
 		if ( empty( $config_data['settings'] ) && empty( $config_data['templates'] ) ) {
-			return new WP_Error( 'empty_config', 'Configuration file contains no data to import' );
+			return new WP_Error( 'empty_config', __( 'Configuration file contains no data to import.', 'nobloat-user-foundry' ) );
 		}
 
 		return true;
@@ -207,7 +216,7 @@ class NBUF_Config_Importer {
 		check_ajax_referer( 'nbuf_config_nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
 		}
 
 		$transient_key = isset( $_POST['transient_key'] ) ? sanitize_text_field( wp_unslash( $_POST['transient_key'] ) ) : '';
@@ -218,14 +227,14 @@ class NBUF_Config_Importer {
 
 		/* Validate transient key prefix to prevent reading arbitrary transients */
 		if ( ! str_starts_with( $transient_key, 'nbuf_import_config_' ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid import key.' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid import key.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Get config data from transient */
 		$config_data = get_transient( $transient_key );
 
 		if ( ! $config_data ) {
-			wp_send_json_error( array( 'message' => 'Import session expired. Please upload config file again.' ) );
+			wp_send_json_error( array( 'message' => __( 'Import session expired. Please upload config file again.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Import settings */
@@ -272,6 +281,22 @@ class NBUF_Config_Importer {
 			foreach ( $category_settings as $option_name => $option_value ) {
 				/* Only allow nbuf_ prefixed option names to prevent injection of arbitrary settings */
 				if ( ! str_starts_with( $option_name, 'nbuf_' ) ) {
+					continue;
+				}
+
+				/*
+				 * SECURITY: refuse pre-serialized payloads supplied as raw strings.
+				 * NBUF_Options::get() may unserialize stored values, so accepting an
+				 * attacker-supplied is_serialized() string would create an object
+				 * injection sink. Legitimate complex values arrive as arrays/objects
+				 * and are serialized by maybe_serialize() below.
+				 */
+				if ( is_string( $option_value ) && is_serialized( $option_value ) ) {
+					$this->results['errors'][] = sprintf(
+						/* translators: %s: setting key whose value was a raw serialized payload */
+						__( 'Refused setting with serialized payload: %s', 'nobloat-user-foundry' ),
+						$option_name
+					);
 					continue;
 				}
 
@@ -353,7 +378,11 @@ class NBUF_Config_Importer {
 				if ( false !== $result ) {
 					++$this->results['settings_imported'];
 				} else {
-					$this->results['errors'][] = sprintf( 'Failed to import setting: %s', $option_name );
+					$this->results['errors'][] = sprintf(
+						/* translators: %s: setting key that failed to import */
+						__( 'Failed to import setting: %s', 'nobloat-user-foundry' ),
+						$option_name
+					);
 				}
 			}
 		}
@@ -374,6 +403,22 @@ class NBUF_Config_Importer {
 					continue;
 				}
 
+				/*
+				 * SECURITY: Refuse pre-serialized payloads here too, mirroring
+				 * import_settings(). NBUF_Options reads decode stored values,
+				 * so accepting an attacker-supplied is_serialized() string would
+				 * be an asymmetric object-injection sink relative to the
+				 * settings path even though current decoders disallow classes.
+				 */
+				if ( is_string( $option_value ) && is_serialized( $option_value ) ) {
+					$this->results['errors'][] = sprintf(
+						/* translators: %s: template key whose value was a raw serialized payload */
+						__( 'Refused template with serialized payload: %s', 'nobloat-user-foundry' ),
+						$option_name
+					);
+					continue;
+				}
+
 				/* Skip if merge mode and option already exists */
 				if ( 'merge' === $mode ) {
 					$existing = NBUF_Options::get( $option_name );
@@ -388,7 +433,11 @@ class NBUF_Config_Importer {
 				if ( $result ) {
 					++$this->results['templates_imported'];
 				} else {
-					$this->results['errors'][] = sprintf( 'Failed to import template: %s', $option_name );
+					$this->results['errors'][] = sprintf(
+						/* translators: %s: template key that failed to import */
+						__( 'Failed to import template: %s', 'nobloat-user-foundry' ),
+						$option_name
+					);
 				}
 			}
 		}

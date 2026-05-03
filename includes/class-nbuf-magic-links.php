@@ -35,6 +35,14 @@ class NBUF_Magic_Links {
 	public static function init(): void {
 		/* Register shortcode */
 		add_shortcode( 'nbuf_magic_link_form', array( __CLASS__, 'shortcode_form' ) );
+
+		/*
+		 * Cron handler that performs the actual SMTP send for a magic link
+		 * after the synchronous send_magic_link() request has already
+		 * returned. Decoupling the send keeps the user-facing response
+		 * timing uniform between real-user and unknown-email submissions.
+		 */
+		add_action( 'nbuf_magic_link_send_email', array( __CLASS__, 'dispatch_magic_link_email' ), 10, 2 );
 	}
 
 	/**
@@ -281,8 +289,19 @@ class NBUF_Magic_Links {
 			/* Build magic link URL */
 			$magic_link_url = self::get_magic_link_url( $token );
 
-			/* Send email */
-			self::send_magic_link_email( $user, $magic_link_url );
+			/*
+			 * Defer the email send to a near-immediate cron event. wp_mail /
+			 * SMTP can take 100ms — several seconds, dwarfing the dummy-hash
+			 * branch below and re-introducing the timing-based enumeration
+			 * that the dummy hash was meant to defeat. Scheduling a one-off
+			 * event makes the synchronous response time uniform regardless
+			 * of whether the email address belongs to a real user.
+			 */
+			wp_schedule_single_event(
+				time() + 1,
+				'nbuf_magic_link_send_email',
+				array( (int) $user->ID, (string) $magic_link_url )
+			);
 
 			/* Log the request */
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
@@ -310,6 +329,40 @@ class NBUF_Magic_Links {
 	}
 
 	/**
+	 * Cron handler that actually performs the email send for a magic link.
+	 *
+	 * Registered as the callback for the `nbuf_magic_link_send_email` event so
+	 * that send_magic_link can return without waiting on SMTP. If the email
+	 * fails, log the failure rather than swallowing it silently.
+	 *
+	 * @since 1.6.4
+	 * @param int    $user_id        User ID to deliver the link to.
+	 * @param string $magic_link_url Full magic-link URL containing the token.
+	 * @return void
+	 */
+	public static function dispatch_magic_link_email( $user_id, $magic_link_url ): void {
+		$user = get_user_by( 'id', (int) $user_id );
+		if ( ! $user ) {
+			return;
+		}
+
+		$sent = self::send_magic_link_email( $user, (string) $magic_link_url );
+
+		if ( ! $sent && class_exists( 'NBUF_Security_Log' ) ) {
+			NBUF_Security_Log::log(
+				'magic_link_send_failed',
+				'error',
+				'Magic link email could not be delivered',
+				array(
+					'user_id' => $user->ID,
+					'email'   => $user->user_email,
+				),
+				$user->ID
+			);
+		}
+	}
+
+	/**
 	 * Get magic link URL.
 	 *
 	 * @since  1.5.2
@@ -331,8 +384,9 @@ class NBUF_Magic_Links {
 	 * @since 1.5.2
 	 * @param WP_User $user           User object.
 	 * @param string  $magic_link_url Magic link URL.
+	 * @return bool True if the underlying mailer accepted the message.
 	 */
-	private static function send_magic_link_email( WP_User $user, string $magic_link_url ): void {
+	private static function send_magic_link_email( WP_User $user, string $magic_link_url ): bool {
 		$expiration = self::get_expiration();
 		$site_name  = get_bloginfo( 'name' );
 
@@ -373,10 +427,10 @@ class NBUF_Magic_Links {
 
 		/* Use plugin email system if available */
 		if ( class_exists( 'NBUF_Email' ) && method_exists( 'NBUF_Email', 'send' ) ) {
-			NBUF_Email::send( $user->user_email, $subject, $message );
-		} else {
-			wp_mail( $user->user_email, $subject, $message );
+			return (bool) NBUF_Email::send( $user->user_email, $subject, $message );
 		}
+
+		return (bool) wp_mail( $user->user_email, $subject, $message );
 	}
 
 	/**
@@ -390,6 +444,14 @@ class NBUF_Magic_Links {
 		if ( empty( $token ) || strlen( $token ) !== 64 || ! ctype_xdigit( $token ) ) {
 			return new WP_Error( 'invalid_token', __( 'Invalid magic link.', 'nobloat-user-foundry' ) );
 		}
+
+		/*
+		 * Tokens are minted via bin2hex() (lowercase only). ctype_xdigit
+		 * accepts uppercase too, so a recipient who pastes the token in caps
+		 * would otherwise produce a different SHA-256 and silently fail.
+		 * Normalise to lowercase before hashing.
+		 */
+		$token = strtolower( $token );
 
 		global $wpdb;
 		$table_name = $wpdb->prefix . NBUF_DB_TABLE;
@@ -431,17 +493,28 @@ class NBUF_Magic_Links {
 		}
 
 		/*
-		 * Delete token after use (one-time use).
-		 * Verify deletion succeeded to prevent race condition exploitation.
+		 * Delete token after use (one-time use). The deletion happens inside
+		 * the transaction; only commit after we know it succeeded so that a
+		 * DB error doesn't leave a stale row that the user could replay (or
+		 * that would force the cron cleanup path to handle it).
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table.
 		$deleted = $wpdb->delete( $table_name, array( 'id' => $token_data->id ), array( '%d' ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; COMMIT cannot use WP_Cache.
-		$wpdb->query( 'COMMIT' );
 
-		if ( ! $deleted ) {
+		if ( false === $deleted ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'db_error', __( 'Could not complete sign-in. Please try again.', 'nobloat-user-foundry' ) );
+		}
+
+		if ( 0 === (int) $deleted ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+			$wpdb->query( 'ROLLBACK' );
 			return new WP_Error( 'invalid_token', __( 'This magic link has already been used.', 'nobloat-user-foundry' ) );
 		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; COMMIT cannot use WP_Cache.
+		$wpdb->query( 'COMMIT' );
 
 		/* Get user */
 		$user = get_user_by( 'id', $token_data->user_id );
@@ -524,10 +597,35 @@ class NBUF_Magic_Links {
 			exit;
 		}
 
-		/* Enforce the same login-status checks as password and passkey flows */
+		/*
+		 * Enforce the same login-status checks as password and passkey flows.
+		 * Display a single generic error (do not surface the specific reason —
+		 * disabled vs expired vs unverified vs pending — to a token bearer,
+		 * since principle-of-least-information says they shouldn't learn the
+		 * exact account state). The specific reason is still recorded in the
+		 * security/audit log for operators.
+		 */
 		$status = self::check_user_login_status( $user_id );
 		if ( is_wp_error( $status ) ) {
-			wp_safe_redirect( add_query_arg( 'ml_error', rawurlencode( $status->get_error_message() ), NBUF_Universal_Router::get_url( 'magic-link' ) ) );
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'magic_link_blocked',
+					'warning',
+					'Magic link login blocked by account status check',
+					array(
+						'user_id' => $user_id,
+						'reason'  => $status->get_error_code(),
+					),
+					$user_id
+				);
+			}
+			wp_safe_redirect(
+				add_query_arg(
+					'ml_error',
+					rawurlencode( __( 'Cannot complete sign-in at this time. Please contact the site administrator.', 'nobloat-user-foundry' ) ),
+					NBUF_Universal_Router::get_url( 'magic-link' )
+				)
+			);
 			exit;
 		}
 
@@ -539,20 +637,28 @@ class NBUF_Magic_Links {
 				$method = NBUF_2FA::get_required_method();
 			}
 
-			set_transient( 'nbuf_2fa_pending_' . $tfa_token, array(
-				'user_id'   => $user_id,
-				'timestamp' => time(),
-				'method'    => $method,
-			), 300 );
+			set_transient(
+				'nbuf_2fa_pending_' . $tfa_token,
+				array(
+					'user_id'   => $user_id,
+					'timestamp' => time(),
+					'method'    => $method,
+				),
+				300
+			);
 
-			setcookie( 'nbuf_2fa_token', $tfa_token, array(
-				'expires'  => time() + 300,
-				'path'     => COOKIEPATH,
-				'domain'   => COOKIE_DOMAIN,
-				'secure'   => is_ssl(),
-				'httponly' => true,
-				'samesite' => 'Strict',
-			) );
+			setcookie(
+				'nbuf_2fa_token',
+				$tfa_token,
+				array(
+					'expires'  => time() + 300,
+					'path'     => COOKIEPATH,
+					'domain'   => COOKIE_DOMAIN,
+					'secure'   => is_ssl(),
+					'httponly' => true,
+					'samesite' => 'Strict',
+				)
+			);
 
 			if ( 'email' === $method || 'both' === $method ) {
 				NBUF_2FA::send_email_code( $user_id );
@@ -569,7 +675,7 @@ class NBUF_Magic_Links {
 		wp_set_auth_cookie( $user_id, true );
 		wp_set_current_user( $user_id );
 
-		/* Trigger wp_login action for other plugins */
+		// Trigger wp_login action for other plugins.
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- This is a WordPress core hook.
 		do_action( 'wp_login', $user->user_login, $user );
 
@@ -638,11 +744,11 @@ class NBUF_Magic_Links {
 				'</div>';
 		}
 
-		/* Check for error from failed verification (passed via query param, not global transient) */
+		// Check for error from failed verification (passed via query param, not global transient).
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Error display from redirect, no action taken.
 		$error = isset( $_GET['ml_error'] ) ? sanitize_text_field( wp_unslash( $_GET['ml_error'] ) ) : '';
 
-		/* Check for success message */
+		// Check for success message.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Success display from redirect, no action taken.
 		$success = isset( $_GET['ml_success'] ) ? sanitize_text_field( wp_unslash( $_GET['ml_success'] ) ) : '';
 

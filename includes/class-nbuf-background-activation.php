@@ -219,18 +219,18 @@ class NBUF_Background_Activation {
 	public static function ajax_process_batch(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$state = self::get_state();
 
 		if ( ! $state || 'processing' !== $state['status'] ) {
-			wp_send_json_error( array( 'message' => 'No activation in progress' ) );
+			wp_send_json_error( array( 'message' => __( 'No activation in progress.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Process batch based on current task */
@@ -283,12 +283,12 @@ class NBUF_Background_Activation {
 	public static function ajax_get_status(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$state = self::get_state();
@@ -325,12 +325,12 @@ class NBUF_Background_Activation {
 	public static function ajax_dismiss_notice(): void {
 		/* Verify nonce */
 		if ( ! check_ajax_referer( 'nbuf_activation_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Check capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Clear the state */

@@ -49,7 +49,7 @@ class NBUF_Passkeys_Login {
 	 * @since  1.5.0
 	 * @return string Redirect URL.
 	 */
-	private static function get_redirect_url() {
+	public static function get_redirect_url() {
 		$login_redirect_setting = NBUF_Options::get( 'nbuf_login_redirect', 'account' );
 
 		switch ( $login_redirect_setting ) {
@@ -69,8 +69,12 @@ class NBUF_Passkeys_Login {
 			case 'custom':
 				$custom_url = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
 				if ( $custom_url ) {
-					/* Handle both absolute URLs and relative paths — validate to prevent open redirect */
-					if ( strpos( $custom_url, 'http' ) === 0 ) {
+					/*
+					 * Handle both absolute URLs and relative paths — validate
+					 * to prevent open redirect. Use a strict scheme regex so
+					 * `httpfoo://evil.example/` does not match the http prefix.
+					 */
+					if ( preg_match( '#^https?://#i', $custom_url ) ) {
 						return wp_validate_redirect( $custom_url, home_url( '/' ) );
 					}
 					return home_url( $custom_url );

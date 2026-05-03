@@ -150,12 +150,22 @@ class NBUF_ToS {
 
 		$table = $wpdb->prefix . 'nbuf_tos_versions';
 
-		/* Convert datetime-local format (2024-01-14T10:30) to MySQL format (2024-01-14 10:30:00) */
+		/*
+		 * Convert datetime-local format (2024-01-14T10:30) to MySQL format
+		 * (2024-01-14 10:30:00). Validate the result so a malformed admin
+		 * input cannot corrupt the table — `new DateTime( bogus )` later
+		 * throws a fatal at the public acceptance page, denying the entire
+		 * ToS gate for everyone.
+		 */
 		$effective_date = $data['effective_date'] ?? '';
 		if ( $effective_date ) {
 			$effective_date = str_replace( 'T', ' ', $effective_date );
 			if ( strlen( $effective_date ) === 16 ) {
 				$effective_date .= ':00'; /* Add seconds if missing */
+			}
+			$parsed = DateTime::createFromFormat( 'Y-m-d H:i:s', $effective_date );
+			if ( ! $parsed ) {
+				return false;
 			}
 		} else {
 			$effective_date = current_time( 'mysql', false );
@@ -217,10 +227,13 @@ class NBUF_ToS {
 			$formats[]              = '%s';
 		}
 		if ( isset( $data['effective_date'] ) ) {
-			/* Convert datetime-local format to MySQL format */
+			/* Convert datetime-local format to MySQL format and validate. */
 			$effective_date = str_replace( 'T', ' ', $data['effective_date'] );
 			if ( strlen( $effective_date ) === 16 ) {
 				$effective_date .= ':00';
+			}
+			if ( ! DateTime::createFromFormat( 'Y-m-d H:i:s', $effective_date ) ) {
+				return false;
 			}
 			$update_data['effective_date'] = $effective_date;
 			$formats[]                     = '%s';
@@ -262,8 +275,19 @@ class NBUF_ToS {
 
 		$table = $wpdb->prefix . 'nbuf_tos_versions';
 
-		/* Deactivate all versions */
-		$wpdb->update(
+		/*
+		 * SECURITY: the deactivate-all + activate-one sequence MUST be
+		 * atomic. Without a transaction, a fatal/timeout/parallel-save
+		 * between the two UPDATEs leaves the DB with zero active versions,
+		 * which silently disables the entire ToS gate site-wide
+		 * (`get_active_version()` returns null → `has_user_accepted_current()`
+		 * returns true → no enforcement). Wrap in START TRANSACTION /
+		 * COMMIT and roll back on any UPDATE failure.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+		$wpdb->query( 'START TRANSACTION' );
+
+		$deactivate_ok = $wpdb->update(
 			$table,
 			array( 'is_active' => 0 ),
 			array( 'is_active' => 1 ),
@@ -271,7 +295,12 @@ class NBUF_ToS {
 			array( '%d' )
 		);
 
-		/* Activate the specified version */
+		if ( false === $deactivate_ok ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
 		$result = $wpdb->update(
 			$table,
 			array( 'is_active' => 1 ),
@@ -280,7 +309,16 @@ class NBUF_ToS {
 			array( '%d' )
 		);
 
-		return false !== $result;
+		if ( false === $result ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
+		$wpdb->query( 'COMMIT' );
+
+		return true;
 	}
 
 	/**
@@ -631,6 +669,29 @@ class NBUF_ToS {
 
 		if ( ! $version_id ) {
 			wp_die( esc_html__( 'Invalid Terms of Service version.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * SECURITY: server-side enforcement of the affirmative-consent
+		 * checkbox. The form's required attribute is client-side only;
+		 * scripted submits would otherwise create acceptance rows without
+		 * the user actually checking the box, which destroys the legal
+		 * value of the audit trail (GDPR / CCPA require explicit action).
+		 */
+		if ( empty( $_POST['accept_tos'] ) ) {
+			wp_die( esc_html__( 'You must check the box to accept the Terms.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * SECURITY: pin to the currently active version. Without this check
+		 * an attacker could phish a victim with a stale form (or any
+		 * arbitrary version_id) and have a non-current acceptance recorded
+		 * — polluting the audit table and creating fabricated evidence
+		 * that the user agreed to a non-current set of terms.
+		 */
+		$active_version = self::get_active_version();
+		if ( ! $active_version || (int) $active_version->id !== $version_id ) {
+			wp_die( esc_html__( 'The Terms of Service have changed. Please reload and accept the current version.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Record acceptance */

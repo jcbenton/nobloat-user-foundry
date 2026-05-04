@@ -31,18 +31,41 @@
 				},
 				success: function(response) {
 					if (response.success) {
-						$status.html('<span style="color: #46b450;">' + response.data.message + '</span>');
-						window.location.href = response.data.download_url;
+						/*
+						 * Use .text() rather than .html() so server-supplied
+						 * message strings cannot inject HTML even if a future
+						 * handler adds user-derived data to the message.
+						 */
+						$status.empty().append(
+							$('<span/>').css('color', '#46b450').text(response.data.message)
+						);
+						/* Validate download_url to a same-origin admin path before navigating. */
+						var downloadUrl = String(response.data.download_url || '');
+						if (/^(https?:)?\/\//i.test(downloadUrl)) {
+							var allowedOrigin = window.location.origin;
+							try {
+								var parsed = new URL(downloadUrl, allowedOrigin);
+								if (parsed.origin === allowedOrigin) {
+									window.location.href = parsed.href;
+								}
+							} catch (e) { /* malformed; ignore */ }
+						} else if (downloadUrl.charAt(0) === '/') {
+							window.location.href = downloadUrl;
+						}
 						setTimeout(function() {
 							$btn.prop('disabled', false).text(nbufAdminExport.i18n.download_button);
 						}, 2000);
 					} else {
-						$status.html('<span style="color: #dc3232;">' + response.data + '</span>');
+						$status.empty().append(
+							$('<span/>').css('color', '#dc3232').text(response.data || '')
+						);
 						$btn.prop('disabled', false).text(nbufAdminExport.i18n.download_button);
 					}
 				},
 				error: function() {
-					$status.html('<span style="color: #dc3232;">' + nbufAdminExport.i18n.error + '</span>');
+					$status.empty().append(
+						$('<span/>').css('color', '#dc3232').text(nbufAdminExport.i18n.error)
+					);
 					$btn.prop('disabled', false).text(nbufAdminExport.i18n.download_button);
 				}
 			});

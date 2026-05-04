@@ -491,23 +491,30 @@ jQuery(document).ready(function($) {
 				_wpnonce: '<?php echo esc_js( wp_create_nonce( 'nbuf_test_webhook' ) ); ?>'
 			},
 			success: function(response) {
+				/*
+				 * `response.data.code` and `response.data.message` originate from
+				 * the third-party webhook target's HTTP response — a malicious
+				 * target can return `<script>` payloads. Build the DOM via
+				 * jQuery .text() so any returned HTML is rendered as text, not
+				 * executed.
+				 */
+				$statusCell.empty();
 				if (response.success) {
-					var statusHtml = '<span style="color: #46b450;">' + response.data.code + '</span>';
-					$statusCell.html(statusHtml);
+					$statusCell.append( $('<span/>').css('color', '#46b450').text(response.data.code) );
 					$button.find('.dashicons').removeClass('dashicons-update').addClass('dashicons-yes');
 					setTimeout(function() {
 						$button.find('.dashicons').removeClass('dashicons-yes').addClass('dashicons-update');
 					}, 2000);
 				} else {
-					var statusHtml = '<span style="color: #dc3232;">' + (response.data.code || 'Error') + '</span>';
+					$statusCell.append( $('<span/>').css('color', '#dc3232').text(response.data.code || 'Error') );
 					if (response.data.message) {
-						statusHtml += '<br><small style="color: #dc3232;">' + response.data.message.substring(0, 50) + '</small>';
+						$statusCell.append('<br>');
+						$statusCell.append( $('<small/>').css('color', '#dc3232').text(String(response.data.message).substring(0, 50)) );
 					}
-					$statusCell.html(statusHtml);
 				}
 			},
 			error: function() {
-				$statusCell.html('<span style="color: #dc3232;">AJAX Error</span>');
+				$statusCell.empty().append( $('<span/>').css('color', '#dc3232').text('AJAX Error') );
 			},
 			complete: function() {
 				$button.prop('disabled', false);

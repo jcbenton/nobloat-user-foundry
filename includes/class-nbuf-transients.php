@@ -131,63 +131,52 @@ class NBUF_Transients {
 		$option_name = '_transient_' . $key;
 		$timeout_key = '_transient_timeout_' . $key;
 
-		/* Try to get current value */
-		$current = get_transient( $key );
-
-		if ( false === $current ) {
-			/* Transient doesn't exist - try to create it atomically */
-			$success = add_option( $option_name, $increment, '', 'no' );
-
-			if ( $success && $expiration > 0 ) {
-				add_option( $timeout_key, time() + $expiration, '', 'no' );
-			}
-
-			return $success ? $increment : false;
-		}
-
-		/* Transient exists - increment atomically using database UPDATE */
-		$new_value = intval( $current ) + $increment;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment operation requires direct query.
-		$updated = $wpdb->update(
-			$wpdb->options,
-			array( 'option_value' => $new_value ),
-			array(
-				'option_name'  => $option_name,
-				'option_value' => $current, // WHERE clause ensures we only update if value hasn't changed.
-			),
-			array( '%d' ),
-			array( '%s', '%s' )
-		);
-
-		if ( $updated ) {
-			/* Update timeout if expiration specified */
-			if ( $expiration > 0 ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic operation for transient timeout.
-				$wpdb->replace(
-					$wpdb->options,
-					array(
-						'option_name'  => $timeout_key,
-						'option_value' => time() + $expiration,
-						'autoload'     => 'no',
-					),
-					array( '%s', '%d', '%s' )
-				);
-			}
-
-			return $new_value;
-		}
-
-		// Update failed (value changed by another process) - use atomic SQL instead.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment requires direct query.
+		/*
+		 * Atomic INSERT … ON DUPLICATE KEY UPDATE. Single round-trip,
+		 * race-free under concurrency. The previous read-modify-write
+		 * pattern had two distinct race windows: (a) `add_option()` returned
+		 * false when a parallel request had just inserted, leading the
+		 * losing caller to report failure even though their increment
+		 * effectively succeeded; and (b) the fallback UPDATE branch never
+		 * refreshed the `_transient_timeout_*` row, so a counter under
+		 * sustained contention would lose its TTL and reset on the first
+		 * `get_transient()` call that hit the timeout-checker. Both
+		 * conditions made rate-limiters leaky under load — exactly the
+		 * scenario the limiters exist to defend against.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic increment, single statement.
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$wpdb->options} SET option_value = option_value + %d WHERE option_name = %s",
+				"INSERT INTO {$wpdb->options} (option_name, option_value, autoload)
+				 VALUES (%s, %d, 'no')
+				 ON DUPLICATE KEY UPDATE option_value = CAST(option_value AS UNSIGNED) + %d",
+				$option_name,
 				$increment,
+				$increment
+			)
+		);
+
+		if ( $expiration > 0 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic operation for transient timeout.
+			$wpdb->replace(
+				$wpdb->options,
+				array(
+					'option_name'  => $timeout_key,
+					'option_value' => time() + $expiration,
+					'autoload'     => 'no',
+				),
+				array( '%s', '%d', '%s' )
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-back of just-written counter.
+		$current = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name = %s",
 				$option_name
 			)
 		);
-		return (int) self::get( $category, $identifier );
+		return null === $current ? false : (int) $current;
 	}
 
 	/**

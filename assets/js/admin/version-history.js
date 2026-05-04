@@ -266,8 +266,8 @@ jQuery(document).ready(function($) {
 		const snapshot = version.snapshot_data || {};
 
 		let html = '<div class="nbuf-vh-snapshot-header">';
-		html += '<p><strong>Date:</strong> ' + date + '</p>';
-		html += '<p><strong>Change Type:</strong> ' + (version.change_type || 'Unknown') + '</p>';
+		html += '<p><strong>Date:</strong> ' + escapeHtml(date) + '</p>';
+		html += '<p><strong>Change Type:</strong> ' + escapeHtml(version.change_type || 'Unknown') + '</p>';
 		html += '</div>';
 
 		html += '<table class="nbuf-vh-diff-table nbuf-vh-snapshot-table">';
@@ -279,7 +279,7 @@ jQuery(document).ready(function($) {
 		coreFields.forEach(function(field) {
 			if (snapshot[field] !== undefined && snapshot[field] !== '') {
 				html += '<tr>';
-				html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+				html += '<td><strong>' + escapeHtml(formatFieldName(field)) + '</strong></td>';
 				html += '<td>' + escapeHtml(String(snapshot[field])) + '</td>';
 				html += '</tr>';
 			}
@@ -291,7 +291,7 @@ jQuery(document).ready(function($) {
 				const value = snapshot.nbuf_user_data[field];
 				if (value !== null && value !== '') {
 					html += '<tr>';
-					html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+					html += '<td><strong>' + escapeHtml(formatFieldName(field)) + '</strong></td>';
 					html += '<td>' + escapeHtml(String(value)) + '</td>';
 					html += '</tr>';
 				}
@@ -304,7 +304,7 @@ jQuery(document).ready(function($) {
 				const value = snapshot.nbuf_profile[field];
 				if (value !== null && value !== '') {
 					html += '<tr>';
-					html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+					html += '<td><strong>' + escapeHtml(formatFieldName(field)) + '</strong></td>';
 					html += '<td>' + escapeHtml(String(value)) + '</td>';
 					html += '</tr>';
 				}
@@ -316,7 +316,7 @@ jQuery(document).ready(function($) {
 		metaFields.forEach(function(field) {
 			if (snapshot[field] !== undefined && snapshot[field] !== '') {
 				html += '<tr>';
-				html += '<td><strong>' + formatFieldName(field) + '</strong></td>';
+				html += '<td><strong>' + escapeHtml(formatFieldName(field)) + '</strong></td>';
 				html += '<td>' + escapeHtml(String(snapshot[field])) + '</td>';
 				html += '</tr>';
 			}
@@ -380,8 +380,8 @@ jQuery(document).ready(function($) {
 		const date2 = version2.changed_at_full || version2.changed_at;
 
 		let html = '<div class="nbuf-vh-diff-header-info">';
-		html += '<div class="nbuf-vh-diff-version"><strong>' + NBUF_VersionHistory.i18n.before + '</strong> ' + date1 + '</div>';
-		html += '<div class="nbuf-vh-diff-version"><strong>' + NBUF_VersionHistory.i18n.after + '</strong> ' + date2 + '</div>';
+		html += '<div class="nbuf-vh-diff-version"><strong>' + escapeHtml(NBUF_VersionHistory.i18n.before) + '</strong> ' + escapeHtml(date1) + '</div>';
+		html += '<div class="nbuf-vh-diff-version"><strong>' + escapeHtml(NBUF_VersionHistory.i18n.after) + '</strong> ' + escapeHtml(date2) + '</div>';
 		html += '</div>';
 
 		html += '<table class="nbuf-vh-diff-table">';
@@ -400,8 +400,8 @@ jQuery(document).ready(function($) {
 			const beforeValue = item.before || '(empty)';
 			const afterValue = item.after || '(empty)';
 
-			html += '<tr class="' + statusClass + '">';
-			html += '<td><strong>' + item.field + '</strong></td>';
+			html += '<tr class="' + escapeHtml(statusClass) + '">';
+			html += '<td><strong>' + escapeHtml(item.field) + '</strong></td>';
 			html += '<td>' + escapeHtml(String(beforeValue)) + '</td>';
 			html += '<td>' + escapeHtml(String(afterValue)) + '</td>';
 			html += '</tr>';

@@ -772,12 +772,27 @@ class NBUF_Settings {
 			}
 		}
 
-		/* Handle unchecked checkboxes - only for checkboxes declared on the current form */
+		/*
+		 * Handle unchecked checkboxes - only for keys whose registry entry
+		 * is the canonical sanitize_checkbox callback.
+		 *
+		 * SECURITY: a tampered hidden field listing arbitrary registered
+		 * keys (e.g. nbuf_form_checkboxes[]=nbuf_login_max_attempts) would
+		 * otherwise overwrite that key with literal `false`, bypassing the
+		 * registry's int-bounds sanitizer. Subsequent reads return false
+		 * instead of the configured value, silently zeroing out lockout
+		 * thresholds, password-min-length, etc. Only treat the key as a
+		 * checkbox if the registry actually declares it as one.
+		 */
 		if ( isset( $_POST['nbuf_form_checkboxes'] ) && is_array( $_POST['nbuf_form_checkboxes'] ) ) {
-			$form_checkboxes = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_checkboxes'] ) );
+			$form_checkboxes   = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_checkboxes'] ) );
+			$checkbox_callback = array( __CLASS__, 'sanitize_checkbox' );
 			foreach ( $form_checkboxes as $checkbox_key ) {
-				/* If checkbox was declared but not submitted, it was unchecked */
 				if ( ! isset( $_POST[ $checkbox_key ] ) && isset( $registry[ $checkbox_key ] ) ) {
+					/* Only treat as unchecked if the registry entry IS the checkbox sanitizer. */
+					if ( $registry[ $checkbox_key ] !== $checkbox_callback ) {
+						continue;
+					}
 					$result = NBUF_Options::update( $checkbox_key, false, true, 'settings' );
 					if ( $result ) {
 						++$saved_count;
@@ -786,15 +801,27 @@ class NBUF_Settings {
 			}
 		}
 
-		/* Handle empty arrays - only for array fields declared on the current form */
+		/*
+		 * Handle empty arrays - only for keys whose registry entry is one
+		 * of the array sanitizers. Same containment as above: prevents a
+		 * tampered nbuf_form_arrays[] entry pointing at a non-array key
+		 * from forcing it through array sanitization.
+		 */
 		if ( isset( $_POST['nbuf_form_arrays'] ) && is_array( $_POST['nbuf_form_arrays'] ) ) {
-			$form_arrays = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_arrays'] ) );
+			$form_arrays      = array_map( 'sanitize_key', wp_unslash( $_POST['nbuf_form_arrays'] ) );
+			$array_sanitizers = array(
+				array( __CLASS__, 'sanitize_string_array' ),
+				array( __CLASS__, 'sanitize_checkbox_group' ),
+				array( __CLASS__, 'sanitize_post_type_array' ),
+				array( __CLASS__, 'sanitize_taxonomy_array' ),
+			);
 			foreach ( $form_arrays as $array_key ) {
-				/* If array was declared but not submitted, save empty array */
 				if ( ! isset( $_POST[ $array_key ] ) && isset( $registry[ $array_key ] ) ) {
 					$sanitize_callback = $registry[ $array_key ];
-					/* Call sanitizer with empty array to get proper default */
-					$sanitized_value = is_callable( $sanitize_callback ) ? call_user_func( $sanitize_callback, array() ) : array();
+					if ( ! in_array( $sanitize_callback, $array_sanitizers, true ) ) {
+						continue;
+					}
+					$sanitized_value = call_user_func( $sanitize_callback, array() );
 					$result          = NBUF_Options::update( $array_key, $sanitized_value, true, 'settings' );
 					if ( $result ) {
 						++$saved_count;

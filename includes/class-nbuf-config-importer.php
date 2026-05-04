@@ -277,10 +277,34 @@ class NBUF_Config_Importer {
 
 		$table_name = $wpdb->prefix . 'nbuf_options';
 
+		/*
+		 * Build the allowlist ONCE per import — every imported setting must
+		 * have a known registry sanitizer. The previous code accepted any
+		 * `nbuf_`-prefixed key (bypassing the registry on first sight, only
+		 * applying the sanitizer if one happened to exist). That permitted
+		 * an imported config to introduce arbitrary new option names —
+		 * including ones a future plugin version would gate on but which
+		 * already exist in the DB before the gate is added (configuration
+		 * drift / rogue options that survive uninstall).
+		 */
+		$registry = ( class_exists( 'NBUF_Settings' ) && method_exists( 'NBUF_Settings', 'get_settings_registry' ) )
+			? NBUF_Settings::get_settings_registry()
+			: array();
+
 		foreach ( $settings as $category => $category_settings ) {
 			foreach ( $category_settings as $option_name => $option_value ) {
 				/* Only allow nbuf_ prefixed option names to prevent injection of arbitrary settings */
 				if ( ! str_starts_with( $option_name, 'nbuf_' ) ) {
+					continue;
+				}
+
+				/* Refuse settings that are not in the registry — no silent acceptance. */
+				if ( ! isset( $registry[ $option_name ] ) ) {
+					$this->results['errors'][] = sprintf(
+						/* translators: %s: setting key not in registry */
+						__( 'Refused unknown setting: %s', 'nobloat-user-foundry' ),
+						$option_name
+					);
 					continue;
 				}
 
@@ -300,12 +324,9 @@ class NBUF_Config_Importer {
 					continue;
 				}
 
-				/* Apply settings registry sanitizer if available to prevent bypass of validation */
-				if ( class_exists( 'NBUF_Settings' ) && method_exists( 'NBUF_Settings', 'get_settings_registry' ) ) {
-					$registry = NBUF_Settings::get_settings_registry();
-					if ( isset( $registry[ $option_name ] ) && is_callable( $registry[ $option_name ] ) ) {
-						$option_value = call_user_func( $registry[ $option_name ], $option_value );
-					}
+				/* Apply settings registry sanitizer (guaranteed to exist by the check above). */
+				if ( is_callable( $registry[ $option_name ] ) ) {
+					$option_value = call_user_func( $registry[ $option_name ], $option_value );
 				}
 
 				/* Skip if merge mode and option already exists */

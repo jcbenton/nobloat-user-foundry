@@ -34,6 +34,17 @@ class NBUF_Email {
 	 * @return bool True on success, false on failure.
 	 */
 	public static function send( $to, $subject, $message, $content_type = 'text' ) {
+		/*
+		 * Strip CR/LF from the subject. wp_mail eventually flows the
+		 * subject into a `Subject:` header — embedded CR/LF would let an
+		 * attacker who controls part of the subject string inject extra
+		 * headers (Bcc:, Reply-To:) and exfiltrate the message to an
+		 * arbitrary recipient. Most callers pass sanitised strings already
+		 * but defense-in-depth here makes the contract uniform across all
+		 * call sites (including future ones).
+		 */
+		$subject = is_string( $subject ) ? str_replace( array( "\r", "\n", "\0" ), ' ', $subject ) : '';
+
 		/* Get sender settings with WordPress defaults as fallback */
 		$sender_address = NBUF_Options::get( 'nbuf_email_sender_address', '' );
 		$sender_name    = NBUF_Options::get( 'nbuf_email_sender_name', '' );

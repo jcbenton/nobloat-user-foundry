@@ -89,23 +89,51 @@ class NBUF_CSS_Manager {
 		/* Remove any HTML tags first */
 		$css = wp_strip_all_tags( $css );
 
-		/* Remove javascript: protocol */
-		$css = preg_replace( '/javascript\s*:/i', '', $css );
+		/*
+		 * Remove CSS hex-escape sequences (`\6a` → 'j' etc.) BEFORE pattern
+		 * matching, so an attacker cannot bypass the regex below by writing
+		 * `\6A avascript:`, `\65xpression(`, etc. Six hex chars + optional
+		 * whitespace constitute a CSS hex escape per CSS Syntax §4.3.7.
+		 */
+		$css = preg_replace_callback(
+			'/\\\\([0-9a-fA-F]{1,6})\s?/',
+			static function ( $m ) {
+				$cp = hexdec( $m[1] );
+				if ( $cp < 0x20 || 0x7f === $cp ) {
+					return ''; /* drop control chars introduced via escapes */
+				}
+				return function_exists( 'mb_chr' ) ? mb_chr( $cp, 'UTF-8' ) : chr( $cp );
+			},
+			$css
+		);
 
-		/* Remove data: URIs (potential XSS vector) */
-		$css = preg_replace( '/url\s*\(\s*[\'"]?data:/i', 'url(', $css );
+		/*
+		 * Strip control characters (CR/LF/NULL/etc.) outright — they have
+		 * no business in a stylesheet and are commonly used to evade
+		 * naive pattern matchers (e.g. `java\nscript:`).
+		 */
+		$css = preg_replace( '/[\x00-\x08\x0b\x0c\x0e-\x1f]/', '', $css );
 
-		/* Remove @import (prevents external resource loading) */
-		$css = preg_replace( '/@import\s+/i', '', $css );
-
-		/* Remove expression() for old IE */
-		$css = preg_replace( '/expression\s*\(/i', '', $css );
-
-		/* Remove -moz-binding (Firefox XSS vector) */
-		$css = preg_replace( '/-moz-binding\s*:/i', '', $css );
-
-		/* Remove behavior: (IE XSS vector) */
-		$css = preg_replace( '/behavior\s*:/i', '', $css );
+		/*
+		 * Iterate the strip pattern set until the string is stable. A single
+		 * pass converts `expressexpressionion(` → `expression(` (one nested
+		 * payload survives). Iterating to a fixed-point catches arbitrarily
+		 * nested attempts. Cap at 5 passes to bound runtime.
+		 */
+		$max_passes = 5;
+		for ( $pass = 0; $pass < $max_passes; $pass++ ) {
+			$before = $css;
+			$css    = preg_replace( '/javascript\s*:/i', '', $css );
+			$css    = preg_replace( '/url\s*\(\s*[\'"]?\s*data\s*:/i', 'url(', $css );
+			$css    = preg_replace( '/@\s*import\b/i', '', $css );
+			$css    = preg_replace( '/@\s*charset\b/i', '', $css );
+			$css    = preg_replace( '/expression\s*\(/i', '', $css );
+			$css    = preg_replace( '/-moz-binding\s*:/i', '', $css );
+			$css    = preg_replace( '/behavior\s*:/i', '', $css );
+			if ( $before === $css ) {
+				break;
+			}
+		}
 
 		return $css;
 	}

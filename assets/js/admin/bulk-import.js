@@ -44,15 +44,24 @@ jQuery(document).ready(function($) {
 		});
 	});
 
+	/* HTML-escape user-controllable strings before splicing into DOM via .html(). */
+	function escapeHtml(text) {
+		if (text === null || text === undefined) {
+			return '';
+		}
+		const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+		return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+	}
+
 	/* Show validation preview */
 	function showPreview(data) {
 		const preview = data.preview;
 		let html = '<div class="nbuf-import-preview">';
 
 		html += '<h4>Validation Results</h4>';
-		html += '<p><strong>Total Rows:</strong> ' + data.total_rows + '</p>';
-		html += '<p><strong>Valid:</strong> <span style="color: green;">' + preview.valid + '</span></p>';
-		html += '<p><strong>Invalid:</strong> <span style="color: red;">' + preview.invalid + '</span></p>';
+		html += '<p><strong>Total Rows:</strong> ' + escapeHtml(data.total_rows) + '</p>';
+		html += '<p><strong>Valid:</strong> <span style="color: green;">' + escapeHtml(preview.valid) + '</span></p>';
+		html += '<p><strong>Invalid:</strong> <span style="color: red;">' + escapeHtml(preview.invalid) + '</span></p>';
 
 		/* Show errors if any */
 		if (preview.errors.length > 0) {
@@ -63,8 +72,8 @@ jQuery(document).ready(function($) {
 
 			preview.errors.slice(0, 20).forEach(function(error) {
 				html += '<tr>';
-				html += '<td style="padding: 5px; border-bottom: 1px solid #eee;">' + error.line + '</td>';
-				html += '<td style="padding: 5px; border-bottom: 1px solid #eee;">' + error.message + '</td>';
+				html += '<td style="padding: 5px; border-bottom: 1px solid #eee;">' + escapeHtml(error.line) + '</td>';
+				html += '<td style="padding: 5px; border-bottom: 1px solid #eee;">' + escapeHtml(error.message) + '</td>';
 				html += '</tr>';
 			});
 
@@ -76,13 +85,13 @@ jQuery(document).ready(function($) {
 			html += '</div>';
 		}
 
-		/* Show sample valid rows */
+		/* Show sample valid rows — CSV-derived, must escape every interpolation. */
 		if (preview.samples.length > 0) {
 			html += '<h4 style="margin-top: 20px;">Sample Valid Rows (Preview)</h4>';
 			html += '<div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fff;">';
 
 			preview.samples.forEach(function(sample) {
-				html += '<p><strong>Line ' + sample.line + ':</strong> ' + sample.data.user_email + ' (' + sample.data.user_login + ')</p>';
+				html += '<p><strong>Line ' + escapeHtml(sample.line) + ':</strong> ' + escapeHtml(sample.data.user_email) + ' (' + escapeHtml(sample.data.user_login) + ')</p>';
 			});
 
 			html += '</div>';
@@ -91,7 +100,7 @@ jQuery(document).ready(function($) {
 		/* Import button */
 		if (preview.valid > 0) {
 			html += '<p style="margin-top: 20px;">';
-			html += '<button type="button" class="button button-primary" id="nbuf-start-import">Import ' + preview.valid + ' Valid Users</button> ';
+			html += '<button type="button" class="button button-primary" id="nbuf-start-import">Import ' + escapeHtml(preview.valid) + ' Valid Users</button> ';
 			html += '<button type="button" class="button" id="nbuf-cancel-import">Cancel</button>';
 			html += '</p>';
 		} else {

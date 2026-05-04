@@ -109,17 +109,26 @@ jQuery(document).ready(function($) {
 		});
 	});
 
+	/* HTML-escape user-controllable strings before splicing into DOM via .html(). */
+	function escapeHtml(text) {
+		if (text === null || text === undefined) {
+			return '';
+		}
+		const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+		return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+	}
+
 	/* Show import preview */
 	function showImportPreview(preview) {
 		let html = '<div class="nbuf-import-preview-box">';
 		html += '<h4>Configuration Preview</h4>';
 
 		html += '<table class="widefat" style="margin-top: 10px;">';
-		html += '<tr><th>Plugin Version</th><td>' + preview.plugin_version + '</td></tr>';
-		html += '<tr><th>Exported Date</th><td>' + preview.exported_at + '</td></tr>';
-		html += '<tr><th>Source Site</th><td>' + preview.site_url + '</td></tr>';
-		html += '<tr><th>Settings Count</th><td><strong>' + preview.settings_count + '</strong></td></tr>';
-		html += '<tr><th>Template Count</th><td><strong>' + preview.template_count + '</strong></td></tr>';
+		html += '<tr><th>Plugin Version</th><td>' + escapeHtml(preview.plugin_version) + '</td></tr>';
+		html += '<tr><th>Exported Date</th><td>' + escapeHtml(preview.exported_at) + '</td></tr>';
+		html += '<tr><th>Source Site</th><td>' + escapeHtml(preview.site_url) + '</td></tr>';
+		html += '<tr><th>Settings Count</th><td><strong>' + escapeHtml(preview.settings_count) + '</strong></td></tr>';
+		html += '<tr><th>Template Count</th><td><strong>' + escapeHtml(preview.template_count) + '</strong></td></tr>';
 		html += '</table>';
 
 		if (Object.keys(preview.categories).length > 0) {
@@ -127,7 +136,7 @@ jQuery(document).ready(function($) {
 			html += '<ul>';
 			for (const [category, count] of Object.entries(preview.categories)) {
 				const displayName = category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-				html += '<li><strong>' + displayName + ':</strong> ' + count + ' items</li>';
+				html += '<li><strong>' + escapeHtml(displayName) + ':</strong> ' + escapeHtml(count) + ' items</li>';
 			}
 			html += '</ul>';
 		}
@@ -197,16 +206,16 @@ jQuery(document).ready(function($) {
 		let html = '<div class="notice notice-success"><p><strong>Import Complete!</strong></p></div>';
 
 		html += '<table class="widefat" style="margin-top: 15px;">';
-		html += '<tr><th>Settings Imported</th><td><strong style="color: green;">' + data.settings_imported + '</strong></td></tr>';
-		html += '<tr><th>Settings Skipped</th><td>' + data.settings_skipped + '</td></tr>';
-		html += '<tr><th>Templates Imported</th><td><strong style="color: green;">' + data.templates_imported + '</strong></td></tr>';
+		html += '<tr><th>Settings Imported</th><td><strong style="color: green;">' + escapeHtml(data.settings_imported) + '</strong></td></tr>';
+		html += '<tr><th>Settings Skipped</th><td>' + escapeHtml(data.settings_skipped) + '</td></tr>';
+		html += '<tr><th>Templates Imported</th><td><strong style="color: green;">' + escapeHtml(data.templates_imported) + '</strong></td></tr>';
 		html += '</table>';
 
 		if (data.errors.length > 0) {
 			html += '<h4 style="margin-top: 20px; color: red;">Errors</h4>';
 			html += '<ul style="color: red;">';
 			data.errors.forEach(function(error) {
-				html += '<li>' + error + '</li>';
+				html += '<li>' + escapeHtml(error) + '</li>';
 			});
 			html += '</ul>';
 		}

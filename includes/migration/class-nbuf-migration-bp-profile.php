@@ -455,10 +455,22 @@ class NBUF_Migration_BP_Profile {
 	 * @return string Converted value.
 	 */
 	private static function convert_field_value( $value, string $nbuf_field ): string {
-		/* Handle serialized arrays from BP (selectbox, checkbox, etc.) */
+		/*
+		 * Handle serialized arrays from BP (selectbox, checkbox, etc.).
+		 *
+		 * SECURITY: BP `bp_xprofile_data.value` is end-user controllable —
+		 * any registered user can populate their own profile. `maybe_unserialize`
+		 * defaults to allowing class instantiation, so a forged serialized
+		 * payload referencing any class with __destruct/__wakeup/__toString
+		 * (provided by some other plugin's POP gadget) would execute under
+		 * the admin user running the migration. Disable class instantiation.
+		 */
 		if ( is_serialized( $value ) ) {
-			$unserialized = maybe_unserialize( $value );
-
+			$unserialized = @unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed input.
+			if ( false === $unserialized && 'b:0;' !== $value ) {
+				/* Malformed payload — keep raw value. */
+				$unserialized = $value;
+			}
 			if ( is_array( $unserialized ) ) {
 				/* Join array values with commas */
 				$value = implode( ', ', $unserialized );

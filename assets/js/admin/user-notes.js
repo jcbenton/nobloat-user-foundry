@@ -125,9 +125,10 @@
 
 			/* Build note HTML */
 			function buildNoteHtml(note) {
-				var html = '<div class=\"nbuf-note-item\" data-note-id=\"' + note.id + '\">';
+				var html = '<div class=\"nbuf-note-item\" data-note-id=\"' + escapeHtml(note.id) + '\">';
 				html += '<div class=\"nbuf-note-header\">';
-				html += '<span class=\"nbuf-note-meta\">' + note.created_at_formatted + ' - ' + note.author_name + '</span>';
+				/* author_name is the user's display_name — user-controllable. */
+				html += '<span class=\"nbuf-note-meta\">' + escapeHtml(note.created_at_formatted) + ' - ' + escapeHtml(note.author_name) + '</span>';
 				html += '</div>';
 				html += '<div class=\"nbuf-note-content\">' + escapeHtml(note.note_content) + '</div>';
 				html += '<div class=\"nbuf-note-actions\">';

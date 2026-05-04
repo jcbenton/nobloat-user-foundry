@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.7.2
+Stable tag: 1.7.3
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,15 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.3 =
+* Security (HIGH): BuddyPress profile migrator now passes `allowed_classes => false` to unserialize. End-user-controlled BP `bp_xprofile_data.value` rows previously flowed into `maybe_unserialize()` during admin-initiated migration. Combined with any installed plugin's POP gadget, this was an object-injection / RCE-as-admin path. The same hardening already exists in `NBUF_Options::safe_unserialize_option()` and `NBUF_Settings::maybe_migrate_wp_options()`; this call site was missed.
+* Security (HIGH): NBUF_Transients::increment() rewritten as a single `INSERT ... ON DUPLICATE KEY UPDATE` so concurrent rate-limit increments are race-free. Previous read-modify-write with `add_option()` race + non-atomic fallback UPDATE could leak rate-limited requests under load and lose the TTL on the `_transient_timeout_*` row, breaking magic-link / 2FA / login-limiting counters.
+* Security (HIGH): Settings save handler unchecked-checkbox + empty-array paths now require the registry entry to actually be the corresponding sanitizer (`sanitize_checkbox` for nbuf_form_checkboxes, one of the array sanitizers for nbuf_form_arrays). A tampered hidden form field listing arbitrary registered keys could otherwise overwrite int / string / select options with literal `false` (or array-sanitizer floor), silently zeroing out lockout thresholds, password-min-length, etc.
+* Security (HIGH): Admin JS XSS via `.html()` with unescaped server data — fixed across 6 admin scripts: config-portability.js (config-import preview/results), bulk-import.js (CSV preview/errors), user-notes.js (note author display_name), version-history.js (snapshot/diff modal field names), gdpr-admin-export.js (export status messages), and feature-tests.php inline JS (third-party webhook test response). Each uses an `escapeHtml()` helper or jQuery `.text()` to neutralise stored payloads in user-controlled fields before DOM insertion.
+* Security (HIGH): Email send() now strips CR/LF/NULL from the subject parameter before passing to wp_mail(). Defense-in-depth against header injection from any future caller that doesn't pre-sanitise its subject string.
+* Security (HIGH): Config import now refuses unknown setting keys outright. Previously any nbuf_-prefixed key was accepted; only those with a registry sanitizer were validated. Imported configs could therefore introduce arbitrary new option names — a configuration-drift / rogue-options vector that survives uninstall.
+* Security (MEDIUM): CSS sanitizer hardened. Removes CSS hex-escape sequences (`\6a` → 'j') BEFORE pattern matching so an attacker cannot bypass the regex via `\6Aavascript:`, `\65xpression(`, etc. Strips control characters. Iterates pattern set until stable to defeat nested payloads (`expressexpressionion(` collapses to `expression(` then is stripped). Adds `@charset` to the strip list.
 
 = 1.7.2 =
 * Security (HIGH): ToS gate no longer fails open when the active version's `effective_date` is in the future. `get_active_version()` previously filtered `effective_date <= NOW`, returning NULL until the date arrived — meaning an admin who set a future-dated active version (with the previous version simultaneously deactivated by `set_active_version()`) silently disabled the ENTIRE ToS gate (frontend + REST + admin) for the intervening window. Filter dropped; schedule future versions with `is_active=0` and promote via cron when the date arrives.
@@ -704,6 +713,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.7.3 =
+Group D forensic audit closure: 7 HIGH (BP migration unserialize, transient race, settings checkbox sanitization gap, 6× admin JS XSS, email subject CRLF, config-import unrestricted keys) plus CSS sanitizer hardening. No database changes required.
 
 = 1.7.2 =
 Closes the remaining HIGH/MEDIUM Group C findings: ToS gate fail-open on future effective_date, webhook DNS-rebinding via IPv6 AAAA, ToS set_active_version race, update_version transaction order, impersonator ToS-acceptance attribution, IP-literal email bypass, webhook delivery_id nonce, password-change "remember me" preservation, TOTP setup rate limit, batched webhook log cleanup. No database changes required.

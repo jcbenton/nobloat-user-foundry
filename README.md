@@ -333,6 +333,18 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.3 — Forensic-audit Group D: plumbing + admin JS / templates
+
+Closes 7 HIGH findings from the Group D audit (settings / options / hooks / cron / DB / migration / router + import/templates/CSS + admin JS).
+
+- **BP migration unserialize (HIGH):** End-user BP profile data now passes through `unserialize` with `allowed_classes => false`.
+- **Transient increment race (HIGH):** Single-statement `INSERT ... ON DUPLICATE KEY UPDATE` — race-free under concurrency.
+- **Settings save tampering (HIGH):** Hidden `nbuf_form_checkboxes` / `nbuf_form_arrays` keys validated against registry sanitizer identity.
+- **Admin JS stored XSS (HIGH × 6):** `escapeHtml()` helper added to config-portability, bulk-import, user-notes; `.text()` migration in gdpr-admin-export and feature-tests webhook test; version-history field-name and date escaping.
+- **Email header injection (HIGH):** `NBUF_Email::send()` strips CR/LF/NULL from subject as defense-in-depth.
+- **Config import unrestricted keys (HIGH):** Imported configs now require each key to be in the settings registry; unknown keys refused.
+- **CSS sanitizer (MEDIUM):** Decodes CSS hex escapes before pattern matching; iterates to fixed-point; adds `@charset` blocklist; strips control chars.
+
 ### 1.7.2 — Forensic-audit Group C: deferred items closure
 
 Closes the remaining HIGH/MEDIUM items deferred from v1.7.1.

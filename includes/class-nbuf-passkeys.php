@@ -508,7 +508,11 @@ class NBUF_Passkeys {
 	 *
 	 * @since  1.5.0
 	 * @param  array<string, mixed> $response WebAuthn response from browser.
-	 * @return int|WP_Error User ID or error.
+	 * @return array{user_id:int,user_verified:bool}|WP_Error On success an
+	 *         array with the resolved user_id and a `user_verified` bool
+	 *         derived from the WebAuthn UV flag (bit 2 of authenticator
+	 *         data flags). Callers can use `user_verified` to decide
+	 *         whether the assertion already represents two factors.
 	 */
 	public static function verify_authentication( array $response ) {
 		$session_id = $response['sessionId'] ?? '';
@@ -661,6 +665,16 @@ class NBUF_Passkeys {
 		/* Update sign count and last used */
 		NBUF_User_Passkeys_Data::update_sign_count( $passkey->id, $new_sign_count );
 
+		/*
+		 * Derive whether this assertion satisfied user-verification (UV).
+		 * UP (user present) is bit 0 (0x01) — already enforced above.
+		 * UV (user verified) is bit 2 (0x04). When the platform performed
+		 * a biometric / PIN verification, UV is set and the passkey
+		 * counts as multi-factor on its own; the caller can use this to
+		 * skip downstream TOTP / email-2FA challenges.
+		 */
+		$user_verified = (bool) ( $auth_data['flags'] & 0x04 );
+
 		/* Log successful passkey authentication */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {
 			NBUF_Audit_Log::log(
@@ -669,13 +683,17 @@ class NBUF_Passkeys {
 				'success',
 				'Authenticated with passkey',
 				array(
-					'passkey_id'  => $passkey->id,
-					'device_name' => $passkey->device_name,
+					'passkey_id'    => $passkey->id,
+					'device_name'   => $passkey->device_name,
+					'user_verified' => $user_verified,
 				)
 			);
 		}
 
-		return (int) $passkey->user_id;
+		return array(
+			'user_id'       => (int) $passkey->user_id,
+			'user_verified' => $user_verified,
+		);
 	}
 
 	/**
@@ -1346,11 +1364,14 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => __( 'Invalid response format.', 'nobloat-user-foundry' ) ) );
 		}
 
-		$user_id = self::verify_authentication( $response );
+		$verify_result = self::verify_authentication( $response );
 
-		if ( is_wp_error( $user_id ) ) {
-			wp_send_json_error( array( 'message' => $user_id->get_error_message() ) );
+		if ( is_wp_error( $verify_result ) ) {
+			wp_send_json_error( array( 'message' => $verify_result->get_error_message() ) );
 		}
+
+		$user_id       = (int) $verify_result['user_id'];
+		$user_verified = ! empty( $verify_result['user_verified'] );
 
 		/*
 		 * SECURITY: Check user login status before allowing login.
@@ -1361,9 +1382,28 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => $status_error->get_error_message() ) );
 		}
 
-		/* Check if 2FA should be challenged (covers both user-enabled and admin-required) */
-		$twofa_required = false;
-		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
+		/*
+		 * Check if 2FA should be challenged (covers both user-enabled
+		 * and admin-required).
+		 *
+		 * SECURITY trade-off: a verified passkey (UV bit set in the
+		 * authenticator data flags) is itself a multi-factor credential
+		 * — possession of the device plus the platform's biometric / PIN
+		 * gesture. Layering a TOTP / email code on top of that is
+		 * usually noise. The setting `nbuf_2fa_require_after_passkey`
+		 * defaults to false, meaning a UV-verified passkey assertion
+		 * skips the 2FA step. Sites that need belt-and-suspenders for
+		 * compliance reasons can flip the setting to true to force the
+		 * step-up regardless. A passkey assertion WITHOUT UV (rare on
+		 * modern platforms but possible on some keys configured for
+		 * presence-only) is treated as a single-factor credential and
+		 * always falls through to 2FA when policy requires it.
+		 */
+		$twofa_required            = false;
+		$require_2fa_after_passkey = (bool) NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
+		$skip_2fa_for_passkey      = $user_verified && ! $require_2fa_after_passkey;
+
+		if ( ! $skip_2fa_for_passkey && class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
 			$twofa_required = true;
 		}
 

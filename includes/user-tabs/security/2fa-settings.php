@@ -12,10 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* General 2FA options */
-$nbuf_device_trust     = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
-$nbuf_admin_bypass     = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
-$nbuf_lockout_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
-$nbuf_grace_period     = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
+$nbuf_device_trust          = NBUF_Options::get( 'nbuf_2fa_device_trust', true );
+$nbuf_admin_bypass          = NBUF_Options::get( 'nbuf_2fa_admin_bypass', false );
+$nbuf_require_after_passkey = NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
+$nbuf_lockout_attempts      = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
+$nbuf_grace_period          = NBUF_Options::get( 'nbuf_2fa_grace_period', 7 );
 
 /* Admin notifications */
 $nbuf_notify_lockout = NBUF_Options::get( 'nbuf_2fa_notify_lockout', true );
@@ -34,6 +35,7 @@ $nbuf_notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 	<!-- Declare checkboxes so unchecked state is saved -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_device_trust">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_require_after_passkey">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_lockout">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_notify_disable">
 
@@ -60,6 +62,18 @@ $nbuf_notify_disable = NBUF_Options::get( 'nbuf_2fa_notify_disable', false );
 				</label>
 				<p class="description">
 					<?php esc_html_e( 'Users with "manage_options" capability can skip 2FA. Not recommended for security.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Require 2FA After Passkey', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<label>
+					<input type="checkbox" name="nbuf_2fa_require_after_passkey" value="1" <?php checked( $nbuf_require_after_passkey, true ); ?>>
+					<?php esc_html_e( 'Also require TOTP / email 2FA after a passkey login', 'nobloat-user-foundry' ); ?>
+				</label>
+				<p class="description">
+					<?php esc_html_e( 'A verified passkey (with biometric or PIN unlock) is itself a multi-factor credential, so this is OFF by default. Enable only if compliance or site policy requires a second distinct factor on top of the passkey. Passkeys that do not perform user verification still fall through to the normal 2FA challenge regardless of this setting.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

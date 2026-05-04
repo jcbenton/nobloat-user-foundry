@@ -333,6 +333,15 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.6.8 — Verified Passkey ⇒ Skip 2FA (Default)
+
+A WebAuthn assertion that completed user verification (biometric / PIN) is itself a multi-factor credential. v1.6.8 stops layering TOTP / email 2FA on top by default:
+
+- `verify_authentication()` now returns `{user_id, user_verified}` so callers know whether the assertion's UV flag was set.
+- `ajax_authenticate()` skips the 2FA-pending branch when UV is set, unless the new option `nbuf_2fa_require_after_passkey` (Security › 2FA Settings → "Require 2FA After Passkey") is on.
+- Passkeys without user verification (rare, possible with some hardware keys configured presence-only) still fall through to the standard 2FA challenge.
+- `passkey_auth` audit-log entries now record `user_verified` for forensics.
+
 ### 1.6.7 — Deferred Hardening Items
 
 Closes the items left for follow-up in v1.6.4-v1.6.6:

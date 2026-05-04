@@ -341,6 +341,14 @@ class NBUF_Settings {
 			/* Security - 2FA General */
 			'nbuf_2fa_device_trust'                   => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_2fa_admin_bypass'                   => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/*
+			 * Default off: a verified passkey (UV flag set) is itself a
+			 * multi-factor credential, so layering TOTP/email on top is
+			 * usually noise. Sites that require belt-and-suspenders for
+			 * compliance can flip this to true.
+			 */
+			'nbuf_2fa_require_after_passkey'          => array( __CLASS__, 'sanitize_checkbox' ),
 			'nbuf_2fa_lockout_attempts'               => function ( $value ) {
 				return max( 3, min( 20, absint( $value ) ) );
 			},

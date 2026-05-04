@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.7
+Stable tag: 1.6.8
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,9 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.8 =
+* Feature: A user-verified passkey login (UV bit set on the WebAuthn assertion — biometric or device PIN was performed) now skips the subsequent TOTP / email 2FA challenge by default. A verified passkey is itself a multi-factor credential and stacking TOTP on top is usually noise. New setting "Require 2FA After Passkey" (Security › 2FA Settings) defaults to OFF; admins requiring a second distinct factor on top of the passkey for compliance can flip it on. Passkeys without user verification (UP-only assertions) still fall through to the standard 2FA challenge regardless of the setting. The audit log entry for `passkey_auth` now records the `user_verified` flag for forensics.
+
 = 1.6.7 =
 * Security: GDPR export directory now re-writes its .htaccess + index.html + index.php protection files on every cleanup tick so they cannot drift away through manual deletion. Cleanup also recursively GCs orphaned per-user subdirectories older than the retention window (previously only top-level *.zip files were removed).
 * Security: Impersonation start now requires a sudo (password re-entry) within a configurable window (default 10 minutes) before promoting the admin into the target user's session. Closes the "stolen admin session = instant pivot" path.
@@ -638,6 +641,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.6.8 =
+Verified-passkey logins now skip the subsequent TOTP/email 2FA step by default (a passkey is already multi-factor). Sites that need to keep both can enable the new "Require 2FA After Passkey" toggle in Security › 2FA Settings. No database changes required.
 
 = 1.6.7 =
 Closes the deferred items from the v1.6.4-v1.6.6 audit: GDPR export directory hardening, impersonation sudo-step, ToS REST gate, webhook payload moved out of cron args, admin-audit-log column sort. No database changes required.

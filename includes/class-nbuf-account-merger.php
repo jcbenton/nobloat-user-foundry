@@ -935,15 +935,44 @@ class NBUF_Account_Merger {
 	 * @return void
 	 */
 	private static function merge_user_meta( int $primary_id, array $secondary_ids ): void {
-		/* Skip WordPress core and sensitive meta keys */
+		global $wpdb;
+
+		/*
+		 * Skip WordPress core and sensitive meta keys. The static literals
+		 * `wp_capabilities` / `wp_user_level` only catch the DEFAULT
+		 * single-site/main-blog table prefix; on multisite the per-blog
+		 * capabilities are stored under `{$wpdb->base_prefix}{$blog_id}_capabilities`
+		 * (e.g. `wp_2_capabilities`, `wp_3_capabilities`). Without dynamic
+		 * generation those slip through the deny check, and merging a
+		 * secondary user who is administrator on blog N silently grants
+		 * the primary user that elevated role on blog N — a privilege-
+		 * escalation vector triggered by a routine admin merge.
+		 */
 		$skip_meta_keys = array(
+			'session_tokens',
+			'dismissed_wp_pointers',
+			$wpdb->prefix . 'capabilities',
+			$wpdb->prefix . 'user_level',
 			'capabilities',
 			'user_level',
-			'session_tokens',
-			'wp_capabilities',
-			'wp_user_level',
-			'dismissed_wp_pointers',
 		);
+
+		if ( is_multisite() ) {
+			$site_ids = get_sites(
+				array(
+					'fields' => 'ids',
+					'number' => 0,
+				)
+			);
+			foreach ( (array) $site_ids as $site_id ) {
+				$blog_prefix = $wpdb->get_blog_prefix( (int) $site_id );
+				if ( $blog_prefix ) {
+					$skip_meta_keys[] = $blog_prefix . 'capabilities';
+					$skip_meta_keys[] = $blog_prefix . 'user_level';
+				}
+			}
+			$skip_meta_keys = array_values( array_unique( $skip_meta_keys ) );
+		}
 
 		foreach ( $secondary_ids as $secondary_id ) {
 			$meta_keys = get_user_meta( $secondary_id );
@@ -1160,9 +1189,19 @@ If you did not request this merge or have questions, please contact the site adm
 				/* If selected photo is not from primary account, copy it */
 				if ( $selected_user_id !== $primary_id && in_array( $selected_user_id, $all_user_ids, true ) ) {
 					$source_user_data = NBUF_User_Data::get( $selected_user_id );
-					if ( ! empty( $source_user_data['profile_photo_path'] ) ) {
+
+					/*
+					 * NBUF_User_Data::get() returns ?stdClass — the v1.6.5
+					 * audit fixed the new merge UI's read paths but missed
+					 * this legacy `conflict_selections` branch. Use object
+					 * property access; PHP 8.0+ throws "Cannot use object of
+					 * type stdClass as array" on subscript access, killing
+					 * the merge mid-transaction so it rolls back with no
+					 * actionable error to the admin.
+					 */
+					if ( $source_user_data && ! empty( $source_user_data->profile_photo_path ) ) {
 						/* SECURITY: Validate source photo path */
-						$source_validation          = NBUF_Profile_Photos::validate_photo_path( $source_user_data['profile_photo_path'], $selected_user_id );
+						$source_validation          = NBUF_Profile_Photos::validate_photo_path( $source_user_data->profile_photo_path, $selected_user_id );
 						$profile_photo_copy_allowed = true;
 
 						if ( is_wp_error( $source_validation ) ) {
@@ -1173,7 +1212,7 @@ If you did not request this merge or have questions, please contact the site adm
 								array(
 									'user_id'       => $selected_user_id,
 									'photo_type'    => 'profile',
-									'file_path'     => $source_user_data['profile_photo_path'],
+									'file_path'     => $source_user_data->profile_photo_path,
 									'error_code'    => $source_validation->get_error_code(),
 									'error_message' => $source_validation->get_error_message(),
 									'operation'     => 'account_merge',
@@ -1189,7 +1228,7 @@ If you did not request this merge or have questions, please contact the site adm
 							 * SECURITY: Validate file immediately before copy to minimize TOCTOU window
 							 * This prevents race conditions where file could be replaced between validation and use
 							 */
-							$source_path = realpath( $source_user_data['profile_photo_path'] );
+							$source_path = realpath( $source_user_data->profile_photo_path );
 							if ( ! $source_path || ! file_exists( $source_path ) || ! is_file( $source_path ) || ! is_readable( $source_path ) ) {
 								NBUF_Security_Log::log(
 									'file_not_found',
@@ -1198,7 +1237,7 @@ If you did not request this merge or have questions, please contact the site adm
 									array(
 										'user_id'    => $selected_user_id,
 										'photo_type' => 'profile',
-										'file_path'  => $source_user_data['profile_photo_path'],
+										'file_path'  => $source_user_data->profile_photo_path,
 										'operation'  => 'account_merge',
 									)
 								);
@@ -1383,9 +1422,10 @@ If you did not request this merge or have questions, please contact the site adm
 				/* If selected photo is not from primary account, copy it */
 				if ( $selected_user_id !== $primary_id && in_array( $selected_user_id, $all_user_ids, true ) ) {
 					$source_user_data = NBUF_User_Data::get( $selected_user_id );
-					if ( ! empty( $source_user_data['cover_photo_path'] ) ) {
+					/* PHP 8 stdClass — see profile_photo branch above. */
+					if ( $source_user_data && ! empty( $source_user_data->cover_photo_path ) ) {
 						/* SECURITY: Validate source photo path */
-						$source_validation        = NBUF_Profile_Photos::validate_photo_path( $source_user_data['cover_photo_path'], $selected_user_id );
+						$source_validation        = NBUF_Profile_Photos::validate_photo_path( $source_user_data->cover_photo_path, $selected_user_id );
 						$cover_photo_copy_allowed = true;
 
 						if ( is_wp_error( $source_validation ) ) {
@@ -1396,7 +1436,7 @@ If you did not request this merge or have questions, please contact the site adm
 								array(
 									'user_id'       => $selected_user_id,
 									'photo_type'    => 'cover',
-									'file_path'     => $source_user_data['cover_photo_path'],
+									'file_path'     => $source_user_data->cover_photo_path,
 									'error_code'    => $source_validation->get_error_code(),
 									'error_message' => $source_validation->get_error_message(),
 									'operation'     => 'account_merge',
@@ -1412,7 +1452,7 @@ If you did not request this merge or have questions, please contact the site adm
 							 * SECURITY: Validate file immediately before copy to minimize TOCTOU window
 							 * This prevents race conditions where file could be replaced between validation and use
 							 */
-							$source_path = realpath( $source_user_data['cover_photo_path'] );
+							$source_path = realpath( $source_user_data->cover_photo_path );
 							if ( ! $source_path || ! file_exists( $source_path ) || ! is_file( $source_path ) || ! is_readable( $source_path ) ) {
 								NBUF_Security_Log::log(
 									'file_not_found',
@@ -1421,7 +1461,7 @@ If you did not request this merge or have questions, please contact the site adm
 									array(
 										'user_id'    => $selected_user_id,
 										'photo_type' => 'cover',
-										'file_path'  => $source_user_data['cover_photo_path'],
+										'file_path'  => $source_user_data->cover_photo_path,
 										'operation'  => 'account_merge',
 									)
 								);

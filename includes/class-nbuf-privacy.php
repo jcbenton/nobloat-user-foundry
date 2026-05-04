@@ -711,8 +711,12 @@ class NBUF_Privacy {
 
 		$items_removed = false;
 		$messages      = array();
+		global $wpdb;
 
-		/* Anonymize user data */
+		/*
+		 * Anonymize user data — also clear pending_email so an unsubmitted
+		 * email-change confirmation does not survive the erasure.
+		 */
 		$user_data = NBUF_User_Data::get( $user->ID );
 		if ( $user_data ) {
 			NBUF_User_Data::update(
@@ -721,6 +725,7 @@ class NBUF_Privacy {
 					'verified_date'            => null,
 					'expiration_warned_at'     => null,
 					'weak_password_flagged_at' => null,
+					'pending_email'            => null,
 				)
 			);
 			$items_removed = true;
@@ -740,11 +745,47 @@ class NBUF_Privacy {
 			$messages[]    = __( 'Extended profile data erased.', 'nobloat-user-foundry' );
 		}
 
-		/* Disable 2FA */
-		if ( NBUF_User_2FA_Data::is_enabled( $user->ID ) ) {
-			NBUF_User_2FA_Data::update( $user->ID, array( 'enabled' => 0 ) );
+		/*
+		 * Disable 2FA AND drop trusted-device entries / TOTP secret /
+		 * backup codes. Previously only `enabled=0` was set, leaving the
+		 * encrypted TOTP secret and the trusted_devices JSON in place.
+		 * Article 17 erasure must remove the cryptographic material too —
+		 * otherwise an admin's backup-restore could resurrect 2FA state
+		 * for an erased account.
+		 */
+		if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
+			$twofa_table = $wpdb->prefix . 'nbuf_user_2fa';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Article 17 erasure of 2FA cryptographic material across the user's row.
+			$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', $twofa_table, $user->ID ) );
 			$items_removed = true;
-			$messages[]    = __( '2FA disabled.', 'nobloat-user-foundry' );
+			$messages[]    = __( '2FA secrets, backup codes, and trusted devices erased.', 'nobloat-user-foundry' );
+		}
+
+		/*
+		 * Drop login-limiting rows keyed on the user's login. The user is
+		 * about to be deleted (or their account is being anonymized) — any
+		 * lingering per-username failure counters should not survive.
+		 */
+		$attempts_table = $wpdb->prefix . 'nbuf_login_attempts';
+		$user_login_lc  = strtolower( $user->user_login );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Article 17 erasure of login-limiting history.
+		$rows_deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE LOWER(username) = %s', $attempts_table, $user_login_lc ) );
+		if ( $rows_deleted ) {
+			$items_removed = true;
+			$messages[]    = __( 'Login-limiting history removed.', 'nobloat-user-foundry' );
+		}
+
+		/*
+		 * Destroy any active WP sessions for the user — required so an
+		 * already-authenticated session cannot continue after the account
+		 * has been erased.
+		 */
+		if ( class_exists( 'WP_Session_Tokens' ) ) {
+			$sessions = WP_Session_Tokens::get_instance( $user->ID );
+			if ( $sessions ) {
+				$sessions->destroy_all();
+				$items_removed = true;
+			}
 		}
 
 		return array(

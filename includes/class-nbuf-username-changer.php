@@ -287,18 +287,39 @@ class NBUF_Username_Changer {
 		/* Store old username for logging */
 		$old_username = $user->user_login;
 
-		// Perform the update - direct DB query required as wp_update_user() does not support changing user_login.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required; user_login cannot be changed via wp_update_user().
-		$result = $wpdb->update(
-			$wpdb->users,
-			array(
-				'user_login'    => $new_username,
-				'user_nicename' => $nicename,
-			),
-			array( 'ID' => $user_id ),
-			array( '%s', '%s' ),
-			array( '%d' )
-		);
+		/*
+		 * Perform the update — direct DB query required as wp_update_user
+		 * does not support changing user_login. Retry on duplicate-key
+		 * collision: the SELECT-then-UPDATE pattern above has a TOCTOU
+		 * window against concurrent renames targeting the same nicename
+		 * base. wp_users.user_nicename has a UNIQUE index, so the second
+		 * concurrent UPDATE returns false with a "Duplicate entry" error;
+		 * we retry with a randomised suffix rather than surface a raw DB
+		 * failure to the admin.
+		 */
+		$result       = false;
+		$max_attempts = 5;
+		for ( $attempt = 0; $attempt < $max_attempts; $attempt++ ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required; user_login cannot be changed via wp_update_user().
+			$result = $wpdb->update(
+				$wpdb->users,
+				array(
+					'user_login'    => $new_username,
+					'user_nicename' => $nicename,
+				),
+				array( 'ID' => $user_id ),
+				array( '%s', '%s' ),
+				array( '%d' )
+			);
+			if ( false !== $result ) {
+				break;
+			}
+			$last_err = (string) $wpdb->last_error;
+			if ( false === stripos( $last_err, 'duplicate' ) ) {
+				break;
+			}
+			$nicename = $base_nicename . '-' . wp_generate_password( 6, false, false );
+		}
 
 		if ( false === $result ) {
 			add_action(
@@ -317,6 +338,49 @@ class NBUF_Username_Changer {
 		clean_user_cache( $user_id );
 		$sessions = WP_Session_Tokens::get_instance( $user_id );
 		$sessions->destroy_all();
+
+		/*
+		 * Invalidate NBUF granular caches. clean_user_cache only flushes WP
+		 * core's user object cache; NBUF's `nbuf_user_data` / `nbuf_profile`
+		 * groups continue to serve the OLD `user_login` for up to an hour
+		 * (CACHE_EXPIRATION). Without this call the rename is invisible to
+		 * any UI surface backed by NBUF_User::get for that window.
+		 */
+		if ( class_exists( 'NBUF_User' ) ) {
+			NBUF_User::invalidate_cache( $user_id );
+		}
+
+		/*
+		 * Migrate login-limiting rows from OLD username to NEW. Without
+		 * this, a renamed user effectively sheds any active distributed-
+		 * brute-force lockout the operator's per-username limiter was
+		 * tracking — old-username rows go dormant, new-username starts at
+		 * zero. If the rename is delegated to a less-trusted role this
+		 * becomes a privilege-aided counter reset.
+		 */
+		$attempts_table = $wpdb->prefix . 'nbuf_login_attempts';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Carrying lockout state across rename.
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET username = %s WHERE LOWER(username) = LOWER(%s)',
+				$attempts_table,
+				strtolower( $new_username ),
+				strtolower( $old_username )
+			)
+		);
+
+		/*
+		 * Fire the standard profile_update hook so observers (audit logs,
+		 * webhook listeners, third-party security plugins, BackupBuddy /
+		 * ManageWP, etc.) see the rename. Direct $wpdb update bypasses
+		 * wp_update_user — and therefore bypasses the action — by default.
+		 * Refresh the user object first so the action receives the
+		 * post-rename state.
+		 */
+		$post_user = get_userdata( $user_id );
+		if ( $post_user ) {
+			do_action( 'profile_update', $user_id, $user, array() );
+		}
 
 		/* Log the change */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {

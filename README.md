@@ -333,6 +333,22 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.0 — Forensic-audit Group B: registration / privacy / GDPR / photos
+
+Closes 10 HIGH findings from the registration / activator / merger / GDPR / privacy / version-history / photos / directory audit.
+
+- **Account merger (HIGH):** Multisite per-blog capability keys now in the meta skip list — closes cross-blog privilege escalation via merge.
+- **Account merger (HIGH):** PHP 8 stdClass regression in legacy `conflict_selections` photo branch fixed.
+- **Version history (HIGH):** Revert allowlist split admin-tier / user-tier — self-revert can no longer restore `is_verified`, `pending_email`, `last_login_at`, or `role`.
+- **GDPR (HIGH):** Article-17 erasure now removes 2FA cryptographic material, clears `pending_email`, deletes login-limiting rows, and destroys all active sessions.
+- **Public profile (HIGH):** Cover-photo URL goes through validated path helper rather than reading `cover_photo_url` raw from the DB.
+- **Member directory (HIGH):** Excludes disabled / expired / `user_status!=0` users; matching gate added to `can_view_profile()`.
+- **NBUF_User (HIGH):** `to_array()` / `to_json()` apply the same SENSITIVE_FIELDS denylist as `__get`.
+- **Username changer (HIGH):** Fires `profile_update`, invalidates NBUF granular caches, migrates `nbuf_login_attempts` rows on rename.
+- **Image processor (HIGH):** GIF/WebP fallback path always re-encodes via `wp_get_image_editor`, never `copy()`. Closes polyglot byte-perfect preservation.
+- **Photo deletion (MEDIUM):** File-delete-first ordering with metadata retention on FS error (avoids untrackable orphans).
+- **Username changer (MEDIUM):** `user_nicename` collision retry on duplicate-key.
+
 ### 1.6.9 — Forensic-audit hardening: passkeys, 2FA, TOTP setup, device trust
 
 Closes 5 CRITICAL and 11 HIGH findings from a fresh forensic audit of the auth subsystems.

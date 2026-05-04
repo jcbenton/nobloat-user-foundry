@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.9
+Stable tag: 1.7.0
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,22 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.0 =
+* Security (HIGH): Account merger no longer leaks per-blog WordPress capabilities on multisite. The `merge_user_meta` skip list previously hardcoded the literal `wp_capabilities` / `wp_user_level`, missing every per-blog key (`wp_2_capabilities`, `wp_3_capabilities`, etc.). On multisite an admin merging a low-privilege user into another could silently transfer the secondary user's elevated cross-blog roles to the primary. Skip list is now generated dynamically from `$wpdb->prefix` plus every site's blog-prefix.
+* Security (HIGH): Account merger PHP 8 stdClass regression in the legacy `conflict_selections` photo branch. The v1.6.5 audit fixed the new merge UI but missed `handle_photo_conflicts`, where `$source_user_data['profile_photo_path']` / `['cover_photo_path']` array-offsets a stdClass — fatal on PHP 8.0+, killing the merge mid-transaction. Now uses object property access throughout.
+* Security (HIGH): Version-history revert allowlist split into admin-tier and user-tier. Previously a self-revert with `nbuf_version_history_allow_user_revert=true` could restore `is_verified`, `pending_email`, `last_login_at`, and even the user's `role` from an old snapshot — bypassing the admin-controlled state-change paths. Self-revert is now restricted to genuine user preferences (privacy, photos, directory visibility); role / verification state / pending email are admin-only.
+* Security (HIGH): GDPR Article-17 erasure now removes the entire `nbuf_user_2fa` row (TOTP secret, backup codes, trusted devices), clears `pending_email`, deletes login-limiting rows for the user's login, and destroys all active WP sessions. Previously only three columns were nulled, leaving cryptographic material and login state intact.
+* Security (HIGH): Public-profile cover-photo URL now goes through `NBUF_Profile_Photos::get_cover_photo()` (validated path → reconstructed URL) rather than reading `cover_photo_url` raw from the DB. Brings the cover-photo render in line with the profile-photo hardening from v1.6.5.
+* Security (HIGH): Member directory and `can_view_profile()` now exclude disabled accounts, expired accounts, and `user_status != 0` users. Previously a banned user remained listed in the directory and their profile remained reachable via direct URL even though the directory query already (correctly) hid `show_in_directory=0` users.
+* Security (HIGH): NBUF_User::to_array / to_json now apply the same SENSITIVE_FIELDS denylist enforced by `__get`. Previously `(array) $this->data` bypassed the magic-getter denylist entirely, so any caller that "conveniently" serialised the user object would leak `user_pass` / `user_activation_key`.
+* Security (HIGH): Username changer now fires `profile_update`, invalidates NBUF granular caches, and migrates `nbuf_login_attempts` rows to the new login. Previously a rename:
+  - Did not fire `profile_update`, so audit-log subscribers, webhook listeners, and third-party security plugins missed the event.
+  - Left NBUF granular caches serving the OLD `user_login` for up to an hour.
+  - Orphaned login-limiting rows under the OLD username — a renamed user effectively shed any active per-username distributed-brute-force lockout.
+* Security (HIGH): GIF / WebP fallback path in image-processor `resize_and_copy()` no longer copies bit-perfect. ALL images are now re-encoded via `wp_get_image_editor`, even when below the resize threshold. Previously a GIF or WebP at or below max dimensions was preserved byte-for-byte — letting GIFAR-style polyglots, smuggled HTML/SVG payloads, and EXIF metadata (including GPS) survive an upload that promised "EXIF stripped".
+* Security (MEDIUM): `delete_user_photo` now deletes the file FIRST and only clears DB metadata if the file delete succeeded. Previous "DB-first" order produced the worst outcome on FS error: an orphaned file on disk with no DB reference, untrackable except via filesystem audit.
+* Security (MEDIUM): Username changer's `user_nicename` collision check has retry-on-duplicate-key. Previously a TOCTOU window between the SELECT probe and the UPDATE produced a confusing "Failed to update username in database" error on concurrent rename of two users to the same nicename base.
 
 = 1.6.9 =
 * Security (CRITICAL): Passkey UV server-side enforcement — when admin policy is `userVerification: required` the verifier now rejects assertions that arrive without the UV bit set, matching W3C WebAuthn Level 2 §7.2 step 17. Previously the policy only changed the browser/authenticator prompt; the server accepted UV-less assertions, silently neutering the requirement on stolen authenticators or hostile firmware. Same enforcement now applies to registration (§7.1 step 15) so a UP-only authenticator cannot be enrolled under a UV-required policy.
@@ -659,6 +675,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+Security release closing 10 HIGH findings from the Group B forensic audit (registration / activator / merger / GDPR / privacy / version-history / photos / directory). Highlights: multisite cap-meta leak in account merger, GDPR Article-17 erasure now removes 2FA cryptographic material + login-limiting rows, version-history self-revert no longer bypasses verification gate, image fallback path always re-encodes (closes GIF/WebP polyglot), public-profile cover-photo uses validated path, member directory excludes disabled/expired users. No database changes required.
 
 = 1.6.9 =
 Security release: closes 5 CRITICAL and 11 HIGH findings in the passkey, 2FA, TOTP-setup, and device-trust subsystems uncovered by a fresh forensic audit. Highlights: server-side enforcement of WebAuthn UV policy, TOTP setup no longer trusts client-supplied secret, device-trust rotation no longer fails open, pending-2FA cookie bound to UA fingerprint, per-IP 2FA lockout component. No database changes required.

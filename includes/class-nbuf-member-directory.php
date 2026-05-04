@@ -485,7 +485,10 @@ class NBUF_Member_Directory {
 		        FROM {$user_table} u
 		        LEFT JOIN {$data_table} ud ON u.ID = ud.user_id
 		        LEFT JOIN {$profile_table} up ON u.ID = up.user_id
-		        WHERE ud.show_in_directory = 1";
+		        WHERE ud.show_in_directory = 1
+		        AND (ud.is_disabled = 0 OR ud.is_disabled IS NULL)
+		        AND (ud.expires_at IS NULL OR ud.expires_at = '0000-00-00 00:00:00' OR ud.expires_at > UTC_TIMESTAMP())
+		        AND u.user_status = 0";
 
 		/*
 		 * Privacy filter (respect viewer status). Use COALESCE against the

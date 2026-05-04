@@ -46,7 +46,29 @@ class NBUF_Public_Profiles {
 	 */
 	public static function can_view_profile( $user_id ) {
 		$user_data = NBUF_User_Data::get( $user_id );
-		$privacy   = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
+
+		/*
+		 * Hide disabled or expired accounts from anyone other than the owner
+		 * and admins. Without this, the directory query (which DOES filter)
+		 * disagreed with this gate and a banned user's profile could still
+		 * be reached via direct URL even though they were absent from the
+		 * directory listing.
+		 */
+		$current_user_id = get_current_user_id();
+		$is_admin        = $current_user_id && user_can( $current_user_id, 'manage_options' );
+		$is_owner        = $current_user_id && (int) $current_user_id === (int) $user_id;
+		if ( $user_data && ! $is_owner && ! $is_admin ) {
+			if ( ! empty( $user_data->is_disabled ) ) {
+				return false;
+			}
+			if ( ! empty( $user_data->expires_at ) && '0000-00-00 00:00:00' !== $user_data->expires_at ) {
+				if ( strtotime( $user_data->expires_at . ' UTC' ) < time() ) {
+					return false;
+				}
+			}
+		}
+
+		$privacy = ( $user_data && ! empty( $user_data->profile_privacy ) ) ? $user_data->profile_privacy : NBUF_Options::get( 'nbuf_profile_default_privacy', 'private' );
 
 		// Public profiles are visible to everyone.
 		if ( 'public' === $privacy ) {
@@ -93,8 +115,18 @@ class NBUF_Public_Profiles {
 		// Get profile photo.
 		$profile_photo = NBUF_Profile_Photos::get_profile_photo( $user->ID, 150 );
 
-		// Get cover photo.
-		$cover_photo = ( $user_data && ! empty( $user_data->cover_photo_url ) ) ? $user_data->cover_photo_url : '';
+		/*
+		 * Use the validated cover-photo helper rather than reading
+		 * cover_photo_url raw from the DB. The helper reconstructs the URL
+		 * from the realpath-validated `cover_photo_path` column so a
+		 * tampered cover_photo_url (or one written before path validation
+		 * was added) cannot point this page at an attacker-controlled
+		 * external resource.
+		 */
+		$cover_photo = NBUF_Profile_Photos::get_cover_photo( $user->ID );
+		if ( ! $cover_photo ) {
+			$cover_photo = '';
+		}
 		$allow_cover = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 
 		// Get display name.

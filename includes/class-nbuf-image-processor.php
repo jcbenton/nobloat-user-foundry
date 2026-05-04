@@ -742,32 +742,26 @@ class NBUF_Image_Processor {
 		$width  = $image_info[0];
 		$height = $image_info[1];
 
-		/* If image is small enough, just copy it */
-		if ( $width <= $max_width && $height <= $max_height ) {
-			if ( ! copy( $source_path, $output_path ) ) {
-				NBUF_Security_Log::log(
-					'image_copy_failed',
-					'critical',
-					'Failed to copy image file during resize operation',
-					array(
-						'source_path' => basename( $source_path ),
-						'output_path' => basename( $output_path ),
-						'width'       => $width,
-						'height'      => $height,
-					)
-				);
-				return new WP_Error( 'copy_failed', __( 'Failed to copy image file.', 'nobloat-user-foundry' ) );
-			}
-			return true;
-		}
-
-		/* Otherwise, use WordPress built-in image editor */
+		/*
+		 * ALWAYS round-trip through wp_get_image_editor (which re-encodes),
+		 * even when no resize is needed. A direct `copy()` preserves the
+		 * input byte-for-byte — including any payload concatenated after
+		 * a valid GIF/WebP header (GIFAR-style polyglot, EXIF GPS the user
+		 * believed had been stripped, smuggled HTML/SVG in trailing
+		 * comment blocks). The earlier short-circuit defeated the
+		 * "EXIF stripped on upload" privacy promise on the GIF and WebP
+		 * fallback paths whenever WebP conversion was disabled or the
+		 * environment lacked imagewebp().
+		 */
 		$editor = wp_get_image_editor( $source_path );
 		if ( is_wp_error( $editor ) ) {
 			return $editor;
 		}
 
-		$editor->resize( $max_width, $max_height, false );
+		if ( $width > $max_width || $height > $max_height ) {
+			$editor->resize( $max_width, $max_height, false );
+		}
+
 		$result = $editor->save( $output_path );
 
 		if ( is_wp_error( $result ) ) {

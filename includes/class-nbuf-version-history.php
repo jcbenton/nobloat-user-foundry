@@ -643,11 +643,18 @@ class NBUF_Version_History {
 	/**
 	 * Revert user profile to a specific version
 	 *
-	 * @param  int $user_id    User ID.
-	 * @param  int $version_id Version ID to revert to.
+	 * @param  int  $user_id    User ID.
+	 * @param  int  $version_id Version ID to revert to.
+	 * @param  bool $as_admin   True when the caller has admin authority over
+	 *                          this user; false for self-revert. Self-revert
+	 *                          uses a strictly narrower allowlist that
+	 *                          excludes role, verification state, pending
+	 *                          email, and account-status flags so a user
+	 *                          cannot bypass the admin-controlled state-
+	 *                          change paths via "revert to an old snapshot".
 	 * @return bool Success.
 	 */
-	public function revert_to_version( $user_id, $version_id ) {
+	public function revert_to_version( $user_id, $version_id, bool $as_admin = false ) {
 		global $wpdb;
 
 		/* Get the version */
@@ -662,7 +669,15 @@ class NBUF_Version_History {
 		$user_data = array( 'ID' => $user_id );
 
 		if ( isset( $snapshot['user_email'] ) && is_email( $snapshot['user_email'] ) ) {
-			$user_data['user_email'] = sanitize_email( $snapshot['user_email'] );
+			/*
+			 * Email change in a self-revert would bypass the email-change
+			 * verification flow (a normal email change requires the user
+			 * to click a confirmation link sent to the NEW address). Drop
+			 * the email field entirely on self-revert.
+			 */
+			if ( $as_admin ) {
+				$user_data['user_email'] = sanitize_email( $snapshot['user_email'] );
+			}
 		}
 		if ( isset( $snapshot['display_name'] ) ) {
 			$user_data['display_name'] = sanitize_text_field( $snapshot['display_name'] );
@@ -673,7 +688,14 @@ class NBUF_Version_History {
 		if ( isset( $snapshot['description'] ) ) {
 			$user_data['description'] = sanitize_textarea_field( $snapshot['description'] );
 		}
-		if ( isset( $snapshot['role'] ) && ! empty( $snapshot['role'] ) && wp_roles()->is_role( $snapshot['role'] ) ) {
+
+		/*
+		 * Role revert is admin-only. A user reverting their own snapshot
+		 * must not be able to restore a role they previously held — that
+		 * would let any user who once had elevated privileges re-grant
+		 * them via "revert profile" long after a demotion.
+		 */
+		if ( $as_admin && isset( $snapshot['role'] ) && ! empty( $snapshot['role'] ) && wp_roles()->is_role( $snapshot['role'] ) ) {
 			$user = new WP_User( $user_id );
 			$user->set_role( sanitize_key( $snapshot['role'] ) );
 		}
@@ -711,8 +733,17 @@ class NBUF_Version_History {
 			 * (e.g., is_disabled=0, is_verified=1, expires_at) bypassing
 			 * the admin-controlled state-change paths. Drop any unknown
 			 * keys before the UPDATE/INSERT.
+			 *
+			 * Self-revert (admin = false) uses an even narrower allowlist:
+			 * verification state, pending_email, and last_login_at are
+			 * admin-controlled lifecycle metadata, NOT user preferences,
+			 * and a user reverting their own profile snapshot must not
+			 * be able to flip them. A user reverting to a snapshot taken
+			 * before an admin un-verified them, for instance, would
+			 * otherwise re-verify themselves; a snapshot taken with an
+			 * unsubmitted pending email would resurrect the pending change.
 			 */
-			$allowed_user_data_columns = array(
+			$allowed_user_data_columns_admin = array(
 				'is_verified',
 				'verified_date',
 				'verification_sent_at',
@@ -727,7 +758,18 @@ class NBUF_Version_History {
 				'pending_email',
 				'last_login_at',
 			);
-			$data                      = array_intersect_key( (array) $snapshot['nbuf_user_data'], array_flip( $allowed_user_data_columns ) );
+			$allowed_user_data_columns_user  = array(
+				'profile_privacy',
+				'show_in_directory',
+				'visible_fields',
+				'use_gravatar',
+				'cover_photo_url',
+				'cover_photo_path',
+				'profile_photo_url',
+				'profile_photo_path',
+			);
+			$allowed_user_data_columns       = $as_admin ? $allowed_user_data_columns_admin : $allowed_user_data_columns_user;
+			$data                            = array_intersect_key( (array) $snapshot['nbuf_user_data'], array_flip( $allowed_user_data_columns ) );
 			if ( ! empty( $data ) ) {
 				$data['user_id'] = $user_id;
 				$format          = array_fill( 0, count( $data ), '%s' );
@@ -1029,7 +1071,8 @@ class NBUF_Version_History {
 			return;
 		}
 
-		$success = $this->revert_to_version( $version->user_id, $version_id );
+		$as_admin = current_user_can( 'manage_options' );
+		$success  = $this->revert_to_version( $version->user_id, $version_id, $as_admin );
 
 		if ( $success ) {
 			wp_send_json_success( array( 'message' => __( 'Profile reverted successfully.', 'nobloat-user-foundry' ) ) );

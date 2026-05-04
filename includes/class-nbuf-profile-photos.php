@@ -1041,30 +1041,53 @@ class NBUF_Profile_Photos {
 		$url_key  = $type . '_photo_url';
 		$path_key = $type . '_photo_path';
 
-		/* Store file path before clearing metadata */
 		$file_to_delete = ( $user_data && ! empty( $user_data->$path_key ) ) ? $user_data->$path_key : null;
 
-		/* Remove from database FIRST to prevent orphaned metadata if file deletion fails */
-		NBUF_User_Data::update(
-			$user_id,
-			array(
-				$url_key  => '',
-				$path_key => '',
-			)
-		);
-
-		/* Delete physical file after metadata is cleared - validate path to prevent directory traversal */
+		/*
+		 * Delete the file FIRST (or confirm it is already gone), then clear
+		 * the DB metadata. The previous order ("clear DB, then try delete")
+		 * was advertised as preventing "orphaned metadata if file deletion
+		 * fails" — but it actually produces the worst possible outcome:
+		 * an orphaned FILE on disk with no DB reference, untrackable
+		 * except via filesystem audit. That breaks GDPR right-to-erasure
+		 * and lets the underlying photo persist long after the user
+		 * deleted it. Now: if the file delete fails, leave the metadata
+		 * intact so a retry (manual or via cron) can find and remove it.
+		 */
+		$delete_succeeded = true;
 		if ( $file_to_delete ) {
 			$upload_dir = wp_upload_dir();
 			$base_dir   = $upload_dir['basedir'];
 
-			/* Ensure file is within uploads directory */
 			$real_path = realpath( $file_to_delete );
 			$real_base = realpath( $base_dir );
 
 			if ( $real_path && $real_base && strpos( $real_path, $real_base ) === 0 && file_exists( $real_path ) ) {
-				wp_delete_file( $real_path );
+				$delete_succeeded = (bool) wp_delete_file( $real_path );
+				if ( ! $delete_succeeded && class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'photo_delete_failed',
+						'warning',
+						'Failed to delete user photo file; DB metadata retained for retry',
+						array(
+							'user_id'    => $user_id,
+							'photo_type' => $type,
+						),
+						$user_id
+					);
+				}
 			}
+			/* If realpath was empty / file already gone, treat as success. */
+		}
+
+		if ( $delete_succeeded ) {
+			NBUF_User_Data::update(
+				$user_id,
+				array(
+					$url_key  => '',
+					$path_key => '',
+				)
+			);
 		}
 	}
 

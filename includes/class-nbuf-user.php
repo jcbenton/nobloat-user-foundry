@@ -57,6 +57,17 @@ class NBUF_User {
 	const CACHE_EXPIRATION = 3600;
 
 	/**
+	 * Fields that must NEVER appear in serialised output.
+	 *
+	 * Enforced by both `__get` and `to_array` so a serialise-and-respond
+	 * shortcut (the most common way these things leak) cannot bypass the
+	 * magic-getter denylist.
+	 *
+	 * @var array<int, string>
+	 */
+	const SENSITIVE_FIELDS = array( 'user_pass', 'user_activation_key' );
+
+	/**
 	 * User data object
 	 *
 	 * @var object
@@ -452,8 +463,7 @@ class NBUF_User {
 		 * hash should access $instance->wp_user->user_pass directly so
 		 * the access is auditable in code review.
 		 */
-		static $denied_passthrough = array( 'user_pass', 'user_activation_key' );
-		if ( in_array( $name, $denied_passthrough, true ) ) {
+		if ( in_array( $name, self::SENSITIVE_FIELDS, true ) ) {
 			return null;
 		}
 
@@ -633,10 +643,19 @@ class NBUF_User {
 	 *
 	 * Useful for JSON responses or debugging.
 	 *
-	 * @return array<string, mixed> User data array.
+	 * Applies the same sensitive-field denylist enforced by `__get`.
+	 * Returning the raw `(array) $this->data` would expose the password
+	 * hash / activation key to any caller that "conveniently" serialises
+	 * the user object — defeating the magic-getter's defense entirely.
+	 *
+	 * @return array<string, mixed> User data array (sensitive fields stripped).
 	 */
 	public function to_array(): array {
-		return (array) $this->data;
+		$arr = (array) $this->data;
+		foreach ( self::SENSITIVE_FIELDS as $denied ) {
+			unset( $arr[ $denied ] );
+		}
+		return $arr;
 	}
 
 	/**

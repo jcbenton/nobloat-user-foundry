@@ -1260,8 +1260,10 @@ class NBUF_Security_Log {
 		/* Convert to string */
 		$value = (string) $value;
 
-		/* Strip leading quotes/backslashes before checking for formula characters,
-		 * matching the bulk import pattern to prevent bypass via quoting. */
+		/*
+		 * Strip leading quotes/backslashes before checking for formula characters,
+		 * matching the bulk import pattern to prevent bypass via quoting.
+		 */
 		if ( ! empty( $value ) && preg_match( '/^[\\\'"]*[=+\-@|\t\r]/', $value ) ) {
 			/* Prefix with single quote to neutralize formula execution */
 			$value = "'" . $value;

@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.4
+Stable tag: 1.6.6
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,44 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.6 =
+* Security (HIGH): Multisite-aware uninstall iterates every site so per-blog tables, options, and cron events are cleaned up (previously left orphaned tables on networks)
+* Security (HIGH): Activator gains a defense-in-depth capability gate (manage_network_plugins on multisite, activate_plugins on single-site) to block schema/option mutations when invoked with insufficient privileges
+* Security (HIGH): Ultimate Member migrator format array now resolved per-key (was a fixed positional list that silently coerced is_disabled / requires_approval flags during data migration)
+* Security: BuddyPress profile migrator filters field_mapping_override target columns through NBUF_Profile_Data field whitelist
+* Security: Options migration is now two-phase so partial copy failures retain wp_options copies for retry (no more silent settings loss on activation race)
+* Security: nbuf_db_version sentinel now binds to NBUF_VERSION so dbDelta re-runs on every release
+* Security: Universal-router custom-redirect strict scheme regex + wp_validate_redirect; redirect_to host validation at wp-login.php intercept; password-reset link rewrite uses preg_replace_callback with single match
+* Security: Universal-router path-traversal canonicalisation rejects empty/./../NUL segments
+* Security: Diagnostics export and table-repair handlers now write admin-audit-log entries
+* Standards: View titles wrapped in __() with wp_strip_all_tags applied to pre_get_document_title
+
+= 1.6.5 =
+* Security (CRITICAL): Account merger PHP 8 fatal — array-offset access on stdClass returned by NBUF_User_Data::get() across six call sites silently disabled photo-conflict / MIME-recheck paths
+* Security (HIGH): Webhook SSRF AAAA-record validation + IPv6 private/loopback/link-local/unique-local/IPv4-mapped private range coverage
+* Security (HIGH): Privacy export file URL leak fixed via realpath containment + extension allowlist + cross-reference recorded photo paths
+* Security: Webhook log retention cron added (default 30 days, filterable)
+* Security: Webhook secret minimum length enforced (16 bytes)
+* Security: Profile-change notification per-user rate limit + plain-text mode + CRLF-stripped subject
+* Security: Test-webhook endpoint rate limited per admin (5/min)
+* Security: Email-change race window closed (delete prior tokens BEFORE set_pending_email)
+* Security: Pending-email change notification sent to old address; password-confirm audit logging
+* Security: Data-export rate limit (3/hour by default, filterable)
+* Security: nbuf_after_profile_update extension API hardened (sanitized data, not raw $_POST)
+* Security: render_profile_page privacy gate; multi-role admin escalation guard for non-manage_options actors
+* Security: Username-changer enforces illegal_user_logins blocklist + nicename collision suffix
+* Security: NBUF_User user_pass / user_activation_key deny-list on __get
+* Security: AJAX directory per-field privacy filter; directory rate-limit + length cap
+* Security: CSV escape standardised across audit-log + admin-audit-log (catches `|` pipe + leading-quote/whitespace bypass)
+* Security: Version-history revert mass-assignment column allowlist + admin audit log entry; ajax_get_version_diff rate limit; ajax_revert_version cross-checks user_id
+* Security: User-notes capability gate aligned (manage_options); printf escape consistency
+* Security: handle_bulk_delete defense-in-depth cap recheck
+* Security: Settings.php migration uses safe-unserialize; CSS sanitizers via NBUF_CSS_Manager::sanitize_css; role manager native-role guard
+* Security: Template-manager email http-equiv removed; page-template style attribute removed
+* Security: Bulk-import password C0 control strip + 256-char cap; preview strips plaintext passwords
+* Security: Email-restrictions IDN/punycode + trailing-dot canonicalisation
+* Standards: Audit-log retention whitelist; numerous i18n / phpcs cleanups
+
 = 1.6.4 =
 * Security (CRITICAL): ToS handle_acceptance now pins the posted version_id to the currently active ToS version, blocking fabricated-evidence and stale-form attacks
 * Security: ToS handle_acceptance now enforces the affirmative-consent checkbox server-side (was client-side only)
@@ -592,6 +630,12 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.6.6 =
+Final batch of the full-codebase forensic audit. Multisite uninstall, activator capability gate, migration data-integrity, router redirect/path-traversal hardening. No database changes required.
+
+= 1.6.5 =
+Major hardening release covering account merger PHP 8 compatibility, webhook SSRF, GDPR data exposure, profile-change notification rate limits, version-history revert column allowlist, CSV-escape standardisation, bulk-import password handling, and many more. No database changes required.
 
 = 1.6.4 =
 Significant security and hardening release covering authentication, sessions, impersonation, restrictions, registration, verification, password policy, and Terms of Service. Closes one CRITICAL ToS evidence-fabrication path plus dozens of HIGH and MEDIUM findings from a full forensic re-audit. No database changes required.

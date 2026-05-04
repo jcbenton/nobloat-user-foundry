@@ -541,10 +541,10 @@ class NBUF_Profile_Photos {
 		 * check is the correct defense. (Nonce is the primary gate; this is
 		 * a layered check.)
 		 */
-		$referer       = wp_get_referer();
-		$site_url      = site_url();
-		$referer_host  = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
-		$site_host     = wp_parse_url( $site_url, PHP_URL_HOST );
+		$referer      = wp_get_referer();
+		$site_url     = site_url();
+		$referer_host = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
+		$site_host    = wp_parse_url( $site_url, PHP_URL_HOST );
 		if ( ! $referer || ! $referer_host || strtolower( (string) $referer_host ) !== strtolower( (string) $site_host ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
@@ -731,10 +731,10 @@ class NBUF_Profile_Photos {
 		 * check is the correct defense. (Nonce is the primary gate; this is
 		 * a layered check.)
 		 */
-		$referer       = wp_get_referer();
-		$site_url      = site_url();
-		$referer_host  = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
-		$site_host     = wp_parse_url( $site_url, PHP_URL_HOST );
+		$referer      = wp_get_referer();
+		$site_url     = site_url();
+		$referer_host = $referer ? wp_parse_url( $referer, PHP_URL_HOST ) : '';
+		$site_host    = wp_parse_url( $site_url, PHP_URL_HOST );
 		if ( ! $referer || ! $referer_host || strtolower( (string) $referer_host ) !== strtolower( (string) $site_host ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(

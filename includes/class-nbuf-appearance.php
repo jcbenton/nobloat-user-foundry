@@ -134,9 +134,9 @@ class NBUF_Appearance {
 					'reset'         => __( 'Password Reset', 'nobloat-user-foundry' ),
 					'account'       => __( 'Account Page', 'nobloat-user-foundry' ),
 					'2fa'           => __( '2FA Verify', 'nobloat-user-foundry' ),
-					'2fa-setup'      => __( '2FA Setup', 'nobloat-user-foundry' ),
-					'backup-codes'   => __( 'Backup Codes', 'nobloat-user-foundry' ),
-					'backup-verify'  => __( 'Backup Verify', 'nobloat-user-foundry' ),
+					'2fa-setup'     => __( '2FA Setup', 'nobloat-user-foundry' ),
+					'backup-codes'  => __( 'Backup Codes', 'nobloat-user-foundry' ),
+					'backup-verify' => __( 'Backup Verify', 'nobloat-user-foundry' ),
 				),
 			),
 			'pages'    => array(

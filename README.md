@@ -333,6 +333,14 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.6.6 — Forensic Hardening Release (Pieces 10-12 + Final Pass)
+
+Closing batch of the 12-piece full-codebase audit. Highlights: multisite uninstall, activator capability gate, migration data integrity, router hardening.
+
+### 1.6.5 — Forensic Hardening Release (Pieces 4-9)
+
+Mid-audit batch covering shortcodes, user data layer, admin pages, settings/templates, email/webhooks, and import/export. One CRITICAL (account-merger PHP 8 fatal), 4 HIGH security findings closed.
+
 ### 1.6.4 — Forensic Hardening Release (Pieces 1-3)
 
 This release ships fixes from a full-codebase forensic audit covering the authentication core, sessions/impersonation/IP-restrictions, and registration/verification/password-policy/ToS subsystems.

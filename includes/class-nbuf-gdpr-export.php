@@ -363,8 +363,8 @@ class NBUF_GDPR_Export {
 			'display_name'     => $user->display_name,
 			'registered_date'  => $user->user_registered,
 			'verification'     => array(
-				'is_verified'       => NBUF_User_Data::is_verified( $user_id ),
-				'verified_date'     => ( $user_data && property_exists( $user_data, 'verified_date' ) ) ? $user_data->verified_date : null,
+				'is_verified'   => NBUF_User_Data::is_verified( $user_id ),
+				'verified_date' => ( $user_data && property_exists( $user_data, 'verified_date' ) ) ? $user_data->verified_date : null,
 			),
 			'account_settings' => array(
 				'expiration_enabled' => ( $user_data && property_exists( $user_data, 'expiration_enabled' ) ) ? (bool) $user_data->expiration_enabled : false,

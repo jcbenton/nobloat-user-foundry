@@ -399,7 +399,7 @@ class NBUF_Image_Processor {
 
 		/* Validate dimensions to prevent division by zero */
 		if ( $width <= 0 || $height <= 0 ) {
-			imagedestroy( $source_image );
+			unset( $source_image );
 			return new WP_Error(
 				'invalid_dimensions',
 				__( 'Image has invalid dimensions (width or height is zero).', 'nobloat-user-foundry' )
@@ -424,7 +424,7 @@ class NBUF_Image_Processor {
 			imagecopyresampled( $new_image, $source_image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
 
 			/* Replace source */
-			imagedestroy( $source_image );
+			unset( $source_image );
 			$source_image = $new_image;
 		}
 
@@ -432,7 +432,7 @@ class NBUF_Image_Processor {
 		$success = imagewebp( $source_image, $output_path, $quality );
 
 		/* Clean up */
-		imagedestroy( $source_image );
+		unset( $source_image );
 
 		if ( ! $success ) {
 			return new WP_Error( 'webp_failed', __( 'Failed to convert image to WebP.', 'nobloat-user-foundry' ) );
@@ -540,7 +540,7 @@ class NBUF_Image_Processor {
 
 		/* Validate dimensions to prevent division by zero */
 		if ( $width <= 0 || $height <= 0 ) {
-			imagedestroy( $source_image );
+			unset( $source_image );
 			return new WP_Error(
 				'invalid_dimensions',
 				__( 'Image has invalid dimensions (width or height is zero).', 'nobloat-user-foundry' )
@@ -557,7 +557,7 @@ class NBUF_Image_Processor {
 			$new_image = imagecreatetruecolor( $new_width, $new_height );
 			imagecopyresampled( $new_image, $source_image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
 
-			imagedestroy( $source_image );
+			unset( $source_image );
 			$source_image = $new_image;
 		}
 
@@ -565,7 +565,7 @@ class NBUF_Image_Processor {
 		$success = imagejpeg( $source_image, $output_path, $quality );
 
 		/* Clean up */
-		imagedestroy( $source_image );
+		unset( $source_image );
 
 		if ( ! $success ) {
 			return new WP_Error( 'jpeg_failed', __( 'Failed to save optimized JPEG.', 'nobloat-user-foundry' ) );
@@ -668,7 +668,7 @@ class NBUF_Image_Processor {
 
 		/* Validate dimensions to prevent division by zero */
 		if ( $width <= 0 || $height <= 0 ) {
-			imagedestroy( $source_image );
+			unset( $source_image );
 			return new WP_Error(
 				'invalid_dimensions',
 				__( 'Image has invalid dimensions (width or height is zero).', 'nobloat-user-foundry' )
@@ -690,7 +690,7 @@ class NBUF_Image_Processor {
 
 			imagecopyresampled( $new_image, $source_image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
 
-			imagedestroy( $source_image );
+			unset( $source_image );
 			$source_image = $new_image;
 		}
 
@@ -698,7 +698,7 @@ class NBUF_Image_Processor {
 		$success = imagepng( $source_image, $output_path, 6 );
 
 		/* Clean up */
-		imagedestroy( $source_image );
+		unset( $source_image );
 
 		if ( ! $success ) {
 			return new WP_Error( 'png_failed', __( 'Failed to save optimized PNG.', 'nobloat-user-foundry' ) );
@@ -888,8 +888,8 @@ class NBUF_Image_Processor {
 			$user_data = NBUF_User_Data::get( $user_id );
 			if ( $user_data && ! empty( $user_data->$path_key ) && is_file( $user_data->$path_key ) ) {
 				/* Validate path is within uploads directory to prevent arbitrary file deletion */
-				$real_path     = realpath( $user_data->$path_key );
-				$real_base     = realpath( $upload_dir['basedir'] );
+				$real_path = realpath( $user_data->$path_key );
+				$real_base = realpath( $upload_dir['basedir'] );
 				if ( $real_path && $real_base && 0 === strpos( $real_path, $real_base . DIRECTORY_SEPARATOR ) ) {
 					wp_delete_file( $real_path );
 					$deleted = true;

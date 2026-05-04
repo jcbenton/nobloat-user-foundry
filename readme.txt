@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.8
+Stable tag: 1.6.9
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,24 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.9 =
+* Security (CRITICAL): Passkey UV server-side enforcement — when admin policy is `userVerification: required` the verifier now rejects assertions that arrive without the UV bit set, matching W3C WebAuthn Level 2 §7.2 step 17. Previously the policy only changed the browser/authenticator prompt; the server accepted UV-less assertions, silently neutering the requirement on stolen authenticators or hostile firmware. Same enforcement now applies to registration (§7.1 step 15) so a UP-only authenticator cannot be enrolled under a UV-required policy.
+* Security (CRITICAL): Passkey user-binding transient no longer fails open. The options endpoint always persists a binding sentinel ('_discoverable' for username-less flows, the resolved user ID otherwise) and refuses to start a session if the transient store cannot retain it. verify_authentication treats a missing sentinel as a hard error rather than skipping the cross-user defense at lines 564-583.
+* Security (CRITICAL): TOTP setup no longer trusts $_POST['secret']. The pending secret is now pinned in a per-user transient at render time and read back from the transient on submission; the legacy hidden input is ignored. Prevents the "evil setup" attack where an attacker who briefly held the user's session could submit `secret=<attacker-chosen>&code=<from-attacker-app>` and overwrite the user's TOTP key.
+* Security (CRITICAL): TOTP setup no longer auto-overwrites pre-existing backup codes. Re-setup (e.g. enrolling a new authenticator) preserves the user's existing emergency codes; explicit rotation remains available via the re-auth-protected "Generate New Codes" action. Closes a coerced-re-setup path that silently neutralised emergency recovery.
+* Security (CRITICAL): Device-trust rotation under contention no longer fails open. is_device_trusted now returns FALSE when the presented cookie is missing from the trusted-devices map post-lock, rather than re-conferring trust on a token that another request already rotated away. Prevents a stolen 30-day cookie from outliving legitimate rotation.
+* Security (HIGH): Passkey origin verification now strips the URL path from home_url() so subdirectory WordPress installs (e.g. /blog) compare against `scheme://host[:port]` per RFC 6454 — matching what browsers send in `clientData.origin`. Previously every passkey ceremony failed silently on subdirectory installs.
+* Security (HIGH): CBOR parser bounds. Attestation arrays/maps are capped at 4096 elements and oversized attestation/clientData payloads (>64 KB / >16 KB) are rejected before parsing. Closes an authenticated DoS where a one-byte payload could drive the parser into a 4.29-billion-iteration loop and OOM the PHP-FPM worker.
+* Security (HIGH): Pending-2FA cookie/transient hardened. Cookie is now `Secure: true` unconditionally (was `is_ssl()`); transient is bound to a hashed User-Agent fingerprint so a stolen `nbuf_2fa_token` cookie replayed from a different browser is rejected and the transient destroyed.
+* Security (HIGH): 2FA enable/disable now destroy other active sessions via WP_Session_Tokens. Without this, a session compromised before 2FA was enabled remained valid afterwards; same exposure on disable.
+* Security (HIGH): Device-trust rotation now caps absolute lifetime at DEVICE_TRUST_DURATION (30 days) from original creation. Previously a continually-rotated chain inherited a sliding window indefinitely; a once-leaked token could be kept "fresh" forever.
+* Security (HIGH): 2FA lockout has per-IP component (separate from per-user) so a hostile IP cannot use a victim's username to lock the victim out of 2FA. Lockout transient is set ONCE per window and the per-user attempt window is anchored to the first attempt rather than sliding on every retry — closes the "slow drip keeps the user locked out forever" DoS.
+* Security (HIGH): Auto-required email 2FA now persists `enabled=1` after the first successful verification. The previous implementation kept the row at `enabled=0` forever, which prevented the device-trust path from ever firing — every login round-tripped an email even on "trusted" devices.
+* Security (HIGH): Role demotion clears the 2FA `forced_at` timestamp so a future re-promotion starts a fresh grace window. Demote-then-restore round-trips no longer eat the user's grace clock.
+* Forensics: Passkey verification failures (challenge mismatch, RP-ID mismatch, origin mismatch, signature invalid, unknown credential, UV violation, session-binding lost) now emit security-log entries. Previously only `passkey_user_mismatch` and `passkey_clone_detected` were logged; failed assertions left no trail and admin had no way to detect probing.
+* Security (MEDIUM): Magic-link form now charges the per-IP rate-limit on every submission (including invalid-email and rate-limited paths) so an attacker cannot spam bogus values from a single IP without ever tripping the IP limit.
+* Standards: Several block-comment formatting nits in 2FA and passkey files.
+
 = 1.6.8 =
 * Feature: A user-verified passkey login (UV bit set on the WebAuthn assertion — biometric or device PIN was performed) now skips the subsequent TOTP / email 2FA challenge by default. A verified passkey is itself a multi-factor credential and stacking TOTP on top is usually noise. New setting "Require 2FA After Passkey" (Security › 2FA Settings) defaults to OFF; admins requiring a second distinct factor on top of the passkey for compliance can flip it on. Passkeys without user verification (UP-only assertions) still fall through to the standard 2FA challenge regardless of the setting. The audit log entry for `passkey_auth` now records the `user_verified` flag for forensics.
 
@@ -641,6 +659,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.6.9 =
+Security release: closes 5 CRITICAL and 11 HIGH findings in the passkey, 2FA, TOTP-setup, and device-trust subsystems uncovered by a fresh forensic audit. Highlights: server-side enforcement of WebAuthn UV policy, TOTP setup no longer trusts client-supplied secret, device-trust rotation no longer fails open, pending-2FA cookie bound to UA fingerprint, per-IP 2FA lockout component. No database changes required.
 
 = 1.6.8 =
 Verified-passkey logins now skip the subsequent TOTP/email 2FA step by default (a passkey is already multi-factor). Sites that need to keep both can enable the new "Require 2FA After Passkey" toggle in Security › 2FA Settings. No database changes required.

@@ -333,6 +333,26 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.6.9 — Forensic-audit hardening: passkeys, 2FA, TOTP setup, device trust
+
+Closes 5 CRITICAL and 11 HIGH findings from a fresh forensic audit of the auth subsystems.
+
+- **Passkeys (CRITICAL):** Server-side enforcement of `userVerification: required` per W3C WebAuthn Level 2 §7.1/§7.2 — registration AND verification now reject UV-less assertions when policy demands UV.
+- **Passkeys (CRITICAL):** User-binding transient no longer fails open — options endpoint always persists a sentinel ('_discoverable' or user ID), verifier rejects missing entries instead of skipping the cross-user defense.
+- **TOTP setup (CRITICAL):** Server-bound secret via per-user transient; `$_POST['secret']` is no longer trusted. Closes the "evil setup" attack path.
+- **TOTP setup (CRITICAL):** Existing backup codes are preserved on re-setup; explicit rotation remains via the re-auth-protected "Generate New Codes" action.
+- **Device trust (CRITICAL):** Rotation under contention no longer fails open — missing post-lock token returns false rather than re-conferring trust on a rotated cookie.
+- **Passkeys (HIGH):** `get_origin()` now strips the URL path for RFC 6454 conformance; subdirectory WordPress installs work again.
+- **Passkeys (HIGH):** CBOR collection bounds (4096 elements; 64 KB attestation cap) — closes authenticated DoS.
+- **2FA (HIGH):** Pending-2FA cookie `Secure: true` always; transient bound to UA-fingerprint hash.
+- **2FA (HIGH):** enable_for_user / disable_for_user destroy other active sessions.
+- **Device trust (HIGH):** Absolute lifetime cap of 30 days from creation; rotation no longer slides the window indefinitely.
+- **2FA (HIGH):** Per-IP lockout component; absolute (not sliding) attempt window; lockout transient set once per window.
+- **2FA (HIGH):** Auto-required email 2FA persists `enabled=1` after first verify so device-trust path becomes reachable.
+- **2FA (HIGH):** Role demotion clears `forced_at` so re-promotion starts a fresh grace window.
+- **Forensics:** Passkey verification failures (challenge/RP-ID/origin/signature/credential/UV/session) now emit security-log entries.
+- **Magic links (MEDIUM):** Per-IP rate-limit charged on every form submission, including invalid-email and rate-limited paths.
+
 ### 1.6.8 — Verified Passkey ⇒ Skip 2FA (Default)
 
 A WebAuthn assertion that completed user verification (biometric / PIN) is itself a multi-factor credential. v1.6.8 stops layering TOTP / email 2FA on top by default:

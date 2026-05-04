@@ -757,9 +757,18 @@ class NBUF_Magic_Links {
 			if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_magic_link_nonce'] ) ), 'nbuf_magic_link_request' ) ) {
 				$email = sanitize_email( wp_unslash( $_POST['nbuf_magic_link_email'] ) );
 
-				if ( ! is_email( $email ) ) {
-					$error = __( 'Please enter a valid email address.', 'nobloat-user-foundry' );
-				} elseif ( self::is_ip_rate_limited() ) {
+				/*
+				 * Charge the per-IP counter on EVERY form submission, before
+				 * the email-format check, so an attacker cannot spam bogus
+				 * email values to enumerate or DoS the form without ever
+				 * tripping the IP rate limiter. Otherwise the only path
+				 * touching the counter was the success branch, which gave
+				 * each IP unlimited "free" attempts as long as it kept
+				 * sending malformed input.
+				 */
+				self::increment_ip_rate_limit();
+
+				if ( self::is_ip_rate_limited() ) {
 					/* IP rate limit - prevents DoS/enumeration attacks */
 					$remaining = self::get_ip_rate_limit_remaining_minutes();
 					$error     = sprintf(
@@ -767,6 +776,8 @@ class NBUF_Magic_Links {
 						__( 'Too many requests. Please wait %d minutes before trying again.', 'nobloat-user-foundry' ),
 						max( 1, $remaining )
 					);
+				} elseif ( ! is_email( $email ) ) {
+					$error = __( 'Please enter a valid email address.', 'nobloat-user-foundry' );
 				} elseif ( self::is_rate_limited( $email ) ) {
 					/* Per-email rate limit */
 					$remaining = self::get_rate_limit_remaining_minutes( $email );
@@ -776,8 +787,6 @@ class NBUF_Magic_Links {
 						max( 1, $remaining )
 					);
 				} else {
-					/* Increment IP counter before processing (prevents enumeration via timing) */
-					self::increment_ip_rate_limit();
 					self::send_magic_link( $email );
 					$success = __( 'If an account exists with that email, a magic link has been sent. Check your inbox!', 'nobloat-user-foundry' );
 				}

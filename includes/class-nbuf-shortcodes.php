@@ -3354,8 +3354,24 @@ Best regards,
 				<?php endif; ?>
 
 				<?php
-				/* Generate new secret for setup using settings from Security > Authenticator */
-				$secret      = NBUF_TOTP::generate_secret();
+				/*
+				 * Generate (or reuse) the TOTP secret for this setup attempt and
+				 * pin it server-side via a per-user transient. handle_totp_setup_submission
+				 * will read the secret BACK from this transient — it must NOT trust the
+				 * client-supplied $_POST['secret']. Otherwise an attacker who already
+				 * has a foothold in the user's session can submit
+				 * `secret=<attacker-chosen>&code=<computed-from-attacker-secret>` and
+				 * overwrite the user's TOTP key with one only the attacker knows
+				 * (the "evil setup" attack). Reusing the transient on re-render also
+				 * stops the QR code from changing every page reload, which previously
+				 * broke the UX for users mid-setup.
+				 */
+				$pending_secret_key = 'nbuf_2fa_pending_secret_' . $user_id;
+				$secret             = get_transient( $pending_secret_key );
+				if ( ! $secret || ! is_string( $secret ) ) {
+					$secret = NBUF_TOTP::generate_secret();
+					set_transient( $pending_secret_key, $secret, 30 * MINUTE_IN_SECONDS );
+				}
 				$username    = wp_get_current_user()->user_email;
 				$issuer      = get_bloginfo( 'name' );
 				$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );
@@ -3426,12 +3442,27 @@ Best regards,
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Get submitted data */
-		$secret = isset( $_POST['secret'] ) ? sanitize_text_field( wp_unslash( $_POST['secret'] ) ) : '';
-		$code   = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
+		/*
+		 * Read the secret from the server-side per-user transient pinned in
+		 * sc_totp_setup. Critically, we IGNORE $_POST['secret'] — accepting
+		 * a client-supplied secret allowed an attacker with a foothold in the
+		 * user's session to plant their own TOTP key and own the second
+		 * factor. The client-displayed `<input name="secret">` field is still
+		 * present for cosmetic compatibility but its value is no longer
+		 * trusted on submission.
+		 */
+		$pending_secret_key = 'nbuf_2fa_pending_secret_' . $user_id;
+		$secret             = get_transient( $pending_secret_key );
+		$code               = isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '';
 
-		/* Validate inputs */
-		if ( empty( $secret ) || empty( $code ) ) {
+		if ( empty( $secret ) || ! is_string( $secret ) ) {
+			return self::render_totp_setup_with_error(
+				$user_id,
+				__( 'Setup session expired. Please reload the page and start over.', 'nobloat-user-foundry' )
+			);
+		}
+
+		if ( empty( $code ) ) {
 			return self::render_totp_setup_with_error(
 				$user_id,
 				__( 'Please enter the verification code from your authenticator app.', 'nobloat-user-foundry' )
@@ -3453,7 +3484,7 @@ Best regards,
 			);
 		}
 
-		/* Verify the code against the submitted secret (not stored yet) */
+		/* Verify the code against the server-bound secret */
 		$valid = NBUF_TOTP::verify_code( $secret, $code, $tolerance, $code_length, $time_window );
 
 		if ( ! $valid ) {
@@ -3475,11 +3506,28 @@ Best regards,
 			return self::render_totp_setup_with_error( $user_id, $result->get_error_message() );
 		}
 
+		/* The pending secret has now been promoted into the encrypted store. */
+		delete_transient( $pending_secret_key );
+
 		/* Clear grace period start if set */
 		NBUF_User_2FA_Data::clear_totp_grace_start( $user_id );
 
-		/* Generate backup codes automatically */
-		$backup_codes = NBUF_2FA::generate_backup_codes( $user_id );
+		/*
+		 * Only auto-generate backup codes on FIRST setup. A re-setup (e.g. user
+		 * lost their authenticator and is enrolling a new one) used to wipe
+		 * the previously-issued backup codes silently and replace them with
+		 * a new set displayed only once on the success page. That made
+		 * coerced "re-setup" a viable path to neutralise the user's emergency
+		 * recovery codes. Users who explicitly want to rotate codes can use
+		 * the "Generate New Codes" action on the account page (which already
+		 * requires re-auth).
+		 */
+		$existing_codes = NBUF_User_2FA_Data::get_backup_codes( $user_id );
+		if ( empty( $existing_codes ) ) {
+			$backup_codes = NBUF_2FA::generate_backup_codes( $user_id );
+		} else {
+			$backup_codes = array();
+		}
 
 		/* Log the setup */
 		NBUF_Audit_Log::log(

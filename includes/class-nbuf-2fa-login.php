@@ -73,7 +73,23 @@ class NBUF_2FA_Login {
 		if ( ! class_exists( 'NBUF_2FA' ) ) {
 			return;
 		}
-		NBUF_2FA::ensure_grace_period_started( (int) $user_id );
+
+		$user_id = (int) $user_id;
+
+		if ( NBUF_2FA::is_required( $user_id ) ) {
+			NBUF_2FA::ensure_grace_period_started( $user_id );
+		} elseif ( class_exists( 'NBUF_User_2FA_Data' ) ) {
+			/*
+			 * Role change demoted the user out of 2FA-required scope. Clear
+			 * the stored forced_at so a future re-promotion starts a fresh
+			 * grace window. Without this, the original forced_at survives
+			 * the demote-then-restore round-trip and the grace clock keeps
+			 * ticking through the no-2FA-required period — at re-promotion
+			 * the user can find themselves immediately past grace with no
+			 * setup completed.
+			 */
+			NBUF_User_2FA_Data::set_forced_at( $user_id, null );
+		}
 	}
 
 	/**
@@ -165,17 +181,34 @@ class NBUF_2FA_Login {
 			$method = NBUF_2FA::get_required_method();
 		}
 
+		/*
+		 * Bind the pending-2FA transient to a hashed fingerprint of the
+		 * originating request (User-Agent only — IP intentionally omitted
+		 * since users routinely roam between Wi-Fi and cellular mid-flow,
+		 * which would otherwise trigger spurious failures). If the
+		 * `nbuf_2fa_token` cookie is ever exfiltrated and replayed from a
+		 * different browser, the UA fingerprint won't match and the
+		 * transient is voided rather than silently completed.
+		 */
+		$ua_hash = hash( 'sha256', ( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ) . wp_salt( 'auth' ) );
+
 		set_transient(
 			'nbuf_2fa_pending_' . $token,
 			array(
 				'user_id'   => $user->ID,
 				'timestamp' => time(),
 				'method'    => $method, /* Store method for verification page */
+				'ua_hash'   => $ua_hash,
 			),
 			self::TRANSIENT_EXPIRATION
 		);
 
-		/* Store token in secure cookie */
+		/*
+		 * Store token in secure cookie. Force `secure => true` regardless of
+		 * is_ssl(): the 2FA flow is sensitive enough to refuse non-SSL
+		 * operation entirely. A misconfigured proxy or partial-HTTPS site
+		 * would otherwise leak the cookie cleartext on an HTTP leg.
+		 */
 		setcookie(
 			self::COOKIE_NAME,
 			$token,
@@ -183,7 +216,7 @@ class NBUF_2FA_Login {
 				'expires'  => time() + self::TRANSIENT_EXPIRATION,
 				'path'     => COOKIEPATH,
 				'domain'   => COOKIE_DOMAIN,
-				'secure'   => is_ssl(),
+				'secure'   => true,
 				'httponly' => true,
 				'samesite' => 'Strict',
 			)
@@ -267,6 +300,29 @@ class NBUF_2FA_Login {
 		}
 
 		$user_id = absint( $pending_data['user_id'] );
+
+		/*
+		 * Enforce the UA fingerprint captured at intercept_login. A mismatch
+		 * means the `nbuf_2fa_token` cookie was replayed from a different
+		 * browser than the one that just succeeded the password step;
+		 * destroy the transient and force re-authentication.
+		 */
+		if ( isset( $pending_data['ua_hash'] ) ) {
+			$current_ua_hash = hash( 'sha256', ( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ) . wp_salt( 'auth' ) );
+			if ( ! hash_equals( (string) $pending_data['ua_hash'], $current_ua_hash ) ) {
+				delete_transient( 'nbuf_2fa_pending_' . $token );
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log(
+						'2fa_pending_replay',
+						'high',
+						'Pending-2FA cookie replayed from a different User-Agent than the one that initiated the flow',
+						array( 'user_id' => $user_id ),
+						$user_id
+					);
+				}
+				wp_die( esc_html__( 'Session integrity check failed. Please log in again.', 'nobloat-user-foundry' ) );
+			}
+		}
 
 		/* Get method from transient (includes auto-required method) */
 		$method = isset( $pending_data['method'] ) ? $pending_data['method'] : NBUF_2FA::get_user_method( $user_id );
@@ -377,6 +433,27 @@ class NBUF_2FA_Login {
 
 			wp_safe_redirect( add_query_arg( $redirect_args, $current_url ) );
 			exit;
+		}
+
+		/*
+		 * Persist enabled=1 for auto-required-email-2FA users on first
+		 * successful verification. Without this, NBUF_2FA::should_challenge
+		 * stays in the "is_required && !is_enabled" branch forever and the
+		 * device-trust check (which only fires when is_enabled) is never
+		 * reached — every login round-trips an email even from a "trusted"
+		 * device. Persist after the first verify so subsequent flows
+		 * follow the normal enabled-user code path.
+		 */
+		if ( 'email' === $method && ! NBUF_2FA::is_enabled( $user_id ) && NBUF_2FA::is_required( $user_id ) ) {
+			NBUF_User_2FA_Data::enable( $user_id, 'email', null );
+			NBUF_User_2FA_Data::set_forced_at( $user_id, null );
+			NBUF_Audit_Log::log(
+				$user_id,
+				'2fa_auto_enrolled',
+				'success',
+				'User auto-enrolled into email 2FA after first successful verification',
+				array( 'method' => 'email' )
+			);
 		}
 
 		/* Log successful 2FA verification */

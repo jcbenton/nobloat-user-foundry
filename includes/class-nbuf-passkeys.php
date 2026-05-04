@@ -198,11 +198,26 @@ class NBUF_Passkeys {
 	/**
 	 * Get origin for verification.
 	 *
+	 * Per RFC 6454 a Web origin is `scheme://host[:port]` — no path. The
+	 * browser sends `clientData.origin` in that exact shape, so the
+	 * server must compare against the same. Using `home_url()` directly
+	 * breaks subdirectory WordPress installs (e.g. `https://example.com/blog`)
+	 * because the trailing path makes every origin check fail.
+	 *
 	 * @since  1.5.0
 	 * @return string Origin URL.
 	 */
 	public static function get_origin(): string {
-		return home_url();
+		$parts = wp_parse_url( home_url() );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+		$scheme = $parts['scheme'] ?? 'https';
+		$origin = $scheme . '://' . $parts['host'];
+		if ( ! empty( $parts['port'] ) ) {
+			$origin .= ':' . $parts['port'];
+		}
+		return $origin;
 	}
 
 	/**
@@ -341,6 +356,17 @@ class NBUF_Passkeys {
 			return new WP_Error( 'invalid_response', __( 'Invalid registration response.', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * Reject oversized inputs before CBOR parsing. Real attestation
+		 * objects from any current authenticator are well under 16 KB; a
+		 * 64 KB cap leaves headroom for future formats while preventing a
+		 * malicious client from feeding the parser an arbitrarily large
+		 * blob.
+		 */
+		if ( strlen( $attestation_obj ) > 65536 || strlen( $client_data_json ) > 16384 ) {
+			return new WP_Error( 'invalid_response', __( 'Registration payload too large.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Verify client data */
 		$client_data = json_decode( $client_data_json, true );
 		if ( ! $client_data ) {
@@ -385,6 +411,18 @@ class NBUF_Passkeys {
 		/* Verify user present flag */
 		if ( ! ( $auth_data['flags'] & 0x01 ) ) {
 			return new WP_Error( 'user_not_present', __( 'User presence verification failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * Enforce userVerification on registration when policy demands it.
+		 * Per W3C WebAuthn Level 2 §7.1 step 15. Without this check, a user
+		 * could enroll a UP-only authenticator under a "required" policy
+		 * and from then on every subsequent assertion bypasses the UV
+		 * requirement at line ~628.
+		 */
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
+			return new WP_Error( 'user_verification_required', __( 'User verification was required but not performed.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Extract credential data */
@@ -460,7 +498,17 @@ class NBUF_Passkeys {
 			'sessionId'        => $session_id,
 		);
 
-		/* If username provided, get their allowed credentials */
+		/*
+		 * Resolve the user-binding sentinel. We always persist a binding entry —
+		 * a numeric user ID when a username was supplied and resolved, or the
+		 * literal '_discoverable' for the userless flow. verify_authentication
+		 * therefore treats a MISSING transient as a hard error rather than
+		 * silently downgrading to "no binding constraint", which would let an
+		 * unrelated transient-store eviction disable the cross-user defense at
+		 * lines 564-583.
+		 */
+		$expected_user_id = '_discoverable';
+
 		if ( $username ) {
 			$user = get_user_by( 'login', $username );
 			if ( ! $user ) {
@@ -491,13 +539,27 @@ class NBUF_Passkeys {
 					$options['allowCredentials'] = $allowed_credentials;
 				}
 
-				/* Store user ID with session for verification */
-				set_transient(
-					self::CHALLENGE_PREFIX . 'user_' . $session_id,
-					$user->ID,
-					self::CHALLENGE_EXPIRATION
+				$expected_user_id = (int) $user->ID;
+			}
+		}
+
+		$bind_ok = set_transient(
+			self::CHALLENGE_PREFIX . 'user_' . $session_id,
+			$expected_user_id,
+			self::CHALLENGE_EXPIRATION
+		);
+
+		if ( false === $bind_ok ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_challenge_storage_failed',
+					'error',
+					'Could not persist passkey authentication user-binding — object cache or DB unavailable',
+					array( 'username' => $username )
 				);
 			}
+			delete_transient( self::CHALLENGE_PREFIX . 'auth_' . $session_id );
+			return new WP_Error( 'storage_failed', __( 'Could not start passkey authentication. Please try again.', 'nobloat-user-foundry' ) );
 		}
 
 		return $options;
@@ -558,16 +620,38 @@ class NBUF_Passkeys {
 		/* Find passkey by credential ID */
 		$passkey = NBUF_User_Passkeys_Data::get_by_credential_id( $credential_id );
 		if ( ! $passkey ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_credential_unknown',
+					'warning',
+					'Passkey assertion presented an unknown credential ID',
+					array( 'credential_id_b64' => self::base64url_encode( $credential_id ) )
+				);
+			}
 			return new WP_Error( 'credential_not_found', __( 'Passkey not recognized.', 'nobloat-user-foundry' ) );
 		}
 
 		/*
-		 * Enforce the user binding captured at options time. The transient is
-		 * only set when the options request supplied a username, so a truly
-		 * userless flow (no username field) leaves $expected_user_id empty and
-		 * skips this check.
+		 * Enforce the user binding captured at options time. Since
+		 * generate_authentication_options now ALWAYS persists a binding entry
+		 * (either a numeric user ID or the '_discoverable' sentinel for the
+		 * userless flow), a missing transient at this point is a hard error
+		 * — typically caused by transient-store eviction or session timeout —
+		 * not a signal to skip the check.
 		 */
-		if ( ! empty( $expected_user_id ) && (int) $expected_user_id !== (int) $passkey->user_id ) {
+		if ( false === $expected_user_id || '' === $expected_user_id || null === $expected_user_id ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_session_lost',
+					'warning',
+					'Passkey authentication session-binding entry missing at verify time',
+					array( 'session_id' => $session_id )
+				);
+			}
+			return new WP_Error( 'session_lost', __( 'Authentication session expired or lost. Please try again.', 'nobloat-user-foundry' ) );
+		}
+
+		if ( '_discoverable' !== $expected_user_id && (int) $expected_user_id !== (int) $passkey->user_id ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
 					'passkey_user_mismatch',
@@ -596,12 +680,33 @@ class NBUF_Passkeys {
 		/* Verify challenge */
 		$received_challenge = self::base64url_decode( $client_data['challenge'] ?? '' );
 		if ( ! hash_equals( $expected_challenge, $received_challenge ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_challenge_mismatch',
+					'warning',
+					'Passkey assertion challenge did not match the issued challenge (possible replay)',
+					array( 'passkey_id' => $passkey->id ),
+					(int) $passkey->user_id
+				);
+			}
 			return new WP_Error( 'challenge_mismatch', __( 'Challenge verification failed.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Verify origin */
 		$expected_origin = self::get_origin();
 		if ( ( $client_data['origin'] ?? '' ) !== $expected_origin ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_origin_mismatch',
+					'critical',
+					'Passkey assertion origin did not match the relying-party origin (possible phishing)',
+					array(
+						'expected_origin' => $expected_origin,
+						'client_origin'   => $client_data['origin'] ?? '',
+					),
+					(int) $passkey->user_id
+				);
+			}
 			return new WP_Error( 'origin_mismatch', __( 'Origin verification failed.', 'nobloat-user-foundry' ) );
 		}
 
@@ -614,6 +719,15 @@ class NBUF_Passkeys {
 		/* Verify RP ID hash */
 		$expected_rp_id_hash = hash( 'sha256', self::get_rp_id(), true );
 		if ( ! hash_equals( $expected_rp_id_hash, $auth_data['rpIdHash'] ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_rp_id_mismatch',
+					'critical',
+					'Passkey assertion rpIdHash did not match the relying-party identifier (possible cross-site replay)',
+					array( 'passkey_id' => $passkey->id ),
+					(int) $passkey->user_id
+				);
+			}
 			return new WP_Error( 'rp_id_mismatch', __( 'Relying party verification failed.', 'nobloat-user-foundry' ) );
 		}
 
@@ -622,11 +736,45 @@ class NBUF_Passkeys {
 			return new WP_Error( 'user_not_present', __( 'User presence verification failed.', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * Enforce userVerification when admin policy demands it. The
+		 * `userVerification` value sent in the options request is only
+		 * advisory — it changes the browser/authenticator prompt, not what
+		 * the server accepts. Per W3C WebAuthn Level 2 §7.2 step 17, if UV
+		 * was required, the server MUST verify the UV bit (0x04) of the
+		 * authenticator-data flags. Without this check, an authenticator
+		 * configured for UP-only mode (or a malicious authenticator) can
+		 * authenticate without biometric/PIN and the operator's "required"
+		 * setting is silently inert.
+		 */
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_uv_violation',
+					'high',
+					'Passkey assertion lacked user verification but server policy required it',
+					array( 'passkey_id' => $passkey->id ),
+					(int) $passkey->user_id
+				);
+			}
+			return new WP_Error( 'user_verification_required', __( 'User verification was required but not performed.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Verify signature */
 		$signed_data     = $authenticator_data . hash( 'sha256', $client_data_json, true );
 		$signature_valid = self::verify_signature( $passkey->public_key, $signed_data, $signature );
 
 		if ( ! $signature_valid ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'passkey_signature_invalid',
+					'high',
+					'Passkey assertion signature failed verification',
+					array( 'passkey_id' => $passkey->id ),
+					(int) $passkey->user_id
+				);
+			}
 			return new WP_Error( 'signature_invalid', __( 'Signature verification failed.', 'nobloat-user-foundry' ) );
 		}
 
@@ -825,7 +973,19 @@ class NBUF_Passkeys {
 				$offset += $argument;
 				return $value;
 
-			case 4: /* Array */
+			case 4:
+				/*
+				 * Array.
+				 *
+				 * Cap collection size. WebAuthn attestation CBOR has no
+				 * legitimate need for more than a few hundred items; without
+				 * a cap, a one-byte attacker payload like "\x9b\xff\xff\xff\xff"
+				 * (array, 4-byte length 0xFFFFFFFF) drives the parser into a
+				 * 4.29-billion-iteration loop and exhausts PHP memory.
+				 */
+				if ( $argument < 0 || $argument > 4096 ) {
+					return null;
+				}
 				$array = array();
 				for ( $i = 0; $i < $argument; $i++ ) {
 					$array[] = self::parse_cbor_item( $data, $offset );
@@ -833,9 +993,22 @@ class NBUF_Passkeys {
 				return $array;
 
 			case 5: /* Map */
+				if ( $argument < 0 || $argument > 4096 ) {
+					return null;
+				}
 				$map = array();
 				for ( $i = 0; $i < $argument; $i++ ) {
-					$key         = self::parse_cbor_item( $data, $offset );
+					$key = self::parse_cbor_item( $data, $offset );
+
+					/*
+					 * PHP only accepts int|string|bool|null as array keys; an
+					 * array/object key triggers a deprecation in PHP 8.x and
+					 * a TypeError in PHP 9. Reject early to keep the parser
+					 * total-failure clean rather than emit warnings.
+					 */
+					if ( ! is_int( $key ) && ! is_string( $key ) ) {
+						return null;
+					}
 					$value       = self::parse_cbor_item( $data, $offset );
 					$map[ $key ] = $value;
 				}

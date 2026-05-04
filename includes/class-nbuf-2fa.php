@@ -726,25 +726,48 @@ If you did not request this code, please ignore this email.
 
 				try {
 					/*
-					 * Re-check token after acquiring lock (another request may have rotated it).
-					 * This prevents the race condition where two requests read the same token,
-					 * one rotates it, and the second fails because the old token is now gone.
+					 * Re-read trusted_devices INSIDE the lock so we work on the
+					 * current state rather than the pre-lock snapshot. If a
+					 * concurrent request rotated this token away, the
+					 * presented cookie value no longer corresponds to a live
+					 * trust entry and this request must NOT inherit trust on
+					 * the basis of an old, possibly-leaked cookie. Returning
+					 * `true` here previously meant a stolen cookie remained
+					 * valid past legitimate rotation — the legitimate user's
+					 * new cookie is already in their browser, so there is no
+					 * scenario where the same ROTATED token should re-confer
+					 * trust to a different request.
 					 */
 					$trusted_devices = NBUF_User_2FA_Data::get_trusted_devices( $user_id );
 					if ( ! isset( $trusted_devices[ $token ] ) ) {
-						/* Token was already rotated by another request - check for new cookie */
-						return true;
+						return false;
+					}
+
+					/* Use the post-lock entry; the pre-lock $expires/$device_data may be stale. */
+					$device_data = $trusted_devices[ $token ];
+					$expires     = is_array( $device_data ) ? ( $device_data['expires'] ?? 0 ) : (int) $device_data;
+					if ( $expires <= time() ) {
+						return false;
 					}
 
 					$new_token = bin2hex( random_bytes( 32 ) );
-					/* SECURITY: Calculate remaining time from old token and apply to new one */
-					$remaining_time = max( 0, $expires - time() );
-					$new_expires    = time() + $remaining_time;
+
+					/*
+					 * Cap absolute lifetime at DEVICE_TRUST_DURATION from
+					 * original creation so a continually-rotated token chain
+					 * cannot live past the policy window. Without this cap,
+					 * a once-leaked token whose rotation succeeds repeatedly
+					 * inherits a sliding 30-day window forever.
+					 */
+					$created        = is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time();
+					$absolute_max   = (int) $created + self::DEVICE_TRUST_DURATION;
+					$remaining_time = max( 0, (int) $expires - time() );
+					$new_expires    = min( $absolute_max, time() + $remaining_time );
 
 					/* Add new token BEFORE removing old one to prevent losing trust on partial failure */
 					$new_device_data = array(
 						'expires'    => $new_expires,
-						'created'    => is_array( $device_data ) ? ( $device_data['created'] ?? time() ) : time(),
+						'created'    => $created,
 						'user_agent' => is_array( $device_data ) ? ( $device_data['user_agent'] ?? '' ) : '',
 						'ip'         => is_array( $device_data ) ? ( $device_data['ip'] ?? '' ) : '',
 					);
@@ -853,9 +876,6 @@ If you did not request this code, please ignore this email.
 	 */
 	public static function record_failed_attempt( int $user_id, string $method = 'email' ): bool {
 		$attempts_key = 'nbuf_2fa_attempts_' . $user_id;
-		$attempts     = (int) get_transient( $attempts_key );
-
-		++$attempts;
 
 		/*
 		 * Method-specific rate window AND threshold. Previously the email
@@ -873,11 +893,76 @@ If you did not request this code, please ignore this email.
 			$max_attempts = NBUF_Options::get( 'nbuf_2fa_lockout_attempts', 5 );
 		}
 
-		set_transient( $attempts_key, $attempts, $rate_window );
+		/*
+		 * Track first-attempt timestamp so the rate window is ABSOLUTE rather
+		 * than sliding. The previous implementation reset the transient TTL on
+		 * every increment, which meant a slow stream of failed attempts (one
+		 * every $rate_window-1 seconds) extended the counter forever and could
+		 * keep a user perpetually in "approaching lockout" or locked-out
+		 * state. Anchoring the window to the first attempt also means the
+		 * lockout naturally clears once the window elapses regardless of
+		 * subsequent activity.
+		 */
+		$state = get_transient( $attempts_key );
+		if ( ! is_array( $state ) || empty( $state['first_at'] ) ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
 
-		if ( $attempts >= $max_attempts ) {
+		/* Window expired since first attempt: start a fresh window. */
+		if ( time() - (int) $state['first_at'] > $rate_window ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
+
+		++$state['count'];
+		$ttl_remaining = max( 60, $rate_window - ( time() - (int) $state['first_at'] ) );
+		set_transient( $attempts_key, $state, $ttl_remaining );
+
+		/*
+		 * Per-IP counter — separate from the per-user counter so a hostile IP
+		 * cannot use a victim's username to lock the victim out. The per-IP
+		 * counter trips its own lockout for the IP itself.
+		 */
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( $ip ) {
+			$ip_key   = 'nbuf_2fa_ip_attempts_' . md5( $ip );
+			$ip_state = get_transient( $ip_key );
+			if ( ! is_array( $ip_state ) || empty( $ip_state['first_at'] ) || time() - (int) $ip_state['first_at'] > $rate_window ) {
+				$ip_state = array(
+					'count'    => 0,
+					'first_at' => time(),
+				);
+			}
+			++$ip_state['count'];
+			$ip_ttl = max( 60, $rate_window - ( time() - (int) $ip_state['first_at'] ) );
+			set_transient( $ip_key, $ip_state, $ip_ttl );
+
+			if ( $ip_state['count'] >= max( $max_attempts, 10 ) ) {
+				$ip_lockout_key = 'nbuf_2fa_ip_lockout_' . md5( $ip );
+				if ( false === get_transient( $ip_lockout_key ) ) {
+					set_transient( $ip_lockout_key, true, $rate_window );
+				}
+			}
+		}
+
+		if ( $state['count'] >= $max_attempts ) {
 			$lockout_key = 'nbuf_2fa_lockout_' . $user_id;
-			set_transient( $lockout_key, true, $rate_window );
+
+			/*
+			 * Set lockout transient ONLY ONCE per window. If we always wrote
+			 * here, every additional failed attempt during the window would
+			 * extend the lockout TTL — a determined attacker hitting the
+			 * verify endpoint could hold a legitimate user locked out
+			 * indefinitely.
+			 */
+			if ( false === get_transient( $lockout_key ) ) {
+				set_transient( $lockout_key, true, $rate_window );
+			}
 			return true;
 		}
 
@@ -887,12 +972,22 @@ If you did not request this code, please ignore this email.
 	/**
 	 * Check if user is locked out
 	 *
+	 * Returns true if either the per-user OR the per-IP lockout is active.
+	 *
 	 * @param  int $user_id User ID.
 	 * @return bool True if locked out.
 	 */
 	public static function is_locked_out( int $user_id ): bool {
 		$lockout_key = 'nbuf_2fa_lockout_' . $user_id;
-		return (bool) get_transient( $lockout_key );
+		if ( get_transient( $lockout_key ) ) {
+			return true;
+		}
+
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( $ip && get_transient( 'nbuf_2fa_ip_lockout_' . md5( $ip ) ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -906,6 +1001,13 @@ If you did not request this code, please ignore this email.
 
 		delete_transient( $attempts_key );
 		delete_transient( $lockout_key );
+
+		/* Also clear the per-IP counters on a successful authentication. */
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( $ip ) {
+			delete_transient( 'nbuf_2fa_ip_attempts_' . md5( $ip ) );
+			delete_transient( 'nbuf_2fa_ip_lockout_' . md5( $ip ) );
+		}
 	}
 
 	/**
@@ -986,6 +1088,17 @@ If you did not request this code, please ignore this email.
 		/* Clear forced timestamp */
 		NBUF_User_2FA_Data::set_forced_at( $user_id, null );
 
+		/*
+		 * Destroy other active sessions on enable. If an attacker briefly
+		 * possessed the user's session and used it to plant a TOTP secret,
+		 * this terminates whatever stolen sessions are still active —
+		 * leaving only the current request's session valid. The
+		 * password-reset flow does the same; treating 2FA setup as an
+		 * equally-sensitive operation closes a session-hijack-to-account-
+		 * takeover window.
+		 */
+		self::destroy_other_sessions_for_user( $user_id );
+
 		/**
 		 * Fires when 2FA is enabled for a user.
 		 *
@@ -995,6 +1108,33 @@ If you did not request this code, please ignore this email.
 		do_action( 'nbuf_2fa_enabled', $user_id, $method );
 
 		return true;
+	}
+
+	/**
+	 * Destroy all sessions for a user EXCEPT the one running this request.
+	 *
+	 * Used by enable_for_user/disable_for_user to terminate other browsers'
+	 * sessions whenever a sensitive 2FA-state change happens. Safe to call
+	 * even when called from a non-logged-in context (e.g. during automated
+	 * tests) — it falls through to destroy-all in that case.
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	private static function destroy_other_sessions_for_user( int $user_id ): void {
+		if ( ! class_exists( 'WP_Session_Tokens' ) ) {
+			return;
+		}
+		$sessions = WP_Session_Tokens::get_instance( $user_id );
+		if ( ! $sessions ) {
+			return;
+		}
+		$current_token = function_exists( 'wp_get_session_token' ) ? wp_get_session_token() : '';
+		if ( get_current_user_id() === $user_id && $current_token ) {
+			$sessions->destroy_others( $current_token );
+		} else {
+			$sessions->destroy_all();
+		}
 	}
 
 	/**
@@ -1009,6 +1149,14 @@ If you did not request this code, please ignore this email.
 		$result = NBUF_User_2FA_Data::disable( $user_id );
 
 		if ( $result ) {
+			/*
+			 * Destroy other sessions on disable. Without this, a previously-
+			 * compromised session that has already been promoted to a full
+			 * login remains valid even after the user disables 2FA — no
+			 * session rotation otherwise happens at this transition.
+			 */
+			self::destroy_other_sessions_for_user( $user_id );
+
 			/**
 			 * Fires when 2FA is disabled for a user.
 			 *

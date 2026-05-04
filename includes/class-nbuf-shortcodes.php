@@ -1433,6 +1433,21 @@ class NBUF_Shortcodes {
 			}
 		}
 
+		/*
+		 * Tell register_user that the antibot challenge has already been
+		 * consumed for this request. Without this signal, validate_registration_data
+		 * runs `NBUF_Antibot::validate( $_POST )` again — and because the
+		 * earlier validate at line ~1379 already DELETED the per-session
+		 * js_token / pow transients on success, the second validate fails
+		 * with `js_token` and `pow` failed checks. On a default install
+		 * (antibot enabled) this turns every legitimate registration into
+		 * "Registration blocked due to suspicious activity."
+		 *
+		 * Pass an explicit sentinel that NBUF_Antibot reads and treats as
+		 * already-validated; see NBUF_Antibot::validate.
+		 */
+		$data['_antibot_post'] = array( '_nbuf_antibot_already_validated' => 1 );
+
 		/* Attempt registration */
 		$user_id = NBUF_Registration::register_user( $data );
 
@@ -2450,16 +2465,15 @@ class NBUF_Shortcodes {
 		}
 
 		/*
-		 * Fire action for extensions (privacy settings, etc.).
-		 *
-		 * SECURITY: pass the SANITISED $profile_data array, not raw $_POST.
-		 * Earlier callers received the entire superglobal — extensions
-		 * naively reading $_POST['role'], $_POST['wp_capabilities'], or
-		 * $_POST['user_id'] could become a privilege-escalation footgun.
-		 * The contract is now: extensions receive only the validated
-		 * profile-field map this handler accepted.
+		 * NOTE: do NOT fire `nbuf_after_profile_update` here. NBUF_Profile_Data::update()
+		 * (called above via the field-loop) already fires it with the canonical
+		 * 3-arg signature ($user_id, $fields, $clean_data). Firing it again here
+		 * with a 2-arg payload caused listeners (version-history, change-
+		 * notifications) to run TWICE per save — duplicating version-history
+		 * snapshots and emitting duplicate change-notification emails. The
+		 * sanitisation note that previously lived here applies to the canonical
+		 * fire site in NBUF_Profile_Data::update.
 		 */
-		do_action( 'nbuf_after_profile_update', $user_id, $profile_data );
 
 		/* Set flash message and redirect (preserving tab state) */
 		self::set_flash_message( $user_id, __( 'Profile updated successfully!', 'nobloat-user-foundry' ), 'success' );
@@ -3600,8 +3614,23 @@ Best regards,
 		/* Enqueue CSS for 2FA pages */
 		self::enqueue_frontend_css( '2fa' );
 
-		/* Generate new secret for retry using settings from Security > Authenticator */
-		$secret      = NBUF_TOTP::generate_secret();
+		/*
+		 * Reuse the per-user pinned secret rather than generating a fresh
+		 * one. Generating a NEW secret here meant the QR rendered on the
+		 * retry page no longer matched the secret pinned in the transient
+		 * — handle_totp_setup_submission still validates against the
+		 * ORIGINAL pinned secret. A user whose first attempt failed (typo,
+		 * clock skew) re-scanned the new QR, typed a code derived from the
+		 * NEW secret, and was permanently rejected for the full 30-minute
+		 * transient TTL. Regression introduced in v1.6.9 alongside the
+		 * server-bound-secret hardening.
+		 */
+		$pending_secret_key = 'nbuf_2fa_pending_secret_' . $user_id;
+		$secret             = get_transient( $pending_secret_key );
+		if ( ! $secret || ! is_string( $secret ) ) {
+			$secret = NBUF_TOTP::generate_secret();
+			set_transient( $pending_secret_key, $secret, 30 * MINUTE_IN_SECONDS );
+		}
 		$username    = wp_get_current_user()->user_email;
 		$issuer      = get_bloginfo( 'name' );
 		$code_length = (int) NBUF_Options::get( 'nbuf_2fa_totp_code_length', 6 );

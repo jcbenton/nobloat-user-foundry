@@ -334,8 +334,22 @@ class NBUF_Multi_Role {
 			return;
 		}
 
-		/* Can't edit own roles (prevents locking yourself out) */
-		if ( get_current_user_id() === $user_id && ! current_user_can( 'manage_options' ) ) {
+		/*
+		 * Can't edit own roles (prevents locking yourself out).
+		 *
+		 * Use a ROLE check, not the `manage_options` capability. A custom
+		 * role granted manage_options (intentionally for delegated admin,
+		 * or by drift via a role-editor plugin) would otherwise self-edit
+		 * its way out of containment — combined with the parent_role
+		 * inheritance gap in role-manager, this completes a cap → admin
+		 * privilege escalation chain.
+		 */
+		$current_user = wp_get_current_user();
+		$is_admin     = $current_user && is_array( $current_user->roles ) && in_array( 'administrator', $current_user->roles, true );
+		if ( is_multisite() && function_exists( 'is_super_admin' ) && is_super_admin( get_current_user_id() ) ) {
+			$is_admin = true;
+		}
+		if ( get_current_user_id() === $user_id && ! $is_admin ) {
 			return;
 		}
 
@@ -349,7 +363,7 @@ class NBUF_Multi_Role {
 
 		/* Validate roles exist and filter against editable roles to prevent privilege escalation */
 		$editable_roles = array_keys( get_editable_roles() );
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! $is_admin ) {
 			/* Mirror the render-side guard: administrator may only be assigned by an admin. */
 			$editable_roles = array_diff( $editable_roles, array( 'administrator' ) );
 		}

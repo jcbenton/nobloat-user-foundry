@@ -674,6 +674,21 @@ class NBUF_Antibot {
 			return true;
 		}
 
+		/*
+		 * Short-circuit when an upstream caller signals the antibot challenge
+		 * has already been validated for this request. Without this, the
+		 * shortcode handler validates once at form-handle time (which deletes
+		 * the per-session js_token / pow transients), then register_user()
+		 * calls validate_registration_data() which calls NBUF_Antibot::validate
+		 * AGAIN — and the second call fails because the transients it needs
+		 * have already been consumed. Default-config registration was
+		 * therefore broken with antibot enabled.
+		 */
+		if ( ! empty( $post_data['_nbuf_antibot_already_validated'] ) ) {
+			self::debug_log( 'Antibot pre-validated by upstream caller - skipping' );
+			return true;
+		}
+
 		$failed_checks = array();
 		$ip_address    = self::get_client_ip();
 		$session_id    = isset( $post_data['nbuf_session'] )

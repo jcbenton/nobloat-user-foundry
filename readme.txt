@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,21 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.1 =
+* Fix (HIGH): Registration was functionally broken on default install. The shortcode handler validated antibot once (consuming the per-session js_token / pow transients), then NBUF_Registration::register_user re-validated against $_POST — and the second pass failed because the transients were already deleted. Every legitimate user saw "Registration blocked due to suspicious activity." Caller now signals "already validated" to NBUF_Antibot::validate, which short-circuits.
+* Fix (HIGH): Impersonation-end binding double-hash. `original_session_token_hash` was stored as `sha256(raw_token)` but the end-of-impersonation comparison ran `sha256()` again over the verifier-keyed `WP_Session_Tokens::get_all()` keys (already `hash_token($raw)` = sha256). Result: `sha256(raw)` vs `sha256(sha256(raw))` — never matched. Every legitimate "End Impersonation" click failed the binding check, emitted a critical-severity security log entry, and trapped the admin in the target's session. Comparison is now direct.
+* Fix (HIGH): TOTP setup retry stale-secret regression (introduced v1.6.9). `render_totp_setup_with_error` generated a fresh secret and QR but did NOT update the per-user pinned transient — `handle_totp_setup_submission` continued to validate against the original. Users who mistyped one digit re-scanned the new QR and were trapped in an infinite "Invalid verification code" loop for the full 30-minute transient TTL. Retry render now reuses the pinned transient.
+* Fix (HIGH): Duplicate `nbuf_after_profile_update` action fire. NBUF_Profile_Data::update fires it with the canonical 3-arg signature; the shortcode handler also fired it with a 2-arg signature, causing version-history snapshots and change-notification emails to duplicate on every profile save. Removed the redundant 2-arg fire.
+* Security (HIGH): ToS gate exemption now uses a ROLE check rather than the `manage_options` capability. Sites that grant manage_options to a custom non-admin role (intentional delegation, or drift via role-editor plugins) silently exempted those users from the entire ToS gate. The new helper `NBUF_ToS::user_is_admin_or_super` checks for the administrator role and multisite super-admin.
+* Security (HIGH): ToS gate now covers wp-admin and admin-ajax. Subscriber+ users with un-accepted ToS could previously skip directly to /wp-admin/profile.php or hit /wp-admin/admin-ajax.php and mutate state without ever clicking Accept. New `admin_init` and early `init` hooks gate both surfaces, with a small allowlist (heartbeat, logout) so the user can still complete acceptance.
+* Security (HIGH): Multi-role self-edit guard uses ROLE check rather than `manage_options` cap. A non-admin user with manage_options (granted via a custom role) could previously self-promote — combined with the parent_role inheritance gap below, this completed a full privilege-escalation chain.
+* Security (HIGH): Role-manager `parent_role` inheritance now respects actor cap-containment. The explicit-capability list filter at line ~470 stripped caps the actor doesn't hold, but `resolve_capabilities` then merged the parent role's caps on top — so a non-administrator with manage_options could pick `parent_role=administrator` and inherit the full admin cap set. Save now refuses any parent_role whose effective capabilities include any cap the actor doesn't hold.
+* Security (HIGH): 2FA partial-disable (downgrade from "both" to single-factor) now destroys other active sessions and fires a `nbuf_2fa_method_changed` action. Previously the partial-disable path bypassed `disable_for_user` and skipped both session destruction and the disabled-event broadcast — letting a stolen-session attacker durably weaken 2FA without invalidating parallel sessions or triggering the user-2fa-disabled webhook.
+* Security (HIGH): All 2FA-account state changes (enable_email, disable_email, disable_totp, generate_backup_codes) now emit audit-log entries on both success AND on re-auth failure. Closes a forensic blackout where a stolen-session attacker could brute-force the password through the re-auth field with no record.
+* Security (HIGH): Per-user rate limit on `verify_reauth` (15 min absolute window, 10 attempts). Without it, a stolen-session attacker could brute-force the password through any of the 2FA-account endpoints, the password-change handler, or the email-change handler at ~10 guesses/sec/CPU.
+* Security (MEDIUM): Audit-log purge and security-log purge handlers now write `logs_purged` entries to the immutable admin-audit-log. Previously a malicious admin could wipe the user audit log + security log and leave only `?purged=1` in the URL as evidence.
+* Standards: Security-log and admin-user-search CSV exports now use the standardised formula-injection escape regex `/^[\s\x00-\x1f\\\'"]*[=+\-@|]/` (matching audit-log and admin-audit-log). Closes whitespace-prefix and control-char bypasses (`\n=HYPERLINK(...)`, `\v=SUM(...)`).
 
 = 1.7.0 =
 * Security (HIGH): Account merger no longer leaks per-blog WordPress capabilities on multisite. The `merge_user_meta` skip list previously hardcoded the literal `wp_capabilities` / `wp_user_level`, missing every per-blog key (`wp_2_capabilities`, `wp_3_capabilities`, etc.). On multisite an admin merging a low-privilege user into another could silently transfer the secondary user's elevated cross-blog roles to the primary. Skip list is now generated dynamically from `$wpdb->prefix` plus every site's blog-prefix.
@@ -675,6 +690,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.7.1 =
+Critical fixes for registration (broken on default install with antibot enabled), impersonation-end (every legitimate click failed), and TOTP setup retry (stuck loop). Plus 8 HIGH security findings: ToS gate cap-vs-role privilege escalation chain, ToS bypass via wp-admin / admin-ajax, role-manager parent_role inheritance bypassing cap-containment, 2FA partial-disable bypassing session destruction, 2FA forensic blackout, no rate-limit on password re-auth. No database changes required.
 
 = 1.7.0 =
 Security release closing 10 HIGH findings from the Group B forensic audit (registration / activator / merger / GDPR / privacy / version-history / photos / directory). Highlights: multisite cap-meta leak in account merger, GDPR Article-17 erasure now removes 2FA cryptographic material + login-limiting rows, version-history self-revert no longer bypasses verification gate, image fallback path always re-encodes (closes GIF/WebP polyglot), public-profile cover-photo uses validated path, member directory excludes disabled/expired users. No database changes required.

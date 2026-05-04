@@ -295,6 +295,18 @@ class NBUF_Security_Log_Page {
 		/* Purge all logs */
 		$success = NBUF_Security_Log::purge_all_logs();
 
+		/* Record the destructive action against the immutable admin-audit-log. */
+		if ( $success && class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'logs_purged',
+				'success',
+				'Security log purged',
+				null,
+				array( 'table' => 'nbuf_security_log' )
+			);
+		}
+
 		/* Redirect with result */
 		$redirect = remove_query_arg( array( 'action', '_wpnonce' ) );
 		if ( $success ) {

@@ -257,6 +257,24 @@ class NBUF_Audit_Log_Page {
 		/* Discard any output */
 		ob_end_clean();
 
+		/*
+		 * Record the destructive action against the immutable admin-audit-log
+		 * so the accountability trail survives the purge of the regular audit
+		 * log. Without this, an admin can wipe forensic evidence (login
+		 * successes, password resets, 2FA events) and leave only the redirect
+		 * query string `?purged=1` as the record — which is not persisted.
+		 */
+		if ( $success && class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'logs_purged',
+				'success',
+				'User audit log purged',
+				null,
+				array( 'table' => 'nbuf_user_audit_log' )
+			);
+		}
+
 		/* Redirect with result */
 		$redirect = remove_query_arg( array( 'action', '_wpnonce' ) );
 		if ( $success ) {

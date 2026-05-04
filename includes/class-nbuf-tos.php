@@ -47,6 +47,90 @@ class NBUF_ToS {
 		 * endpoints, profile updates) in violation of the gate.
 		 */
 		add_filter( 'rest_authentication_errors', array( __CLASS__, 'rest_require_tos_acceptance' ), 99 );
+
+		/*
+		 * SECURITY: also gate wp-admin and admin-ajax. template_redirect
+		 * does not fire for /wp-admin/* or /wp-admin/admin-ajax.php, and
+		 * the REST gate does not cover them either. Subscriber-and-up
+		 * users have access to /wp-admin/profile.php and several AJAX
+		 * actions exposed by this and other plugins; without these
+		 * gates a non-admin can mutate state without ever clicking
+		 * Accept on the ToS form.
+		 */
+		add_action( 'admin_init', array( __CLASS__, 'admin_require_tos_acceptance' ) );
+		add_action( 'init', array( __CLASS__, 'ajax_require_tos_acceptance' ), 1 );
+	}
+
+	/**
+	 * Block wp-admin access for users who have not accepted the current ToS.
+	 *
+	 * @since 1.7.1
+	 * @return void
+	 */
+	public static function admin_require_tos_acceptance(): void {
+		if ( ! self::is_enabled() || ! self::is_required_on_login() ) {
+			return;
+		}
+		if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+			return;
+		}
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+		$user_id = get_current_user_id();
+		if ( self::user_is_admin_or_super( $user_id ) ) {
+			return;
+		}
+		if ( self::has_user_accepted_current( $user_id ) ) {
+			return;
+		}
+		$accept_url = class_exists( 'NBUF_URL' ) ? NBUF_URL::get( 'accept-tos' ) : '';
+		if ( $accept_url ) {
+			wp_safe_redirect( $accept_url );
+			exit;
+		}
+	}
+
+	/**
+	 * Block AJAX requests for users who have not accepted the current ToS,
+	 * with a small allowlist for actions required to display and submit
+	 * the acceptance form itself.
+	 *
+	 * @since 1.7.1
+	 * @return void
+	 */
+	public static function ajax_require_tos_acceptance(): void {
+		if ( ! wp_doing_ajax() ) {
+			return;
+		}
+		if ( ! self::is_enabled() || ! self::is_required_on_login() ) {
+			return;
+		}
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+		$user_id = get_current_user_id();
+		if ( self::user_is_admin_or_super( $user_id ) ) {
+			return;
+		}
+		if ( self::has_user_accepted_current( $user_id ) ) {
+			return;
+		}
+
+		/* Allowlist for actions that must remain reachable so the user can complete acceptance. */
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading action name to allowlist gate-bypass; downstream handlers verify their own nonces.
+		$allow  = array( 'heartbeat', 'logout' );
+		if ( in_array( $action, $allow, true ) ) {
+			return;
+		}
+
+		wp_send_json_error(
+			array(
+				'message' => __( 'You must accept the current Terms of Service before performing this action.', 'nobloat-user-foundry' ),
+				'code'    => 'nbuf_tos_required',
+			),
+			403
+		);
 	}
 
 	/**
@@ -72,8 +156,16 @@ class NBUF_ToS {
 		if ( ! $user_id ) {
 			return $errors;
 		}
-		/* Admins keep REST access regardless to avoid lockouts. */
-		if ( user_can( $user_id, 'manage_options' ) ) {
+
+		/*
+		 * Administrators keep REST access regardless to avoid lockouts.
+		 * Use a ROLE check rather than the `manage_options` capability:
+		 * sites that grant manage_options to a custom non-admin role
+		 * (e.g. "site_manager") would otherwise silently exempt those
+		 * users from the entire ToS gate, with no acceptance recorded
+		 * for any of them.
+		 */
+		if ( self::user_is_admin_or_super( $user_id ) ) {
 			return $errors;
 		}
 		if ( self::has_user_accepted_current( $user_id ) ) {
@@ -530,7 +622,7 @@ class NBUF_ToS {
 		 * flag the row + audit entry so the IP/UA captured here cannot
 		 * later be misread as the legitimate user's own evidence.
 		 */
-		$impersonation = class_exists( 'NBUF_Impersonation' ) ? NBUF_Impersonation::get_impersonation_data() : false;
+		$impersonation   = class_exists( 'NBUF_Impersonation' ) ? NBUF_Impersonation::get_impersonation_data() : false;
 		$impersonator_id = ( is_array( $impersonation ) && ! empty( $impersonation['original_user_id'] ) )
 			? (int) $impersonation['original_user_id']
 			: 0;
@@ -640,8 +732,8 @@ class NBUF_ToS {
 			return;
 		}
 
-		/* Skip for admins if configured */
-		if ( user_can( $user, 'manage_options' ) ) {
+		/* Skip for administrators (role check, not capability check). */
+		if ( self::user_is_admin_or_super( $user->ID ) ) {
 			return;
 		}
 
@@ -650,6 +742,32 @@ class NBUF_ToS {
 			/* Set a flag in user session to redirect after login completes */
 			set_transient( 'nbuf_tos_pending_' . $user->ID, 1, HOUR_IN_SECONDS );
 		}
+	}
+
+	/**
+	 * Determine whether a user is an administrator (or super-admin on multisite)
+	 * based on assigned roles, NOT on the manage_options capability.
+	 *
+	 * Used by every ToS bypass gate so that a custom non-admin role granted
+	 * `manage_options` (intentionally or by drift) cannot silently disable
+	 * the ToS requirement for its members.
+	 *
+	 * @since 1.7.1
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function user_is_admin_or_super( int $user_id ): bool {
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+		if ( is_multisite() && function_exists( 'is_super_admin' ) && is_super_admin( $user_id ) ) {
+			return true;
+		}
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! is_object( $user ) ) {
+			return false;
+		}
+		return is_array( $user->roles ) && in_array( 'administrator', $user->roles, true );
 	}
 
 	/**
@@ -664,8 +782,8 @@ class NBUF_ToS {
 
 		$user_id = get_current_user_id();
 
-		/* Skip for admins */
-		if ( current_user_can( 'manage_options' ) ) {
+		/* Skip for administrators (role-based, not cap-based — see user_is_admin_or_super) */
+		if ( self::user_is_admin_or_super( $user_id ) ) {
 			return;
 		}
 

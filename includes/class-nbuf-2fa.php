@@ -1121,7 +1121,7 @@ If you did not request this code, please ignore this email.
 	 * @param int $user_id User ID.
 	 * @return void
 	 */
-	private static function destroy_other_sessions_for_user( int $user_id ): void {
+	public static function destroy_other_sessions_for_user( int $user_id ): void {
 		if ( ! class_exists( 'WP_Session_Tokens' ) ) {
 			return;
 		}

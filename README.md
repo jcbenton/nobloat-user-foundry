@@ -333,6 +333,29 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.1 — Forensic-audit Group C: admin / shortcodes / webhooks / ToS / roles
+
+Closes 12 HIGH findings from the Group C audit, including 4 functional regressions discovered in v1.6.9-v1.7.0 that broke default-config flows.
+
+**Functional regressions (HIGH):**
+- Registration was broken on every default install — antibot validated twice, the second call fails because transients are consumed by the first.
+- "End Impersonation" never worked — binding hash compared against itself double-hashed.
+- TOTP setup retry trapped users in an infinite loop after one mistyped digit (regression in v1.6.9 server-bound-secret hardening).
+- `nbuf_after_profile_update` fired twice per profile save, duplicating version-history snapshots and change-notification emails.
+
+**Security (HIGH):**
+- ToS gate now uses ROLE checks (not `manage_options` cap) — closes a privilege-escalation chain on sites that grant manage_options to custom non-admin roles.
+- ToS gate now covers wp-admin and admin-ajax — closes Subscriber-and-up bypass to mutate state without acceptance.
+- Multi-role self-edit guard uses ROLE check.
+- Role-manager `parent_role` inheritance now respects actor cap-containment.
+- 2FA partial-disable destroys other sessions and fires `nbuf_2fa_method_changed`.
+- All 2FA-account state changes emit audit-log entries on success AND on reauth failure.
+- Per-user rate limit on password re-auth (closes brute-force from stolen session).
+
+**Forensics & standards (MEDIUM):**
+- Audit-log + security-log purge writes `logs_purged` to the immutable admin-audit-log.
+- Security-log and admin-user-search CSV exports use the standardised formula-injection escape regex.
+
 ### 1.7.0 — Forensic-audit Group B: registration / privacy / GDPR / photos
 
 Closes 10 HIGH findings from the registration / activator / merger / GDPR / privacy / version-history / photos / directory audit.

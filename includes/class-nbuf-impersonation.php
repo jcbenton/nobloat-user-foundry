@@ -611,10 +611,21 @@ class NBUF_Impersonation {
 			: '';
 		$binding_ok       = false;
 		if ( '' !== $bound_token_hash ) {
+			/*
+			 * The stored hash is sha256( raw_token ) — captured at start
+			 * via hash('sha256', wp_get_session_token()). WordPress's
+			 * WP_User_Meta_Session_Tokens::get_sessions() returns the
+			 * sessions array keyed by `hash_token($token)`, which is
+			 * itself sha256(raw). So the foreach key already IS sha256(raw).
+			 * The previous comparison ran sha256() on it again, producing
+			 * sha256(sha256(raw)) and thus mismatching every legitimate
+			 * end-impersonation. Compare against the stored verifier
+			 * directly.
+			 */
 			$original_manager = WP_Session_Tokens::get_instance( $original_user_id );
 			$all_tokens       = $original_manager->get_all();
 			foreach ( (array) $all_tokens as $stored_token => $session ) {
-				if ( hash_equals( $bound_token_hash, hash( 'sha256', (string) $stored_token ) ) ) {
+				if ( hash_equals( $bound_token_hash, (string) $stored_token ) ) {
 					$binding_ok = true;
 					break;
 				}

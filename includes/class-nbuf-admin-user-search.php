@@ -817,7 +817,7 @@ class NBUF_Admin_User_Search {
 	 */
 	private static function csv_escape( $value ): string {
 		$value = (string) $value;
-		if ( ! empty( $value ) && preg_match( '/^[\\\'"]*[=+\-@|\t\r]/', $value ) ) {
+		if ( ! empty( $value ) && preg_match( '/^[\s\x00-\x1f\\\'"]*[=+\-@|]/', $value ) ) {
 			$value = "'" . $value;
 		}
 		return $value;

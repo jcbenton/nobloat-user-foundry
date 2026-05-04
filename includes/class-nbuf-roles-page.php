@@ -473,6 +473,36 @@ class NBUF_Roles_Page {
 			}
 		}
 
+		/*
+		 * Refuse `parent_role` whose effective capabilities include any cap
+		 * the actor does not hold. The caps-list filter above only constrains
+		 * the explicit `capabilities[]` array — but resolve_capabilities()
+		 * later merges the parent role's caps on top, so a non-administrator
+		 * actor with `manage_options` (granted via a custom role) could pick
+		 * `parent_role=administrator` and inherit the full admin cap set
+		 * without ever holding it. Combined with the multi-role self-edit
+		 * fix, this completes the cap-containment chain.
+		 */
+		if ( ! empty( $parent ) ) {
+			$parent_role_obj = get_role( $parent );
+			if ( $parent_role_obj && is_object( $parent_role_obj ) ) {
+				$parent_caps = (array) $parent_role_obj->capabilities;
+				foreach ( $parent_caps as $cap_name => $granted ) {
+					if ( $granted && ! in_array( $cap_name, $current_user_caps, true ) ) {
+						wp_send_json_error(
+							array(
+								'message' => sprintf(
+									/* translators: %s: capability name */
+									__( 'Cannot inherit from this role — it grants the capability "%s" which you do not hold.', 'nobloat-user-foundry' ),
+									$cap_name
+								),
+							)
+						);
+					}
+				}
+			}
+		}
+
 		if ( $is_edit ) {
 			$result = NBUF_Role_Manager::update_role(
 				$role_key,

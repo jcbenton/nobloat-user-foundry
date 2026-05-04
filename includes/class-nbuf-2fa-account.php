@@ -867,7 +867,45 @@ class NBUF_2FA_Account {
 			return false;
 		}
 
-		return wp_check_password( $password, $user->user_pass, $user_id );
+		/*
+		 * Per-user rate limit on this re-auth path. Without this, a stolen-
+		 * session attacker can mount an online password brute-force against
+		 * the 2FA-account endpoints — bcrypt slows it but does not stop it,
+		 * and weak passwords succumb in hours. Anchor the window to the
+		 * first failed attempt so the limit cannot be extended indefinitely
+		 * by a slow-drip attacker.
+		 */
+		$state_key = 'nbuf_reauth_state_' . $user_id;
+		$state     = get_transient( $state_key );
+		if ( ! is_array( $state ) || empty( $state['first_at'] ) ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
+		$window = 15 * MINUTE_IN_SECONDS;
+		if ( time() - (int) $state['first_at'] > $window ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
+		if ( (int) $state['count'] >= 10 ) {
+			return false;
+		}
+
+		$ok = wp_check_password( $password, $user->user_pass, $user_id );
+
+		if ( $ok ) {
+			delete_transient( $state_key );
+			return true;
+		}
+
+		++$state['count'];
+		$ttl_remaining = max( 60, $window - ( time() - (int) $state['first_at'] ) );
+		set_transient( $state_key, $state, $ttl_remaining );
+
+		return false;
 	}
 
 	/**
@@ -899,11 +937,13 @@ class NBUF_2FA_Account {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 				}
 				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Audit_Log::log( $user_id, '2fa_reauth_failed', 'failure', 'Re-auth failed during 2FA action', array( 'action' => 'enable_email' ) );
 					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
 					wp_safe_redirect( $redirect_url );
 					exit;
 				}
 				NBUF_2FA::enable_for_user( $user_id, 'email' );
+				NBUF_Audit_Log::log( $user_id, '2fa_enable_email', 'success', 'Email 2FA enabled', array() );
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication enabled!', 'nobloat-user-foundry' ), 'success' );
 				wp_safe_redirect( $redirect_url );
 				exit;
@@ -913,6 +953,7 @@ class NBUF_2FA_Account {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 				}
 				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Audit_Log::log( $user_id, '2fa_reauth_failed', 'failure', 'Re-auth failed during 2FA action', array( 'action' => 'disable_email' ) );
 					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
 					wp_safe_redirect( $redirect_url );
 					exit;
@@ -920,11 +961,21 @@ class NBUF_2FA_Account {
 				/* Check if user has TOTP as well */
 				$current_method = NBUF_2FA::get_user_method( $user_id );
 				if ( 'both' === $current_method ) {
-					/* Keep TOTP, remove email - update method to totp only */
+					/*
+					 * Keep TOTP, remove email — partial disable. Match the
+					 * full-disable flow so a stolen-session attacker who
+					 * reduces 2FA from "both" to single-factor cannot
+					 * persist via a parallel session that pre-dated the
+					 * weakening: destroy other sessions, fire the disabled
+					 * event, and audit-log the change.
+					 */
 					NBUF_User_2FA_Data::update( $user_id, array( 'method' => 'totp' ) );
+					NBUF_2FA::destroy_other_sessions_for_user( $user_id );
+					do_action( 'nbuf_2fa_method_changed', $user_id, 'both', 'totp' );
 				} else {
 					NBUF_2FA::disable_for_user( $user_id );
 				}
+				NBUF_Audit_Log::log( $user_id, '2fa_disable_email', 'success', 'Email 2FA disabled', array( 'previous_method' => $current_method ) );
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication disabled.', 'nobloat-user-foundry' ), 'success' );
 				wp_safe_redirect( $redirect_url );
 				exit;
@@ -934,6 +985,7 @@ class NBUF_2FA_Account {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 				}
 				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Audit_Log::log( $user_id, '2fa_reauth_failed', 'failure', 'Re-auth failed during 2FA action', array( 'action' => 'disable_totp' ) );
 					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to change 2FA settings.', 'nobloat-user-foundry' ), 'error' );
 					wp_safe_redirect( $redirect_url );
 					exit;
@@ -941,7 +993,6 @@ class NBUF_2FA_Account {
 				/* Check if user has email as well */
 				$current_method = NBUF_2FA::get_user_method( $user_id );
 				if ( 'both' === $current_method ) {
-					/* Keep email, remove TOTP - update method to email and clear secret */
 					NBUF_User_2FA_Data::update(
 						$user_id,
 						array(
@@ -949,9 +1000,12 @@ class NBUF_2FA_Account {
 							'totp_secret' => null,
 						)
 					);
+					NBUF_2FA::destroy_other_sessions_for_user( $user_id );
+					do_action( 'nbuf_2fa_method_changed', $user_id, 'both', 'email' );
 				} else {
 					NBUF_2FA::disable_for_user( $user_id );
 				}
+				NBUF_Audit_Log::log( $user_id, '2fa_disable_totp', 'success', 'TOTP 2FA disabled', array( 'previous_method' => $current_method ) );
 				NBUF_Shortcodes::set_flash_message( $user_id, __( 'Two-factor authentication disabled.', 'nobloat-user-foundry' ), 'success' );
 				wp_safe_redirect( $redirect_url );
 				exit;
@@ -961,6 +1015,7 @@ class NBUF_2FA_Account {
 					wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 				}
 				if ( ! self::verify_reauth( $user_id ) ) {
+					NBUF_Audit_Log::log( $user_id, '2fa_reauth_failed', 'failure', 'Re-auth failed during 2FA action', array( 'action' => 'generate_backup_codes' ) );
 					NBUF_Shortcodes::set_flash_message( $user_id, __( 'Please enter your current password to regenerate backup codes.', 'nobloat-user-foundry' ), 'error' );
 					wp_safe_redirect( $redirect_url );
 					exit;
@@ -969,6 +1024,7 @@ class NBUF_2FA_Account {
 				$codes = NBUF_2FA::generate_backup_codes( $user_id );
 				/* Store in transient to display once (account page will retrieve and delete) */
 				set_transient( 'nbuf_backup_codes_' . $user_id, $codes, 300 );
+				NBUF_Audit_Log::log( $user_id, '2fa_backup_codes_regenerated', 'success', 'Backup codes regenerated', array( 'count' => is_array( $codes ) ? count( $codes ) : 0 ) );
 				wp_safe_redirect( $redirect_url );
 				exit;
 		}

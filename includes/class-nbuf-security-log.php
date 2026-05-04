@@ -1264,7 +1264,7 @@ class NBUF_Security_Log {
 		 * Strip leading quotes/backslashes before checking for formula characters,
 		 * matching the bulk import pattern to prevent bypass via quoting.
 		 */
-		if ( ! empty( $value ) && preg_match( '/^[\\\'"]*[=+\-@|\t\r]/', $value ) ) {
+		if ( ! empty( $value ) && preg_match( '/^[\s\x00-\x1f\\\'"]*[=+\-@|]/', $value ) ) {
 			/* Prefix with single quote to neutralize formula execution */
 			$value = "'" . $value;
 		}

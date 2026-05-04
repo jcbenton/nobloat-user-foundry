@@ -333,6 +333,17 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.6.7 — Deferred Hardening Items
+
+Closes the items left for follow-up in v1.6.4-v1.6.6:
+
+- **GDPR export directory**: protection files (.htaccess + index.html + index.php) refreshed on every cleanup tick; cleanup now recursively removes orphaned per-user subdirectories.
+- **Impersonation sudo-step**: admin must re-enter their password within a 10-minute window before impersonation can start. Closes the stolen-session pivot. Window length filterable via `nbuf_impersonation_sudo_seconds`.
+- **ToS REST gate**: `rest_authentication_errors` filter rejects logged-in non-admins with un-accepted ToS at the REST layer (template_redirect doesn't fire on /wp-json/).
+- **ToS audit-log impersonator stamp**: acceptances recorded during active admin impersonation note the impersonator's user_id; replay attempts on already-accepted versions are logged as info entries.
+- **Webhook payload off cron**: payloads stored in a 1-hour transient keyed by a 16-byte token; cron arg becomes the token only. Stops PII payload leakage via wp_options dumps.
+- **Admin-audit-log column sort**: get_logs() honours orderby/order with strict allowlist; list-table prepare_items wires the request params through.
+
 ### 1.6.6 — Forensic Hardening Release (Pieces 10-12 + Final Pass)
 
 Closing batch of the 12-piece full-codebase audit. Highlights: multisite uninstall, activator capability gate, migration data integrity, router hardening.

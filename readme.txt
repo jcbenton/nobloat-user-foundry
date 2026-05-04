@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.6.6
+Stable tag: 1.6.7
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,14 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.6.7 =
+* Security: GDPR export directory now re-writes its .htaccess + index.html + index.php protection files on every cleanup tick so they cannot drift away through manual deletion. Cleanup also recursively GCs orphaned per-user subdirectories older than the retention window (previously only top-level *.zip files were removed).
+* Security: Impersonation start now requires a sudo (password re-entry) within a configurable window (default 10 minutes) before promoting the admin into the target user's session. Closes the "stolen admin session = instant pivot" path.
+* Security: ToS gate now extends to the REST API via a rest_authentication_errors filter — non-admin logged-in users with an outstanding ToS acceptance receive a 403 from REST, matching the redirect they'd hit on template_redirect.
+* Audit: ToS record_acceptance now stamps audit-log entries with impersonator_id when the acceptance occurs during an active admin impersonation, and emits a tos_acceptance_replay_attempt info entry on duplicate-accept short-circuits.
+* Security: Webhook payloads no longer pass through wp_schedule_single_event arg arrays (which serialize into wp_options.cron in plaintext). Payloads are stored in a 1-hour transient keyed by a 16-byte random token; the cron handler reads-and-deletes the transient. Legacy 3-arg events still deliver via a fallback branch.
+* Standards: Admin-audit-log list-table column sort now actually re-sorts the result set — get_logs() honours orderby/order from $filters with a strict allowlist (id, created_at, admin_username, action_type, target_username, action_status), and the list-table prepare_items() forwards the request params.
+
 = 1.6.6 =
 * Security (HIGH): Multisite-aware uninstall iterates every site so per-blog tables, options, and cron events are cleaned up (previously left orphaned tables on networks)
 * Security (HIGH): Activator gains a defense-in-depth capability gate (manage_network_plugins on multisite, activate_plugins on single-site) to block schema/option mutations when invoked with insufficient privileges
@@ -630,6 +638,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.6.7 =
+Closes the deferred items from the v1.6.4-v1.6.6 audit: GDPR export directory hardening, impersonation sudo-step, ToS REST gate, webhook payload moved out of cron args, admin-audit-log column sort. No database changes required.
 
 = 1.6.6 =
 Final batch of the full-codebase forensic audit. Multisite uninstall, activator capability gate, migration data-integrity, router redirect/path-traversal hardening. No database changes required.

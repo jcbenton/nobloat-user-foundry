@@ -322,6 +322,20 @@ class NBUF_Admin_Audit_Log_List_Table extends WP_List_Table {
 		if ( ! empty( $_REQUEST['s'] ) ) {
 			$filters['search'] = sanitize_text_field( wp_unslash( $_REQUEST['s'] ) );
 		}
+
+		/*
+		 * Pass orderby/order through to NBUF_Admin_Audit_Log::get_logs so
+		 * the column-sort indicators advertised by get_sortable_columns()
+		 * actually re-sort the result set.
+		 */
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sort param.
+		if ( isset( $_REQUEST['orderby'] ) ) {
+			$filters['orderby'] = sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) );
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only sort direction.
+		if ( isset( $_REQUEST['order'] ) ) {
+			$filters['order'] = sanitize_text_field( wp_unslash( $_REQUEST['order'] ) );
+		}
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
 		/* Pagination */

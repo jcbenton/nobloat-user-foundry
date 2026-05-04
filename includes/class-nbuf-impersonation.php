@@ -49,6 +49,23 @@ class NBUF_Impersonation {
 		/* Add banner styles */
 		add_action( 'wp_head', array( __CLASS__, 'output_banner_styles' ) );
 		add_action( 'admin_head', array( __CLASS__, 'output_banner_styles' ) );
+
+		/* Clear sudo grant on logout. */
+		add_action( 'wp_logout', array( __CLASS__, 'clear_sudo_on_logout' ), 10, 1 );
+	}
+
+	/**
+	 * Clear the sudo-until user meta when an admin logs out.
+	 *
+	 * @since  1.6.6
+	 * @param  int $user_id User logging out.
+	 * @return void
+	 */
+	public static function clear_sudo_on_logout( $user_id ): void {
+		if ( ! $user_id ) {
+			return;
+		}
+		delete_user_meta( (int) $user_id, '_nbuf_impersonation_sudo_until' );
 	}
 
 	/**
@@ -309,6 +326,23 @@ class NBUF_Impersonation {
 			wp_die( esc_html__( 'User not found.', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * SECURITY: sudo-step. Require fresh password re-entry within
+		 * a short window before allowing impersonation to start. Without
+		 * this, a stolen admin session cookie immediately grants the
+		 * attacker the ability to pivot to any user the admin can
+		 * impersonate. The sudo timestamp is stored in user meta and
+		 * cleared on logout.
+		 */
+		$sudo_window = (int) apply_filters( 'nbuf_impersonation_sudo_seconds', 10 * MINUTE_IN_SECONDS );
+		$sudo_until  = (int) get_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until', true );
+		if ( $sudo_until < time() ) {
+			/* Render the sudo form (renders + exits). */
+			self::render_sudo_form( $target_user_id, $sudo_window );
+		}
+		/* Sudo gate passed — invalidate the token (single-use within window). */
+		delete_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until' );
+
 		/* Log impersonation start to admin audit log */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
 			NBUF_Admin_Audit_Log::log(
@@ -405,6 +439,107 @@ class NBUF_Impersonation {
 
 		/* Redirect to frontend (home page) */
 		wp_safe_redirect( home_url() );
+		exit;
+	}
+
+	/**
+	 * Render the sudo (password re-entry) form before impersonation starts.
+	 *
+	 * Handles its own POST verification — on successful re-auth, sets the
+	 * sudo-until user meta and reloads the original impersonation start URL,
+	 * which then walks past the sudo gate the second time around.
+	 *
+	 * @since  1.6.6
+	 * @param  int $target_user_id Target user ID being impersonated.
+	 * @param  int $sudo_window    Seconds the sudo grant should remain valid.
+	 * @return void
+	 */
+	private static function render_sudo_form( int $target_user_id, int $sudo_window ): void {
+		$current_user = wp_get_current_user();
+		$error        = '';
+
+		// Process re-auth submission.
+		if ( isset( $_POST['nbuf_impersonation_sudo'] ) && isset( $_POST['nbuf_impersonation_sudo_nonce'] ) ) {
+			$nonce_ok = wp_verify_nonce(
+				sanitize_text_field( wp_unslash( $_POST['nbuf_impersonation_sudo_nonce'] ) ),
+				'nbuf_impersonation_sudo_' . $target_user_id
+			);
+			if ( ! $nonce_ok ) {
+				$error = __( 'Security check failed. Please try again.', 'nobloat-user-foundry' );
+			} else {
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are not sanitized; verified below.
+				$pwd = isset( $_POST['nbuf_impersonation_sudo_pwd'] ) ? wp_unslash( $_POST['nbuf_impersonation_sudo_pwd'] ) : '';
+				if ( '' === $pwd || ! wp_check_password( $pwd, $current_user->user_pass, $current_user->ID ) ) {
+					$error = __( 'Password is incorrect.', 'nobloat-user-foundry' );
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log(
+							'impersonation_sudo_failed',
+							'warning',
+							'Failed sudo re-auth before impersonation start',
+							array(
+								'admin_id'  => $current_user->ID,
+								'target_id' => $target_user_id,
+							)
+						);
+					}
+				} else {
+					update_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until', time() + $sudo_window );
+					$reload = wp_nonce_url(
+						add_query_arg(
+							array(
+								'action'  => 'nbuf_impersonate',
+								'user_id' => $target_user_id,
+							),
+							admin_url( 'users.php' )
+						),
+						'nbuf_impersonate_' . $target_user_id
+					);
+					wp_safe_redirect( $reload );
+					exit;
+				}
+			}
+		}
+
+		$target_user = get_userdata( $target_user_id );
+		$target_name = $target_user ? $target_user->display_name : '';
+
+		require_once ABSPATH . 'wp-admin/admin-header.php';
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Confirm Impersonation', 'nobloat-user-foundry' ); ?></h1>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: target user display name */
+					esc_html__( 'You are about to log in as %s. Re-enter your administrator password to continue.', 'nobloat-user-foundry' ),
+					'<strong>' . esc_html( $target_name ) . '</strong>'  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Pre-escaped HTML fragment.
+				);
+				?>
+			</p>
+			<?php if ( $error ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
+			<?php endif; ?>
+			<form method="post" action="">
+				<?php wp_nonce_field( 'nbuf_impersonation_sudo_' . $target_user_id, 'nbuf_impersonation_sudo_nonce' ); ?>
+				<input type="hidden" name="nbuf_impersonation_sudo" value="1">
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="nbuf_impersonation_sudo_pwd"><?php esc_html_e( 'Your password', 'nobloat-user-foundry' ); ?></label>
+						</th>
+						<td>
+							<input type="password" name="nbuf_impersonation_sudo_pwd" id="nbuf_impersonation_sudo_pwd" class="regular-text" autocomplete="current-password" required>
+						</td>
+					</tr>
+				</table>
+				<p class="submit">
+					<button type="submit" class="button button-primary"><?php esc_html_e( 'Confirm and Continue', 'nobloat-user-foundry' ); ?></button>
+					<a class="button" href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>"><?php esc_html_e( 'Cancel', 'nobloat-user-foundry' ); ?></a>
+				</p>
+			</form>
+		</div>
+		<?php
+		require_once ABSPATH . 'wp-admin/admin-footer.php';
 		exit;
 	}
 

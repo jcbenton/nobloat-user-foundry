@@ -200,12 +200,20 @@ class NBUF_GDPR_Export {
 		$upload_dir = wp_upload_dir();
 		$temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'nbuf-exports';
 
+		/*
+		 * SECURITY: write protection files on EVERY call, not only on
+		 * first directory creation. WordPress plugins must live under
+		 * the webroot, so the only line of defence against
+		 * `wp-content/uploads/nbuf-exports/<file>.zip` being served as
+		 * a static asset is filesystem-side: an .htaccess deny on
+		 * Apache/LiteSpeed and a defensive index.html for any server
+		 * that ignores .htaccess. Re-writing on each call keeps these
+		 * files in sync if an admin or migration ever deletes them.
+		 */
 		if ( ! file_exists( $temp_dir ) ) {
 			wp_mkdir_p( $temp_dir );
-			/* Protect directory from direct access (Apache + Nginx/LiteSpeed fallback) */
-			file_put_contents( $temp_dir . '/.htaccess', "Deny from all\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $temp_dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
+		self::write_protection_files( $temp_dir );
 
 		$timestamp     = gmdate( 'Y-m-d-His' );
 		$random_suffix = bin2hex( random_bytes( 8 ) );
@@ -980,18 +988,112 @@ class NBUF_GDPR_Export {
 			return;
 		}
 
-		$files = glob( $temp_dir . '/*.zip' );
-		if ( ! $files ) {
-			return;
-		}
+		/*
+		 * Refresh the protection files on each cleanup tick so they
+		 * cannot drift away through manual deletion or migration.
+		 */
+		self::write_protection_files( $temp_dir );
 
 		$max_age = 48 * HOUR_IN_SECONDS;
+		$now     = time();
 
-		foreach ( $files as $file ) {
-			if ( is_file( $file ) && ( time() - filemtime( $file ) ) > $max_age ) {
-				wp_delete_file( $file );
+		$files = glob( $temp_dir . '/*.zip' );
+		if ( $files ) {
+			foreach ( $files as $file ) {
+				if ( is_file( $file ) && ( $now - filemtime( $file ) ) > $max_age ) {
+					wp_delete_file( $file );
+				}
 			}
 		}
+
+		/*
+		 * Recursively GC orphaned per-user subdirectories. Earlier code
+		 * only removed `*.zip`, leaving subdir trees if the in-progress
+		 * `delete_directory()` call in generate_export() ever failed
+		 * (PHP fatal mid-build, partial permissions). Each subdir
+		 * contains the user's profile/woo/edd HTML+JSON snapshot —
+		 * exactly what we want gone after 48 hours.
+		 */
+		$entries = glob( $temp_dir . '/*', GLOB_ONLYDIR );
+		if ( $entries ) {
+			foreach ( $entries as $entry ) {
+				if ( ( $now - filemtime( $entry ) ) > $max_age ) {
+					self::recursively_remove_dir( $entry );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Write defensive protection files into an exports directory.
+	 *
+	 * WordPress plugins cannot move data outside the webroot, so the
+	 * only line of defence against direct-URL access to
+	 * `wp-content/uploads/nbuf-exports/<file>` is filesystem-side:
+	 *  - .htaccess `Deny from all` for Apache / LiteSpeed
+	 *  - index.html / index.php so a directory listing or default
+	 *    handler returns nothing useful on Nginx etc.
+	 *
+	 * @since  1.6.6
+	 * @param  string $dir Absolute path of the protected directory.
+	 * @return void
+	 */
+	private static function write_protection_files( $dir ): void {
+		if ( ! is_dir( $dir ) ) {
+			return;
+		}
+		$ht  = $dir . '/.htaccess';
+		$idx = $dir . '/index.html';
+		$php = $dir . '/index.php';
+		if ( ! file_exists( $ht ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Defensive deploy of access-control file.
+			@file_put_contents( $ht, "Order allow,deny\nDeny from all\n" ); // phpcs:ignore Generic.PHP.NoSilencedErrors -- Best-effort write; non-fatal on read-only deploys.
+		}
+		if ( ! file_exists( $idx ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			@file_put_contents( $idx, '' ); // phpcs:ignore Generic.PHP.NoSilencedErrors
+		}
+		if ( ! file_exists( $php ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			@file_put_contents( $php, "<?php\n// Silence is golden.\n" ); // phpcs:ignore Generic.PHP.NoSilencedErrors
+		}
+	}
+
+	/**
+	 * Recursively remove a directory and its contents.
+	 *
+	 * @since  1.6.6
+	 * @param  string $path Directory path.
+	 * @return void
+	 */
+	private static function recursively_remove_dir( string $path ): void {
+		$real = realpath( $path );
+		if ( ! $real || ! is_dir( $real ) ) {
+			return;
+		}
+		$upload_dir = wp_upload_dir();
+		$base       = realpath( $upload_dir['basedir'] );
+		if ( ! $base || 0 !== strpos( $real, $base . DIRECTORY_SEPARATOR ) ) {
+			return;
+		}
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $real, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $iterator as $fileinfo ) {
+			$item = $fileinfo->getRealPath();
+			if ( ! $item ) {
+				continue;
+			}
+			if ( $fileinfo->isDir() ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+				@rmdir( $item ); // phpcs:ignore Generic.PHP.NoSilencedErrors
+			} elseif ( $fileinfo->isFile() ) {
+				wp_delete_file( $item );
+			}
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		@rmdir( $real ); // phpcs:ignore Generic.PHP.NoSilencedErrors
 	}
 
 	/**

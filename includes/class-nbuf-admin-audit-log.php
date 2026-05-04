@@ -233,8 +233,23 @@ class NBUF_Admin_Audit_Log {
 
 		$where_clause = implode( ' AND ', $where );
 
-		/* Build query */
-		$query = "SELECT * FROM %i WHERE {$where_clause} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+		/*
+		 * Honour orderby/order from $filters with strict allowlist.
+		 * Earlier code always sorted by created_at DESC even though the
+		 * list-table UI advertised sortable columns — making the column
+		 * sort indicators a lie. Allowlist matches the column keys
+		 * registered in NBUF_Admin_Audit_Log_List_Table.
+		 */
+		$allowed_orderby = array( 'id', 'created_at', 'admin_username', 'action_type', 'target_username', 'action_status' );
+		$orderby         = isset( $filters['orderby'] ) && in_array( $filters['orderby'], $allowed_orderby, true )
+			? $filters['orderby']
+			: 'created_at';
+		$order           = isset( $filters['order'] ) && in_array( strtoupper( (string) $filters['order'] ), array( 'ASC', 'DESC' ), true )
+			? strtoupper( $filters['order'] )
+			: 'DESC';
+
+		/* Build query (orderby/order are allowlisted scalars — safe to interpolate). */
+		$query = "SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 
 		/* Add table, limit, offset to values */
 		array_unshift( $values, $table );

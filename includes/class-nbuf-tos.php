@@ -39,6 +39,51 @@ class NBUF_ToS {
 		/* Handle ToS acceptance form submission */
 		add_action( 'admin_post_nbuf_accept_tos', array( __CLASS__, 'handle_acceptance' ) );
 		add_action( 'admin_post_nopriv_nbuf_accept_tos', array( __CLASS__, 'handle_acceptance' ) );
+
+		/*
+		 * SECURITY: gate REST API too. template_redirect does not fire on
+		 * /wp-json/* requests, so without this filter a logged-in user
+		 * with un-accepted ToS could perform any REST mutation (custom
+		 * endpoints, profile updates) in violation of the gate.
+		 */
+		add_filter( 'rest_authentication_errors', array( __CLASS__, 'rest_require_tos_acceptance' ), 99 );
+	}
+
+	/**
+	 * Reject REST API requests from logged-in users who have not accepted
+	 * the current ToS version.
+	 *
+	 * Runs at priority 99 so authentication-providing plugins finish
+	 * first. Returns the existing $errors unchanged unless the gate
+	 * fires, so we don't disturb the standard auth chain.
+	 *
+	 * @since  1.6.6
+	 * @param  WP_Error|null|true $errors Existing auth state.
+	 * @return WP_Error|null|true Updated auth state.
+	 */
+	public static function rest_require_tos_acceptance( $errors ) {
+		if ( is_wp_error( $errors ) ) {
+			return $errors;
+		}
+		if ( ! self::is_enabled() || ! self::is_required_on_login() ) {
+			return $errors;
+		}
+		$user_id = get_current_user_id();
+		if ( ! $user_id ) {
+			return $errors;
+		}
+		/* Admins keep REST access regardless to avoid lockouts. */
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return $errors;
+		}
+		if ( self::has_user_accepted_current( $user_id ) ) {
+			return $errors;
+		}
+		return new WP_Error(
+			'nbuf_tos_required',
+			__( 'You must accept the current Terms of Service before accessing this resource.', 'nobloat-user-foundry' ),
+			array( 'status' => 403 )
+		);
 	}
 
 	/**
@@ -458,10 +503,37 @@ class NBUF_ToS {
 
 		$table = $wpdb->prefix . 'nbuf_tos_acceptances';
 
-		/* Check if already accepted */
+		/*
+		 * Check if already accepted. Log a replay attempt so operators
+		 * can spot suspicious cached-form re-submissions.
+		 */
 		if ( self::has_user_accepted_version( $user_id, $version_id ) ) {
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$user_id,
+					'tos_acceptance_replay_attempt',
+					'info',
+					sprintf(
+						/* translators: %d: ToS version ID */
+						__( 'Replay of acceptance for already-accepted ToS version %d', 'nobloat-user-foundry' ),
+						$version_id
+					),
+					array( 'version_id' => $version_id )
+				);
+			}
 			return true;
 		}
+
+		/*
+		 * SECURITY/AUDIT: detect when an admin in an active impersonation
+		 * is recording acceptance on the impersonated user's behalf, and
+		 * flag the row + audit entry so the IP/UA captured here cannot
+		 * later be misread as the legitimate user's own evidence.
+		 */
+		$impersonation = class_exists( 'NBUF_Impersonation' ) ? NBUF_Impersonation::get_impersonation_data() : false;
+		$impersonator_id = ( is_array( $impersonation ) && ! empty( $impersonation['original_user_id'] ) )
+			? (int) $impersonation['original_user_id']
+			: 0;
 
 		$result = $wpdb->insert(
 			$table,
@@ -487,7 +559,10 @@ class NBUF_ToS {
 						__( 'Accepted Terms of Service version %s', 'nobloat-user-foundry' ),
 						$version ? $version->version : $version_id
 					),
-					array( 'version_id' => $version_id )
+					array(
+						'version_id'      => $version_id,
+						'impersonator_id' => $impersonator_id,
+					)
 				);
 			}
 

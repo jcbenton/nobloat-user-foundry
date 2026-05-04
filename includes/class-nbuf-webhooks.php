@@ -265,8 +265,27 @@ class NBUF_Webhooks {
 				continue;
 			}
 
-			/* Schedule async delivery via WP cron so the user request is not blocked */
-			wp_schedule_single_event( time(), 'nbuf_deliver_webhook', array( (int) $webhook->id, $event, $payload ) );
+			/*
+			 * SECURITY: store the payload in a short-lived transient and
+			 * pass only an opaque token to wp_schedule_single_event.
+			 * The cron table is plaintext-readable in wp_options on
+			 * shared hosting / backups; embedding user PII payloads
+					 * inline meant any backup leak exposed event data.
+			 * The transient is keyed by a 32-byte random token, expires
+			 * in 1 hour (cron should fire well before then), and is
+			 * deleted as soon as the cron handler reads it.
+			 */
+			$payload_token = bin2hex( random_bytes( 16 ) );
+			set_transient(
+				'nbuf_wh_payload_' . $payload_token,
+				array(
+					'event'   => $event,
+					'payload' => $payload,
+				),
+				HOUR_IN_SECONDS
+			);
+
+			wp_schedule_single_event( time(), 'nbuf_deliver_webhook', array( (int) $webhook->id, $payload_token ) );
 		}
 
 		/* Spawn the cron runner so delivery happens promptly */
@@ -276,17 +295,41 @@ class NBUF_Webhooks {
 	/**
 	 * WP cron callback for async webhook delivery.
 	 *
-	 * @param int                  $webhook_id Webhook ID.
-	 * @param string               $event      Event type.
-	 * @param array<string, mixed> $payload    Event payload.
+	 * Reads the (event, payload) pair from a transient keyed by the
+	 * supplied token rather than from cron args; see trigger() for the
+	 * rationale. Falls back to the legacy 3-arg form for compatibility
+	 * with events scheduled before the v1.6.6 upgrade.
+	 *
+	 * @param int          $webhook_id  Webhook ID.
+	 * @param string|array $arg2        Payload token (new) OR legacy event name.
+	 * @param array|null   $legacy_arg3 Legacy payload array (only present in pre-1.6.6 events).
 	 * @return void
 	 */
-	public static function deliver_scheduled( int $webhook_id, string $event, array $payload ): void {
+	public static function deliver_scheduled( int $webhook_id, $arg2 = '', $legacy_arg3 = null ): void {
 		$webhook = self::get( $webhook_id );
 		if ( ! $webhook || empty( $webhook->enabled ) ) {
 			return;
 		}
-		self::deliver( $webhook, $event, $payload );
+
+		if ( is_array( $legacy_arg3 ) ) {
+			/* Legacy path: (id, event, payload). */
+			self::deliver( $webhook, (string) $arg2, $legacy_arg3 );
+			return;
+		}
+
+		$payload_token = is_string( $arg2 ) ? $arg2 : '';
+		if ( '' === $payload_token ) {
+			return;
+		}
+
+		$envelope = get_transient( 'nbuf_wh_payload_' . $payload_token );
+		delete_transient( 'nbuf_wh_payload_' . $payload_token );
+
+		if ( ! is_array( $envelope ) || empty( $envelope['event'] ) || ! isset( $envelope['payload'] ) ) {
+			return;
+		}
+
+		self::deliver( $webhook, (string) $envelope['event'], (array) $envelope['payload'] );
 	}
 
 	/**

@@ -218,17 +218,26 @@ class NBUF_ToS {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_tos_versions';
-		$now   = current_time( 'mysql', false ); /* Use local time to match stored effective_date */
 
+		/*
+		 * Return the row currently flagged is_active=1 regardless of
+		 * effective_date. Filtering on `effective_date <= NOW` here
+		 * meant an admin who created the next ToS version with a
+		 * future effective_date AND ticked Active simultaneously
+		 * deactivated the previous version (set_active_version
+		 * deactivates ALL is_active=1 rows) yet returned NULL until
+		 * effective_date arrived — disabling the ENTIRE gate
+		 * (frontend + REST + admin) for the intervening window.
+		 * Schedule the future version with is_active=0 instead and
+		 * promote it via cron when its date arrives.
+		 */
 		return $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i
 				WHERE is_active = 1
-				AND effective_date <= %s
 				ORDER BY effective_date DESC
 				LIMIT 1',
-				$table,
-				$now
+				$table
 			)
 		);
 	}
@@ -375,13 +384,21 @@ class NBUF_ToS {
 			$update_data['effective_date'] = $effective_date;
 			$formats[]                     = '%s';
 		}
+		$activate_after_update = false;
 		if ( isset( $data['is_active'] ) ) {
 			$update_data['is_active'] = ! empty( $data['is_active'] ) ? 1 : 0;
 			$formats[]                = '%d';
 
-			/* If activating, deactivate others */
+			/*
+			 * Defer the deactivate-all side-effect until AFTER the row update
+			 * succeeds. Running set_active_version FIRST and the row UPDATE
+			 * SECOND meant: a failed row UPDATE (deadlock, column overflow,
+			 * connection drop after the inner transaction committed) left the
+			 * activated version flagged is_active=1 with stale content visible
+			 * to users — admin sees "Update failed" but the version IS active.
+			 */
 			if ( ! empty( $data['is_active'] ) ) {
-				self::set_active_version( $version_id );
+				$activate_after_update = true;
 			}
 		}
 
@@ -396,6 +413,10 @@ class NBUF_ToS {
 			$formats,
 			array( '%d' )
 		);
+
+		if ( false !== $result && $activate_after_update ) {
+			self::set_active_version( $version_id );
+		}
 
 		return false !== $result;
 	}
@@ -420,9 +441,19 @@ class NBUF_ToS {
 		 * (`get_active_version()` returns null → `has_user_accepted_current()`
 		 * returns true → no enforcement). Wrap in START TRANSACTION /
 		 * COMMIT and roll back on any UPDATE failure.
+		 *
+		 * Two concurrent admin saves could ALSO produce two simultaneously-
+		 * active rows: T1 deactivates (locks current), T2's deactivate
+		 * matches no rows (no locks acquired), then T1 and T2 activate
+		 * different ids — both committing successfully with is_active=1.
+		 * Acquire a row-level lock on the to-be-activated row up-front
+		 * via SELECT ... FOR UPDATE so concurrent runs serialise.
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control.
 		$wpdb->query( 'START TRANSACTION' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock target row to serialise concurrent set_active_version.
+		$wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d FOR UPDATE', $table, $version_id ) );
 
 		$deactivate_ok = $wpdb->update(
 			$table,
@@ -594,6 +625,34 @@ class NBUF_ToS {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'nbuf_tos_acceptances';
+
+		/*
+		 * Refuse to record ToS acceptance while an admin is impersonating
+		 * this user. Without this, an admin debugging another user's
+		 * account who clicks Accept (intentionally or by reflex) writes
+		 * a row whose ip_address and user_agent are the IMPERSONATOR's
+		 * — and the canonical export path (`get_acceptances_for_export`,
+		 * the CSV export) does NOT surface impersonator_id, so the row
+		 * appears to be the user's own legal acceptance. Block at the
+		 * source rather than rely on downstream readers to interpret
+		 * the metadata correctly.
+		 */
+		$active_impersonation = class_exists( 'NBUF_Impersonation' ) ? NBUF_Impersonation::get_impersonation_data() : false;
+		if ( is_array( $active_impersonation ) && ! empty( $active_impersonation['original_user_id'] ) ) {
+			if ( class_exists( 'NBUF_Audit_Log' ) ) {
+				NBUF_Audit_Log::log(
+					$user_id,
+					'tos_acceptance_refused_during_impersonation',
+					'warning',
+					'ToS acceptance refused — impersonator must exit before recording acceptance',
+					array(
+						'version_id'      => $version_id,
+						'impersonator_id' => (int) $active_impersonation['original_user_id'],
+					)
+				);
+			}
+			return false;
+		}
 
 		/*
 		 * Check if already accepted. Log a replay attempt so operators

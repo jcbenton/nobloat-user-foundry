@@ -333,6 +333,23 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.2 — Forensic-audit Group C: deferred items closure
+
+Closes the remaining HIGH/MEDIUM items deferred from v1.7.1.
+
+- **ToS gate fail-open (HIGH):** `get_active_version()` no longer filters on `effective_date <= NOW`.
+- **Webhook SSRF (HIGH):** Resolved IP pinned via `CURLOPT_RESOLVE` — closes IPv6 AAAA TTL=0 rebinding.
+- **ToS set_active_version race (HIGH):** `SELECT … FOR UPDATE` row lock serialises concurrent saves.
+- **ToS update_version order (HIGH):** Activate side-effect deferred until row UPDATE commits.
+- **Impersonator ToS-acceptance (MEDIUM):** Refused during active impersonation; audit-logged.
+- **Email-domain IP-literal (MEDIUM):** Bracketed forms rejected at extraction.
+- **Webhook replay (MEDIUM):** 16-byte `delivery_id` nonce in every payload.
+- **Webhook scheme allowlist (MEDIUM):** http/https only.
+- **TOTP setup rate-limit (MEDIUM):** 20 / 30 min per user.
+- **Password-change remember (MEDIUM):** Preserves original cookie state.
+- **Webhook log cleanup (MEDIUM):** Batched 1K/pass, 1M cap.
+- **Webhook test accounting (MEDIUM):** Test failures don't count toward auto-disable.
+
 ### 1.7.1 — Forensic-audit Group C: admin / shortcodes / webhooks / ToS / roles
 
 Closes 12 HIGH findings from the Group C audit, including 4 functional regressions discovered in v1.6.9-v1.7.0 that broke default-config flows.

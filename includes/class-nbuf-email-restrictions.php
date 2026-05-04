@@ -123,6 +123,19 @@ class NBUF_Email_Restrictions {
 		if ( '' === $domain ) {
 			return '';
 		}
+
+		/*
+		 * Reject RFC 5321 domain-literal forms (`user@[1.2.3.4]`,
+		 * `user@[ipv6:::1]`). Those bracketed values never match
+		 * pattern strings like `example.com`, so in BLACKLIST mode a
+		 * spam-source could trivially evade enforcement by submitting
+		 * an IP-literal mailbox the upstream mail provider accepts.
+		 * Returning empty makes the caller treat the domain as invalid
+		 * and reject the registration.
+		 */
+		if ( '' !== $domain && '[' === $domain[0] ) {
+			return '';
+		}
 		if ( function_exists( 'idn_to_ascii' ) && defined( 'INTL_IDNA_VARIANT_UTS46' ) ) {
 			$ascii = idn_to_ascii( $domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
 			if ( false !== $ascii && '' !== $ascii ) {

@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,20 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.2 =
+* Security (HIGH): ToS gate no longer fails open when the active version's `effective_date` is in the future. `get_active_version()` previously filtered `effective_date <= NOW`, returning NULL until the date arrived — meaning an admin who set a future-dated active version (with the previous version simultaneously deactivated by `set_active_version()`) silently disabled the ENTIRE ToS gate (frontend + REST + admin) for the intervening window. Filter dropped; schedule future versions with `is_active=0` and promote via cron when the date arrives.
+* Security (HIGH): Webhook DNS-rebinding via IPv6 AAAA. `is_url_safe()` now returns the resolved IP (renamed `resolve_safe_ip()`), and `deliver()` pins it via `CURLOPT_RESOLVE` so the actual HTTP request bypasses curl's own DNS resolution. Closes the TTL=0 AAAA-rebind path where a hostile authoritative DNS could pass the resolution-time check then swap to ::1 / ULA at request time.
+* Security (HIGH): ToS `set_active_version` now acquires a `SELECT … FOR UPDATE` row lock before the deactivate/activate UPDATEs to serialise concurrent saves. Without it, two parallel admin saves could both leave the table with two `is_active=1` rows.
+* Security (HIGH): ToS `update_version` now defers the `set_active_version` side-effect until AFTER the row UPDATE succeeds. The previous order (activate first, then content-update) left the activated version flagged with stale content if the row update failed (deadlock, column overflow, connection drop).
+* Security (MEDIUM): ToS acceptance is now refused while an admin is impersonating the target user. Previously the row in `nbuf_tos_acceptances` captured the impersonator's IP/UA — and the canonical CSV export does NOT surface impersonator_id — so the row appeared to be the user's own legal acceptance.
+* Security (MEDIUM): Email-restriction `get_email_domain()` now rejects RFC 5321 domain-literal forms (`user@[1.2.3.4]`, `user@[ipv6:::1]`). Previously a bracketed IP-literal mailbox bypassed every blacklist pattern.
+* Security (MEDIUM): Webhook payload now includes a unique 16-byte `delivery_id` nonce so receivers can enforce one-time delivery. Without it, two events with identical `data` produced byte-identical signed bodies — replay-indistinguishable.
+* Security (MEDIUM): Webhook URL scheme allowlist (http/https only) — defense-in-depth alongside `wp_safe_remote_post`.
+* Security (MEDIUM): TOTP setup submission now rate-limited at 20 attempts / 30 minutes per user. Closes a brute-force vector available to a stolen-session attacker who obtained the pinned secret.
+* Security (MEDIUM): Password-change handler now preserves the original "remember me" cookie state rather than hardcoding `wp_set_auth_cookie( $user_id, true )`. Privacy hit on shared/public devices.
+* Operability (MEDIUM): Webhook log retention DELETE batched at 1K rows per pass with a 1M cap per cron run. Prevents lock contention against concurrent webhook INSERTs on sites with millions of stale log rows.
+* Operability (MEDIUM): Webhook `test()` failures no longer count toward the 10-failure auto-disable threshold. An admin debugging a temporarily-down endpoint no longer silently takes the webhook offline. Real events resume normal accounting.
 
 = 1.7.1 =
 * Fix (HIGH): Registration was functionally broken on default install. The shortcode handler validated antibot once (consuming the per-session js_token / pow transients), then NBUF_Registration::register_user re-validated against $_POST — and the second pass failed because the transients were already deleted. Every legitimate user saw "Registration blocked due to suspicious activity." Caller now signals "already validated" to NBUF_Antibot::validate, which short-circuits.
@@ -690,6 +704,9 @@ Configuration guides, troubleshooting, and examples are available online.
 * Universal router for virtual pages
 
 == Upgrade Notice ==
+
+= 1.7.2 =
+Closes the remaining HIGH/MEDIUM Group C findings: ToS gate fail-open on future effective_date, webhook DNS-rebinding via IPv6 AAAA, ToS set_active_version race, update_version transaction order, impersonator ToS-acceptance attribution, IP-literal email bypass, webhook delivery_id nonce, password-change "remember me" preservation, TOTP setup rate limit, batched webhook log cleanup. No database changes required.
 
 = 1.7.1 =
 Critical fixes for registration (broken on default install with antibot enabled), impersonation-end (every legitimate click failed), and TOTP setup retry (stuck loop). Plus 8 HIGH security findings: ToS gate cap-vs-role privilege escalation chain, ToS bypass via wp-admin / admin-ajax, role-manager parent_role inheritance bypassing cap-containment, 2FA partial-disable bypassing session destruction, 2FA forensic blackout, no rate-limit on password re-auth. No database changes required.

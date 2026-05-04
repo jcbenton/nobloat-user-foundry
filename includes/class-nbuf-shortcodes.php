@@ -2571,10 +2571,26 @@ class NBUF_Shortcodes {
 			NBUF_User_2FA_Data::update( $user_id, array( 'trusted_devices' => wp_json_encode( array() ) ) );
 		}
 
-		/* Re-authenticate user - must clear old cookie, reset user, then set new cookie */
+		/*
+		 * Re-authenticate user - must clear old cookie, reset user, then
+		 * set new cookie. Preserve the original "remember me" state via
+		 * the existing auth cookie (parsed before clear); hardcoding
+		 * `true` here forced every post-password-change session to a
+		 * 14-day cookie regardless of whether the user originally chose
+		 * to be remembered. Privacy hit on shared/public devices.
+		 */
+		$remember = false;
+		if ( ! empty( $_COOKIE[ AUTH_COOKIE ] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Auth cookie format is parsed by wp_parse_auth_cookie which validates internally.
+			$old_cookie = wp_parse_auth_cookie( wp_unslash( $_COOKIE[ AUTH_COOKIE ] ), 'auth' );
+			if ( $old_cookie && isset( $old_cookie['expiration'] ) ) {
+				/* WP "remember" cookie expires 14 days out; non-remember 2 days. Treat anything > 7 days as remember. */
+				$remember = ( (int) $old_cookie['expiration'] - time() ) > 7 * DAY_IN_SECONDS;
+			}
+		}
 		wp_clear_auth_cookie();
 		wp_set_current_user( $user_id );
-		wp_set_auth_cookie( $user_id, true );
+		wp_set_auth_cookie( $user_id, $remember );
 
 		/* Set flash message and redirect (preserving tab state) */
 		self::set_flash_message( $user_id, __( 'Password changed successfully!', 'nobloat-user-foundry' ), 'success' );
@@ -3455,6 +3471,25 @@ Best regards,
 		if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_setup_totp' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 		}
+
+		/*
+		 * Per-user rate limit on TOTP-setup submissions. Without it, a
+		 * stolen-session attacker who happens to know the user's pinned
+		 * secret (e.g. shoulder-surfed the QR) could brute-force the
+		 * 6-digit code: 1M codes × 3 valid windows = ~999,997 wrong
+		 * guesses available per legitimate code window. 20 attempts /
+		 * 30 min is generous for legitimate retry while blocking
+		 * brute force.
+		 */
+		$setup_rate_key = 'nbuf_totp_setup_rate_' . $user_id;
+		$setup_attempts = (int) get_transient( $setup_rate_key );
+		if ( $setup_attempts >= 20 ) {
+			return self::render_totp_setup_with_error(
+				$user_id,
+				__( 'Too many setup attempts. Please wait and try again later.', 'nobloat-user-foundry' )
+			);
+		}
+		set_transient( $setup_rate_key, $setup_attempts + 1, 30 * MINUTE_IN_SECONDS );
 
 		/*
 		 * Read the secret from the server-side per-user transient pinned in

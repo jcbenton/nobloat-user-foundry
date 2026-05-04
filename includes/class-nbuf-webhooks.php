@@ -338,20 +338,27 @@ class NBUF_Webhooks {
 	 * @param object               $webhook Webhook object.
 	 * @param string               $event   Event type.
 	 * @param array<string, mixed> $payload Event payload.
+	 * @param bool                 $is_test True for the operator-triggered "test webhook" path; suppresses failure-count accounting so a temporarily-down test target cannot exhaust the auto-disable threshold.
 	 * @return bool True on success (2xx response).
 	 */
-	public static function deliver( object $webhook, string $event, array $payload ): bool {
+	public static function deliver( object $webhook, string $event, array $payload, bool $is_test = false ): bool {
 		global $wpdb;
 		$table     = $wpdb->prefix . 'nbuf_webhooks';
 		$log_table = $wpdb->prefix . 'nbuf_webhook_log';
 
-		/* Build the full payload */
+		/*
+		 * Build the full payload. `delivery_id` is a unique per-attempt
+		 * 16-byte token — receivers can enforce one-time delivery by
+		 * recording delivery_ids they've processed, which is the standard
+		 * defense against replay of a captured signed body.
+		 */
 		$full_payload = array(
-			'event'      => $event,
-			'timestamp'  => gmdate( 'c' ),
-			'webhook_id' => $webhook->id,
-			'site_url'   => home_url(),
-			'data'       => $payload,
+			'event'       => $event,
+			'delivery_id' => bin2hex( random_bytes( 16 ) ),
+			'timestamp'   => gmdate( 'c' ),
+			'webhook_id'  => $webhook->id,
+			'site_url'    => home_url(),
+			'data'        => $payload,
 		);
 
 		$json_payload = wp_json_encode( $full_payload );
@@ -369,8 +376,9 @@ class NBUF_Webhooks {
 			$headers['X-Webhook-Signature'] = 'sha256=' . $signature;
 		}
 
-		/* SSRF check: resolve host and reject private/loopback/link-local/metadata IPs */
-		if ( ! self::is_url_safe( $webhook->url ) ) {
+		/* SSRF check: resolve host once and pin the IP for the actual request. */
+		$pinned_ip = self::resolve_safe_ip( $webhook->url );
+		if ( false === $pinned_ip ) {
 			/* Log and abort - do not reveal internal network topology in response */
 			$wpdb->insert(
 				$log_table,
@@ -386,6 +394,24 @@ class NBUF_Webhooks {
 			return false;
 		}
 
+		/*
+		 * Pin the resolved IP in curl via CURLOPT_RESOLVE so the actual HTTP
+		 * request does NOT re-resolve DNS at connect time. Without this,
+		 * a hostile authoritative DNS serving TTL=0 AAAA can pass the
+		 * resolve_safe_ip check on the first lookup, then swap to ::1 or
+		 * an internal ULA on the second curl-time lookup — bypassing the
+		 * SSRF gate entirely.
+		 */
+		$parsed_url      = wp_parse_url( $webhook->url );
+		$pin_host        = isset( $parsed_url['host'] ) ? strtolower( $parsed_url['host'] ) : '';
+		$pin_port        = isset( $parsed_url['port'] ) ? (int) $parsed_url['port'] : ( ( isset( $parsed_url['scheme'] ) && 'https' === strtolower( $parsed_url['scheme'] ) ) ? 443 : 80 );
+		$curl_resolve_cb = static function ( $handle ) use ( $pin_host, $pin_port, $pinned_ip ) {
+			if ( $pin_host && $pinned_ip ) {
+				curl_setopt( $handle, CURLOPT_RESOLVE, array( $pin_host . ':' . $pin_port . ':' . $pinned_ip ) );
+			}
+		};
+		add_action( 'http_api_curl', $curl_resolve_cb, 10, 1 );
+
 		/* Track timing */
 		$start_time = microtime( true );
 
@@ -400,6 +426,8 @@ class NBUF_Webhooks {
 				'sslverify'   => true,
 			)
 		);
+
+		remove_action( 'http_api_curl', $curl_resolve_cb, 10 );
 
 		$duration_ms = (int) ( ( microtime( true ) - $start_time ) * 1000 );
 
@@ -434,24 +462,32 @@ class NBUF_Webhooks {
 			)
 		);
 
-		/* Update webhook status */
-		$update_data = array(
-			'last_triggered' => current_time( 'mysql', true ),
-			'last_status'    => $response_code,
-		);
+		/*
+		 * Update webhook status — but skip the failure-count accounting on
+		 * test deliveries. Otherwise an admin debugging a temporarily-down
+		 * endpoint exhausts the 10-failure auto-disable threshold (5/min
+		 * test rate-limit × 2 minutes = 10 fails) and silently takes the
+		 * webhook offline. Real events resume normal accounting.
+		 */
+		if ( ! $is_test ) {
+			$update_data = array(
+				'last_triggered' => current_time( 'mysql', true ),
+				'last_status'    => $response_code,
+			);
 
-		if ( $success ) {
-			$update_data['failure_count'] = 0;
-		} else {
-			$update_data['failure_count'] = $webhook->failure_count + 1;
+			if ( $success ) {
+				$update_data['failure_count'] = 0;
+			} else {
+				$update_data['failure_count'] = $webhook->failure_count + 1;
 
-			/* Auto-disable after 10 consecutive failures */
-			if ( $update_data['failure_count'] >= 10 ) {
-				$update_data['enabled'] = 0;
+				/* Auto-disable after 10 consecutive failures */
+				if ( $update_data['failure_count'] >= 10 ) {
+					$update_data['enabled'] = 0;
+				}
 			}
-		}
 
-		$wpdb->update( $table, $update_data, array( 'id' => $webhook->id ) );
+			$wpdb->update( $table, $update_data, array( 'id' => $webhook->id ) );
+		}
 
 		return $success;
 	}
@@ -487,13 +523,33 @@ class NBUF_Webhooks {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_webhook_log';
 
-		return $wpdb->query(
-			$wpdb->prepare(
-				'DELETE FROM %i WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)',
-				$table,
-				$days
-			)
-		);
+		/*
+		 * Batch the DELETE so a backlog of millions of stale rows does not
+		 * hold row locks on the entire log table — concurrent webhook
+		 * deliveries try to INSERT during cleanup and would block on a
+		 * single unbounded DELETE, dropping log entries when they timeout.
+		 * Cap one cron run at 1M rows so we never burn the cron worker
+		 * indefinitely on a runaway table.
+		 */
+		$total     = 0;
+		$batch_cap = 1000;
+		$run_cap   = 1000000;
+		do {
+			$deleted = (int) $wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM %i WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY) LIMIT %d',
+					$table,
+					$days,
+					$batch_cap
+				)
+			);
+			$total  += $deleted;
+			if ( $deleted < $batch_cap ) {
+				break;
+			}
+		} while ( $total < $run_cap );
+
+		return $total;
 	}
 
 	/**
@@ -524,7 +580,7 @@ class NBUF_Webhooks {
 		$original_enabled = $webhook->enabled;
 		$webhook->enabled = 1;
 
-		$success = self::deliver( $webhook, 'test', $test_payload );
+		$success = self::deliver( $webhook, 'test', $test_payload, true );
 
 		/* Get the last log entry */
 		$logs = self::get_logs( $id, 1 );
@@ -819,8 +875,29 @@ class NBUF_Webhooks {
 	 * @return bool True if the URL is safe to request.
 	 */
 	public static function is_url_safe( string $url ): bool {
+		return false !== self::resolve_safe_ip( $url );
+	}
+
+	/**
+	 * Resolve a webhook URL to a single safe IP address, or false if unsafe.
+	 *
+	 * Returned IP must be pinned via CURLOPT_RESOLVE so the actual HTTP
+	 * request bypasses curl's own DNS resolution and cannot be subverted
+	 * by a TTL=0 AAAA-rebinding attack on the second resolution.
+	 *
+	 * @since 1.7.2
+	 * @param string $url Webhook URL.
+	 * @return string|false Resolved IP address or false on failure.
+	 */
+	public static function resolve_safe_ip( string $url ) {
 		$parsed = wp_parse_url( $url );
 		if ( ! $parsed || empty( $parsed['host'] ) ) {
+			return false;
+		}
+
+		/* Reject non-http(s) schemes — defense-in-depth (wp_safe_remote_post enforces this too). */
+		$scheme = strtolower( $parsed['scheme'] ?? '' );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
 			return false;
 		}
 
@@ -861,6 +938,7 @@ class NBUF_Webhooks {
 			$ips = $legacy;
 		}
 
+		$first_safe_ip = false;
 		foreach ( $ips as $ip ) {
 			if ( ! filter_var(
 				$ip,
@@ -897,9 +975,13 @@ class NBUF_Webhooks {
 					return false;
 				}
 			}
+
+			if ( false === $first_safe_ip ) {
+				$first_safe_ip = $ip;
+			}
 		}
 
-		return true;
+		return $first_safe_ip;
 	}
 }
 

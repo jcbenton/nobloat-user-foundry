@@ -30,6 +30,28 @@ class NBUF_Activator {
 	 * @return void
 	 */
 	public static function run(): void {
+		/*
+		 * SECURITY: defense-in-depth capability gate. WordPress only
+		 * invokes register_activation_hook callbacks via activate_plugin(),
+		 * which verifies the activate_plugins cap, but anything that
+		 * programmatically fires `do_action( 'activate_' . $plugin_file )`
+		 * (other plugins, WP-CLI under --user=, custom REST endpoints)
+		 * runs this callback with whatever caps the actor holds. Refuse
+		 * to mutate schema/options/posts unless the caller has the
+		 * appropriate cap for the install type.
+		 */
+		$required_cap = is_multisite() ? 'manage_network_plugins' : 'activate_plugins';
+		if ( function_exists( 'current_user_can' ) && ! current_user_can( $required_cap ) ) {
+			/*
+			 * Allow the WP-CLI / no-current-user activation path (CLI
+			 * runs activator as code, not a user). Only block when a
+			 * real authenticated user is present and lacks the cap.
+			 */
+			if ( get_current_user_id() ) {
+				return;
+			}
+		}
+
 		$debug_timing = defined( 'NBUF_DEBUG_ACTIVATION' ) && NBUF_DEBUG_ACTIVATION;
 		$timings      = array();
 		$start_time   = microtime( true );
@@ -1582,20 +1604,46 @@ class NBUF_Activator {
 			),
 		);
 
-		/* Migrate each option */
+		/*
+		 * Migrate each option. Two-phase to prevent data loss:
+		 *  1. Copy every present value into the custom options table and
+		 *     verify the write succeeded.
+		 *  2. ONLY after every required key has been verified do we
+		 *     delete from wp_options. The migration-complete sentinel
+		 *     is set in the same conditional, so a partial failure
+		 *     leaves the original wp_options copies intact and admins
+		 *     can re-run on the next request without losing settings.
+		 */
+		$present     = array();
+		$copied_ok   = array();
+		$any_failure = false;
 		foreach ( $options_to_migrate as $key => $settings ) {
 			$value = get_option( $key );
-
-			/* Only migrate if option exists in wp_options */
-			if ( false !== $value ) {
-				NBUF_Options::update( $key, $value, $settings['autoload'], $settings['group'] );
-
-				/* Delete from wp_options after successful migration */
-				delete_option( $key );
+			if ( false === $value ) {
+				continue;
+			}
+			$present[] = $key;
+			$update_ok = NBUF_Options::update( $key, $value, $settings['autoload'], $settings['group'] );
+			if ( $update_ok ) {
+				$copied_ok[] = $key;
+			} else {
+				$any_failure = true;
 			}
 		}
 
-		/* Mark migration as complete */
-		NBUF_Options::update( 'nbuf_options_migrated', 1, false, 'system' );
+		if ( ! $any_failure && count( $copied_ok ) === count( $present ) ) {
+			foreach ( $copied_ok as $key ) {
+				delete_option( $key );
+			}
+			NBUF_Options::update( 'nbuf_options_migrated', 1, false, 'system' );
+		} else {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Surface partial migration failure for operator visibility.
+				sprintf(
+					'NBUF: migrate_to_custom_options() copied %d of %d options; wp_options copies retained for retry.',
+					count( $copied_ok ),
+					count( $present )
+				)
+			);
+		}
 	}
 }

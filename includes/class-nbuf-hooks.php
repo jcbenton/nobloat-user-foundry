@@ -365,13 +365,23 @@ class NBUF_Hooks {
 			return str_replace( array_keys( $placeholders ), array_values( $placeholders ), $template );
 		}
 
-		/* No custom template - just rewrite the URL in the default WordPress message */
+		/*
+		 * No custom template - just rewrite the URL in the default
+		 * WordPress message. Use preg_replace_callback so any `$N`
+		 * sequences in $reset_url cannot be interpreted as backrefs,
+		 * and limit to the first match so we do not silently overwrite
+		 * unrelated wp-login.php URLs that another plugin's earlier
+		 * filter may have inserted into the message body.
+		 */
 		$encoded = strpos( $message, '<' ) !== false ? esc_url( $reset_url ) : $reset_url;
 
-		return preg_replace(
+		return preg_replace_callback(
 			'#https?://[^\s<>"]+/wp-login\.php\?[^ \r\n<>"]+#i',
-			$encoded,
-			$message
+			static function () use ( $encoded ) {
+				return $encoded;
+			},
+			$message,
+			1
 		);
 	}
 
@@ -750,9 +760,27 @@ class NBUF_Hooks {
 				return;
 			}
 
-			// Preserve redirect_to from WordPress login URL so user lands at the right page after login.
+			/*
+			 * Preserve redirect_to from WordPress login URL so user lands
+			 * at the right page after login. SECURITY: only accept hosts
+			 * that match the site's own host. Without this check, an
+			 * attacker could craft a phishing link
+			 * `wp-login.php?redirect_to=https://evil/` and the value
+			 * would propagate into the login form's redirect_to field,
+			 * available to be displayed or post-processed by extensions.
+			 * The downstream login submit handler does its own host
+			 * check, but defense-in-depth at the entry point is cheap.
+			 */
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect_to parameter from WordPress core login flow.
-			$redirect_to_param = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+			$redirect_candidate = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
+			$redirect_to_param  = '';
+			if ( '' !== $redirect_candidate ) {
+				$candidate_host = wp_parse_url( $redirect_candidate, PHP_URL_HOST );
+				$own_host       = wp_parse_url( home_url(), PHP_URL_HOST );
+				if ( empty( $candidate_host ) || ( $own_host && strtolower( (string) $candidate_host ) === strtolower( (string) $own_host ) ) ) {
+					$redirect_to_param = $redirect_candidate;
+				}
+			}
 
 			/* Use Universal Router URL if available */
 			$login_url = '';

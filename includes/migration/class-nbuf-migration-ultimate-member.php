@@ -630,11 +630,40 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 
 		$user_data_table = $wpdb->prefix . 'nbuf_user_data';
 
+		/*
+		 * SECURITY/CORRECTNESS: build the format array per-key. The previous
+		 * fixed-13-element format mismatched the 10-15 keys $user_data may
+		 * contain depending on which optional photo/privacy fields were set,
+		 * so $wpdb aligned formats by position and silently coerced
+		 * integer flag columns (is_disabled, requires_approval) to strings
+		 * or vice versa — corrupting account state post-migration.
+		 */
+		$user_data_formats = array(
+			'user_id'            => '%d',
+			'is_verified'        => '%d',
+			'verified_date'      => '%s',
+			'requires_approval'  => '%d',
+			'is_approved'        => '%d',
+			'approved_by'        => '%d',
+			'approved_date'      => '%s',
+			'approval_notes'     => '%s',
+			'is_disabled'        => '%d',
+			'disabled_reason'    => '%s',
+			'profile_privacy'    => '%s',
+			'profile_photo_url'  => '%s',
+			'profile_photo_path' => '%s',
+			'cover_photo_url'    => '%s',
+			'cover_photo_path'   => '%s',
+		);
+		$resolved_formats  = array();
+		foreach ( $user_data as $key => $_value ) {
+			$resolved_formats[] = $user_data_formats[ $key ] ?? '%s';
+		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration requires direct database query for bulk operations.
 		$wpdb->replace(
 			$user_data_table,
 			$user_data,
-			array( '%d', '%d', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+			$resolved_formats
 		);
 
 		/* Import profile data */

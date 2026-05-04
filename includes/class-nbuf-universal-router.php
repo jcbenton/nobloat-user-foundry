@@ -187,14 +187,36 @@ class NBUF_Universal_Router {
 		/* Set 200 OK status */
 		status_header( 200 );
 
-		/* Get page title */
-		$page_title = self::$views[ $view ]['title'];
+		/*
+		 * Get page title. View titles are short admin-facing strings;
+		 * translate them here so localised sites get translated <title>s
+		 * rather than hardcoded English. Apply wp_strip_all_tags to the
+		 * final concatenated title so an admin who pasted HTML into the
+		 * site's blogname cannot break the document title or land
+		 * raw markup in the <title> tag.
+		 */
+		$translated_titles = array(
+			'login'           => __( 'Login', 'nobloat-user-foundry' ),
+			'register'        => __( 'Register', 'nobloat-user-foundry' ),
+			'account'         => __( 'Account', 'nobloat-user-foundry' ),
+			'verify'          => __( 'Verify Email', 'nobloat-user-foundry' ),
+			'forgot-password' => __( 'Forgot Password', 'nobloat-user-foundry' ),
+			'reset-password'  => __( 'Reset Password', 'nobloat-user-foundry' ),
+			'logout'          => __( 'Logout', 'nobloat-user-foundry' ),
+			'2fa'             => __( 'Two-Factor Authentication', 'nobloat-user-foundry' ),
+			'2fa-setup'       => __( '2FA Setup', 'nobloat-user-foundry' ),
+			'members'         => __( 'Members', 'nobloat-user-foundry' ),
+			'profile'         => __( 'Profile', 'nobloat-user-foundry' ),
+			'magic-link'      => __( 'Magic Link Login', 'nobloat-user-foundry' ),
+			'accept-tos'      => __( 'Terms of Service', 'nobloat-user-foundry' ),
+		);
+		$page_title        = isset( $translated_titles[ $view ] ) ? $translated_titles[ $view ] : self::$views[ $view ]['title'];
 
 		/* Set document title via WordPress filters */
 		add_filter(
 			'pre_get_document_title',
 			function () use ( $page_title ) {
-				return $page_title . ' - ' . get_bloginfo( 'name' );
+				return wp_strip_all_tags( $page_title . ' - ' . get_bloginfo( 'name' ) );
 			}
 		);
 
@@ -209,7 +231,7 @@ class NBUF_Universal_Router {
 		add_filter(
 			'wp_title',
 			function () use ( $page_title ) {
-				return $page_title . ' - ' . get_bloginfo( 'name' );
+				return wp_strip_all_tags( $page_title . ' - ' . get_bloginfo( 'name' ) );
 			}
 		);
 
@@ -348,8 +370,18 @@ class NBUF_Universal_Router {
 			return false;
 		}
 
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-		$path        = trim( wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
+		/*
+		 * Use raw REQUEST_URI rather than sanitize_text_field (which
+		 * collapses tabs / multiple spaces and can mutate URL-encoded
+		 * sequences). wp_parse_url + per-segment validation below
+		 * provides the safety the sanitiser would have offered.
+		 */
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Path is parsed via wp_parse_url and per-segment validated below; sanitize_text_field would mutate URL encoding.
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		if ( ! is_string( $request_uri ) ) {
+			$request_uri = '';
+		}
+		$path = trim( (string) wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
 		/* Require exact match or a trailing slash boundary */
 		if ( $path !== $base_slug && strpos( $path, $base_slug . '/' ) !== 0 ) {
@@ -359,6 +391,18 @@ class NBUF_Universal_Router {
 		/* Extract remaining path */
 		$remaining = trim( substr( $path, strlen( $base_slug ) ), '/' );
 		$segments  = $remaining ? explode( '/', $remaining ) : array();
+
+		/*
+		 * SECURITY: reject any path-traversal markers, NUL bytes, or
+		 * empty inner segments (consecutive slashes). sanitize_key on
+		 * subview already strips dots, but explicit rejection here
+		 * prevents future regressions if that sanitiser changes.
+		 */
+		foreach ( $segments as $seg ) {
+			if ( '' === $seg || '.' === $seg || '..' === $seg || false !== strpos( $seg, "\0" ) ) {
+				return false;
+			}
+		}
 
 		$view    = isset( $segments[0] ) && '' !== $segments[0] ? $segments[0] : self::get_default_view();
 		$subview = isset( $segments[1] ) ? sanitize_key( $segments[1] ) : '';
@@ -533,9 +577,23 @@ class NBUF_Universal_Router {
 			case 'custom':
 				$custom_url = NBUF_Options::get( 'nbuf_login_redirect_custom', '' );
 				if ( $custom_url ) {
-					/* Handle both absolute URLs and relative paths */
-					if ( strpos( $custom_url, 'http' ) === 0 ) {
-						return $custom_url;
+					/*
+					 * Handle both absolute URLs and relative paths.
+					 * SECURITY: use a strict https?:// regex (the previous
+					 * `strpos === 0` check matched `httpfoo://evil`) and
+					 * route absolute URLs through wp_validate_redirect so
+					 * an admin who pastes an external URL into the option
+					 * doesn't create an open-redirect for downstream
+					 * client-side consumers of this value (2FA-login,
+					 * passkey-login, magic-links — many of those paths
+					 * inject the value into JS without their own check).
+					 */
+					if ( preg_match( '#^https?://#i', $custom_url ) ) {
+						$validated = wp_validate_redirect( $custom_url, '' );
+						if ( $validated ) {
+							return $validated;
+						}
+						return self::get_url( 'account' );
 					}
 					return home_url( $custom_url );
 				}

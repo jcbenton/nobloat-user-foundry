@@ -52,6 +52,22 @@ class NBUF_Diagnostics {
 
 		check_admin_referer( 'nbuf_repair_tables' );
 
+		/*
+		 * Audit trail for the privileged DDL action. Without this the
+		 * defender investigating an incident has no record that table
+		 * repair was executed.
+		 */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'tables_repaired',
+				'success',
+				'Diagnostic table-repair routine executed',
+				null,
+				array()
+			);
+		}
+
 		/* Run all table creation and update functions via centralized method */
 		NBUF_Database::repair_all_tables();
 
@@ -80,6 +96,23 @@ class NBUF_Diagnostics {
 		}
 
 		check_admin_referer( 'nbuf_export_diagnostics' );
+
+		/*
+		 * Record the export in the admin audit log so a compromised admin
+		 * session that exfiltrates the diagnostic dump (active plugins,
+		 * versions, server info, table counts) leaves a forensic trail.
+		 * Previously this endpoint had no audit-log entry.
+		 */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
+			NBUF_Admin_Audit_Log::log(
+				get_current_user_id(),
+				'diagnostics_exported',
+				'success',
+				'Diagnostic report exported',
+				null,
+				array()
+			);
+		}
 
 		global $wpdb;
 

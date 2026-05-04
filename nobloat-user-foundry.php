@@ -122,7 +122,14 @@ add_filter(
  * @return void
  */
 function nbuf_maybe_upgrade_database(): void {
-	$current_db_version = '1.5.2'; /* Update this when adding new tables - bumped for ToS */
+	/*
+	 * Bind the schema-upgrade sentinel to the plugin version constant.
+	 * Earlier code hardcoded `'1.5.2'` here, so any new table added in a
+	 * later release would never auto-create on existing installs because
+	 * the version comparison never moved forward. Tying to NBUF_VERSION
+	 * makes every release run dbDelta once, which is idempotent.
+	 */
+	$current_db_version = defined( 'NBUF_VERSION' ) ? (string) NBUF_VERSION : '1.5.2';
 	$stored_db_version  = get_option( 'nbuf_db_version', '0' );
 
 	if ( version_compare( $stored_db_version, $current_db_version, '<' ) ) {

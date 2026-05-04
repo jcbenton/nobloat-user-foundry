@@ -85,9 +85,33 @@ class NBUF_Migration_BP_Profile {
 		/* Build field mapping */
 		$field_mapping = self::build_field_mapping( $bp_fields );
 
-		/* Allow override via options */
+		/*
+		 * Allow override via options.
+		 *
+		 * SECURITY: whitelist the override TARGET column names against
+		 * NBUF_Profile_Data's known field set. Without this filter, an
+		 * admin (or anyone who has obtained admin) submitting a mapping
+		 * like `{"phone":"user_pass"}` would have the migrator attempt
+		 * to write a free-form value into whatever column they nominate.
+		 * MySQL rejects unknown columns today, but a future schema add
+		 * (a `role`, `is_admin`, etc. column) would become a privilege
+		 * smear vector. Lock the target side at the boundary.
+		 */
 		if ( ! empty( $options['field_mapping_override'] ) && is_array( $options['field_mapping_override'] ) ) {
-			$field_mapping = array_merge( $field_mapping, $options['field_mapping_override'] );
+			$allowed_targets = class_exists( 'NBUF_Profile_Data' ) && method_exists( 'NBUF_Profile_Data', 'get_all_field_keys' )
+				? array_flip( NBUF_Profile_Data::get_all_field_keys() )
+				: array();
+			$override        = array();
+			foreach ( $options['field_mapping_override'] as $source_key => $target_key ) {
+				if ( ! is_string( $target_key ) ) {
+					continue;
+				}
+				if ( ! empty( $allowed_targets ) && ! isset( $allowed_targets[ $target_key ] ) ) {
+					continue;
+				}
+				$override[ $source_key ] = $target_key;
+			}
+			$field_mapping = array_merge( $field_mapping, $override );
 		}
 
 		/*

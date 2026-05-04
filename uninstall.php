@@ -96,7 +96,7 @@ function nbuf_run_uninstall() {
 		} else {
 			$nbuf_settings = is_array( $nbuf_settings_value ) ? $nbuf_settings_value : array();
 		}
-		$nbuf_cleanup  = isset( $nbuf_settings['cleanup'] ) ? (array) $nbuf_settings['cleanup'] : array();
+		$nbuf_cleanup = isset( $nbuf_settings['cleanup'] ) ? (array) $nbuf_settings['cleanup'] : array();
 	}
 
 	/**
@@ -280,8 +280,34 @@ function nbuf_run_uninstall() {
 	}
 }
 
-// Run the uninstall function.
-nbuf_run_uninstall();
+/*
+ * Run the uninstall function. On multisite, iterate every site so per-blog
+ * tables, options, and scheduled cron events are all removed. Without this
+ * loop, only the network-active site (whichever was current when uninstall
+ * fired) gets cleaned, leaving orphaned wp_2_nbuf_*, wp_3_nbuf_*, etc.
+ * tables that violate user expectations and GDPR data-erasure obligations.
+ */
+if ( is_multisite() ) {
+	$nbuf_sites = function_exists( 'get_sites' )
+		? get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		)
+		: array();
+	if ( ! empty( $nbuf_sites ) ) {
+		foreach ( $nbuf_sites as $nbuf_site_id ) {
+			switch_to_blog( (int) $nbuf_site_id );
+			nbuf_run_uninstall();
+			restore_current_blog();
+		}
+	} else {
+		nbuf_run_uninstall();
+	}
+} else {
+	nbuf_run_uninstall();
+}
 
 /*
  * NOTE: All plugin options (settings, templates, CSS, migration flags, etc.)

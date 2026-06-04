@@ -653,6 +653,16 @@ class NBUF_Antibot {
 		return $result;
 	}
 
+	/**
+	 * In-request flag: set true once a real antibot validation pass succeeds,
+	 * so the legitimate internal second validation in the same request
+	 * short-circuits without re-consuming challenge transients. Server-side
+	 * only — it cannot be influenced by client input.
+	 *
+	 * @var bool
+	 */
+	private static $request_validated = false;
+
 	/*
 	 * =========================================================
 	 * MAIN VALIDATION
@@ -684,8 +694,19 @@ class NBUF_Antibot {
 		 * have already been consumed. Default-config registration was
 		 * therefore broken with antibot enabled.
 		 */
-		if ( ! empty( $post_data['_nbuf_antibot_already_validated'] ) ) {
-			self::debug_log( 'Antibot pre-validated by upstream caller - skipping' );
+		/*
+		 * SECURITY: the "already validated this request" short-circuit must be
+		 * driven by SERVER-side in-request state, never by a field in the
+		 * inbound POST array. Previously this read
+		 * $post_data['_nbuf_antibot_already_validated'], so any client could add
+		 * that one field to skip every antibot check (honeypot, timing, JS
+		 * token, proof-of-work) and mass-register. The flag below is set only
+		 * after a real validation pass succeeds, so the legitimate internal
+		 * second validation (register_user -> validate_registration_data) is
+		 * recognised while client input cannot forge it.
+		 */
+		if ( self::$request_validated ) {
+			self::debug_log( 'Antibot already validated this request - skipping' );
 			return true;
 		}
 
@@ -780,6 +801,9 @@ class NBUF_Antibot {
 
 		self::debug_log( 'ALL CHECKS PASSED - Registration allowed' );
 		self::debug_log( '========== ANTIBOT VALIDATION END ==========' );
+
+		/* Mark this request validated so the internal re-validation short-circuits. */
+		self::$request_validated = true;
 
 		return true;
 	}

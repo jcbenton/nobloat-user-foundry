@@ -816,5 +816,52 @@ class NBUF_Password_Expiration {
 
 		return $cleared;
 	}
+
+	/**
+	 * Resolve a forced-password-change redirect for a user, if one is required.
+	 *
+	 * Centralizes the post-authentication password gates that the password
+	 * login path enforces via the `authenticate` filter (check_password_on_login
+	 * at priority 30 + check_password_at_login at priority 29). Out-of-band
+	 * session-minting paths (magic links, passkeys) never run `authenticate`,
+	 * so they must call this to avoid silently bypassing an admin-mandated or
+	 * policy-mandated password change. Mirrors both filters' admin-bypass logic.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return string|null  URL of the forced-change form, or null if no change is required.
+	 */
+	public static function maybe_get_change_redirect( int $user_id ): ?string {
+		$needs_change = false;
+
+		/* Forced change / expiration (mirrors check_password_on_login, priority 30). */
+		if ( NBUF_Options::get( 'nbuf_password_expiration_enabled', false ) ) {
+			$admin_bypass = NBUF_Options::get( 'nbuf_password_expiration_admin_bypass', true );
+			if ( ! ( $admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
+				if ( self::is_password_change_forced( $user_id ) || self::is_password_expired( $user_id ) ) {
+					$needs_change = true;
+				}
+			}
+		}
+
+		/* Weak-password migration (mirrors check_password_at_login, priority 29). */
+		if ( ! $needs_change && class_exists( 'NBUF_Password_Validator' ) ) {
+			$weak_admin_bypass = NBUF_Options::get( 'nbuf_password_admin_bypass', false );
+			if ( ! ( $weak_admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
+				if ( NBUF_Password_Validator::is_password_change_required( $user_id ) ) {
+					$needs_change = true;
+				}
+			}
+		}
+
+		if ( ! $needs_change ) {
+			return null;
+		}
+
+		/* Mint the same single-user cryptographic token the password path uses. */
+		$change_token = bin2hex( random_bytes( 32 ) );
+		set_transient( 'nbuf_password_change_token_' . $change_token, $user_id, 600 );
+
+		return site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . rawurlencode( $change_token ) );
+	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

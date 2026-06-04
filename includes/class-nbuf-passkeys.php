@@ -1556,6 +1556,27 @@ class NBUF_Passkeys {
 		}
 
 		/*
+		 * Enforce the post-authentication password gates (forced change /
+		 * expiration / weak-password). The passkey path never runs the
+		 * `authenticate` filter, so mirror what the password login path
+		 * enforces — otherwise a passkey login silently bypasses an
+		 * admin-mandated or policy-mandated password change. Return the
+		 * change-form URL as the redirect (no auth cookie is set) so the client
+		 * navigates there instead of completing the login.
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
+			$change_redirect = NBUF_Password_Expiration::maybe_get_change_redirect( $user_id );
+			if ( $change_redirect ) {
+				wp_send_json_success(
+					array(
+						'redirect_url' => $change_redirect,
+						'message'      => __( 'Please change your password to continue.', 'nobloat-user-foundry' ),
+					)
+				);
+			}
+		}
+
+		/*
 		 * Check if 2FA should be challenged (covers both user-enabled
 		 * and admin-required).
 		 *
@@ -1597,6 +1618,8 @@ class NBUF_Passkeys {
 					'user_id'   => $user_id,
 					'timestamp' => time(),
 					'method'    => $method,
+					/* Bind the pending-2FA session to the User-Agent, matching the password path. */
+					'ua_hash'   => hash( 'sha256', ( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ) . wp_salt( 'auth' ) ),
 				),
 				300
 			);

@@ -417,6 +417,10 @@ class NBUF_Config_Importer {
 	 * @return void
 	 */
 	private function import_templates( $templates, $mode = 'overwrite' ): void {
+		$registry = ( class_exists( 'NBUF_Settings' ) && method_exists( 'NBUF_Settings', 'get_settings_registry' ) )
+			? NBUF_Settings::get_settings_registry()
+			: array();
+
 		foreach ( $templates as $type => $type_templates ) {
 			foreach ( $type_templates as $option_name => $option_value ) {
 				/* Only allow nbuf_ prefixed option names */
@@ -446,6 +450,22 @@ class NBUF_Config_Importer {
 					if ( ! empty( $existing ) ) {
 						continue;
 					}
+				}
+
+				/*
+				 * SECURITY: sanitize before storing, mirroring import_settings().
+				 * Template keys that exist in the settings registry (e.g. the CSS
+				 * keys) get their registered sanitizer (sanitize_css strips
+				 * expression()/@import/javascript:). Keys NOT in the registry
+				 * (e.g. email bodies/subjects) must never be stored raw —
+				 * previously they were, allowing stored XSS in emails and CSS
+				 * injection on public pages via a crafted import. Apply
+				 * wp_kses_post so injected <script>/event handlers are removed.
+				 */
+				if ( isset( $registry[ $option_name ] ) && is_callable( $registry[ $option_name ] ) ) {
+					$option_value = call_user_func( $registry[ $option_name ], $option_value );
+				} elseif ( is_string( $option_value ) ) {
+					$option_value = wp_kses_post( $option_value );
 				}
 
 				/* Update option */

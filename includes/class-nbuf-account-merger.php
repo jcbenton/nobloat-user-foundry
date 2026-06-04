@@ -463,6 +463,28 @@ class NBUF_Account_Merger {
 			wp_die( esc_html__( 'Source and target accounts must be different', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * SECURITY: site-wide `delete_users` is not sufficient authorization to
+		 * absorb-and-delete an arbitrary account. Enforce the per-target meta
+		 * capabilities (edit_user / delete_user, which route through
+		 * map_meta_cap) for EVERY account in the merge, and protect super admins
+		 * on multisite. Without this a delegated operator with `delete_users`
+		 * could merge any user into another and delete the source (IDOR).
+		 */
+		foreach ( $account_ids as $acct_id ) {
+			/* Every account in the merge is modified — require edit_user on each. */
+			if ( ! current_user_can( 'edit_user', $acct_id ) ) {
+				wp_die( esc_html__( 'You do not have permission to merge one or more of the selected accounts.', 'nobloat-user-foundry' ) );
+			}
+			/* Non-primary accounts are deleted — require delete_user on those. */
+			if ( (int) $acct_id !== (int) $primary_id && ! current_user_can( 'delete_user', $acct_id ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete one or more of the selected accounts.', 'nobloat-user-foundry' ) );
+			}
+			if ( is_multisite() && is_super_admin( $acct_id ) && ! is_super_admin( get_current_user_id() ) ) {
+				wp_die( esc_html__( 'You do not have permission to merge a super administrator account.', 'nobloat-user-foundry' ) );
+			}
+		}
+
 		/* Execute merge */
 		$result = self::execute_merge(
 			array(
@@ -955,6 +977,8 @@ class NBUF_Account_Merger {
 			$wpdb->prefix . 'user_level',
 			'capabilities',
 			'user_level',
+			/* Access-granting plugin meta: never copy an impersonation sudo grant. */
+			'_nbuf_impersonation_sudo_until',
 		);
 
 		if ( is_multisite() ) {

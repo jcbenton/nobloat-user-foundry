@@ -629,6 +629,23 @@ class NBUF_Magic_Links {
 			exit;
 		}
 
+		/*
+		 * Enforce the post-authentication password gates (forced change /
+		 * expiration / weak-password) that the password login path applies via
+		 * the `authenticate` filter. The magic-link path never runs
+		 * `authenticate`, so without this it would silently bypass an
+		 * admin-mandated or policy-mandated password change — letting a user
+		 * sidestep a forced rotation by logging in with a magic link. Route to
+		 * the dedicated change form (which provides recovery) before completing.
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
+			$change_redirect = NBUF_Password_Expiration::maybe_get_change_redirect( $user_id );
+			if ( $change_redirect ) {
+				wp_safe_redirect( $change_redirect );
+				exit;
+			}
+		}
+
 		/* If 2FA is required, create a 2FA session and redirect to the challenge page */
 		if ( class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
 			$tfa_token = bin2hex( random_bytes( 32 ) );
@@ -643,6 +660,8 @@ class NBUF_Magic_Links {
 					'user_id'   => $user_id,
 					'timestamp' => time(),
 					'method'    => $method,
+					/* Bind the pending-2FA session to the User-Agent, matching the password path. */
+					'ua_hash'   => hash( 'sha256', ( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' ) . wp_salt( 'auth' ) ),
 				),
 				300
 			);

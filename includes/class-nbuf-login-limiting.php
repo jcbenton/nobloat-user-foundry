@@ -43,7 +43,8 @@ class NBUF_Login_Limiting {
 		 * error becomes the final result that gets returned to the user.
 		 */
 		add_filter( 'authenticate', array( __CLASS__, 'check_login_attempts' ), 30, 3 );
-		add_action( 'wp_login_failed', array( __CLASS__, 'record_failed_attempt' ) );
+		/* 2 args: the WP_Error is needed to skip non-credential (state-block) failures. */
+		add_action( 'wp_login_failed', array( __CLASS__, 'record_failed_attempt' ), 10, 2 );
 		add_action( 'wp_login', array( __CLASS__, 'clear_attempts_on_success' ), 10, 2 );
 		add_action( 'after_password_reset', array( __CLASS__, 'clear_attempts_on_password_reset' ), 10, 2 );
 	}
@@ -112,11 +113,41 @@ class NBUF_Login_Limiting {
 	 * @param string $username Username used in failed attempt.
 	 * @return void
 	 */
-	public static function record_failed_attempt( string $username ): void {
+	public static function record_failed_attempt( string $username, $error = null ): void {
 		/* Check if login limiting is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_enable_login_limiting', true );
 		if ( ! $enabled ) {
 			return;
+		}
+
+		/*
+		 * SECURITY: do not count non-credential failures toward the rate-limit
+		 * counters. Several `authenticate` filters return a WP_Error for a user
+		 * whose PASSWORD WAS CORRECT but whose account is in a blocking state
+		 * (disabled, unverified, pending approval, expired, weak/forced password
+		 * change). WordPress core fires `wp_login_failed` for ANY authenticate
+		 * WP_Error, so without this guard a correct-password attempt would burn a
+		 * failed-attempt slot — letting an attacker lock any known, state-blocked
+		 * username out of the (cross-IP) per-username limiter, and causing
+		 * legitimate unverified users to lock themselves out in a few clicks.
+		 * Only genuine credential failures should feed the brute-force counters;
+		 * unknown codes still count (fail toward recording).
+		 */
+		if ( $error instanceof WP_Error ) {
+			$non_credential_codes = array(
+				'user_disabled',
+				'account_expired',
+				'email_not_verified',
+				'nbuf_unverified',
+				'awaiting_approval',
+				'weak_password_expired',
+				'nbuf_password_change_required',
+				'too_many_attempts',
+				'ip_blocked',
+			);
+			if ( in_array( $error->get_error_code(), $non_credential_codes, true ) ) {
+				return;
+			}
 		}
 
 		global $wpdb;

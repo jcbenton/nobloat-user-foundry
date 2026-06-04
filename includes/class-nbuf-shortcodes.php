@@ -913,6 +913,9 @@ class NBUF_Shortcodes {
 				case 'ip_blocked':
 					$error_message = '<div class="nbuf-message nbuf-message-error nbuf-login-error">' . esc_html__( 'Access denied. Your IP address is not authorized to log in.', 'nobloat-user-foundry' ) . '</div>';
 					break;
+				case 'pending':
+					$error_message = '<div class="nbuf-message nbuf-message-error nbuf-login-error">' . esc_html__( 'Your account is pending administrator approval. You will receive an email once it has been reviewed.', 'nobloat-user-foundry' ) . '</div>';
+					break;
 			}
 		}
 
@@ -1123,6 +1126,28 @@ class NBUF_Shortcodes {
 					}
 				}
 				/* Fall through to generic handling if the token is missing/expired. */
+			}
+
+			/*
+			 * Weak-password grace expired (priority-25 `authenticate` filter): the
+			 * password was correct but no longer meets policy. Send the user into
+			 * the reset flow rather than a dead-end "invalid username or password".
+			 */
+			if ( 'weak_password_expired' === $error_code ) {
+				wp_safe_redirect( self::get_forgot_password_url() );
+				exit;
+			}
+
+			/*
+			 * 2FA required but the intercept did not already redirect (defensive):
+			 * route to the 2FA challenge page instead of showing "login failed".
+			 */
+			if ( '2fa_required' === $error_code ) {
+				$twofa_url = class_exists( 'NBUF_Universal_Router' )
+					? NBUF_Universal_Router::get_url( '2fa' )
+					: home_url( '/2fa-verify/' );
+				wp_safe_redirect( $twofa_url );
+				exit;
 			}
 
 			if ( 'too_many_attempts' === $error_code ) {

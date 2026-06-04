@@ -579,6 +579,31 @@ class NBUF_Role_Manager {
 			return new WP_Error( 'invalid_json', __( 'Invalid JSON format.', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * SECURITY: privilege containment. A user importing a role must not be
+		 * able to grant capabilities they do not themselves hold — otherwise a
+		 * delegated role manager could import a role bearing `manage_options`
+		 * (or any high cap) and assign it to escalate. Super admins (and
+		 * single-site administrators, who hold every cap) pass this check, so
+		 * legitimate imports — including roles with novel plugin caps — are
+		 * unaffected; only a lesser actor granting caps above their own level
+		 * is refused.
+		 */
+		if ( isset( $data['capabilities'] ) && is_array( $data['capabilities'] ) && ! is_super_admin() ) {
+			foreach ( $data['capabilities'] as $cap => $granted ) {
+				if ( $granted && ! current_user_can( $cap ) ) {
+					return new WP_Error(
+						'cap_escalation',
+						sprintf(
+							/* translators: %s: capability the importer does not possess */
+							__( 'Refused: you cannot grant a capability you do not have (%s).', 'nobloat-user-foundry' ),
+							$cap
+						)
+					);
+				}
+			}
+		}
+
 		$exists = self::role_exists( $data['role_key'] );
 
 		if ( $exists && ! $overwrite ) {

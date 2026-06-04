@@ -4007,7 +4007,17 @@ Best regards,
 		$profile_photo = NBUF_Profile_Photos::get_profile_photo( $user->ID, 150 );
 
 		/* Get cover photo */
-		$cover_photo = ( $user_data && ! empty( $user_data->cover_photo_url ) ) ? $user_data->cover_photo_url : '';
+		/*
+		 * SECURITY: source the cover photo from the validated-path reconstruction
+		 * (NBUF_Profile_Photos::get_cover_photo) rather than the raw stored
+		 * cover_photo_url. The raw column is attacker-influenceable and is
+		 * injected into a CSS url() below; get_cover_photo rebuilds a
+		 * same-origin uploads URL from the realpath-validated cover_photo_path,
+		 * matching the canonical public-profile renderer.
+		 */
+		$cover_photo = ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_cover_photo' ) )
+			? (string) NBUF_Profile_Photos::get_cover_photo( $user->ID )
+			: '';
 		$allow_cover = NBUF_Options::get( 'nbuf_profile_allow_cover_photos', true );
 
 		/* Get display name */

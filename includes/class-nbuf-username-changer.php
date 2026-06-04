@@ -285,6 +285,30 @@ class NBUF_Username_Changer {
 			}
 		}
 
+		/*
+		 * Serialize concurrent renames targeting the same username and re-check
+		 * uniqueness under the lock. wp_users.user_login has no UNIQUE index, so
+		 * the earlier username_exists() check is TOCTOU: two concurrent renames
+		 * to the same name could both pass it and both write, producing a
+		 * duplicate user_login (ambiguous login). The advisory lock + re-check
+		 * closes that window. Best-effort: proceed if the lock times out.
+		 */
+		$uname_lock = 'nbuf_uname_' . md5( strtolower( $new_username ) );
+		$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $uname_lock ) );
+		if ( username_exists( $new_username ) ) {
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $uname_lock ) );
+			add_action(
+				'user_profile_update_errors',
+				function ( $errors ) {
+					$errors->add(
+						'username_exists',
+						__( '<strong>Error:</strong> This username is already in use by another account.', 'nobloat-user-foundry' )
+					);
+				}
+			);
+			return;
+		}
+
 		/* Store old username for logging */
 		$old_username = $user->user_login;
 
@@ -321,6 +345,9 @@ class NBUF_Username_Changer {
 			}
 			$nicename = $base_nicename . '-' . wp_generate_password( 6, false, false );
 		}
+
+		/* Release the rename serialization lock now that the write is done. */
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $uname_lock ) );
 
 		if ( false === $result ) {
 			add_action(

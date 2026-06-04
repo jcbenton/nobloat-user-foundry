@@ -48,8 +48,19 @@ class NBUF_IP {
 			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
 			: '';
 
+		/*
+		 * SECURITY: canonicalize all addresses BEFORE comparing against the
+		 * trusted-proxy allowlist. Previously the strict in_array() compared raw
+		 * strings, so a trusted proxy configured as `2001:db8::1` would fail to
+		 * match a REMOTE_ADDR of `2001:0db8:0000::1` (or upper-case). The XFF
+		 * chain would then not be trusted, collapsing every client behind that
+		 * proxy onto a single IP for rate-limiting and IP-restriction checks.
+		 */
+		$trusted_proxies   = array_filter( array_map( array( __CLASS__, 'canonicalize_ip' ), (array) $trusted_proxies ) );
+		$remote_addr_canon = self::canonicalize_ip( $remote_addr );
+
 		/* Only trust X-Forwarded-For if request comes from trusted proxy */
-		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
+		if ( ! empty( $trusted_proxies ) && in_array( $remote_addr_canon, $trusted_proxies, true ) ) {
 			if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
 				$xff = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
 
@@ -65,8 +76,9 @@ class NBUF_IP {
 					if ( '' === $candidate ) {
 						continue;
 					}
-					if ( ! in_array( $candidate, $trusted_proxies, true ) ) {
-						$ip = $candidate;
+					$candidate_canon = self::canonicalize_ip( $candidate );
+					if ( ! in_array( $candidate_canon, $trusted_proxies, true ) ) {
+						$ip = $candidate_canon;
 						break;
 					}
 				}
@@ -103,6 +115,29 @@ class NBUF_IP {
 
 		/* Lowercase for consistency */
 		return strtolower( $ip );
+	}
+
+	/**
+	 * Canonicalize an IP string to a comparable form.
+	 *
+	 * Round-trips through inet_pton/inet_ntop so equivalent IPv6 representations
+	 * (zero-compression, leading zeros, letter case) collapse to one value, and
+	 * lowercases the result. Non-IP input is returned lowercased unchanged.
+	 *
+	 * @param  string $ip Raw IP string.
+	 * @return string Canonical lowercase IP, or '' for empty input.
+	 */
+	private static function canonicalize_ip( string $ip ): string {
+		$ip = trim( $ip );
+		if ( '' === $ip ) {
+			return '';
+		}
+		$packed = @inet_pton( $ip ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- inet_pton emits a warning on non-IP input; we handle false below.
+		if ( false === $packed ) {
+			return strtolower( $ip );
+		}
+		$normal = inet_ntop( $packed );
+		return false === $normal ? strtolower( $ip ) : strtolower( $normal );
 	}
 
 	/**

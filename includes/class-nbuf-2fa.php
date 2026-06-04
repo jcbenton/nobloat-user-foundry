@@ -511,6 +511,21 @@ If you did not request this code, please ignore this email.
 		$lock_name = 'nbuf_totp_' . $user_id;
 		$locked    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 
+		/*
+		 * SECURITY: fail closed if the advisory lock was not acquired. GET_LOCK
+		 * returns '1' on success, '0' on timeout, NULL on error. Proceeding
+		 * without the lock (the contention case the lock exists for) would let
+		 * two parallel submissions of the same code both read the same
+		 * _nbuf_totp_last_counter and both pass the replay check — defeating
+		 * single-use enforcement under load.
+		 */
+		if ( '1' !== (string) $locked ) {
+			return new WP_Error(
+				'2fa_busy',
+				__( 'Verification is briefly busy. Please try again.', 'nobloat-user-foundry' )
+			);
+		}
+
 		try {
 			/*
 			 * Verify code AND get the matched counter back. Storing the

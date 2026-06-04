@@ -793,6 +793,20 @@ class NBUF_Password_Expiration {
 
 		$table_name = $wpdb->prefix . 'nbuf_user_data';
 
+		/*
+		 * Guard: the repair predicate references weak_password_flagged_at. On a
+		 * very old schema that predates the column the UPDATE would error and
+		 * (int) cast the false result to 0 — silently reporting "0 cleared" and
+		 * leaving affected users locked out with no operator signal. Skip
+		 * cleanly when the column is absent.
+		 */
+		$has_column = $wpdb->get_var(
+			$wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, 'weak_password_flagged_at' )
+		);
+		if ( ! $has_column ) {
+			return 0;
+		}
+
 		$cleared = (int) $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET force_password_change = 0

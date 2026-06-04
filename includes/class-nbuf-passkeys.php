@@ -810,8 +810,19 @@ class NBUF_Passkeys {
 			return new WP_Error( 'sign_count_invalid', __( 'Authenticator verification failed. Possible cloned device detected.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Update sign count and last used */
-		NBUF_User_Passkeys_Data::update_sign_count( $passkey->id, $new_sign_count );
+		/*
+		 * Update sign count and last used. SECURITY: never lower a stored
+		 * non-zero counter back to 0. Counter-less authenticators always report
+		 * 0; persisting that over a previously-higher value would permanently
+		 * disable clone detection for the credential (every future 0 keeps it
+		 * pinned and the `<=` regression check above can never fire). Only
+		 * advance the stored counter on a real increment.
+		 */
+		if ( $new_sign_count > 0 ) {
+			NBUF_User_Passkeys_Data::update_sign_count( $passkey->id, $new_sign_count );
+		} else {
+			NBUF_User_Passkeys_Data::update_last_used( $passkey->id );
+		}
 
 		/*
 		 * Derive whether this assertion satisfied user-verification (UV).

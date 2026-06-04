@@ -278,11 +278,22 @@ class NBUF_Privacy_Manager {
 
 		/* Update database */
 		if ( ! empty( $privacy_data ) ) {
+			/*
+			 * Build the format array in lockstep with $privacy_data. The data
+			 * array is assembled conditionally (profile_privacy and
+			 * privacy_settings may be absent), so a fixed positional format
+			 * array could apply %d to a string column — e.g. coercing
+			 * 'members_only' to 0 and silently resetting the privacy level.
+			 */
+			$formats = array();
+			foreach ( array_keys( $privacy_data ) as $column ) {
+				$formats[] = ( 'show_in_directory' === $column ) ? '%d' : '%s';
+			}
 			$wpdb->update(
 				$table,
 				$privacy_data,
 				array( 'user_id' => $user_id ),
-				array( '%s', '%d', '%s' ),
+				$formats,
 				array( '%d' )
 			);
 		}

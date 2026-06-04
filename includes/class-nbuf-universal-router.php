@@ -549,7 +549,12 @@ class NBUF_Universal_Router {
 	 */
 	private static function render_login() {
 		if ( is_user_logged_in() ) {
-			wp_safe_redirect( self::get_login_redirect_url() );
+			$redirect = self::get_login_redirect_url();
+			/* Apply admin-access restriction (non-admin → /wp-admin/ rewrite). */
+			if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+				$redirect = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect, get_current_user_id() );
+			}
+			wp_safe_redirect( $redirect );
 			exit;
 		}
 		return NBUF_Shortcodes::sc_login_form( array() );

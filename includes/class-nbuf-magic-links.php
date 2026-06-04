@@ -681,6 +681,9 @@ class NBUF_Magic_Links {
 
 		/* Redirect based on login redirect settings */
 		$redirect_url = self::get_redirect_url();
+		if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+			$redirect_url = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_url, (int) $user_id );
+		}
 		wp_safe_redirect( $redirect_url );
 		exit;
 	}

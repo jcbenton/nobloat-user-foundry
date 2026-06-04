@@ -408,6 +408,13 @@ class NBUF_2FA_Login {
 			 */
 			$failed_user = get_user_by( 'id', $user_id );
 			if ( $failed_user ) {
+				/*
+				 * `wp_login_failed` is a WordPress core action, not a
+				 * plugin-defined one — we are firing it intentionally so
+				 * IP-level rate limiters (NBUF_Login_Limiting and other
+				 * plugins listening on the same hook) see the 2FA failure.
+				 */
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WP hook, not a custom plugin hook.
 				do_action( 'wp_login_failed', $failed_user->user_login, $result instanceof WP_Error ? $result : new WP_Error( '2fa_failed', $error_code ) );
 			}
 
@@ -597,6 +604,16 @@ class NBUF_2FA_Login {
 
 		/* Apply filter for customization */
 		$redirect_to = apply_filters( 'nbuf_login_redirect', $redirect_to, $user );
+
+		/*
+		 * Apply admin-access restriction. If `nbuf_restrict_admin_access`
+		 * is on and this user is non-admin, an `/wp-admin/` target (from
+		 * either the configured setting or the redirect_to override) is
+		 * rewritten to the configured account URL.
+		 */
+		if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+			$redirect_to = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_to, (int) $user->ID );
+		}
 
 		wp_safe_redirect( $redirect_to );
 		exit;

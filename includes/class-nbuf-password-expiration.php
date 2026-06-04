@@ -156,23 +156,35 @@ class NBUF_Password_Expiration {
 
 		if ( $exists ) {
 			/*
-			 * SECURITY: do NOT auto-clear `force_password_change` here.
-			 * Previously this UPDATE wrote `force_password_change = 0`
-			 * unconditionally, which meant an admin's "force this user to
-			 * rotate their password" could be silently undone by any
-			 * password_reset / profile_update / user_register hook flow
-			 * (e.g., the standard "Lost your password?" link). The flag
-			 * is cleared only by handle_password_change_form() once the
-			 * user has actually been forced through the dedicated form.
+			 * Clear `force_password_change` here because every caller of this
+			 * method gates on an *actual* password change having occurred:
+			 *   - track_password_change()                 (password_reset action)
+			 *   - track_password_change_on_profile_update (only when the
+			 *     user_pass hash actually changed)
+			 *   - track_password_change_on_registration   (brand-new user)
+			 * A forced-change requirement ("you must change your password")
+			 * is satisfied the moment the user genuinely sets a new password,
+			 * regardless of which form they used to do it.
+			 *
+			 * REGRESSION FIX: v1.6.4 stopped clearing this flag to stop an
+			 * admin's force-rotate from being "silently undone." But the only
+			 * thing that triggers this code path IS a real password change, so
+			 * leaving the flag set locked users out permanently: they would
+			 * receive a reset email, set a new password, and still be blocked
+			 * by check_password_on_login() on the next attempt — with the
+			 * front-end login form (wp_signon) having no route to the dedicated
+			 * forced-change form (that redirect only fires via wp_login_errors
+			 * on wp-login.php). Re-clearing here restores the recovery path.
 			 */
 			$result = $wpdb->update(
 				$table_name,
 				array(
-					'password_changed_at' => $now,
-					'password_expires_at' => $expires_at,
+					'password_changed_at'   => $now,
+					'password_expires_at'   => $expires_at,
+					'force_password_change' => 0,
 				),
 				array( 'user_id' => $user_id ),
-				array( '%s', '%s' ),
+				array( '%s', '%s', '%d' ),
 				array( '%d' )
 			);
 		} else {
@@ -596,6 +608,10 @@ class NBUF_Password_Expiration {
 
 				/* Redirect to admin or home */
 				$redirect_to = user_can( $user, 'edit_posts' ) ? admin_url() : home_url();
+				/* Apply admin-access restriction (non-admin → /wp-admin/ rewrite). */
+				if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+					$redirect_to = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_to, (int) $user->ID );
+				}
 				wp_safe_redirect( $redirect_to );
 				exit;
 			}
@@ -745,6 +761,60 @@ class NBUF_Password_Expiration {
 				$expiration_days
 			)
 		);
+	}
+
+	/**
+	 * One-time cleanup of stale force_password_change flags.
+	 *
+	 * Between v1.6.4 and the fix in update_password_changed_date(), a genuine
+	 * password change (reset link, profile change) updated password_changed_at
+	 * but failed to clear force_password_change. Affected users were therefore
+	 * permanently blocked at login by check_password_on_login() no matter how
+	 * many times they reset their password.
+	 *
+	 * This clears the flag ONLY where there is positive evidence that the user
+	 * already changed their password after being flagged: the weak-password
+	 * migration set weak_password_flagged_at, and password_changed_at is newer.
+	 * That is exactly the "stale" definition has_weak_password() uses, so there
+	 * are no false positives — we never undo a still-pending requirement.
+	 *
+	 * Admin-initiated forces with no weak_password_flagged_at carry no reliable
+	 * "changed since forced" signal in the schema and are intentionally left
+	 * alone; those now self-heal on the user's next password change thanks to
+	 * the update_password_changed_date() fix.
+	 *
+	 * Idempotent and safe to call on every upgrade; the caller gates it behind
+	 * a one-shot option so it normally runs once.
+	 *
+	 * @return int Number of users whose stale flag was cleared.
+	 */
+	public static function migrate_clear_stale_force_flags(): int {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . 'nbuf_user_data';
+
+		$cleared = (int) $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET force_password_change = 0
+				 WHERE force_password_change = 1
+				   AND weak_password_flagged_at IS NOT NULL
+				   AND password_changed_at IS NOT NULL
+				   AND password_changed_at > weak_password_flagged_at',
+				$table_name
+			)
+		);
+
+		if ( $cleared > 0 && class_exists( 'NBUF_Audit_Log' ) ) {
+			NBUF_Audit_Log::log(
+				0,
+				'force_password_flag_cleanup',
+				'info',
+				/* translators: %d: number of users whose stale forced-change flag was cleared. */
+				sprintf( __( 'Cleared stale forced-password-change flag for %d user(s) after upgrade.', 'nobloat-user-foundry' ), $cleared )
+			);
+		}
+
+		return $cleared;
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

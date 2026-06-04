@@ -1666,6 +1666,11 @@ class NBUF_Passkeys {
 		$redirect_candidate = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : '';
 		$redirect_url       = wp_validate_redirect( $redirect_candidate, $default_redirect );
 
+		/* Apply admin-access restriction (non-admin → /wp-admin/ rewrite). */
+		if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+			$redirect_url = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_url, (int) $user_id );
+		}
+
 		wp_send_json_success(
 			array(
 				'message'      => __( 'Login successful.', 'nobloat-user-foundry' ),

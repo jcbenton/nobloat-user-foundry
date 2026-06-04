@@ -333,6 +333,38 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.6 — WordPress 7.0 "Armstrong" compatibility
+
+Confirms compatibility with WordPress 7.0 (released 2026-05-20). No code changes were required; this release bumps the `Tested up to` header to 7.0 and documents the audit findings.
+
+**Audited breaking changes — none impact this plugin:**
+
+- **Minimum PHP version raised to 7.4.** Plugin already requires PHP 8.0; no action needed.
+- **HTML5 `script` theme support removed** (Trac #64442). Plugin does not register `add_theme_support( 'html5', ... )`; no action needed.
+- **Author link function signatures expanded** — `get_the_author_link()` and `the_author_link()` gained an optional `$use_title_attr` parameter; `the_author_posts_link` filter now receives three arguments. Plugin does not call these functions; no action needed.
+- **Block API v3 iframed editor enforcement.** Plugin is not a block plugin and registers no blocks; no action needed.
+- **Administrator / Editor removed from the General Settings "new user default role" selector.** Plugin uses `wp_dropdown_roles()` in its own settings panel — the function's API is unchanged in WP 7.0; no action needed.
+
+**Real-Time Collaboration interaction (expected, not a regression):**
+
+The content-restriction metabox in `includes/restrictions/class-nbuf-restriction-metabox.php` is a classic `add_meta_box()` registration. Per the WP 7.0 dev note on RTC, classic meta boxes disable real-time collaboration on posts where they are visible. This is documented WP 7.0 behavior; posts without content-restriction enforcement enabled are unaffected.
+
+**Additive WP 7.0 APIs not consumed by this plugin:**
+
+AI Client, Connectors API, Client-Side Abilities API, `customCSS` block support, `textIndent`, dimensions `width`/`height`, PHP-only block `autoRegister`. No integration work is required for this release.
+
+### 1.7.5 — Non-admin /wp-admin/ redirect fix + cap-vs-role hardening
+
+Closes a long-standing UX/security bug where non-admin users were redirected into `/wp-admin/` after login despite the configured `nbuf_login_redirect = "account"` setting.
+
+- **Root cause:** the form-render code applied the setting to the hidden `redirect_to` input, but the submit handler only honored the POST'd `redirect_to`. Any `redirect_to` URL parameter inherited from a wp-admin link silently overrode the configured destination. The `wp-login.php` native flow also ignored the setting (no `login_redirect` filter hooked).
+- **Fix:** new helper `NBUF_Hooks::sanitize_post_login_redirect()` unconditionally rewrites `/wp-admin/*` redirect targets to the account URL for non-admins (role-based check, no setting required). Applied at every login redirect site (NBUF login form, 2FA login, magic-link, passkey, universal-router, ToS post-acceptance, password-expiration). New `login_redirect` filter (priority 999) catches WordPress's native post-login redirect (wp-login.php and plugin-triggered `wp_signon` flows). The separate `nbuf_restrict_admin_access` setting still controls whether non-admins may *browse* /wp-admin/ once there (admin_init gate); only the post-login redirect rewrite is unconditional.
+- **Cap-vs-role bypass (HIGH):** `restrict_admin_access` was using `current_user_can( 'manage_options' )` — same pattern fixed in the ToS gate for 1.7.1. Switched to a role check (`administrator` / multisite super-admin) so a custom non-admin role granted `manage_options` cannot silently bypass the wp-admin restriction.
+
+### 1.7.4 — ToS acceptance redirect-loop fix
+
+Fixes a 1.7.1 regression where non-admin users were bounced back to the Terms of Service page every time they clicked Accept and could not complete acceptance. The `admin_init` ToS gate added in 1.7.1 was intercepting the form's POST to `/wp-admin/admin-post.php?action=nbuf_accept_tos` (admin_init fires before admin_post_$action), so `handle_acceptance` never ran. The gate now allowlists that specific action — the handler still verifies its own nonce, pins to the active version, and refuses impersonated submissions.
+
 ### 1.7.3 — Forensic-audit Group D: plumbing + admin JS / templates
 
 Closes 7 HIGH findings from the Group D audit (settings / options / hooks / cron / DB / migration / router + import/templates/CSS + admin JS).

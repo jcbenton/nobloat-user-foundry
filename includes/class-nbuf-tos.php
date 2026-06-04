@@ -77,6 +77,24 @@ class NBUF_ToS {
 		if ( ! is_user_logged_in() ) {
 			return;
 		}
+
+		/*
+		 * Allow the acceptance form itself to POST through. The form
+		 * targets /wp-admin/admin-post.php?action=nbuf_accept_tos and
+		 * admin_init fires BEFORE admin_post_$action — without this
+		 * exemption every Accept click is bounced back to the ToS page
+		 * by the gate below, before handle_acceptance can ever run.
+		 * The handler verifies its own nonce, pins to the active
+		 * version, and rejects impersonated submissions.
+		 */
+		global $pagenow;
+		if ( 'admin-post.php' === $pagenow ) {
+			$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading action name to allowlist gate-bypass; handler verifies its own nonce.
+			if ( 'nbuf_accept_tos' === $action ) {
+				return;
+			}
+		}
+
 		$user_id = get_current_user_id();
 		if ( self::user_is_admin_or_super( $user_id ) ) {
 			return;
@@ -1074,6 +1092,16 @@ class NBUF_ToS {
 			default:
 				$redirect_url = NBUF_URL::get( 'account' );
 				break;
+		}
+
+		/*
+		 * Apply the admin-access restriction so a non-admin who has just
+		 * accepted the ToS does not land in /wp-admin/ when the configured
+		 * login destination is "admin" but the site has restricted backend
+		 * access. Helper is a no-op when the restriction is off.
+		 */
+		if ( class_exists( 'NBUF_Hooks' ) && method_exists( 'NBUF_Hooks', 'sanitize_post_login_redirect' ) ) {
+			$redirect_url = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_url, get_current_user_id() );
 		}
 
 		return $redirect_url;

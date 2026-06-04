@@ -768,6 +768,11 @@ class NBUF_Shortcodes {
 			}
 			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
+			/* Apply admin-access restriction (non-admin → /wp-admin/ rewrite). */
+			if ( class_exists( 'NBUF_Hooks' ) ) {
+				$redirect_url = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect_url, get_current_user_id() );
+			}
+
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
@@ -1093,6 +1098,33 @@ class NBUF_Shortcodes {
 			$error_code   = $user->get_error_code();
 			$login_status = 'failed'; // Default.
 
+			/*
+			 * Forced/expired password change: the credentials were CORRECT but
+			 * NBUF_Password_Expiration::check_password_on_login() (priority-30
+			 * authenticate filter) blocked the login pending a password change.
+			 *
+			 * On wp-login.php this is handled by maybe_redirect_to_password_change()
+			 * via the wp_login_errors filter, but that filter never fires for the
+			 * front-end wp_signon() path. Without this branch the user would just
+			 * see a generic "login failed" and have no route to the change form —
+			 * a permanent lockout. Route them to the dedicated forced-change form
+			 * using the cryptographic token the filter stashed for this user.
+			 */
+			if ( 'nbuf_password_change_required' === $error_code ) {
+				$change_user = get_user_by( 'login', $username );
+				if ( ! $change_user ) {
+					$change_user = get_user_by( 'email', $username );
+				}
+				if ( $change_user ) {
+					$token = get_transient( 'nbuf_password_change_redirect_' . $change_user->ID );
+					if ( $token ) {
+						wp_safe_redirect( site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . rawurlencode( $token ) ) );
+						exit;
+					}
+				}
+				/* Fall through to generic handling if the token is missing/expired. */
+			}
+
 			if ( 'too_many_attempts' === $error_code ) {
 				$login_status = 'blocked';
 			} elseif ( 'nbuf_unverified' === $error_code || 'email_not_verified' === $error_code ) {
@@ -1117,6 +1149,18 @@ class NBUF_Shortcodes {
 
 		// If we got here, user is logged in and passed all checks.
 		// Note: Login success is logged via wp_login hook in main plugin file.
+
+		/*
+		 * Apply the admin-access restriction. If `nbuf_restrict_admin_access`
+		 * is enabled and this user is non-admin, an `/wp-admin/` $redirect
+		 * (e.g. inherited from a `redirect_to` POST that originated at a
+		 * wp-admin link) is rewritten to the configured account URL — the
+		 * `nbuf_login_redirect = "account"` setting was being silently
+		 * defeated by the redirect_to override before this guard.
+		 */
+		if ( class_exists( 'NBUF_Hooks' ) ) {
+			$redirect = NBUF_Hooks::sanitize_post_login_redirect( (string) $redirect, (int) $user->ID );
+		}
 
 		wp_safe_redirect( $redirect );
 		exit;

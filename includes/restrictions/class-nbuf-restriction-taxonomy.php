@@ -215,14 +215,21 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 
 		global $wpdb;
 
-		/* Build query for term meta */
+		/*
+		 * Build query for term meta. $placeholders is constructed
+		 * locally as a fixed-length string of `%s` markers — there is
+		 * no user-controllable substring in it. The actual taxonomy
+		 * values are passed positionally to $wpdb->prepare via the
+		 * spread operator, so each value is fully escaped. This is
+		 * the canonical WP IN-clause pattern and is safe.
+		 */
 		$placeholders = implode( ',', array_fill( 0, count( $taxonomies ), '%s' ) );
 
 		/*
 		* Get all terms with restrictions in these taxonomies
 		*/
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN clause
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause; $placeholders is constructed locally from a fixed-length array of literal `%s` markers and contains no user data. Values are bound via $wpdb->prepare argument list.
 		$restricted_terms = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT t.term_id, tm1.meta_value as visibility, tm2.meta_value as allowed_roles
@@ -235,7 +242,7 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 				...$taxonomies
 			)
 		);
-	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$excluded = array();

@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.7.3
+ * Version: 1.7.6
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -165,6 +165,19 @@ function nbuf_maybe_upgrade_database(): void {
 
 		/* Update stored version */
 		update_option( 'nbuf_db_version', $current_db_version );
+	}
+
+	/*
+	 * One-shot data repair: clear stale force_password_change flags left behind
+	 * by the v1.6.4 regression where a genuine password change (reset link /
+	 * profile update) updated password_changed_at but did not clear the forced-
+	 * change flag, permanently locking affected users out of login. Gated by its
+	 * own option (not the DB version) so it runs exactly once even though it is
+	 * idempotent. See NBUF_Password_Expiration::migrate_clear_stale_force_flags().
+	 */
+	if ( ! get_option( 'nbuf_force_flag_cleanup_done' ) && class_exists( 'NBUF_Password_Expiration' ) ) {
+		NBUF_Password_Expiration::migrate_clear_stale_force_flags();
+		update_option( 'nbuf_force_flag_cleanup_done', '1' );
 	}
 }
 

@@ -407,6 +407,14 @@ class NBUF_Webhooks {
 		$pin_port        = isset( $parsed_url['port'] ) ? (int) $parsed_url['port'] : ( ( isset( $parsed_url['scheme'] ) && 'https' === strtolower( $parsed_url['scheme'] ) ) ? 443 : 80 );
 		$curl_resolve_cb = static function ( $handle ) use ( $pin_host, $pin_port, $pinned_ip ) {
 			if ( $pin_host && $pinned_ip ) {
+				/*
+				 * curl_setopt is required here: CURLOPT_RESOLVE has no
+				 * wp_remote_* equivalent. Pinning the resolved IP at the
+				 * curl layer is the only way to prevent the underlying
+				 * libcurl from re-resolving DNS at connect time, which
+				 * is the entire SSRF DNS-rebind defense added in 1.7.2.
+				 */
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt -- Required for SSRF DNS-rebind protection; see comment above.
 				curl_setopt( $handle, CURLOPT_RESOLVE, array( $pin_host . ':' . $pin_port . ':' . $pinned_ip ) );
 			}
 		};

@@ -1076,6 +1076,35 @@ class NBUF_GDPR_Export {
 		if ( ! $base || 0 !== strpos( $real, $base . DIRECTORY_SEPARATOR ) ) {
 			return;
 		}
+
+		/*
+		 * Prefer WP_Filesystem for the recursive delete (one call,
+		 * recursive=true). Initialise it on demand if it isn't already
+		 * set up. If WP_Filesystem is not available for any reason
+		 * (e.g. credentials prompt would be required and we cannot
+		 * surface one in this code path), fall back to a manual
+		 * RecursiveIterator walk using wp_delete_file for files and
+		 * the WP_Filesystem rmdir as soon as it becomes available.
+		 */
+		global $wp_filesystem;
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		if ( $wp_filesystem instanceof WP_Filesystem_Base ) {
+			$wp_filesystem->rmdir( $real, true );
+			return;
+		}
+
+		/*
+		 * Fallback path: walk the tree and use wp_delete_file for
+		 * regular files. We have no rmdir alternative without
+		 * WP_Filesystem, so leave any remaining empty directories
+		 * for the next sweep rather than calling rmdir() directly.
+		 * The export-cleanup cron will retry; orphan directories
+		 * are harmless (they hold no user data after the file walk).
+		 */
 		$iterator = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator( $real, RecursiveDirectoryIterator::SKIP_DOTS ),
 			RecursiveIteratorIterator::CHILD_FIRST
@@ -1085,15 +1114,10 @@ class NBUF_GDPR_Export {
 			if ( ! $item ) {
 				continue;
 			}
-			if ( $fileinfo->isDir() ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
-				@rmdir( $item ); // phpcs:ignore Generic.PHP.NoSilencedErrors
-			} elseif ( $fileinfo->isFile() ) {
+			if ( $fileinfo->isFile() ) {
 				wp_delete_file( $item );
 			}
 		}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
-		@rmdir( $real ); // phpcs:ignore Generic.PHP.NoSilencedErrors
 	}
 
 	/**

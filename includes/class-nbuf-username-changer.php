@@ -240,6 +240,7 @@ class NBUF_Username_Changer {
 		 * cannot rename accounts to reserved names like `admin`, `root`,
 		 * `wpadmin`, `support` (whatever the site's policy lists).
 		 */
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WP filter; we apply it here because it is only enforced by wp_insert_user, not wp_update_user / direct $wpdb writes.
 		$illegal_logins = (array) apply_filters( 'illegal_user_logins', array() );
 		if ( in_array( strtolower( $new_username ), array_map( 'strtolower', $illegal_logins ), true ) ) {
 			add_action(
@@ -379,6 +380,7 @@ class NBUF_Username_Changer {
 		 */
 		$post_user = get_userdata( $user_id );
 		if ( $post_user ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core WP action; fired here because direct $wpdb update bypasses wp_update_user (and therefore the hook) by default.
 			do_action( 'profile_update', $user_id, $user, array() );
 		}
 

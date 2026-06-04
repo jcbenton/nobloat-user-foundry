@@ -3,8 +3,8 @@ Contributors: mailborder
 Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
-Tested up to: 6.9
-Stable tag: 1.7.3
+Tested up to: 7.0
+Stable tag: 1.7.6
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,452 +324,110 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
-= 1.7.3 =
-* Security (HIGH): BuddyPress profile migrator now passes `allowed_classes => false` to unserialize. End-user-controlled BP `bp_xprofile_data.value` rows previously flowed into `maybe_unserialize()` during admin-initiated migration. Combined with any installed plugin's POP gadget, this was an object-injection / RCE-as-admin path. The same hardening already exists in `NBUF_Options::safe_unserialize_option()` and `NBUF_Settings::maybe_migrate_wp_options()`; this call site was missed.
-* Security (HIGH): NBUF_Transients::increment() rewritten as a single `INSERT ... ON DUPLICATE KEY UPDATE` so concurrent rate-limit increments are race-free. Previous read-modify-write with `add_option()` race + non-atomic fallback UPDATE could leak rate-limited requests under load and lose the TTL on the `_transient_timeout_*` row, breaking magic-link / 2FA / login-limiting counters.
-* Security (HIGH): Settings save handler unchecked-checkbox + empty-array paths now require the registry entry to actually be the corresponding sanitizer (`sanitize_checkbox` for nbuf_form_checkboxes, one of the array sanitizers for nbuf_form_arrays). A tampered hidden form field listing arbitrary registered keys could otherwise overwrite int / string / select options with literal `false` (or array-sanitizer floor), silently zeroing out lockout thresholds, password-min-length, etc.
-* Security (HIGH): Admin JS XSS via `.html()` with unescaped server data — fixed across 6 admin scripts: config-portability.js (config-import preview/results), bulk-import.js (CSV preview/errors), user-notes.js (note author display_name), version-history.js (snapshot/diff modal field names), gdpr-admin-export.js (export status messages), and feature-tests.php inline JS (third-party webhook test response). Each uses an `escapeHtml()` helper or jQuery `.text()` to neutralise stored payloads in user-controlled fields before DOM insertion.
-* Security (HIGH): Email send() now strips CR/LF/NULL from the subject parameter before passing to wp_mail(). Defense-in-depth against header injection from any future caller that doesn't pre-sanitise its subject string.
-* Security (HIGH): Config import now refuses unknown setting keys outright. Previously any nbuf_-prefixed key was accepted; only those with a registry sanitizer were validated. Imported configs could therefore introduce arbitrary new option names — a configuration-drift / rogue-options vector that survives uninstall.
-* Security (MEDIUM): CSS sanitizer hardened. Removes CSS hex-escape sequences (`\6a` → 'j') BEFORE pattern matching so an attacker cannot bypass the regex via `\6Aavascript:`, `\65xpression(`, etc. Strips control characters. Iterates pattern set until stable to defeat nested payloads (`expressexpressionion(` collapses to `expression(` then is stripped). Adds `@charset` to the strip list.
+= 1.7.6 — WordPress 7.0 "Armstrong" compatibility =
+* Tested against WordPress 7.0 (released 2026-05-20). No code changes required; this release bumps the compatibility header and documents the audit.
+* Audit scope vs. WP 7.0 breaking changes: minimum-PHP-7.4 bump (plugin already requires PHP 8.0); HTML5 `script` theme support removal (plugin does not call `add_theme_support()` for `html5`); author-link function signature additions in `get_the_author_link()` / `the_author_link()` (plugin does not call these); Block API v3 iframed-editor enforcement (plugin is not a block plugin); Administrator/Editor removal from the General Settings "new user default role" UI (plugin uses `wp_dropdown_roles()` in its own settings panel — function API is unchanged).
+* Real-Time Collaboration interaction: the content-restriction metabox is a classic `add_meta_box()` registration, which by design disables RTC for posts that have the metabox visible. This is the documented WP 7.0 behavior and is not a regression. Posts without restrictions enabled are unaffected.
+* New WP 7.0 additive APIs (AI Client, Connectors, Client-Side Abilities, `customCSS`, `textIndent`, dimensions width/height, `autoRegister` PHP blocks) are not consumed by this plugin and require no integration.
 
-= 1.7.2 =
-* Security (HIGH): ToS gate no longer fails open when the active version's `effective_date` is in the future. `get_active_version()` previously filtered `effective_date <= NOW`, returning NULL until the date arrived — meaning an admin who set a future-dated active version (with the previous version simultaneously deactivated by `set_active_version()`) silently disabled the ENTIRE ToS gate (frontend + REST + admin) for the intervening window. Filter dropped; schedule future versions with `is_active=0` and promote via cron when the date arrives.
-* Security (HIGH): Webhook DNS-rebinding via IPv6 AAAA. `is_url_safe()` now returns the resolved IP (renamed `resolve_safe_ip()`), and `deliver()` pins it via `CURLOPT_RESOLVE` so the actual HTTP request bypasses curl's own DNS resolution. Closes the TTL=0 AAAA-rebind path where a hostile authoritative DNS could pass the resolution-time check then swap to ::1 / ULA at request time.
-* Security (HIGH): ToS `set_active_version` now acquires a `SELECT … FOR UPDATE` row lock before the deactivate/activate UPDATEs to serialise concurrent saves. Without it, two parallel admin saves could both leave the table with two `is_active=1` rows.
-* Security (HIGH): ToS `update_version` now defers the `set_active_version` side-effect until AFTER the row UPDATE succeeds. The previous order (activate first, then content-update) left the activated version flagged with stale content if the row update failed (deadlock, column overflow, connection drop).
-* Security (MEDIUM): ToS acceptance is now refused while an admin is impersonating the target user. Previously the row in `nbuf_tos_acceptances` captured the impersonator's IP/UA — and the canonical CSV export does NOT surface impersonator_id — so the row appeared to be the user's own legal acceptance.
-* Security (MEDIUM): Email-restriction `get_email_domain()` now rejects RFC 5321 domain-literal forms (`user@[1.2.3.4]`, `user@[ipv6:::1]`). Previously a bracketed IP-literal mailbox bypassed every blacklist pattern.
-* Security (MEDIUM): Webhook payload now includes a unique 16-byte `delivery_id` nonce so receivers can enforce one-time delivery. Without it, two events with identical `data` produced byte-identical signed bodies — replay-indistinguishable.
-* Security (MEDIUM): Webhook URL scheme allowlist (http/https only) — defense-in-depth alongside `wp_safe_remote_post`.
-* Security (MEDIUM): TOTP setup submission now rate-limited at 20 attempts / 30 minutes per user. Closes a brute-force vector available to a stolen-session attacker who obtained the pinned secret.
-* Security (MEDIUM): Password-change handler now preserves the original "remember me" cookie state rather than hardcoding `wp_set_auth_cookie( $user_id, true )`. Privacy hit on shared/public devices.
-* Operability (MEDIUM): Webhook log retention DELETE batched at 1K rows per pass with a 1M cap per cron run. Prevents lock contention against concurrent webhook INSERTs on sites with millions of stale log rows.
-* Operability (MEDIUM): Webhook `test()` failures no longer count toward the 10-failure auto-disable threshold. An admin debugging a temporarily-down endpoint no longer silently takes the webhook offline. Real events resume normal accounting.
+= 1.7.5 =
+* Bug fix (HIGH): Non-admins were redirected into /wp-admin/ after login despite `nbuf_login_redirect = "account"`. The submit handler only honored the POST'd `redirect_to`, so a `redirect_to` URL parameter inherited from a wp-admin link silently overrode the setting. wp-login.php native flow also ignored the setting (no `login_redirect` filter). New `NBUF_Hooks::sanitize_post_login_redirect()` unconditionally rewrites `/wp-admin/*` redirect targets to the account URL for non-admins (no setting required) — applied at every login redirect site (NBUF form, 2FA, magic-link, passkey, universal-router, ToS post-acceptance, password-expiration). New `login_redirect` filter (priority 999) catches the WP-native flow.
+* Security (HIGH): `restrict_admin_access` cap-vs-role bypass (same pattern fixed in ToS gate for 1.7.1). Check is now role-based (`administrator` / multisite super-admin) rather than `manage_options` capability. Note: this gate (which controls whether non-admins may *browse* /wp-admin/ once there) still requires the `nbuf_restrict_admin_access` setting; only the post-login redirect rewrite is unconditional.
 
-= 1.7.1 =
-* Fix (HIGH): Registration was functionally broken on default install. The shortcode handler validated antibot once (consuming the per-session js_token / pow transients), then NBUF_Registration::register_user re-validated against $_POST — and the second pass failed because the transients were already deleted. Every legitimate user saw "Registration blocked due to suspicious activity." Caller now signals "already validated" to NBUF_Antibot::validate, which short-circuits.
-* Fix (HIGH): Impersonation-end binding double-hash. `original_session_token_hash` was stored as `sha256(raw_token)` but the end-of-impersonation comparison ran `sha256()` again over the verifier-keyed `WP_Session_Tokens::get_all()` keys (already `hash_token($raw)` = sha256). Result: `sha256(raw)` vs `sha256(sha256(raw))` — never matched. Every legitimate "End Impersonation" click failed the binding check, emitted a critical-severity security log entry, and trapped the admin in the target's session. Comparison is now direct.
-* Fix (HIGH): TOTP setup retry stale-secret regression (introduced v1.6.9). `render_totp_setup_with_error` generated a fresh secret and QR but did NOT update the per-user pinned transient — `handle_totp_setup_submission` continued to validate against the original. Users who mistyped one digit re-scanned the new QR and were trapped in an infinite "Invalid verification code" loop for the full 30-minute transient TTL. Retry render now reuses the pinned transient.
-* Fix (HIGH): Duplicate `nbuf_after_profile_update` action fire. NBUF_Profile_Data::update fires it with the canonical 3-arg signature; the shortcode handler also fired it with a 2-arg signature, causing version-history snapshots and change-notification emails to duplicate on every profile save. Removed the redundant 2-arg fire.
-* Security (HIGH): ToS gate exemption now uses a ROLE check rather than the `manage_options` capability. Sites that grant manage_options to a custom non-admin role (intentional delegation, or drift via role-editor plugins) silently exempted those users from the entire ToS gate. The new helper `NBUF_ToS::user_is_admin_or_super` checks for the administrator role and multisite super-admin.
-* Security (HIGH): ToS gate now covers wp-admin and admin-ajax. Subscriber+ users with un-accepted ToS could previously skip directly to /wp-admin/profile.php or hit /wp-admin/admin-ajax.php and mutate state without ever clicking Accept. New `admin_init` and early `init` hooks gate both surfaces, with a small allowlist (heartbeat, logout) so the user can still complete acceptance.
-* Security (HIGH): Multi-role self-edit guard uses ROLE check rather than `manage_options` cap. A non-admin user with manage_options (granted via a custom role) could previously self-promote — combined with the parent_role inheritance gap below, this completed a full privilege-escalation chain.
-* Security (HIGH): Role-manager `parent_role` inheritance now respects actor cap-containment. The explicit-capability list filter at line ~470 stripped caps the actor doesn't hold, but `resolve_capabilities` then merged the parent role's caps on top — so a non-administrator with manage_options could pick `parent_role=administrator` and inherit the full admin cap set. Save now refuses any parent_role whose effective capabilities include any cap the actor doesn't hold.
-* Security (HIGH): 2FA partial-disable (downgrade from "both" to single-factor) now destroys other active sessions and fires a `nbuf_2fa_method_changed` action. Previously the partial-disable path bypassed `disable_for_user` and skipped both session destruction and the disabled-event broadcast — letting a stolen-session attacker durably weaken 2FA without invalidating parallel sessions or triggering the user-2fa-disabled webhook.
-* Security (HIGH): All 2FA-account state changes (enable_email, disable_email, disable_totp, generate_backup_codes) now emit audit-log entries on both success AND on re-auth failure. Closes a forensic blackout where a stolen-session attacker could brute-force the password through the re-auth field with no record.
-* Security (HIGH): Per-user rate limit on `verify_reauth` (15 min absolute window, 10 attempts). Without it, a stolen-session attacker could brute-force the password through any of the 2FA-account endpoints, the password-change handler, or the email-change handler at ~10 guesses/sec/CPU.
-* Security (MEDIUM): Audit-log purge and security-log purge handlers now write `logs_purged` entries to the immutable admin-audit-log. Previously a malicious admin could wipe the user audit log + security log and leave only `?purged=1` in the URL as evidence.
-* Standards: Security-log and admin-user-search CSV exports now use the standardised formula-injection escape regex `/^[\s\x00-\x1f\\\'"]*[=+\-@|]/` (matching audit-log and admin-audit-log). Closes whitespace-prefix and control-char bypasses (`\n=HYPERLINK(...)`, `\v=SUM(...)`).
+= 1.7.4 =
+* Bug fix (HIGH): ToS acceptance form was bouncing back to the acceptance page in a loop (1.7.1 regression). The new `admin_init` ToS gate intercepted the form's POST to `/wp-admin/admin-post.php?action=nbuf_accept_tos` before `handle_acceptance` could run. The gate now allowlists that action; the handler still verifies its own nonce, pins to the active version, and refuses impersonated submissions.
 
-= 1.7.0 =
-* Security (HIGH): Account merger no longer leaks per-blog WordPress capabilities on multisite. The `merge_user_meta` skip list previously hardcoded the literal `wp_capabilities` / `wp_user_level`, missing every per-blog key (`wp_2_capabilities`, `wp_3_capabilities`, etc.). On multisite an admin merging a low-privilege user into another could silently transfer the secondary user's elevated cross-blog roles to the primary. Skip list is now generated dynamically from `$wpdb->prefix` plus every site's blog-prefix.
-* Security (HIGH): Account merger PHP 8 stdClass regression in the legacy `conflict_selections` photo branch. The v1.6.5 audit fixed the new merge UI but missed `handle_photo_conflicts`, where `$source_user_data['profile_photo_path']` / `['cover_photo_path']` array-offsets a stdClass — fatal on PHP 8.0+, killing the merge mid-transaction. Now uses object property access throughout.
-* Security (HIGH): Version-history revert allowlist split into admin-tier and user-tier. Previously a self-revert with `nbuf_version_history_allow_user_revert=true` could restore `is_verified`, `pending_email`, `last_login_at`, and even the user's `role` from an old snapshot — bypassing the admin-controlled state-change paths. Self-revert is now restricted to genuine user preferences (privacy, photos, directory visibility); role / verification state / pending email are admin-only.
-* Security (HIGH): GDPR Article-17 erasure now removes the entire `nbuf_user_2fa` row (TOTP secret, backup codes, trusted devices), clears `pending_email`, deletes login-limiting rows for the user's login, and destroys all active WP sessions. Previously only three columns were nulled, leaving cryptographic material and login state intact.
-* Security (HIGH): Public-profile cover-photo URL now goes through `NBUF_Profile_Photos::get_cover_photo()` (validated path → reconstructed URL) rather than reading `cover_photo_url` raw from the DB. Brings the cover-photo render in line with the profile-photo hardening from v1.6.5.
-* Security (HIGH): Member directory and `can_view_profile()` now exclude disabled accounts, expired accounts, and `user_status != 0` users. Previously a banned user remained listed in the directory and their profile remained reachable via direct URL even though the directory query already (correctly) hid `show_in_directory=0` users.
-* Security (HIGH): NBUF_User::to_array / to_json now apply the same SENSITIVE_FIELDS denylist enforced by `__get`. Previously `(array) $this->data` bypassed the magic-getter denylist entirely, so any caller that "conveniently" serialised the user object would leak `user_pass` / `user_activation_key`.
-* Security (HIGH): Username changer now fires `profile_update`, invalidates NBUF granular caches, and migrates `nbuf_login_attempts` rows to the new login. Previously a rename:
-  - Did not fire `profile_update`, so audit-log subscribers, webhook listeners, and third-party security plugins missed the event.
-  - Left NBUF granular caches serving the OLD `user_login` for up to an hour.
-  - Orphaned login-limiting rows under the OLD username — a renamed user effectively shed any active per-username distributed-brute-force lockout.
-* Security (HIGH): GIF / WebP fallback path in image-processor `resize_and_copy()` no longer copies bit-perfect. ALL images are now re-encoded via `wp_get_image_editor`, even when below the resize threshold. Previously a GIF or WebP at or below max dimensions was preserved byte-for-byte — letting GIFAR-style polyglots, smuggled HTML/SVG payloads, and EXIF metadata (including GPS) survive an upload that promised "EXIF stripped".
-* Security (MEDIUM): `delete_user_photo` now deletes the file FIRST and only clears DB metadata if the file delete succeeded. Previous "DB-first" order produced the worst outcome on FS error: an orphaned file on disk with no DB reference, untrackable except via filesystem audit.
-* Security (MEDIUM): Username changer's `user_nicename` collision check has retry-on-duplicate-key. Previously a TOCTOU window between the SELECT probe and the UPDATE produced a confusing "Failed to update username in database" error on concurrent rename of two users to the same nicename base.
+= 1.7.3 — Group D forensic audit: 7 HIGH =
+* BP migrator: unserialize with `allowed_classes => false` (object-injection / RCE-as-admin).
+* Transient increment race: single `INSERT ... ON DUPLICATE KEY UPDATE`.
+* Settings save: registry sanitizer identity check (closes tampered checkbox/array overwrite).
+* Admin JS XSS via `.html()` — fixed across 6 admin scripts.
+* Email subject CR/LF/NULL stripped; config import refuses unknown keys.
+* CSS sanitizer decodes hex escapes before pattern matching, iterates to fixed-point.
 
-= 1.6.9 =
-* Security (CRITICAL): Passkey UV server-side enforcement — when admin policy is `userVerification: required` the verifier now rejects assertions that arrive without the UV bit set, matching W3C WebAuthn Level 2 §7.2 step 17. Previously the policy only changed the browser/authenticator prompt; the server accepted UV-less assertions, silently neutering the requirement on stolen authenticators or hostile firmware. Same enforcement now applies to registration (§7.1 step 15) so a UP-only authenticator cannot be enrolled under a UV-required policy.
-* Security (CRITICAL): Passkey user-binding transient no longer fails open. The options endpoint always persists a binding sentinel ('_discoverable' for username-less flows, the resolved user ID otherwise) and refuses to start a session if the transient store cannot retain it. verify_authentication treats a missing sentinel as a hard error rather than skipping the cross-user defense at lines 564-583.
-* Security (CRITICAL): TOTP setup no longer trusts $_POST['secret']. The pending secret is now pinned in a per-user transient at render time and read back from the transient on submission; the legacy hidden input is ignored. Prevents the "evil setup" attack where an attacker who briefly held the user's session could submit `secret=<attacker-chosen>&code=<from-attacker-app>` and overwrite the user's TOTP key.
-* Security (CRITICAL): TOTP setup no longer auto-overwrites pre-existing backup codes. Re-setup (e.g. enrolling a new authenticator) preserves the user's existing emergency codes; explicit rotation remains available via the re-auth-protected "Generate New Codes" action. Closes a coerced-re-setup path that silently neutralised emergency recovery.
-* Security (CRITICAL): Device-trust rotation under contention no longer fails open. is_device_trusted now returns FALSE when the presented cookie is missing from the trusted-devices map post-lock, rather than re-conferring trust on a token that another request already rotated away. Prevents a stolen 30-day cookie from outliving legitimate rotation.
-* Security (HIGH): Passkey origin verification now strips the URL path from home_url() so subdirectory WordPress installs (e.g. /blog) compare against `scheme://host[:port]` per RFC 6454 — matching what browsers send in `clientData.origin`. Previously every passkey ceremony failed silently on subdirectory installs.
-* Security (HIGH): CBOR parser bounds. Attestation arrays/maps are capped at 4096 elements and oversized attestation/clientData payloads (>64 KB / >16 KB) are rejected before parsing. Closes an authenticated DoS where a one-byte payload could drive the parser into a 4.29-billion-iteration loop and OOM the PHP-FPM worker.
-* Security (HIGH): Pending-2FA cookie/transient hardened. Cookie is now `Secure: true` unconditionally (was `is_ssl()`); transient is bound to a hashed User-Agent fingerprint so a stolen `nbuf_2fa_token` cookie replayed from a different browser is rejected and the transient destroyed.
-* Security (HIGH): 2FA enable/disable now destroy other active sessions via WP_Session_Tokens. Without this, a session compromised before 2FA was enabled remained valid afterwards; same exposure on disable.
-* Security (HIGH): Device-trust rotation now caps absolute lifetime at DEVICE_TRUST_DURATION (30 days) from original creation. Previously a continually-rotated chain inherited a sliding window indefinitely; a once-leaked token could be kept "fresh" forever.
-* Security (HIGH): 2FA lockout has per-IP component (separate from per-user) so a hostile IP cannot use a victim's username to lock the victim out of 2FA. Lockout transient is set ONCE per window and the per-user attempt window is anchored to the first attempt rather than sliding on every retry — closes the "slow drip keeps the user locked out forever" DoS.
-* Security (HIGH): Auto-required email 2FA now persists `enabled=1` after the first successful verification. The previous implementation kept the row at `enabled=0` forever, which prevented the device-trust path from ever firing — every login round-tripped an email even on "trusted" devices.
-* Security (HIGH): Role demotion clears the 2FA `forced_at` timestamp so a future re-promotion starts a fresh grace window. Demote-then-restore round-trips no longer eat the user's grace clock.
-* Forensics: Passkey verification failures (challenge mismatch, RP-ID mismatch, origin mismatch, signature invalid, unknown credential, UV violation, session-binding lost) now emit security-log entries. Previously only `passkey_user_mismatch` and `passkey_clone_detected` were logged; failed assertions left no trail and admin had no way to detect probing.
-* Security (MEDIUM): Magic-link form now charges the per-IP rate-limit on every submission (including invalid-email and rate-limited paths) so an attacker cannot spam bogus values from a single IP without ever tripping the IP limit.
-* Standards: Several block-comment formatting nits in 2FA and passkey files.
+= 1.7.2 — Group C closure =
+* ToS gate fail-open on future-dated effective_date (HIGH).
+* Webhook DNS-rebind via IPv6 AAAA — IP pinned via CURLOPT_RESOLVE (HIGH).
+* ToS set_active_version: SELECT…FOR UPDATE row lock (HIGH).
+* ToS update_version defers activate until row UPDATE commits (HIGH).
+* ToS acceptance refused during admin impersonation (MEDIUM).
+* Email-restriction rejects RFC 5321 domain-literals (MEDIUM).
+* Webhook delivery_id replay nonce + scheme allowlist + batched cleanup (MEDIUM).
+* TOTP setup rate-limit; password-change preserves "remember me" (MEDIUM).
 
-= 1.6.8 =
-* Feature: A user-verified passkey login (UV bit set on the WebAuthn assertion — biometric or device PIN was performed) now skips the subsequent TOTP / email 2FA challenge by default. A verified passkey is itself a multi-factor credential and stacking TOTP on top is usually noise. New setting "Require 2FA After Passkey" (Security › 2FA Settings) defaults to OFF; admins requiring a second distinct factor on top of the passkey for compliance can flip it on. Passkeys without user verification (UP-only assertions) still fall through to the standard 2FA challenge regardless of the setting. The audit log entry for `passkey_auth` now records the `user_verified` flag for forensics.
+= 1.7.1 — Group C: 4 functional fixes + 8 HIGH security =
+* Fix: registration broken with antibot; impersonation-end binding double-hash; TOTP retry stale-secret loop; duplicate `nbuf_after_profile_update` fire.
+* ToS exemption now ROLE check (closes manage_options-via-custom-role bypass).
+* ToS gate covers wp-admin and admin-ajax (heartbeat/logout allowlist).
+* Multi-role self-edit and role-manager parent_role respect cap-containment.
+* 2FA partial-disable destroys other sessions; state changes audit-log on success + re-auth failure.
+* Per-user rate limit on verify_reauth (15min / 10 attempts).
+* Audit-log purge logged to immutable admin-audit-log; CSV formula-injection regex standardised.
 
-= 1.6.7 =
-* Security: GDPR export directory now re-writes its .htaccess + index.html + index.php protection files on every cleanup tick so they cannot drift away through manual deletion. Cleanup also recursively GCs orphaned per-user subdirectories older than the retention window (previously only top-level *.zip files were removed).
-* Security: Impersonation start now requires a sudo (password re-entry) within a configurable window (default 10 minutes) before promoting the admin into the target user's session. Closes the "stolen admin session = instant pivot" path.
-* Security: ToS gate now extends to the REST API via a rest_authentication_errors filter — non-admin logged-in users with an outstanding ToS acceptance receive a 403 from REST, matching the redirect they'd hit on template_redirect.
-* Audit: ToS record_acceptance now stamps audit-log entries with impersonator_id when the acceptance occurs during an active admin impersonation, and emits a tos_acceptance_replay_attempt info entry on duplicate-accept short-circuits.
-* Security: Webhook payloads no longer pass through wp_schedule_single_event arg arrays (which serialize into wp_options.cron in plaintext). Payloads are stored in a 1-hour transient keyed by a 16-byte random token; the cron handler reads-and-deletes the transient. Legacy 3-arg events still deliver via a fallback branch.
-* Standards: Admin-audit-log list-table column sort now actually re-sorts the result set — get_logs() honours orderby/order from $filters with a strict allowlist (id, created_at, admin_username, action_type, target_username, action_status), and the list-table prepare_items() forwards the request params.
+= 1.7.0 — Group B forensic audit: 10 HIGH =
+Multisite cap-meta leak in merger; PHP 8 stdClass regression in merger photo branch; version-history revert split admin/user tiers; GDPR Article-17 erasure removes 2FA material + login-limiting + sessions; public-profile cover-photo via validated path; directory excludes disabled/expired; NBUF_User::to_array applies SENSITIVE_FIELDS denylist; username changer fires profile_update + migrates login-attempts; image fallback always re-encodes (GIF/WebP polyglot + EXIF); delete_user_photo deletes file before DB row.
 
-= 1.6.6 =
-* Security (HIGH): Multisite-aware uninstall iterates every site so per-blog tables, options, and cron events are cleaned up (previously left orphaned tables on networks)
-* Security (HIGH): Activator gains a defense-in-depth capability gate (manage_network_plugins on multisite, activate_plugins on single-site) to block schema/option mutations when invoked with insufficient privileges
-* Security (HIGH): Ultimate Member migrator format array now resolved per-key (was a fixed positional list that silently coerced is_disabled / requires_approval flags during data migration)
-* Security: BuddyPress profile migrator filters field_mapping_override target columns through NBUF_Profile_Data field whitelist
-* Security: Options migration is now two-phase so partial copy failures retain wp_options copies for retry (no more silent settings loss on activation race)
-* Security: nbuf_db_version sentinel now binds to NBUF_VERSION so dbDelta re-runs on every release
-* Security: Universal-router custom-redirect strict scheme regex + wp_validate_redirect; redirect_to host validation at wp-login.php intercept; password-reset link rewrite uses preg_replace_callback with single match
-* Security: Universal-router path-traversal canonicalisation rejects empty/./../NUL segments
-* Security: Diagnostics export and table-repair handlers now write admin-audit-log entries
-* Standards: View titles wrapped in __() with wp_strip_all_tags applied to pre_get_document_title
+= 1.6.9 — 5 CRITICAL + 11 HIGH =
+WebAuthn UV server-side enforcement; passkey user-binding sentinel; TOTP pinned-secret transient; re-setup preserves backup codes; device-trust rotation no longer fails open; pending-2FA cookie UA-bound; per-IP 2FA lockout; CBOR parser bounds; passkey origin handles subdirectory installs; magic-link IP rate-limit.
 
-= 1.6.5 =
-* Security (CRITICAL): Account merger PHP 8 fatal — array-offset access on stdClass returned by NBUF_User_Data::get() across six call sites silently disabled photo-conflict / MIME-recheck paths
-* Security (HIGH): Webhook SSRF AAAA-record validation + IPv6 private/loopback/link-local/unique-local/IPv4-mapped private range coverage
-* Security (HIGH): Privacy export file URL leak fixed via realpath containment + extension allowlist + cross-reference recorded photo paths
-* Security: Webhook log retention cron added (default 30 days, filterable)
-* Security: Webhook secret minimum length enforced (16 bytes)
-* Security: Profile-change notification per-user rate limit + plain-text mode + CRLF-stripped subject
-* Security: Test-webhook endpoint rate limited per admin (5/min)
-* Security: Email-change race window closed (delete prior tokens BEFORE set_pending_email)
-* Security: Pending-email change notification sent to old address; password-confirm audit logging
-* Security: Data-export rate limit (3/hour by default, filterable)
-* Security: nbuf_after_profile_update extension API hardened (sanitized data, not raw $_POST)
-* Security: render_profile_page privacy gate; multi-role admin escalation guard for non-manage_options actors
-* Security: Username-changer enforces illegal_user_logins blocklist + nicename collision suffix
-* Security: NBUF_User user_pass / user_activation_key deny-list on __get
-* Security: AJAX directory per-field privacy filter; directory rate-limit + length cap
-* Security: CSV escape standardised across audit-log + admin-audit-log (catches `|` pipe + leading-quote/whitespace bypass)
-* Security: Version-history revert mass-assignment column allowlist + admin audit log entry; ajax_get_version_diff rate limit; ajax_revert_version cross-checks user_id
-* Security: User-notes capability gate aligned (manage_options); printf escape consistency
-* Security: handle_bulk_delete defense-in-depth cap recheck
-* Security: Settings.php migration uses safe-unserialize; CSS sanitizers via NBUF_CSS_Manager::sanitize_css; role manager native-role guard
-* Security: Template-manager email http-equiv removed; page-template style attribute removed
-* Security: Bulk-import password C0 control strip + 256-char cap; preview strips plaintext passwords
-* Security: Email-restrictions IDN/punycode + trailing-dot canonicalisation
-* Standards: Audit-log retention whitelist; numerous i18n / phpcs cleanups
+= 1.6.8 — 1.6.0 =
+Earlier security and forensic-audit releases. Highlights: 1.6.8 verified-passkey skip 2FA toggle; 1.6.7 GDPR/impersonation/ToS-REST hardening; 1.6.6 multisite uninstall + activator gate; 1.6.5 merger PHP 8 + webhook SSRF + GDPR; 1.6.4 ToS active-version pinning (CRITICAL) + auth/sessions/restrictions; 1.6.3 safe-unserialize during merge; 1.6.0 PHP 8.0 baseline + SHA-256 tokens + magic-link/passkey/password-expiration/webhook SSRF hardening.
 
-= 1.6.4 =
-* Security (CRITICAL): ToS handle_acceptance now pins the posted version_id to the currently active ToS version, blocking fabricated-evidence and stale-form attacks
-* Security: ToS handle_acceptance now enforces the affirmative-consent checkbox server-side (was client-side only)
-* Security: ToS set_active_version is now transactional with rollback, preventing silent zero-active state from interleaved admin saves
-* Security: ToS-admin CSV export escape now blocks leading-whitespace formula-injection bypass
-* Security: ToS effective_date validated via DateTime::createFromFormat on create/update so malformed input cannot fatal the public acceptance page
-* Security: Passkey verify_authentication now enforces the user-binding transient set at options time, closing a credential-confusion attack on shared devices
-* Security: TOTP verify_code returns the matched counter; verify_totp_code records that counter (not the verifier clock) and runs under per-user GET_LOCK to defeat replay within the tolerance window
-* Security: Login limiting normalises usernames to lowercase before insert/select so case variation no longer bypasses the per-username distributed brute-force threshold
-* Security: 2FA email/TOTP/backup-code lockouts now use method-specific window settings instead of all sharing the email window
-* Security: Magic-link verify_magic_link checks delete result before COMMIT and rolls back on DB error or zero-rows
-* Security: Magic-link send_magic_link defers SMTP via wp_schedule_single_event so synchronous response time is uniform between real-user and unknown-email submissions
-* Security: Magic-link verifier collapses distinct account-state messages to one generic string (specific reason still logged for operators)
-* Security: Magic-link verifier lower-cases token before SHA-256 (uppercase paste no longer silently fails)
-* Security: Passkey clone-detection security log entry severity raised to critical and argument order corrected (admin alert now fires)
-* Security: Passkey ajax_check_user_passkeys now also throttles per-username so IP rotation cannot enumerate the entire user base
-* Security: 2FA grace period now starts when role is granted (set_user_role / add_user_role) rather than at the next login
-* Security: 2FA pending transient is cleared when user hits the 2FA lockout threshold
-* Security: wp_login_failed now fires on 2FA failure so IP-level rate limiter sees them
-* Security: Backup-code failures use the generic 2FA lockout window instead of the email window
-* Security: Device-trust GET_LOCK is now per-token (not just per-user) with 5-second timeout
-* Security: Login-limiting clear_attempts_on_password_reset no longer wipes ALL rows for the requester's IP (previously cleared lockouts on co-victims being attacked from the same IP)
-* Security: Login-limiting distinguishes missing-table from query-error: missing table fail-opens with critical log instead of locking every user out site-wide
-* Security: TOTP base32_decode rejects invalid input instead of silently dropping characters
-* Security: Passkey set_transient failure now surfaces as WP_Error('storage_failed') instead of silent no-op
-* Security: Passkey-prompt is_ssl checked before consuming the trigger transient (no more silent UX cycle waste)
-* Security: Passkey-prompt AJAX endpoints trust the nbuf_device_id cookie, not POST input (closes self-DoS on dismissed-list)
-* Security: Passkeys-login redirect uses strict https?:// regex (rejects httpfoo://evil.example/)
-* Security: Passkey ajax_authenticate redirect default uses NBUF_Passkeys_Login::get_redirect_url() instead of admin_url() (correct destination for non-admin users)
-* Security: Impersonation can_impersonate_user now uses user_can() per cap loop instead of allcaps array_diff so dynamically-granted caps from user_has_cap filters (membership/multi-role plugins, BuddyPress) are honored
-* Security: Impersonation get_impersonation_data requires both IP and User-Agent to be non-empty at start; uses NBUF_IP::get_client_ip(true) for normalised IPv6 comparison
-* Security: Impersonation start path captures original_session_token_hash; end path verifies that hash matches an active session of the original user before restoring auth (closes transient-injection -> set_auth_cookie primitive)
-* Security: Impersonation end-path capability check moved before wp_clear_auth_cookie so a permission revocation mid-session no longer locks the admin out completely
-* Security: Sessions revoke_session and revoke_other_sessions now require ownership or edit_user($user_id) capability; revoke_other_sessions verifies destroy_others actually reduced the count
-* Security: IP-restrictions admin_bypass default flipped from true to false (eliminates admin-username-to-role oracle on new installs); timing balanced in the bypass branch
-* Security: Restrictions module now hooks delete_post and delete_nav_menu_item to clean up orphaned restriction rows (prevents auto_increment ID collision after DB import rebinding stale restrictions)
-* Security: Restriction-content filter_rest_content returns WP_Error 403 instead of just blanking content/excerpt (closes title/meta/ACF/raw-content REST data leak)
-* Security: Restriction-content access_denied_message security log gated by is_singular() and uses log_or_update (eliminates per-render log-spam DoS)
-* Security: Restriction-taxonomy get_excluded_term_ids SQL filters by visibility allowlist so corrupted/old-format meta values cannot break archive listings
-* Security: Restriction-menu two-pass filter walks ancestor chain regardless of item order (block-based menus, custom Walkers, reordered iterators)
-* Security: NBUF_IP XFF chain walk skips empty fields
-* Security: Restriction-content / restriction-taxonomy redirect URLs use esc_url_raw() (correct for wp_safe_redirect)
-* Security: Password-expiration update_password_changed_date no longer auto-clears force_password_change (admin-forced rotations can no longer be silently undone via password_reset hook flows)
-* Security: Password-expiration change-token transient cleaned up on the logged-in form path too (closes browser-history replay window)
-* Security: Password-validator weak-password "every" timing setting no longer resets the grace clock on every login
-* Security: Registration validate_registration_data now enforces the antibot challenge so any caller of register_user (REST/CLI/extensions) is protected
-* Security: Shortcodes email-change flow deletes any prior unredeemed email_change tokens before issuing a new one
-* Security: Verifier email-change comparison canonicalises via sanitize_email + strtolower; failed wp_update_user now writes an email_change_failed audit row
-* Performance: Expiration cron capped to 100 users per run by default (filterable via nbuf_expiration_batch_cap) to prevent SMTP saturation on long-stalled sites
-
-= 1.6.3 =
-* Security: Removed maybe_unserialize() of attacker-influenced usermeta during account merge (prevents PHP object instantiation / POP-gadget surface); decoding now uses allowed_classes => false where needed
-* Security: Consolidated all visible_fields decoding through a single safe helper that disallows class instantiation (closes inconsistency between public profile, account profile, and profile photo settings call sites)
-* Security: NBUF_Options now decodes stored option values via a safe-unserialize helper (allowed_classes => false), and the config importer rejects pre-serialized strings to prevent stored object-injection
-* Security: force_logout_all_devices AJAX handler now requires per-target edit_user capability and blocks non-super-admins from terminating super-admin sessions on multisite
-* Security: Bulk import refuses to assign the administrator role on multisite unless the importer is a network super admin (covers both the explicit-role and default-role code paths)
-* Security: Config importer now also rejects pre-serialized template payloads, matching the rejection already applied to settings
-* Security: Impersonation session now validates the bound User-Agent (in addition to IP) using hash_equals, matching the documented behavior
-* Security: Profile and cover photo upload referer check now compares hostnames exactly (was a strpos prefix check that could be bypassed by `victim.com.attacker.tld`)
-* Standards: Wrapped 30+ user-facing AJAX/wp_die/WP_Error strings in __() / esc_html__() with the nobloat-user-foundry text domain
-* Standards: Donate link, license declaration, and trademark casing synchronized between readme.txt and the main plugin header
-* Standards: Sanitized $_SERVER['REQUEST_METHOD'] reads in 2FA login and password expiration handlers
-* Cleanup: Fixed dead echo in docs overview tab; corrected indentation and block-comment style on several phpcs:ignore lines
-
-= 1.6.2 =
-* Fix: Failed login attempts are now cleared after a successful password reset, so users who tripped the rate limiter while forgetting their password can log in immediately with the new password instead of being blocked by the brute-force lockout
-
-= 1.6.1 =
-* Fix: Login redirect_to parameter now preserved when wp-login.php intercept redirects to NoBloat login page
-* Fix: Login form reads redirect_to URL parameter so users return to their intended page after login (content restrictions, bookmarks)
-* Fix: Content restriction redirect uses NoBloat login URL instead of wp-login.php when NoBloat login is active
-* Fix: NBUF_URL::is_universal_mode() method was undefined, causing a fatal error when the [nbuf_universal] shortcode ran
-
-= 1.6.0 =
-* **Breaking:** Minimum PHP version raised from 7.4 to 8.0 (PHP 7.4 reached EOL November 2022)
-* Security: All verification and magic link tokens now stored as SHA-256 hashes (DB read no longer yields replayable credentials)
-* Security: Encryption hard-fails when OpenSSL unavailable instead of silently storing plaintext
-* Security: 2FA enable/disable/backup code regeneration now requires password re-authentication
-* Security: Magic link login enforces disabled/expired/unverified/2FA checks (previously bypassed all login protections)
-* Security: Passkey login enforces admin-mandated 2FA policy via should_challenge()
-* Security: Password expiration form uses cryptographic token instead of predictable user_id (prevents account takeover)
-* Security: Webhook delivery protected against SSRF (private IP blocking + wp_safe_remote_post for DNS rebinding)
-* Security: Content restrictions enforced on REST API responses (previously bypassed via /wp-json/)
-* Security: X-Forwarded-For parsed right-to-left to prevent IP spoofing behind trusted proxies
-* Security: All IP retrieval consolidated to NBUF_IP::get_client_ip() (audit log, admin audit, ToS, version history, magic links)
-* Security: Role editor restricts capability assignment to caps the admin user holds
-* Security: Impersonation compares full capability sets, blocks nested impersonation, destroys target session on end
-* Security: Antibot challenge tokens consumed after use to prevent replay attacks
-* Security: TOTP replay protection via last-used counter tracking
-* Security: Registration timing-attack dummy hash moved to correct branch
-* Security: Config import/export uses allowed_classes=false on unserialize, validates nbuf_ prefix
-* Security: CSV formula injection protection on admin audit log and ToS acceptance exports
-* Security: Encryption fallback key uses random bytes instead of guessable siteurl+admin_email
-* Security: Image upload rejects decompression bombs (>25 megapixel limit)
-* Security: GDPR export uses user ID in filesystem paths, hash_equals for token comparison, symlink protection
-* Security: Admin audit log metadata modal HTML-encoded to prevent stored XSS
-* Security: Multi-role save and render filter against get_editable_roles() to prevent privilege escalation
-* Security: Magic link verification uses FOR UPDATE transaction to prevent TOCTOU token replay
-* Security: Content restrictions enforced on RSS feeds, excerpts, and all configured custom post types
-* Security: Member directory AJAX response strips user_email to prevent information disclosure
-* Security: Backup code verification enforces lockout and records failed attempts (consistent with email/TOTP 2FA)
-* Security: Backup code mark-used wrapped in SELECT...FOR UPDATE transaction to prevent parallel reuse
-* Security: Bulk import role assignment filtered against editable_roles (prevents importing administrators)
-* Security: GDPR export download validates file path against exports directory via realpath()
-* Security: GDPR export ZIP filename and subdirectory include random suffix to prevent enumeration
-* Security: GDPR export rate limit set before generation to prevent parallel request bypass
-* Security: GDPR export download token scoped to requesting user to prevent cross-admin collision
-* Security: Config import applies settings sanitization registry to prevent bypass of validation rules
-* Security: Admin user search CSV export protected against formula injection
-* Security: Bulk actions handler requires manage_options capability (previously relied on WP hook gating only)
-* Security: Account merger blocks administrator accounts from being used as secondary (deleted) account
-* Security: Passkey rename/delete admin override requires manage_options instead of edit_users
-* Security: Passkey prompt device cookie set to httponly=true (value rendered server-side, not read via JS)
-* Security: Passkey login redirect URL validated with wp_validate_redirect() to prevent open redirect
-* Security: maybe_unserialize() on visible_fields replaced with allowed_classes=false to block object injection
-* Security: Image processor delete_photo() validates path is within uploads directory via realpath()
-* Security: Privacy manager can_view_profile/can_view_field: guard against 0===0 guest bypass
-* Security: Privacy settings validated against public/members_only/private allowlist
-* Security: Impersonation end verifies original user retains impersonation capability before restoring session
-* Security: 2FA device trust rotation reordered to add-then-remove (partial failure leaves two tokens, not zero)
-* Security: HTML email template placeholders escaped with esc_html() in HTML context (welcome, reset, admin notification)
-* Security: Rejection email uses home_url() instead of leaking admin panel URL
-* Security: Settings save only processes POST keys registered in the settings registry
-* Security: Antibot validate() enforces session ID hex format (consistent with generation)
-* Security: Security log CSV formula check strips leading quotes/backslashes before pattern match
-* Security: User notes profile AJAX handlers require manage_options (consistent with dedicated notes page)
-* Fixed: Password expiration form: $change_token passed to render method (form submission was silently broken)
-* Fixed: Admin profile section: missing wp_nonce_field caused all NoBloat profile saves to silently fail
-* Fixed: insert_token_atomic: NOT EXISTS filter includes type column (prevents cross-type token blocking)
-* Fixed: Taxonomy restriction cache: invalidation key format matches creation format
-* Fixed: can_access_content() API: corrected class name to NBUF_Abstract_Restriction and made check_access public
-* Fixed: Passkey login scripts now enqueue on WP-page-based login (corrected option key names)
-* Fixed: 2FA login redirect now includes 'account' case (previously fell through to hardcoded path)
-* Fixed: 2FA trust cookie upgraded to SameSite=Strict
-* Fixed: 2FA "Resend code" link on verification page now functional with rate limiting
-* Fixed: Password policy enforced on password reset form (previously skipped)
-* Fixed: Password change clears 2FA trusted device cookies
-* Fixed: Verifier restricts token lookup to verification/email_change types (prevents magic link cross-consumption)
-* Fixed: Universal router requires exact base-slug boundary match
-* Fixed: Username changer updates user_nicename and invalidates sessions
-* Fixed: Email domain restrictions enforced on email change (not just registration)
-* Fixed: Image processor deletes old photos via DB-stored path (prevents orphan files on re-upload)
-* Fixed: Registration form preserve key uses random token instead of empty session identifiers
-* Fixed: Webhook delivery dispatched asynchronously via wp_schedule_single_event
-* Fixed: Transient increment uses correct option_name and %s format for atomic fallback WHERE clause
-* Fixed: Bulk import format string order matches data key order
-* Fixed: Passkey login fires wp_login hook for third-party plugin compatibility
-* Fixed: Passkey login clears existing auth cookie before setting new session
-* Fixed: Passkey rename: null passkey check separated from ownership check for correct error message
-* Fixed: Bulk expiration transient scoped to current admin user (prevents cross-admin race condition)
-* Fixed: User search SQL grouping: profile OR-clauses placed inside parenthetical group (preserves query precedence)
-* Fixed: wp_update_user() return value checked in version history revert (prevents silent partial revert)
-* Fixed: Version history revert includes $wpdb format specifiers and sanitizes first_name/last_name
-* Fixed: Digest notification: transient deleted before email send to prevent losing changes queued during I/O
-* Fixed: AJAX action collision: user-notes search renamed to nbuf_notes_search_users (was colliding with account merger)
-* Fixed: Options audit log handles non-scalar values with wp_json_encode instead of (string) cast
-* Improved: Verification token format validation tightened to hex-only (ctype_xdigit)
-* Improved: IP wildcard matching uses preg_quote and validates octet range 0-255
-* Improved: IPv6 CIDR mask validated for range 0-128
-* Improved: Session AJAX handlers gated on session_management_enabled setting
-* Improved: Profile data sanitization covers all social URL fields and secondary_email
-* Improved: Registration form_key, bulk import error_key, and config import transient_key validated against expected prefixes
-* Improved: Config import mode validated against overwrite/merge allowlist
-* Improved: $warning_days, $batch_size, $days options cast to (int) with sane minimums to prevent type confusion
-* Improved: Security log page uses absint() instead of intval() for admin notice counts
-* Improved: ToS version_id cast to (int) for PHP 8 strict type compatibility
-* Improved: Migration sanitize_field() uses null/empty-string check instead of empty() to preserve "0" values
-* Improved: Dead code get_token()/mark_verified() removed (incompatible with hashed token storage)
-* Improved: Passkey auth session ID uses bin2hex(random_bytes(32)) for consistency
-* Improved: Antibot session ID validated with hex regex on both creation and validation paths
-* Improved: Security log CSV export primes user cache with cache_users() to prevent N+1 queries
-* Improved: Webhook secret uses wp_unslash() instead of sanitize_text_field() (preserves special chars in HMAC secrets)
-* Improved: CSV injection regex includes + and - characters across all export paths
-* Improved: Uninstall uses recursive directory iteration for nested user photo cleanup
-* Improved: PHPDoc blocks updated across codebase for accuracy after security fixes
-
-= 1.5.7 =
-* Fixed: IP blacklist now blocks restricted IPs before credential validation on wp-login.php
-* Fixed: Security alert email flooding during sustained attacks (configurable cooldown, default 1 hour)
-* Fixed: Settings save logging every setting as changed even when unchanged
-* Added: Activity summary digest in security alert emails showing all IPs and attempt counts
-* Added: Alert Cooldown setting in GDPR > Logging (5 min to 24 hours)
-* Added: {recent_activity} placeholder for security alert email template
-* Improved: Options update skips DB write and cache invalidation when value unchanged
-* Improved: Type-aware value comparison handles int/string mismatches from activation defaults
-* Improved: Meta fields (nbuf_form_checkboxes, nbuf_form_arrays) excluded from settings processing loop
-
-= 1.5.6 =
-* Added: Password Reset email templates to editor (replaces WordPress default)
-* Added: Admin New User Notification templates to editor
-* Added: Account Expiration Notice templates to editor
-* Added: Security Alert email template to editor
-* Improved: All template subtab files now use Template Manager for consistent DB-first loading
-* Improved: JavaScript template reset with fallback for simplified form field names
-* Fixed: Anti-bot settings link now correctly points to Security > Registration
-* Fixed: Added missing `nbuf_is_reserved_username` filter to hooks documentation
-* Fixed: Updated example date in API documentation
-
-= 1.5.5 =
-* Security: Consolidated IP address handling into new NBUF_IP utility class
-* Security: IPv6 normalization prevents rate limit bypass via address variations
-* Security: Trusted proxy configuration for load balancer/CDN setups
-* Security: MySQL lock cleanup with try-finally pattern
-* Security: Fail-safe database query handling in login limiting
-* Security: Consistent GMT/UTC timestamp handling throughout
-* Improved: Extensive PHPCS compliance updates (80+ files)
-* Improved: Return type declarations for better type safety
-* Improved: DocBlocks added to anonymous callback functions
-* Improved: Code architecture refinements
-* Improved: Account page and admin UI styling
-* Fixed: Removed hardcoded /contact URL from expiration templates
-* Fixed: Grace period logic with write side effects in getter
-* Fixed: Alignment warnings in admin list tables
-
-= 1.5.0 =
-* Added: Custom account page tabs with shortcode content
-* Added: Role-based tab visibility restrictions
-* Added: Drag-and-drop tab reordering
-* Added: Dashicon support for custom tabs
-* Added: Rate limiting for passkey authentication endpoints
-* Improved: Template backward compatibility
-* Security: Rate limiting on pre-login passkey AJAX endpoints
-
-= 1.4.1 =
-* Added: Webhooks for external integrations
-* Added: 10 webhook events (registration, login, profile updates, etc.)
-* Added: HMAC-SHA256 webhook signatures
-* Added: Webhook delivery logging and auto-disable
-* Fixed: Plugin validation warnings
-
-= 1.4.0 =
-* Added: Profile version history with diff comparison
-* Added: Revert to previous profile versions
-* Added: Password expiration system
-* Added: Multi-role user assignment
-* Added: GDPR data export enhancements
-* Improved: Admin audit logging
-
-= 1.3.0 =
-* Added: Change notifications for profile updates
-* Added: Digest mode for admin notifications
-* Improved: Email template system
-
-= 1.2.0 =
-* Added: Anti-bot protection (honeypot, timing, JavaScript)
-* Added: Proof of work challenges
-* Improved: Registration security
-
-= 1.1.0 =
-* Added: Unified User API with caching
-* Added: Batch user loading for admin lists
-* Improved: Performance optimizations
-
-= 1.0.0 =
-* Initial release
-* Email verification system
-* Two-factor authentication (email, TOTP, backup codes)
-* Passkeys/WebAuthn support
-* Account expiration with WooCommerce integration
-* User profiles with privacy controls
-* Member directory
-* Login limiting and security features
-* GDPR compliance tools
-* Access restrictions (menus, content, widgets)
-* Custom database tables
-* Universal router for virtual pages
+= Earlier versions =
+Full per-version history (1.0.0 - 1.5.7) is in README.md / CHANGELOG.md on GitHub: https://github.com/jcbenton/nobloat-user-foundry
 
 == Upgrade Notice ==
 
+= 1.7.6 =
+WordPress 7.0 "Armstrong" compatibility confirmed. No code changes required — the plugin's authentication, REST, shortcode, user, and capability surfaces are unaffected by the WP 7.0 breaking changes. "Tested up to" header bumped to 7.0.
+
+= 1.7.5 =
+Bug fix: non-admins were sent to /wp-admin/ after login despite the "After Login Redirect" setting. The post-login /wp-admin/ rewrite for non-admins is now unconditional — no setting required. Also fixes a cap-vs-role bypass in the wp-admin browse restriction.
+
+= 1.7.4 =
+Bug fix: ToS acceptance form was bouncing back to the acceptance page in a loop (1.7.1 regression) — non-admin users could not get past the Terms of Service screen. Fixed by allowlisting the acceptance form's POST through the admin_init gate.
+
 = 1.7.3 =
-Group D forensic audit closure: 7 HIGH (BP migration unserialize, transient race, settings checkbox sanitization gap, 6× admin JS XSS, email subject CRLF, config-import unrestricted keys) plus CSS sanitizer hardening. No database changes required.
+Group D forensic audit closure: 7 HIGH findings (BP migration unserialize, transient race, settings sanitization, admin JS XSS, email header injection, config-import keys) plus CSS sanitizer hardening.
 
 = 1.7.2 =
-Closes the remaining HIGH/MEDIUM Group C findings: ToS gate fail-open on future effective_date, webhook DNS-rebinding via IPv6 AAAA, ToS set_active_version race, update_version transaction order, impersonator ToS-acceptance attribution, IP-literal email bypass, webhook delivery_id nonce, password-change "remember me" preservation, TOTP setup rate limit, batched webhook log cleanup. No database changes required.
+Group C closure: ToS gate fail-open on future-dated versions, webhook DNS-rebinding via IPv6 AAAA, ToS save races, impersonator-attribution, IP-literal email bypass, webhook replay nonce, password "remember me" preservation, TOTP rate limit.
 
 = 1.7.1 =
-Critical fixes for registration (broken on default install with antibot enabled), impersonation-end (every legitimate click failed), and TOTP setup retry (stuck loop). Plus 8 HIGH security findings: ToS gate cap-vs-role privilege escalation chain, ToS bypass via wp-admin / admin-ajax, role-manager parent_role inheritance bypassing cap-containment, 2FA partial-disable bypassing session destruction, 2FA forensic blackout, no rate-limit on password re-auth. No database changes required.
+Critical fixes: registration broken with antibot, impersonation-end binding, TOTP retry loop. 8 HIGH security findings: ToS gate cap-vs-role chain, role-manager parent_role inheritance, 2FA partial-disable, no rate-limit on password re-auth.
 
 = 1.7.0 =
-Security release closing 10 HIGH findings from the Group B forensic audit (registration / activator / merger / GDPR / privacy / version-history / photos / directory). Highlights: multisite cap-meta leak in account merger, GDPR Article-17 erasure now removes 2FA cryptographic material + login-limiting rows, version-history self-revert no longer bypasses verification gate, image fallback path always re-encodes (closes GIF/WebP polyglot), public-profile cover-photo uses validated path, member directory excludes disabled/expired users. No database changes required.
+Group B forensic audit: 10 HIGH findings. Multisite cap-meta leak in merger, GDPR erasure now removes 2FA + login-limiting, version-history self-revert restricted, image fallback re-encodes, member directory excludes disabled.
 
 = 1.6.9 =
-Security release: closes 5 CRITICAL and 11 HIGH findings in the passkey, 2FA, TOTP-setup, and device-trust subsystems uncovered by a fresh forensic audit. Highlights: server-side enforcement of WebAuthn UV policy, TOTP setup no longer trusts client-supplied secret, device-trust rotation no longer fails open, pending-2FA cookie bound to UA fingerprint, per-IP 2FA lockout component. No database changes required.
+5 CRITICAL + 11 HIGH findings in passkey/2FA/TOTP/device-trust. Server-side WebAuthn UV enforcement, TOTP setup no longer trusts client secret, device-trust no longer fails open, pending-2FA cookie UA-bound.
 
 = 1.6.8 =
-Verified-passkey logins now skip the subsequent TOTP/email 2FA step by default (a passkey is already multi-factor). Sites that need to keep both can enable the new "Require 2FA After Passkey" toggle in Security › 2FA Settings. No database changes required.
+Verified-passkey logins now skip TOTP/email 2FA by default (passkey is already multi-factor). Toggle "Require 2FA After Passkey" in Security › 2FA Settings to keep both.
 
 = 1.6.7 =
-Closes the deferred items from the v1.6.4-v1.6.6 audit: GDPR export directory hardening, impersonation sudo-step, ToS REST gate, webhook payload moved out of cron args, admin-audit-log column sort. No database changes required.
+Closes deferred items from 1.6.4-1.6.6: GDPR export directory hardening, impersonation sudo-step, ToS REST gate, webhook payload out of cron args, admin-audit-log column sort.
 
 = 1.6.6 =
-Final batch of the full-codebase forensic audit. Multisite uninstall, activator capability gate, migration data-integrity, router redirect/path-traversal hardening. No database changes required.
+Final batch of the full-codebase forensic audit. Multisite uninstall, activator capability gate, migration data-integrity, router redirect/path-traversal hardening.
 
 = 1.6.5 =
-Major hardening release covering account merger PHP 8 compatibility, webhook SSRF, GDPR data exposure, profile-change notification rate limits, version-history revert column allowlist, CSV-escape standardisation, bulk-import password handling, and many more. No database changes required.
+Major hardening: merger PHP 8 compat, webhook SSRF, GDPR data exposure, profile-change notification rate limits, version-history allowlist, CSV-escape standardisation, bulk-import password handling.
 
 = 1.6.4 =
-Significant security and hardening release covering authentication, sessions, impersonation, restrictions, registration, verification, password policy, and Terms of Service. Closes one CRITICAL ToS evidence-fabrication path plus dozens of HIGH and MEDIUM findings from a full forensic re-audit. No database changes required.
+Security and hardening release covering auth/sessions/impersonation/restrictions/registration/verification/password policy/ToS. Closes one CRITICAL ToS evidence-fabrication path plus dozens of HIGH/MEDIUM findings.
 
 = 1.6.3 =
-Security and standards release. Closes a PHP object-injection surface during account merge, hardens config-import / option deserialization, adds per-target capability and User-Agent binding to impersonation, fixes a bypassable referer check on photo uploads, and translates dozens of admin error strings. No database changes required.
+Closes PHP object-injection during account merge, hardens config-import deserialization, adds per-target cap + UA binding to impersonation, fixes referer bypass on photo uploads, translates admin strings.
 
 = 1.6.2 =
-Bug fix release. Clears failed-login records after a successful password reset so users who tripped the rate limiter aren't blocked when logging in with their new password. No database changes required.
+Clears failed-login records after a successful password reset so users who tripped the rate limiter aren't blocked when logging in with their new password.
 
 = 1.6.1 =
-Bug fix release. Corrects login redirect_to propagation so users return to their intended page after login, fixes content restriction login redirect, and resolves a fatal error in the [nbuf_universal] shortcode. No database changes required.
+Bug fix release. Corrects login redirect_to propagation, fixes content restriction login redirect, and resolves a fatal in the [nbuf_universal] shortcode.
 
 = 1.6.0 =
-Major security hardening release. Requires PHP 8.0+. Fixes auth bypass in magic link login, account takeover in password expiration, and SSRF in webhooks. Tokens now stored as SHA-256 hashes. No database changes required.
-
-= 1.5.7 =
-Security fix: IP blacklist now blocks before authentication. Alert email throttling and digest summaries. Settings save no longer logs unchanged values. No database changes required.
-
-= 1.5.6 =
-Adds missing email templates to the editor (Password Reset, Admin Notification, Expiration Notice, Security Alert). No database changes required.
-
-= 1.5.5 =
-Security and code quality release. Consolidated IP handling, PHPCS compliance, and various fixes. No database changes required.
-
-= 1.5.0 =
-Adds custom account page tabs for integrating third-party plugin content (WooCommerce, EDD, etc.). No database migration required.
-
-= 1.4.1 =
-Adds webhook support for external integrations. Database tables are automatically created on upgrade.
+Security hardening. Requires PHP 8.0+. Fixes auth bypass in magic link login, account takeover in password expiration, SSRF in webhooks. Tokens stored as SHA-256 hashes.
 
 == Additional Information ==
 

@@ -50,6 +50,14 @@ class NBUF_Hooks {
 
 		/* Admin dashboard access restriction */
 		add_action( 'admin_init', array( __CLASS__, 'restrict_admin_access' ) );
+
+		/*
+		 * Catch WordPress's default post-login redirect (wp-login.php and any
+		 * plugin-triggered native login). Priority 999 so we run after other
+		 * redirect filters; if a non-admin would otherwise land in /wp-admin/
+		 * while admin-access is restricted, bounce them to the account page.
+		 */
+		add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect_for_non_admins' ), 999, 3 );
 	}
 
 	/**
@@ -961,8 +969,14 @@ class NBUF_Hooks {
 			return;
 		}
 
-		/* Allow administrators */
-		if ( current_user_can( 'manage_options' ) ) {
+		/*
+		 * Allow administrators (role check, not capability check).
+		 * Mirrors NBUF_ToS::user_is_admin_or_super so a custom non-admin
+		 * role granted manage_options (intentionally or via drift in a
+		 * role-editor plugin) cannot silently bypass the restriction.
+		 */
+		$user_id = get_current_user_id();
+		if ( $user_id > 0 && self::is_admin_or_super_user( $user_id ) ) {
 			return;
 		}
 
@@ -995,6 +1009,165 @@ class NBUF_Hooks {
 		/* Redirect non-admin users */
 		wp_safe_redirect( $redirect_url );
 		exit;
+	}
+
+	/**
+	 * Role-based admin check used by the wp-admin restriction and the
+	 * post-login redirect sanitizer. Prefers NBUF_ToS::user_is_admin_or_super
+	 * (already handles multisite super-admins) and falls back to a direct
+	 * role lookup if NBUF_ToS isn't loaded yet.
+	 *
+	 * @since 1.7.5
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	private static function is_admin_or_super_user( int $user_id ): bool {
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+		if ( class_exists( 'NBUF_ToS' ) && method_exists( 'NBUF_ToS', 'user_is_admin_or_super' ) ) {
+			return NBUF_ToS::user_is_admin_or_super( $user_id );
+		}
+		if ( is_multisite() && function_exists( 'is_super_admin' ) && is_super_admin( $user_id ) ) {
+			return true;
+		}
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! is_object( $user ) ) {
+			return false;
+		}
+		return is_array( $user->roles ) && in_array( 'administrator', $user->roles, true );
+	}
+
+	/**
+	 * Sanitize a post-login redirect URL so non-admin users cannot land
+	 * inside /wp-admin/ when the admin-access restriction is enabled.
+	 *
+	 * Used by every NBUF login path (form submit, 2FA, magic-link, passkey,
+	 * universal-router, ToS post-acceptance) and by the `login_redirect`
+	 * filter that catches WordPress's native wp-login.php flow.
+	 *
+	 * @since 1.7.5
+	 * @param string $url     Proposed redirect URL.
+	 * @param int    $user_id User about to be redirected (0 = current user).
+	 * @return string         Original URL for admins or when the restriction
+	 *                        is off; the configured account/admin-redirect
+	 *                        URL when a non-admin would otherwise land in
+	 *                        /wp-admin/.
+	 */
+	public static function sanitize_post_login_redirect( string $url, int $user_id = 0 ): string {
+		if ( '' === $url ) {
+			return $url;
+		}
+		if ( $user_id <= 0 ) {
+			$user_id = get_current_user_id();
+		}
+		if ( $user_id <= 0 ) {
+			return $url;
+		}
+
+		/*
+		 * Admins keep whatever destination was requested. Role-based check
+		 * (not manage_options) so a custom non-admin role granted that cap
+		 * cannot bypass the redirect rewrite below.
+		 */
+		if ( self::is_admin_or_super_user( $user_id ) ) {
+			return $url;
+		}
+
+		if ( ! self::is_wp_admin_url( $url ) ) {
+			return $url;
+		}
+
+		/*
+		 * Non-admin landing in /wp-admin/ — unconditional rewrite. The
+		 * `nbuf_restrict_admin_access` setting controls whether non-admins
+		 * may *browse* /wp-admin/ once there (admin_init gate), but the
+		 * post-login redirect rule is universal: non-admins never land in
+		 * the backend after authentication, regardless of the configured
+		 * "After Login Redirect" choice or any inherited redirect_to URL
+		 * parameter from a wp-admin link.
+		 *
+		 * Resolution order: configured nbuf_admin_redirect_url override
+		 * (if set), then the account page, then home as a last resort.
+		 */
+		$override = NBUF_Options::get( 'nbuf_admin_redirect_url', '' );
+		if ( ! empty( $override ) ) {
+			return $override;
+		}
+		if ( class_exists( 'NBUF_Shortcodes' ) && method_exists( 'NBUF_Shortcodes', 'get_account_url' ) ) {
+			$account = NBUF_Shortcodes::get_account_url();
+			if ( ! empty( $account ) ) {
+				return $account;
+			}
+		}
+		if ( class_exists( 'NBUF_URL' ) ) {
+			$account = NBUF_URL::get( 'account' );
+			if ( ! empty( $account ) ) {
+				return $account;
+			}
+		}
+		return home_url( '/' );
+	}
+
+	/**
+	 * Test whether a URL points inside /wp-admin/.
+	 *
+	 * Compares scheme/host against the site's own admin URL so we don't
+	 * mis-classify external links that happen to contain `/wp-admin/` in
+	 * their path. Relative paths (`/wp-admin/...`) match too — they are
+	 * resolved against the current host when followed.
+	 *
+	 * @since 1.7.5
+	 * @param string $url Candidate URL.
+	 * @return bool
+	 */
+	private static function is_wp_admin_url( string $url ): bool {
+		$url = trim( $url );
+		if ( '' === $url ) {
+			return false;
+		}
+
+		$admin_url   = admin_url( '/' );
+		$admin_parts = wp_parse_url( $admin_url );
+		$admin_host  = isset( $admin_parts['host'] ) ? strtolower( $admin_parts['host'] ) : '';
+		$admin_path  = isset( $admin_parts['path'] ) ? $admin_parts['path'] : '/wp-admin/';
+
+		$target = wp_parse_url( $url );
+		if ( ! is_array( $target ) ) {
+			return false;
+		}
+		$target_host = isset( $target['host'] ) ? strtolower( $target['host'] ) : '';
+		$target_path = isset( $target['path'] ) ? $target['path'] : '';
+
+		/* Relative URL → same host by definition. */
+		if ( '' === $target_host ) {
+			return 0 === strpos( $target_path, $admin_path );
+		}
+
+		if ( $target_host !== $admin_host ) {
+			return false;
+		}
+		return 0 === strpos( $target_path, $admin_path );
+	}
+
+	/**
+	 * Filter callback for `login_redirect` (priority 999).
+	 *
+	 * Catches the WordPress-native post-login redirect (wp-login.php form
+	 * submit, plugin-triggered wp_signon flows) and applies the same
+	 * non-admin → /wp-admin/ guard NBUF's own login handlers use.
+	 *
+	 * @since 1.7.5
+	 * @param string         $redirect_to           Resolved redirect URL.
+	 * @param string         $requested_redirect_to Requested redirect URL.
+	 * @param WP_User|WP_Error $user                Authenticated user or error.
+	 * @return string
+	 */
+	public static function filter_login_redirect_for_non_admins( $redirect_to, $requested_redirect_to, $user ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- Filter signature mandated by WordPress.
+		if ( ! ( $user instanceof WP_User ) ) {
+			return $redirect_to;
+		}
+		return self::sanitize_post_login_redirect( (string) $redirect_to, (int) $user->ID );
 	}
 }
 

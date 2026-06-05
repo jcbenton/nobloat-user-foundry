@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.7.17
+ * Version: 1.7.18
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -178,6 +178,18 @@ function nbuf_maybe_upgrade_database(): void {
 	if ( ! get_option( 'nbuf_force_flag_cleanup_done' ) && class_exists( 'NBUF_Password_Expiration' ) ) {
 		NBUF_Password_Expiration::migrate_clear_stale_force_flags();
 		update_option( 'nbuf_force_flag_cleanup_done', '1' );
+	}
+
+	/*
+	 * One-shot: migrate legacy AUTH_KEY-derived encrypted secrets (TOTP and
+	 * webhook secrets) to the dedicated, salt-independent encryption key. Run
+	 * promptly on upgrade so that a subsequent WordPress salt rotation cannot
+	 * irreversibly destroy them. Runs once even though it is idempotent; rows
+	 * that cannot be decrypted are left untouched (never overwritten).
+	 */
+	if ( ! get_option( 'nbuf_encryption_key_migrated' ) && class_exists( 'NBUF_Encryption' ) ) {
+		NBUF_Encryption::migrate_to_dedicated_key();
+		update_option( 'nbuf_encryption_key_migrated', '1' );
 	}
 }
 

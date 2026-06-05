@@ -341,9 +341,17 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	 * @return array<int, int> Array of post IDs to exclude from queries.
 	 */
 	private static function get_excluded_post_ids( $post_type ): array {
-		/* Try to get from cache */
-		$cache_key = 'nbuf_excluded_posts_' . $post_type . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' );
-		$cached    = wp_cache_get( $cache_key, 'nbuf_restrictions' );
+		/*
+		 * Try to get from cache. The key embeds the group's "last_changed"
+		 * version so any restriction edit/delete or user role change — which
+		 * bump it via NBUF_Restrictions::flush_excluded_cache() — instantly
+		 * invalidates every cached exclusion list. Without it, a newly
+		 * restricted post stayed visible (or a downgraded user kept access) for
+		 * up to the 5-minute TTL.
+		 */
+		$last_changed = wp_cache_get_last_changed( 'nbuf_restrictions' );
+		$cache_key    = 'nbuf_excluded_posts_' . $post_type . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' ) . '_' . $last_changed;
+		$cached       = wp_cache_get( $cache_key, 'nbuf_restrictions' );
 
 		if ( false !== $cached ) {
 			return $cached;

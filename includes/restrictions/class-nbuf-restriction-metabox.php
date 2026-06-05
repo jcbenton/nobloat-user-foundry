@@ -207,6 +207,16 @@ class NBUF_Restriction_Metabox {
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 
+		/*
+		 * A restriction write is about to happen on one of the branches below
+		 * (delete / update / insert). Invalidate the cached query-exclusion
+		 * lists now so the change takes effect immediately rather than after the
+		 * 5-minute TTL.
+		 */
+		if ( class_exists( 'NBUF_Restrictions' ) ) {
+			NBUF_Restrictions::flush_excluded_cache();
+		}
+
 		/* If visibility is "everyone", delete restriction and return */
 		if ( 'everyone' === $visibility ) {
          // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

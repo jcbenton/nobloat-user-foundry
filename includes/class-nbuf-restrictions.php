@@ -73,6 +73,30 @@ class NBUF_Restrictions {
 		 */
 		add_action( 'delete_post', array( __CLASS__, 'cleanup_on_post_delete' ), 10, 1 );
 		add_action( 'delete_nav_menu_item', array( __CLASS__, 'cleanup_on_menu_item_delete' ), 10, 1 );
+
+		/*
+		 * Invalidate the cached query-exclusion lists when a user's roles
+		 * change. Restriction-row edits flush via the save/delete paths; role
+		 * changes must flush too, otherwise a downgraded user keeps access (or a
+		 * promoted user stays blocked) for up to the 5-minute cache TTL.
+		 */
+		add_action( 'set_user_role', array( __CLASS__, 'flush_excluded_cache' ) );
+		add_action( 'add_user_role', array( __CLASS__, 'flush_excluded_cache' ) );
+		add_action( 'remove_user_role', array( __CLASS__, 'flush_excluded_cache' ) );
+	}
+
+	/**
+	 * Invalidate the cached query-exclusion lists.
+	 *
+	 * Bumps the `nbuf_restrictions` cache group's last_changed version so every
+	 * `nbuf_excluded_posts_*` entry (whose key embeds that version) is treated
+	 * as a miss on the next read. Called whenever a content-restriction row or a
+	 * user's roles change. Accepts and ignores any hook arguments.
+	 *
+	 * @return void
+	 */
+	public static function flush_excluded_cache(): void {
+		wp_cache_set( 'last_changed', microtime(), 'nbuf_restrictions' );
 	}
 
 	/**
@@ -87,6 +111,7 @@ class NBUF_Restrictions {
 		$table = $wpdb->prefix . 'nbuf_content_restrictions';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table cleanup on post delete.
 		$wpdb->delete( $table, array( 'content_id' => (int) $post_id ), array( '%d' ) );
+		self::flush_excluded_cache();
 	}
 
 	/**

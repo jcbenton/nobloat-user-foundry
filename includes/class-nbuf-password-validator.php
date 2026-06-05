@@ -153,7 +153,16 @@ class NBUF_Password_Validator {
 		 * Set the force_password_change flag so the password expiration
 		 * handler (priority 30) will redirect to password change form.
 		 */
-		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
+		/*
+		 * Only persist the forced-change flag when the expiration subsystem
+		 * (the priority-30 `authenticate` filter that consumes it) is actually
+		 * active. With it disabled, nothing reads the flag during login, so
+		 * writing it here would be a pointless DB mutation on an authentication
+		 * this subsystem cannot enforce. The weak-password block is still
+		 * applied independently by NBUF_Hooks::enforce_verification_before_login
+		 * (priority 25, 'weak_password_expired') on the next login attempt.
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) && NBUF_Options::get( 'nbuf_password_expiration_enabled', false ) ) {
 			NBUF_Password_Expiration::force_password_change( $user->ID );
 		}
 

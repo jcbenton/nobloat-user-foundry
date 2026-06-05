@@ -100,6 +100,12 @@ class NBUF_IP {
 		}
 
 		/* Normalize IPv6 addresses to canonical form if requested */
+		/* Collapse IPv4-mapped IPv6 (::ffff:a.b.c.d) to dotted IPv4 so a client
+		 * arriving over a dual-stack socket keys/matches identically to native
+		 * IPv4 (otherwise blacklists are evaded and IPv4 whitelists lock the
+		 * client out). */
+		$ip = self::fold_mapped_ipv4( $ip );
+
 		if ( $normalize_ipv6 && filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
 			/*
 			 * SECURITY: Normalize IPv6 to canonical form.
@@ -215,6 +221,33 @@ class NBUF_IP {
 	 * @param  string $ip Raw IP string.
 	 * @return string Canonical lowercase IP, or '' for empty input.
 	 */
+	/**
+	 * Collapse an IPv4-mapped IPv6 address (::ffff:a.b.c.d) to dotted IPv4.
+	 *
+	 * Returns the input unchanged if it is not a mapped address. Lets a client
+	 * presented over a dual-stack socket as ::ffff:x compare equal to native
+	 * IPv4 x in rate-limit keys and IP-restriction matching.
+	 *
+	 * @param  string $ip IP address.
+	 * @return string IPv4 dotted form if mapped, else $ip unchanged.
+	 */
+	private static function fold_mapped_ipv4( string $ip ): string {
+		if ( false === strpos( $ip, ':' ) ) {
+			return $ip;
+		}
+		$packed = @inet_pton( $ip ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged -- non-IP handled below.
+		if ( false === $packed || 16 !== strlen( $packed ) ) {
+			return $ip;
+		}
+		if ( "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff" === substr( $packed, 0, 12 ) ) {
+			$v4 = inet_ntop( substr( $packed, 12, 4 ) );
+			if ( false !== $v4 ) {
+				return $v4;
+			}
+		}
+		return $ip;
+	}
+
 	public static function canonicalize_ip( string $ip ): string {
 		$ip = trim( $ip );
 		if ( '' === $ip ) {
@@ -225,7 +258,10 @@ class NBUF_IP {
 			return strtolower( $ip );
 		}
 		$normal = inet_ntop( $packed );
-		return false === $normal ? strtolower( $ip ) : strtolower( $normal );
+		if ( false === $normal ) {
+			return strtolower( $ip );
+		}
+		return strtolower( self::fold_mapped_ipv4( $normal ) );
 	}
 
 	/**

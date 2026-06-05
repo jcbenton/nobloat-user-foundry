@@ -107,7 +107,10 @@ class NBUF_IP_Restrictions {
 		 * the toggle for emergency lockout recovery, but require explicit
 		 * opt-in and surface the trade-off in the settings UI.
 		 */
-		return (bool) NBUF_Options::get( 'nbuf_ip_restriction_admin_bypass', false );
+		/* Default TRUE to match the activator seed and avoid an admin locking
+		 * themselves out: a missing option row must not silently flip the
+		 * bypass off. */
+		return (bool) NBUF_Options::get( 'nbuf_ip_restriction_admin_bypass', true );
 	}
 
 	/**

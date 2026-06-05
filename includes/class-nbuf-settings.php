@@ -223,10 +223,10 @@ class NBUF_Settings {
 
 			/* Security - Login limiting */
 			'nbuf_enable_login_limiting'              => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_login_max_attempts'                 => array( __CLASS__, 'sanitize_positive_int' ),
-			'nbuf_login_lockout_duration'             => array( __CLASS__, 'sanitize_positive_int' ),
-			'nbuf_login_max_attempts_per_username'    => array( __CLASS__, 'sanitize_positive_int' ),
-			'nbuf_login_username_lockout_window'      => array( __CLASS__, 'sanitize_positive_int' ),
+			'nbuf_login_max_attempts'                 => static function ( $v ) { return max( 3, min( 100, absint( $v ) ) ); },
+			'nbuf_login_lockout_duration'             => static function ( $v ) { return max( 1, min( 1440, absint( $v ) ) ); },
+			'nbuf_login_max_attempts_per_username'    => static function ( $v ) { return max( 5, min( 100, absint( $v ) ) ); },
+			'nbuf_login_username_lockout_window'      => static function ( $v ) { return max( 5, min( 1440, absint( $v ) ) ); },
 			'nbuf_login_trusted_proxies'              => array( __CLASS__, 'sanitize_trusted_proxies' ),
 
 			/* Security - IP Restrictions */
@@ -696,6 +696,29 @@ class NBUF_Settings {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Whether an IP matches any entry in a raw (submitted) whitelist string.
+	 *
+	 * Used by the self-lockout guard to validate the not-yet-saved list.
+	 *
+	 * @param  string $ip       Client IP.
+	 * @param  string $list_raw Newline/comma separated IP/CIDR/wildcard entries.
+	 * @return bool True if $ip matches an entry (i.e. would be allowed).
+	 */
+	private static function ip_in_submitted_whitelist( string $ip, string $list_raw ): bool {
+		$entries = preg_split( '/[,\r\n]+/', $list_raw, -1, PREG_SPLIT_NO_EMPTY );
+		if ( ! is_array( $entries ) ) {
+			return false;
+		}
+		foreach ( $entries as $entry ) {
+			$entry = trim( $entry );
+			if ( '' !== $entry && NBUF_IP_Restrictions::ip_matches_pattern( $ip, $entry ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static function handle_settings_save(): void {
 		/* Verify user capability */
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -712,6 +735,38 @@ class NBUF_Settings {
 
 		if ( ! wp_verify_nonce( $nonce, 'nbuf_save_settings' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * Self-lockout guard. If this save would turn on IP-restriction WHITELIST
+		 * mode with admin bypass OFF while the saving admin's own current IP is
+		 * not in the submitted list, refuse the save — otherwise the admin (and
+		 * everyone) is locked out of login with no in-app recovery.
+		 */
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		if ( isset( $_POST['nbuf_ip_restriction_enabled'] ) && '1' === (string) wp_unslash( $_POST['nbuf_ip_restriction_enabled'] ) ) {
+			$sl_mode   = isset( $_POST['nbuf_ip_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_ip_restriction_mode'] ) ) : 'whitelist';
+			$sl_bypass = isset( $_POST['nbuf_ip_restriction_admin_bypass'] ) && '1' === (string) wp_unslash( $_POST['nbuf_ip_restriction_admin_bypass'] );
+			if ( 'whitelist' === $sl_mode && ! $sl_bypass && class_exists( 'NBUF_IP' ) && class_exists( 'NBUF_IP_Restrictions' ) ) {
+				$sl_list = isset( $_POST['nbuf_ip_restriction_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['nbuf_ip_restriction_list'] ) ) : '';
+				$sl_ip   = NBUF_IP::get_client_ip( true );
+				if ( $sl_ip && ! self::ip_in_submitted_whitelist( $sl_ip, $sl_list ) ) {
+					add_settings_error(
+						'nbuf_security',
+						'nbuf_ip_self_lockout',
+						sprintf(
+							/* translators: %s: the admin's current IP address */
+							__( 'Settings NOT saved: your current IP (%s) is not in the whitelist, so enabling whitelist mode with admin bypass off would lock you and everyone out. Add your IP to the list, or keep "Allow admins to bypass" enabled.', 'nobloat-user-foundry' ),
+							$sl_ip
+						),
+						'error'
+					);
+					set_transient( 'settings_errors', get_settings_errors(), 30 );
+					$sl_redirect = isset( $_POST['_wp_http_referer'] ) ? esc_url_raw( wp_unslash( $_POST['_wp_http_referer'] ) ) : admin_url();
+					wp_safe_redirect( add_query_arg( 'settings-updated', 'false', $sl_redirect ) );
+					exit;
+				}
+			}
 		}
 
 		/* Handle webhook actions */

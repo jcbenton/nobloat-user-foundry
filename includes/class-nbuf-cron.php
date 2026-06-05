@@ -562,6 +562,20 @@ class NBUF_Cron {
 			)
 		);
 
+		/* Surface a failed reaper run: an unbounded login_attempts table slows the
+		 * rate-limit COUNTs toward the fail-closed timeout (mass lockout). */
+		if ( false === $deleted ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log_or_update(
+					'login_attempts_cleanup_failed',
+					'warning',
+					'Failed to prune the login-attempts table; it may grow unbounded.',
+					array( 'db_error' => $wpdb->last_error )
+				);
+			}
+			return 0;
+		}
+
 		/* Log cleanup statistics */
 		if ( $deleted > 0 ) {
 			NBUF_Options::update( 'nbuf_last_login_attempts_cleanup', current_time( 'mysql', true ), false, 'system' );

@@ -957,7 +957,17 @@ If you did not request this code, please ignore this email.
 			$ip_ttl = max( 60, $rate_window - ( time() - (int) $ip_state['first_at'] ) );
 			set_transient( $ip_key, $ip_state, $ip_ttl );
 
-			if ( $ip_state['count'] >= max( $max_attempts, 10 ) ) {
+			/*
+			 * The per-IP 2FA lockout is a SPRAY backstop (one IP attacking many
+			 * users' 2FA), not the primary control — the per-user counter
+			 * ($max_attempts/window) already caps any single victim regardless of
+			 * IP. Keep this threshold HIGH and filterable so a shared egress IP
+			 * (CGNAT / office NAT / CDN) where many distinct users each mistype a
+			 * code does not collaterally lock everyone out. Mirrors the login
+			 * limiter's nbuf_login_max_attempts_per_ip_global.
+			 */
+			$ip_threshold = (int) apply_filters( 'nbuf_2fa_max_attempts_per_ip', max( (int) $max_attempts * 6, 30 ) );
+			if ( $ip_state['count'] >= $ip_threshold ) {
 				$ip_lockout_key = 'nbuf_2fa_ip_lockout_' . md5( $ip );
 				if ( false === get_transient( $ip_lockout_key ) ) {
 					set_transient( $ip_lockout_key, true, $rate_window );

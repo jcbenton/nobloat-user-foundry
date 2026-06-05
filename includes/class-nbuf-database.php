@@ -322,11 +322,38 @@ class NBUF_Database {
             KEY username (username),
             KEY attempt_time (attempt_time),
             KEY ip_time (ip_address, attempt_time),
-            KEY user_time (username, attempt_time)
+            KEY user_time (username, attempt_time),
+            KEY ip_user_time (ip_address, username, attempt_time)
         ) {$charset_collate};";
 
 		include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		/* dbDelta is unreliable at adding a NEW composite key to an existing
+		 * table; add it explicitly for upgraded installs. */
+		self::migrate_login_attempts_indexes();
+	}
+
+	/**
+	 * Ensure the (ip_address, username, attempt_time) composite index exists.
+	 *
+	 * The Layer-1 rate-limit COUNT filters on all three columns; without this
+	 * composite the query degrades under a brute-force flood and can approach
+	 * the statement-timeout that fail-closes the limiter (mass lockout). Added
+	 * via a guarded ALTER because dbDelta does not reliably add new composite
+	 * keys to existing tables.
+	 *
+	 * @return void
+	 */
+	public static function migrate_login_attempts_indexes(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = 'ip_user_time'", $table_name ) );
+		if ( empty( $indexes ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD KEY ip_user_time (ip_address, username, attempt_time)', $table_name ) );
+		}
 	}
 
 	/**

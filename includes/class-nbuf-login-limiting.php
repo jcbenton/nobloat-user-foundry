@@ -177,10 +177,7 @@ class NBUF_Login_Limiting {
 		 * sanitize_text_field (here) disagree, leaving some users locked out even
 		 * after a successful reset. Unknown users fall back to the typed value.
 		 */
-		$resolved_user = get_user_by( 'login', $username );
-		if ( ! $resolved_user ) {
-			$resolved_user = get_user_by( 'email', $username );
-		}
+		$resolved_user    = self::resolve_login_user( $username );
 		$counter_username = $resolved_user
 			? self::normalize_username( $resolved_user->user_login )
 			: self::normalize_username( $username );
@@ -357,12 +354,22 @@ class NBUF_Login_Limiting {
 		$max_attempts_per_ip = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
 
 		/*
+		 * Resolve the typed value to the canonical account key so the per-(IP+
+		 * username) and per-username COUNT queries match the rows
+		 * record_failed_attempt() wrote (it keys on the resolved user_login).
+		 * Without this, a user logging in by EMAIL is recorded under their
+		 * user_login but checked under the email string, so the per-username
+		 * limits would silently never trip for email-based login.
+		 */
+		$counter_username = self::counter_key_for( (string) $username );
+
+		/*
 		 * Layer 1 — this IP attacking THIS username (the precise brute-force
 		 * shape). Previously the per-IP count summed EVERY username, so a few
 		 * unrelated users fumbling passwords behind one shared NAT/CGNAT/CDN
 		 * egress IP collectively tripped the lock and locked everyone out.
 		 */
-		$ip_user_count = self::get_recent_attempt_count( $ip_address, $username, $lockout_duration );
+		$ip_user_count = self::get_recent_attempt_count( $ip_address, $counter_username, $lockout_duration );
 		if ( $ip_user_count >= $max_attempts_per_ip ) {
 			return true;
 		}
@@ -394,7 +401,7 @@ class NBUF_Login_Limiting {
 		$max_attempts_per_username = NBUF_Options::get( 'nbuf_login_max_attempts_per_username', 10 );
 		$username_lockout_duration = NBUF_Options::get( 'nbuf_login_username_lockout_window', 60 );
 
-		$username_count = self::get_recent_attempt_count_by_username( $username, $username_lockout_duration );
+		$username_count = self::get_recent_attempt_count_by_username( $counter_username, $username_lockout_duration );
 		if ( $username_count >= $max_attempts_per_username ) {
 			/* Log distributed brute force detection */
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
@@ -584,6 +591,36 @@ class NBUF_Login_Limiting {
 	 * @param  string $username Raw value the user typed in the login form.
 	 * @return string Sanitized, lowercased, length-clamped username.
 	 */
+	/**
+	 * Resolve a typed login value to its WordPress account (by login, then email).
+	 *
+	 * @param  string $typed Raw value typed in the login form.
+	 * @return WP_User|null The matching user, or null if none.
+	 */
+	private static function resolve_login_user( string $typed ): ?WP_User {
+		$user = get_user_by( 'login', $typed );
+		if ( ! $user ) {
+			$user = get_user_by( 'email', $typed );
+		}
+		return $user instanceof WP_User ? $user : null;
+	}
+
+	/**
+	 * Canonical rate-limit counter key for a typed login value.
+	 *
+	 * Resolves to the account's normalized user_login when the value matches a
+	 * user (so login-by-email and login-by-username hit the same counter and
+	 * match what record/clear store), else the normalized typed value. RECORD,
+	 * CHECK, and CLEAR must all use this so the keys agree.
+	 *
+	 * @param  string $typed Raw value typed in the login form.
+	 * @return string Normalized counter key.
+	 */
+	private static function counter_key_for( string $typed ): string {
+		$user = self::resolve_login_user( $typed );
+		return $user ? self::normalize_username( $user->user_login ) : self::normalize_username( $typed );
+	}
+
 	private static function normalize_username( string $username ): string {
 		$value = sanitize_text_field( $username );
 

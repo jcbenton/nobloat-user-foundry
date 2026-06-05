@@ -1869,7 +1869,9 @@ class NBUF_Settings {
 				$cidr_mask = is_numeric( $cidr_mask ) ? (int) $cidr_mask : -1;
 				$is_v4     = (bool) filter_var( $cidr_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 );
 				$is_v6     = (bool) filter_var( $cidr_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 );
-				if ( ( $is_v4 && $cidr_mask >= 0 && $cidr_mask <= 32 ) || ( $is_v6 && $cidr_mask >= 0 && $cidr_mask <= 128 ) ) {
+				/* Reject /0 — a 0.0.0.0/0 or ::/0 'trusted proxy' would trust forwarded
+				 * headers from EVERY direct client, re-opening IP spoofing. */
+				if ( ( $is_v4 && $cidr_mask >= 1 && $cidr_mask <= 32 ) || ( $is_v6 && $cidr_mask >= 1 && $cidr_mask <= 128 ) ) {
 					$valid_ips[] = $cidr_subnet . '/' . $cidr_mask;
 				}
 			}

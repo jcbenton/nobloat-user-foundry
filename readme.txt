@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.37
+Stable tag: 1.7.38
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,10 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.38 — Passkeys satisfy a "TOTP required" policy; passkey help text corrected =
+* Fixed: with TOTP Method = Required (Security > 2FA Config > Authenticator), users were force-redirected to TOTP setup on every page — even on a passkey-first site where "Also require TOTP / email 2FA after a passkey login" is off (a verified passkey is already multi-factor). A passkey-preferring user was trapped in a redirect loop and could not even reach passkey registration. When passkeys are enabled and that setting is off, the forced-TOTP redirect is now suppressed, so users can register and use a passkey instead of being pushed into TOTP; enable "require 2FA after passkey" to keep forcing TOTP on top of a passkey.
+* Corrected the Passkeys settings help text, which wrongly described passkeys as single-factor that always need 2FA. A user-verified passkey (biometric/PIN) is multi-factor and satisfies 2FA by default; only non-user-verified passkeys fall through to the 2FA challenge.
 
 = 1.7.37 — Fix webhooks table SQL error (1.7.34 regression) =
 * Fixed a SQL syntax error logged when creating/repairing the webhooks table: the webhook secret column carried a COMMENT containing a semicolon, which dbDelta splits SQL on, tearing the CREATE TABLE statement in two. Removed the column comment (the VARCHAR(512) widening is unchanged). Data was unaffected (CREATE used IF NOT EXISTS and the column-widening migration ran via a separate clean statement); this clears the error-log noise.

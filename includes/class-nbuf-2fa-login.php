@@ -674,6 +674,27 @@ class NBUF_2FA_Login {
 			return false; /* User already has TOTP set up */
 		}
 
+		/*
+		 * Passkeys are an accepted second factor. When passkeys are enabled AND
+		 * "Also require TOTP / email 2FA after a passkey login" is OFF, a verified
+		 * passkey is itself sufficient MFA — exactly the config under which the
+		 * passkey LOGIN flow skips the 2FA challenge. In that case "require
+		 * authenticator app" means "require a strong second factor," so we must
+		 * NOT force TOTP specifically: doing so traps a passkey-preferring user in
+		 * a redirect loop and prevents them from ever reaching passkey
+		 * registration (they have no passkey yet). With the redirect suppressed
+		 * they remain free to set up a passkey OR TOTP from their account's
+		 * Security tab.
+		 *
+		 * To hard-require TOTP in addition to a passkey, enable
+		 * "Also require TOTP / email 2FA after a passkey login".
+		 */
+		$passkeys_enabled      = (bool) NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+		$require_after_passkey = (bool) NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
+		if ( $passkeys_enabled && ! $require_after_passkey ) {
+			return false;
+		}
+
 		/* Log that user is being redirected to TOTP setup */
 		NBUF_Audit_Log::log(
 			$user_id,

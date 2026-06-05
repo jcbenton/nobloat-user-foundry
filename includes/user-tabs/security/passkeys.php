@@ -154,11 +154,11 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 			<th><?php esc_html_e( '2FA Requirement', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<p class="description">
-					<?php esc_html_e( 'Passkeys provide strong single-factor authentication. When a user logs in with a passkey, they still need to complete 2FA if it\'s required for their account. This provides layered security.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'A passkey unlocked with biometrics or a PIN (user verification) is itself a multi-factor credential, so by default signing in with a verified passkey satisfies the 2FA requirement and no extra code is requested. Enable "Also require TOTP / email 2FA after a passkey login" below to demand a second factor anyway. Passkeys that perform no user verification always fall through to the normal 2FA challenge when 2FA is required.', 'nobloat-user-foundry' ); ?>
 				</p>
 				<p class="description" style="margin-top: 10px;">
 					<strong><?php esc_html_e( 'Flow:', 'nobloat-user-foundry' ); ?></strong>
-					<?php esc_html_e( 'User clicks "Sign in with Passkey" &rarr; Biometric/PIN verification &rarr; If 2FA required: Enter 2FA code &rarr; Logged in.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'User clicks "Sign in with Passkey" &rarr; Biometric/PIN verification &rarr; Logged in. An extra 2FA code is requested only if "require 2FA after passkey" is enabled, or the passkey performed no user verification.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

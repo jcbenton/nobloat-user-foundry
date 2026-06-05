@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.35
+Stable tag: 1.7.36
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,9 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.7.36 — WordPress Plugin Check compliance (warnings cleared) =
+* Resolved all WordPress Plugin Check warnings: sanitized two IP-restriction inputs in the settings self-lockout guard; converted the webhook-secret and encryption-migration queries to prepared %i identifiers; trimmed the 1.7.30 upgrade notice under the 300-char limit; and annotated the remaining false positives (MySQL advisory locks GET_LOCK/RELEASE_LOCK, the de-facto-standard DONOTCACHE* cache constants, and the restriction-feature post__not_in usage). No functional changes.
+
 = 1.7.35 — Authenticator (TOTP) setup now requires password re-authentication =
 * Enabling an authenticator app (TOTP) now requires you to re-enter your current password on the setup form, matching every other sensitive 2FA/passkey self-service action (enable/disable email 2FA, disable TOTP, regenerate backup codes, register/rename/delete passkey). This prevents a hijacked session from turning on 2FA without the account password. The setup form gained a password field; sites using a customized 2fa-setup-totp template get the field injected automatically.
 
@@ -423,7 +426,7 @@ Full per-version history (1.0.0 - 1.5.7) is in README.md / CHANGELOG.md on GitHu
 == Upgrade Notice ==
 
 = 1.7.30 =
-Major security + login-protection release. Adds proxy/CDN-aware rate limiting (incl. a one-click "Behind Cloudflare" preset), decouples the encryption key from WordPress salts (a salt rotation no longer destroys 2FA/webhook secrets), and fixes numerous wrongful-lockout and bot-registration false positives. Upgrades run a one-time secret migration and add a login-attempts index automatically.
+Security + login-protection release: proxy/CDN-aware rate limiting with a "Behind Cloudflare" preset, encryption key decoupled from WP salts (salt rotation no longer destroys 2FA/webhook secrets), plus many wrongful-lockout and bot-registration fixes. One-time secret migration runs on upgrade.
 
 = 1.7.6 =
 WordPress 7.0 "Armstrong" compatibility confirmed. No code changes required — the plugin's authentication, REST, shortcode, user, and capability surfaces are unaffected by the WP 7.0 breaking changes. "Tested up to" header bumped to 7.0.

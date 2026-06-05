@@ -356,8 +356,8 @@ class NBUF_Encryption {
 
 		/* --- nbuf_user_2fa.totp_secret --- */
 		$twofa_table = $wpdb->prefix . 'nbuf_user_2fa';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT user_id, totp_secret FROM {$twofa_table} WHERE totp_secret LIKE %s", $like ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time encryption-key migration over a known table.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, totp_secret FROM %i WHERE totp_secret LIKE %s', $twofa_table, $like ) );
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
 				$reencrypted = self::reencrypt( (string) $row->totp_secret );
@@ -377,8 +377,8 @@ class NBUF_Encryption {
 
 		/* --- nbuf_webhooks.secret --- */
 		$webhooks_table = $wpdb->prefix . 'nbuf_webhooks';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wrows = $wpdb->get_results( $wpdb->prepare( "SELECT id, secret FROM {$webhooks_table} WHERE secret LIKE %s", $like ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time encryption-key migration over a known table.
+		$wrows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, secret FROM %i WHERE secret LIKE %s', $webhooks_table, $like ) );
 		if ( is_array( $wrows ) ) {
 			foreach ( $wrows as $row ) {
 				$reencrypted = self::reencrypt( (string) $row->secret );

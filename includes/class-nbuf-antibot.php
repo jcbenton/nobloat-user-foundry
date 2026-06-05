@@ -925,12 +925,15 @@ class NBUF_Antibot {
 	 */
 	public static function prevent_page_caching(): void {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- De-facto standard cache-bypass constant honored by page/object caches; must be this exact name.
 			define( 'DONOTCACHEPAGE', true );
 		}
 		if ( ! defined( 'DONOTCACHEOBJECT' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- De-facto standard cache-bypass constant honored by page/object caches; must be this exact name.
 			define( 'DONOTCACHEOBJECT', true );
 		}
 		if ( ! defined( 'DONOTCACHEDB' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- De-facto standard cache-bypass constant honored by page/object caches; must be this exact name.
 			define( 'DONOTCACHEDB', true );
 		}
 		if ( ! headers_sent() && function_exists( 'nocache_headers' ) ) {

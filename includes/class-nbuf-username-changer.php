@@ -294,8 +294,10 @@ class NBUF_Username_Changer {
 		 * closes that window. Best-effort: proceed if the lock times out.
 		 */
 		$uname_lock = 'nbuf_uname_' . md5( strtolower( $new_username ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 		$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $uname_lock ) );
 		if ( username_exists( $new_username ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $uname_lock ) );
 			add_action(
 				'user_profile_update_errors',
@@ -347,6 +349,7 @@ class NBUF_Username_Changer {
 		}
 
 		/* Release the rename serialization lock now that the write is done. */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $uname_lock ) );
 
 		if ( false === $result ) {

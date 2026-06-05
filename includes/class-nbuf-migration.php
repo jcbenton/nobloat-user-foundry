@@ -734,12 +734,15 @@ class NBUF_Migration {
 		global $wpdb;
 		$migration_lock_key = 'nbuf_migration_lock';
 		$acquire_mutex      = 'nbuf_migration_acquire';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 		$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $acquire_mutex ) );
 		if ( get_transient( $migration_lock_key ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $acquire_mutex ) );
 			wp_send_json_error( array( 'message' => __( 'A migration is already in progress. Please wait for it to complete.', 'nobloat-user-foundry' ) ) );
 		}
 		set_transient( $migration_lock_key, time(), 5 * MINUTE_IN_SECONDS );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL advisory lock (GET_LOCK/RELEASE_LOCK); not a cacheable query.
 		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $acquire_mutex ) );
 
 		/* Increase execution time for this batch (only if safe) */

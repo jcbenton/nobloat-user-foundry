@@ -745,9 +745,9 @@ class NBUF_Settings {
 		 * everyone) is locked out of login with no in-app recovery.
 		 */
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		if ( isset( $_POST['nbuf_ip_restriction_enabled'] ) && '1' === (string) wp_unslash( $_POST['nbuf_ip_restriction_enabled'] ) ) {
+		if ( isset( $_POST['nbuf_ip_restriction_enabled'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['nbuf_ip_restriction_enabled'] ) ) ) {
 			$sl_mode   = isset( $_POST['nbuf_ip_restriction_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['nbuf_ip_restriction_mode'] ) ) : 'whitelist';
-			$sl_bypass = isset( $_POST['nbuf_ip_restriction_admin_bypass'] ) && '1' === (string) wp_unslash( $_POST['nbuf_ip_restriction_admin_bypass'] );
+			$sl_bypass = isset( $_POST['nbuf_ip_restriction_admin_bypass'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['nbuf_ip_restriction_admin_bypass'] ) );
 			if ( 'whitelist' === $sl_mode && ! $sl_bypass && class_exists( 'NBUF_IP' ) && class_exists( 'NBUF_IP_Restrictions' ) ) {
 				$sl_list = isset( $_POST['nbuf_ip_restriction_list'] ) ? sanitize_textarea_field( wp_unslash( $_POST['nbuf_ip_restriction_list'] ) ) : '';
 				$sl_ip   = NBUF_IP::get_client_ip( true );

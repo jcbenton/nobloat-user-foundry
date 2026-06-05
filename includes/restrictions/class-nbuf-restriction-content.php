@@ -487,6 +487,7 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		$excluded = self::get_excluded_post_ids( (string) $post_type );
 		if ( ! empty( $excluded ) ) {
 			$existing = ( isset( $args['post__not_in'] ) && is_array( $args['post__not_in'] ) ) ? $args['post__not_in'] : array();
+			// phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- Required to hide no-access restricted posts from the sitemap; the excluded-ID set is per-user cached and small.
 			$args['post__not_in'] = array_merge( $existing, $excluded );
 		}
 		return $args;
@@ -562,6 +563,7 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		$excluded = self::get_all_excluded_post_ids();
 		if ( ! empty( $excluded ) ) {
 			$existing = ( isset( $query_args['post__not_in'] ) && is_array( $query_args['post__not_in'] ) ) ? $query_args['post__not_in'] : array();
+			// phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- Required to hide no-access restricted posts from REST search; the excluded-ID set is per-user cached and small.
 			$query_args['post__not_in'] = array_merge( $existing, $excluded );
 		}
 		return $query_args;

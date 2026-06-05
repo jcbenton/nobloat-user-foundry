@@ -360,6 +360,7 @@ class NBUF_Config_Importer {
 					 * that ignore $_POST. Restored immediately after.
 					 */
 					$nbuf_post_injected = false;
+					// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in ajax_import_config; isset() presence check only, value re-sanitized via the registry callback below.
 					if ( ! isset( $_POST[ $option_name ] ) ) {
 						$_POST[ $option_name ] = $option_value; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in ajax_import_config; presence marker only, the real value is the sanitized $option_value argument.
 						$nbuf_post_injected    = true;

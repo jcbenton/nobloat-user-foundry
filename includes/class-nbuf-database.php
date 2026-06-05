@@ -1528,8 +1528,8 @@ class NBUF_Database {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- DDL guarded by table-existence check on a known table.
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 		if ( $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL on a known, prefix-built table name.
-			$wpdb->query( "ALTER TABLE `{$table}` MODIFY `secret` VARCHAR(512) DEFAULT NULL" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- DDL widening a known column; not cacheable.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i MODIFY `secret` VARCHAR(512) DEFAULT NULL', $table ) );
 		}
 		update_option( 'nbuf_webhook_secret_widened_v1', '1' );
 	}

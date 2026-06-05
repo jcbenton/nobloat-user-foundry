@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.7.30
+ * Version: 1.7.31
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -134,25 +134,21 @@ function nbuf_maybe_upgrade_database(): void {
 
 	if ( version_compare( $stored_db_version, $current_db_version, '<' ) ) {
 		if ( class_exists( 'NBUF_Database' ) ) {
-			/* Run all table creation - dbDelta only modifies if needed */
-			NBUF_Database::create_table();
-			NBUF_Database::create_user_data_table();
-			NBUF_Database::create_options_table();
-			NBUF_Database::create_user_profile_table();
-			NBUF_Database::create_login_attempts_table();
-			NBUF_Database::create_user_2fa_table();
-			NBUF_Database::create_user_passkeys_table();
-			NBUF_Database::create_user_audit_log_table();
-			NBUF_Database::create_admin_audit_log_table();
-			NBUF_Database::create_user_notes_table();
-			NBUF_Database::create_import_history_table();
-			NBUF_Database::create_menu_restrictions_table();
-			NBUF_Database::create_content_restrictions_table();
-			NBUF_Database::create_user_roles_table();
-
-			if ( class_exists( 'NBUF_Security_Log' ) ) {
-				NBUF_Security_Log::create_table();
-			}
+			/*
+			 * Run the FULL idempotent repair: every create_*_table() PLUS every
+			 * update_*_table_for_*() ALTER...ADD COLUMN migration. The previous
+			 * code called only the create_* functions, which are no-ops on an
+			 * existing table (CREATE TABLE IF NOT EXISTS) -- so a plugin-files-only
+			 * upgrade (WP auto-update / FTP, with no deactivate-reactivate cycle)
+			 * never gained columns added by later releases (pending_email,
+			 * last_data_export, passkey_prompt_dismissed, password_expires_at,
+			 * force_password_change, totp_grace_start, tertiary_email, ...), and
+			 * reads/writes of those columns hit "Unknown column" errors. Only the
+			 * activator (manual reactivation) and the diagnostics repair button ran
+			 * the update_* set before. repair_all_tables() is that same set and is
+			 * safe to run on every version bump.
+			 */
+			NBUF_Database::repair_all_tables();
 
 			/* Ensure the login-attempts composite rate-limit index exists. */
 			NBUF_Database::migrate_login_attempts_indexes();
@@ -161,14 +157,6 @@ function nbuf_maybe_upgrade_database(): void {
 			if ( class_exists( 'NBUF_Cron' ) ) {
 				NBUF_Cron::activate();
 			}
-
-			/* Create webhooks tables */
-			NBUF_Database::create_webhooks_table();
-			NBUF_Database::create_webhook_log_table();
-
-			/* Create Terms of Service tables */
-			NBUF_Database::create_tos_versions_table();
-			NBUF_Database::create_tos_acceptances_table();
 		}
 
 		/* Update stored version */

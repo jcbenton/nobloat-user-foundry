@@ -1474,10 +1474,14 @@ class NBUF_Shortcodes {
 		/*
 		 * Per-IP registration flood backstop. The antibot proves a request is
 		 * human-ish but does not cap VOLUME, so a bot solving cheap challenges
-		 * could mass-create accounts. Cap registrations per IP per hour. Kept
-		 * generous and filterable so legitimate shared-IP signups (office/school)
-		 * are not blocked; tighten via the filter if needed. Behind a configured
-		 * trusted proxy this keys on the real client IP.
+		 * could mass-create accounts. Cap CREATED accounts per IP per hour. This
+		 * is a read-only CHECK; the counter is incremented only on a successful
+		 * registration (see below), so failed attempts (antibot block, validation
+		 * errors, fat-fingering) never consume a shared-NAT network's budget and
+		 * cannot lock out legitimate registrants. Kept generous and filterable so
+		 * legitimate shared-IP signups (office/school) are not blocked; tighten
+		 * via the filter if needed. Behind a configured trusted proxy this keys on
+		 * the real client IP.
 		 */
 		if ( class_exists( 'NBUF_IP' ) ) {
 			$nbuf_reg_ip = NBUF_IP::get_client_ip( true );
@@ -1493,7 +1497,6 @@ class NBUF_Shortcodes {
 					wp_safe_redirect( add_query_arg( 'error', rawurlencode( $nbuf_reg_msg ), self::get_current_page_url() ) );
 					exit;
 				}
-				set_transient( $nbuf_reg_key, $nbuf_reg_count + 1, HOUR_IN_SECONDS );
 			}
 		}
 
@@ -1588,6 +1591,21 @@ class NBUF_Shortcodes {
 			);
 			wp_safe_redirect( $redirect_url );
 			exit;
+		}
+
+		/*
+		 * Flood backstop: count only SUCCESSFUL account creations against the
+		 * per-IP/hour budget (the cap was CHECKED before antibot against this same
+		 * counter). Failed attempts never increment, so they cannot lock out
+		 * legitimate registrants sharing a NAT egress IP.
+		 */
+		if ( class_exists( 'NBUF_IP' ) ) {
+			$nbuf_done_ip = NBUF_IP::get_client_ip( true );
+			if ( $nbuf_done_ip ) {
+				$nbuf_done_key = 'nbuf_reg_rl_' . md5( $nbuf_done_ip );
+				$nbuf_done_cnt = (int) get_transient( $nbuf_done_key );
+				set_transient( $nbuf_done_key, $nbuf_done_cnt + 1, HOUR_IN_SECONDS );
+			}
 		}
 
 		/* Registration successful - redirect with success message */

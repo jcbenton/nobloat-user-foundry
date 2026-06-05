@@ -1903,8 +1903,18 @@ class NBUF_Settings {
 			return array();
 		}
 
+		/*
+		 * Accept ARRAY input too. The $_POST save path delivers a newline/comma
+		 * string, but the config-import path delivers this setting as a real array
+		 * (the exporter unserializes the stored value). Normalize to a string so
+		 * preg_split() below cannot fatal with a TypeError on PHP 8+.
+		 */
+		if ( is_array( $input ) ) {
+			$input = implode( "\n", array_map( 'strval', $input ) );
+		}
+
 		/* Split by commas and newlines */
-		$ips = preg_split( '/[,\n\r]+/', $input, -1, PREG_SPLIT_NO_EMPTY );
+		$ips = preg_split( '/[,\n\r]+/', (string) $input, -1, PREG_SPLIT_NO_EMPTY );
 
 		/* Validate and clean each IP */
 		$valid_ips = array();

@@ -87,7 +87,59 @@ class NBUF_Privacy {
 			'callback'               => array( __CLASS__, 'export_login_attempts' ),
 		);
 
+		$exporters['nobloat-user-foundry-passkeys'] = array(
+			'exporter_friendly_name' => __( 'NoBloat User Foundry - Passkeys (WebAuthn Devices)', 'nobloat-user-foundry' ),
+			'callback'               => array( __CLASS__, 'export_passkeys' ),
+		);
+
 		return $exporters;
+	}
+
+	/**
+	 * Export the user's registered passkeys (WebAuthn devices).
+	 *
+	 * Device name + timestamps are user PII; credential secrets are NOT exported.
+	 *
+	 * @param  string $email_address User email address.
+	 * @param  int    $page          Page number.
+	 * @return array{data: array<int, mixed>, done: bool} Export payload.
+	 */
+	public static function export_passkeys( string $email_address, int $page = 1 ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $page required by WordPress privacy exporter signature.
+		$user = get_user_by( 'email', $email_address );
+		if ( ! $user || ! class_exists( 'NBUF_User_Passkeys_Data' ) ) {
+			return array(
+				'data' => array(),
+				'done' => true,
+			);
+		}
+
+		$data_to_export = array();
+		foreach ( NBUF_User_Passkeys_Data::get_all( $user->ID ) as $passkey ) {
+			$data_to_export[] = array(
+				'group_id'    => 'nobloat-user-foundry-passkeys',
+				'group_label' => __( 'Passkeys (WebAuthn Devices)', 'nobloat-user-foundry' ),
+				'item_id'     => 'passkey-' . (int) $passkey->id,
+				'data'        => array(
+					array(
+						'name'  => __( 'Device Name', 'nobloat-user-foundry' ),
+						'value' => isset( $passkey->device_name ) ? (string) $passkey->device_name : '',
+					),
+					array(
+						'name'  => __( 'Registered', 'nobloat-user-foundry' ),
+						'value' => isset( $passkey->created_at ) ? (string) $passkey->created_at : '',
+					),
+					array(
+						'name'  => __( 'Last Used', 'nobloat-user-foundry' ),
+						'value' => ! empty( $passkey->last_used ) ? (string) $passkey->last_used : __( 'Never', 'nobloat-user-foundry' ),
+					),
+				),
+			);
+		}
+
+		return array(
+			'data' => $data_to_export,
+			'done' => true,
+		);
 	}
 
 	/**
@@ -798,6 +850,55 @@ class NBUF_Privacy {
 		}
 
 		/*
+		 * Delete WebAuthn passkeys. Device names are PII and a live passkey is
+		 * itself login capability, so an anonymize-without-delete erasure must
+		 * remove them (previously only full account deletion did).
+		 */
+		if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
+			if ( NBUF_User_Passkeys_Data::delete_all( $user->ID ) ) {
+				$items_removed = true;
+				$messages[]    = __( 'Passkeys (WebAuthn devices) erased.', 'nobloat-user-foundry' );
+			}
+		}
+
+		/*
+		 * Delete Terms-of-Service acceptance rows. Each carries the user's IP +
+		 * user-agent (PII) and otherwise outlives the account entirely.
+		 */
+		$tos_table = $wpdb->prefix . 'nbuf_tos_acceptances';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Article 17 erasure of ToS acceptance PII (IP + user-agent).
+		$tos_deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', $tos_table, $user->ID ) );
+		if ( $tos_deleted ) {
+			$items_removed = true;
+			$messages[]    = __( 'Terms of Service acceptance records removed.', 'nobloat-user-foundry' );
+		}
+
+		/*
+		 * Remove uploaded profile/cover photo FILES from disk and null their path
+		 * columns. The exporter classifies these as the user's PII, so erasure
+		 * must remove them too (previously only full account deletion did). Gated
+		 * by nbuf_gdpr_delete_user_photos (default on) so an operator who must
+		 * retain photos can opt out; column-null is tied to the same gate so disk
+		 * and DB never diverge.
+		 */
+		if ( class_exists( 'NBUF_Image_Processor' ) && NBUF_Options::get( 'nbuf_gdpr_delete_user_photos', true ) ) {
+			NBUF_Image_Processor::cleanup_user_photos( $user->ID );
+			if ( class_exists( 'NBUF_User_Data' ) ) {
+				NBUF_User_Data::update(
+					$user->ID,
+					array(
+						'profile_photo_url'  => null,
+						'profile_photo_path' => null,
+						'cover_photo_url'    => null,
+						'cover_photo_path'   => null,
+					)
+				);
+			}
+			$items_removed = true;
+			$messages[]    = __( 'Uploaded profile and cover photos removed.', 'nobloat-user-foundry' );
+		}
+
+		/*
 		 * Destroy any active WP sessions for the user — required so an
 		 * already-authenticated session cannot continue after the account
 		 * has been erased.
@@ -964,6 +1065,15 @@ class NBUF_Privacy {
 			$version_history = new NBUF_Version_History();
 			$version_history->delete_user_versions( $user_id );
 		}
+
+		/*
+		 * Delete Terms-of-Service acceptance rows (IP + user-agent PII), keyed on
+		 * user_id only — otherwise they outlive the deleted user as orphaned PII.
+		 */
+		global $wpdb;
+		$tos_table = $wpdb->prefix . 'nbuf_tos_acceptances';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Remove ToS acceptance PII on account deletion.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', $tos_table, $user_id ) );
 
 		/* Passkeys are handled separately via delete_user hook in NBUF_Passkeys */
 

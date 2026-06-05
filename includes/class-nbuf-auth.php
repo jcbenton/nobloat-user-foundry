@@ -29,13 +29,49 @@ class NBUF_Auth {
 	 * never run that filter (magic links, passkeys, 2FA completion). Returns the
 	 * same error codes those paths already emit so downstream handling is
 	 * unchanged. NOTE: this covers account-state gates (disabled / expired /
-	 * unverified / pending approval); the forced/expired/weak PASSWORD gates are
+	 * unverified / pending approval) AND the IP-restriction gate (mirroring the
+	 * authenticate priority-1 filter); the forced/expired/weak PASSWORD gates are
 	 * handled separately by NBUF_Password_Expiration::maybe_get_change_redirect().
 	 *
 	 * @param  int $user_id User ID.
 	 * @return true|WP_Error True if the user may proceed, WP_Error otherwise.
 	 */
 	public static function enforce_login_status( int $user_id ) {
+		/*
+		 * IP-restriction gate. The authenticate priority-1 filter
+		 * (NBUF_IP_Restrictions::check_ip_restrictions) only runs on the password
+		 * front door; out-of-band paths (magic link, passkey, 2FA completion)
+		 * never invoke it, so enforce it here too. Checked BEFORE the admin
+		 * exemption below so an IP block is honored for admins as well UNLESS
+		 * admin_bypass is enabled, exactly matching the front-door semantics.
+		 * No-op on default installs (feature off or empty list -> is_ip_allowed
+		 * returns true), so no legitimate user is ever newly blocked.
+		 */
+		if ( class_exists( 'NBUF_IP_Restrictions' ) && NBUF_IP_Restrictions::is_enabled() ) {
+			$nbuf_client_ip = NBUF_IP_Restrictions::get_client_ip();
+			if ( ! NBUF_IP_Restrictions::is_ip_allowed( $nbuf_client_ip ) ) {
+				$ip_admin_bypass = NBUF_IP_Restrictions::admin_bypass_enabled()
+					&& user_can( $user_id, 'manage_options' );
+				if ( ! $ip_admin_bypass ) {
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log_or_update(
+							'ip_blocked',
+							'critical',
+							'Login blocked (out-of-band): IP address not authorized',
+							array(
+								'ip_address' => $nbuf_client_ip,
+								'user_id'    => $user_id,
+							)
+						);
+					}
+					return new WP_Error(
+						'ip_blocked',
+						__( 'Access denied. Your IP address is not authorized to log in.', 'nobloat-user-foundry' )
+					);
+				}
+			}
+		}
+
 		/* Admins bypass all restrictions. */
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			return true;

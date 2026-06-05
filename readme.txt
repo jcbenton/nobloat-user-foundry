@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.30
+Stable tag: 1.7.31
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,15 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.31 — Cross-file flow audit: 6 HIGH + lockout MEDIUMs =
+* New end-to-end (multi-file execution-flow) forensic pass; every finding adversarially re-verified before and after fixing. Focus remained on NOT wrongly locking out legitimate users.
+* HIGH (auth side doors): magic-link, passkey, and 2FA-completion logins now honor IP restrictions. They authenticate out-of-band and never ran the password front door's IP filter, so a whitelist/blacklist could be bypassed via those doors. A single shared gate (NBUF_Auth::enforce_login_status) now enforces IP for all of them; no-op on default installs.
+* HIGH (registration lockout): the antibot challenge is now stored as a small per-session ring instead of a single overwriting value, so opening the form in two tabs / refreshing / using the Back button no longer clobbers the challenge and hard-blocks a legitimate registrant. The form also self-heals the script/challenge when placed where the enqueue gate couldn't detect it (reusable block, widget, nested shortcode).
+* HIGH (config import): importing a configuration can no longer lock the admin (and everyone) out — the IP-whitelist self-lockout guard from the settings save path is now replicated on import (force-enables admin bypass rather than leaving a half-applied config). Importing a trusted-proxy list no longer throws a fatal (array vs string), and a per-setting sanitizer error is contained instead of aborting mid-import.
+* HIGH (upgrade data integrity): plugin-files-only upgrades (WP auto-update / FTP, no reactivation) now run the full column migrations, not just CREATE-TABLE-IF-NOT-EXISTS. Previously, new columns added by later releases (pending_email, last_data_export, password_expires_at, etc.) were missing on upgraded sites, breaking email-change and several account features.
+* HIGH (GDPR): right-to-erasure now removes WebAuthn passkeys, Terms-of-Service acceptance records (IP + user-agent), and uploaded profile/cover photos for an anonymized-but-not-deleted account; passkeys are also added to the personal-data export. ToS records are likewise cleared on full account deletion.
+* MEDIUM (lockout): per-IP registration throttle now counts only successful account creations, so failed attempts (typos, antibot blocks) can't exhaust a shared-NAT network's hourly budget.
 
 = 1.7.30 — Security hardening + login-protection overhaul (1.7.7–1.7.30) =
 * Multi-round forensic security audit across the whole plugin (impersonation, admin user management, roles, profile/media, logging, GDPR, encryption, restrictions, webhooks, migrations, import/export). Fixed CRITICAL/HIGH/MEDIUM issues incl. a broken End-Impersonation session restore, orphaned-photo GDPR gap, per-target capability checks, role-adoption containment, and a settings page that rendered to list_users-capable non-admins.

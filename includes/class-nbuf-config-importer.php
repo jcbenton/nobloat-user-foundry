@@ -326,7 +326,22 @@ class NBUF_Config_Importer {
 
 				/* Apply settings registry sanitizer (guaranteed to exist by the check above). */
 				if ( is_callable( $registry[ $option_name ] ) ) {
-					$option_value = call_user_func( $registry[ $option_name ], $option_value );
+					try {
+						$option_value = call_user_func( $registry[ $option_name ], $option_value );
+					} catch ( \Throwable $e ) {
+						/*
+						 * Contain blast radius: a sanitizer written for the $_POST
+						 * string shape can throw on the array shape import delivers.
+						 * Skip the offending setting instead of fataling mid-import
+						 * and leaving a half-applied config.
+						 */
+						$this->results['errors'][] = sprintf(
+							/* translators: %s: setting key whose sanitizer threw */
+							__( 'Skipped setting (sanitizer error): %s', 'nobloat-user-foundry' ),
+							$option_name
+						);
+						continue;
+					}
 				}
 
 				/* Skip if merge mode and option already exists */
@@ -407,6 +422,93 @@ class NBUF_Config_Importer {
 				}
 			}
 		}
+
+		self::guard_ip_self_lockout( $this->results['errors'] );
+	}
+
+	/**
+	 * Read an imported option directly from the custom options table.
+	 *
+	 * import_settings() writes via $wpdb, so reading back through a possibly
+	 * cached NBUF_Options::get() could be stale; query the table directly.
+	 *
+	 * @param  string $name Option name.
+	 * @return mixed Unserialized value, or null if absent.
+	 */
+	private static function read_imported_option( string $name ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_options';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table, fresh read needed post-import.
+		$val = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $table, $name ) );
+		return ( null === $val ) ? null : maybe_unserialize( $val );
+	}
+
+	/**
+	 * Self-lockout guard for the import path (mirrors
+	 * NBUF_Settings::handle_settings_save). The save form refuses a whitelist +
+	 * admin-bypass-off IP config that excludes the admin's own IP; the import
+	 * path must not be a backdoor around it. Rather than refuse the whole import
+	 * (which could leave partial state), FORCE admin bypass back ON when the
+	 * imported IP config would otherwise lock the importing admin (and everyone)
+	 * out, and record a warning.
+	 *
+	 * @param  array<int, string> $errors Results error bucket (by reference).
+	 * @return void
+	 */
+	private static function guard_ip_self_lockout( array &$errors ): void {
+		if ( ! class_exists( 'NBUF_IP' ) || ! class_exists( 'NBUF_IP_Restrictions' ) ) {
+			return;
+		}
+
+		/* Enabled? Missing row defaults to disabled -> no lockout. */
+		if ( '1' !== (string) self::read_imported_option( 'nbuf_ip_restriction_enabled' ) ) {
+			return;
+		}
+
+		/* Mode: missing/empty defaults to 'whitelist' (NBUF_IP_Restrictions::get_mode). */
+		$mode = self::read_imported_option( 'nbuf_ip_restriction_mode' );
+		$mode = ( null === $mode || '' === $mode ) ? 'whitelist' : (string) $mode;
+		if ( 'whitelist' !== $mode ) {
+			return;
+		}
+
+		/* Bypass: missing row defaults to ON (admin_bypass_enabled default) -> safe. */
+		$bypass_raw = self::read_imported_option( 'nbuf_ip_restriction_admin_bypass' );
+		$bypass_off = ( null !== $bypass_raw ) && ( '1' !== (string) $bypass_raw );
+		if ( ! $bypass_off ) {
+			return;
+		}
+
+		/* Empty list = allow-all (is_ip_allowed returns true) -> not a lockout. */
+		$list = self::read_imported_option( 'nbuf_ip_restriction_list' );
+		$list = is_string( $list ) ? $list : '';
+		if ( '' === trim( $list ) ) {
+			return;
+		}
+
+		$admin_ip = NBUF_IP::get_client_ip( true );
+		if ( ! $admin_ip ) {
+			return;
+		}
+		foreach ( preg_split( '/[,\r\n]+/', $list, -1, PREG_SPLIT_NO_EMPTY ) as $entry ) {
+			$entry = trim( $entry );
+			if ( '' !== $entry && NBUF_IP_Restrictions::ip_matches_pattern( $admin_ip, $entry ) ) {
+				return; /* Admin IP is whitelisted -> no lockout. */
+			}
+		}
+
+		/* Admin would be locked out: force admin bypass back ON. */
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_options';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
+		$wpdb->update(
+			$table,
+			array( 'option_value' => '1' ),
+			array( 'option_name' => 'nbuf_ip_restriction_admin_bypass' ),
+			array( '%s' ),
+			array( '%s' )
+		);
+		$errors[] = __( 'Imported IP whitelist would have locked out your current IP; admin bypass was force-enabled to prevent lockout. Review your IP restriction settings.', 'nobloat-user-foundry' );
 	}
 
 	/**

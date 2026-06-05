@@ -33,6 +33,15 @@ class NBUF_Antibot {
 	const SESSION_PREFIX = 'nbuf_antibot_';
 
 	/**
+	 * Max challenges retained per session (ring buffer). Concurrent renders
+	 * (two tabs / refresh / Back button) each append their own JS seed and PoW
+	 * challenge; validation accepts a match against ANY unexpired entry so an
+	 * earlier-rendered form is not clobbered by a later render and wrongly
+	 * blocked on submit.
+	 */
+	const CHALLENGE_RING_MAX = 12;
+
+	/**
 	 * Cached session ID for current request.
 	 *
 	 * @var string|null
@@ -440,15 +449,21 @@ class NBUF_Antibot {
 		$seed      = bin2hex( random_bytes( 8 ) );
 		$timestamp = time();
 
-		/* Store seed and timestamp for validation */
-		set_transient(
-			self::SESSION_PREFIX . 'js_' . $session_id,
-			array(
-				'seed'      => $seed,
-				'timestamp' => $timestamp,
-			),
-			2 * HOUR_IN_SECONDS
+		/*
+		 * Append to a small per-session ring instead of overwriting, so a later
+		 * render does not invalidate an earlier-rendered (but not yet submitted)
+		 * form. Validation matches against any unexpired entry.
+		 */
+		$js_key  = self::SESSION_PREFIX . 'js_' . $session_id;
+		$js_ring = self::normalize_js_ring( get_transient( $js_key ) );
+		$js_ring[] = array(
+			'seed'      => $seed,
+			'timestamp' => $timestamp,
 		);
+		if ( count( $js_ring ) > self::CHALLENGE_RING_MAX ) {
+			$js_ring = array_slice( $js_ring, -self::CHALLENGE_RING_MAX );
+		}
+		set_transient( $js_key, $js_ring, 2 * HOUR_IN_SECONDS );
 
 		return array(
 			'seed'      => $seed,
@@ -480,23 +495,28 @@ class NBUF_Antibot {
 		}
 
 		$transient_key = self::SESSION_PREFIX . 'js_' . $session_id;
-		$challenge     = get_transient( $transient_key );
-		self::debug_log( 'Looking for transient: ' . $transient_key );
-		self::debug_log( 'Transient value: ' . wp_json_encode( $challenge ) );
+		$js_ring       = self::normalize_js_ring( get_transient( $transient_key ) );
+		self::debug_log( 'Looking for transient: ' . $transient_key . ' (ring size ' . count( $js_ring ) . ')' );
 
-		if ( ! $challenge || ! isset( $challenge['seed'], $challenge['timestamp'] ) ) {
-			self::debug_log( 'JS token FAIL: no transient or missing seed/timestamp' );
+		if ( empty( $js_ring ) ) {
+			self::debug_log( 'JS token FAIL: no transient or empty ring' );
 			return false;
 		}
 
-		/* Compute expected token */
-		$expected = hash( 'sha256', $challenge['seed'] . $challenge['timestamp'] . $session_id );
-		self::debug_log( 'Expected token: ' . $expected );
-		self::debug_log( 'Received token: ' . $token );
-		self::debug_log( 'Tokens match: ' . ( hash_equals( $expected, $token ) ? 'YES' : 'NO' ) );
+		/* Accept a constant-time match against ANY unexpired ring entry. */
+		foreach ( $js_ring as $challenge ) {
+			if ( ! isset( $challenge['seed'], $challenge['timestamp'] ) ) {
+				continue;
+			}
+			$expected = hash( 'sha256', $challenge['seed'] . $challenge['timestamp'] . $session_id );
+			if ( hash_equals( $expected, (string) $token ) ) {
+				self::debug_log( 'JS token PASS' );
+				return true;
+			}
+		}
 
-		/* Constant-time comparison */
-		return hash_equals( $expected, $token );
+		self::debug_log( 'JS token FAIL: no ring entry matched' );
+		return false;
 	}
 
 	/*
@@ -585,11 +605,14 @@ class NBUF_Antibot {
 
 		$challenge = bin2hex( random_bytes( 16 ) );
 
-		set_transient(
-			self::SESSION_PREFIX . 'pow_' . $session_id,
-			$challenge,
-			2 * HOUR_IN_SECONDS
-		);
+		/* Append to the per-session ring (see generate_js_seed). */
+		$pow_key  = self::SESSION_PREFIX . 'pow_' . $session_id;
+		$pow_ring = self::normalize_pow_ring( get_transient( $pow_key ) );
+		$pow_ring[] = $challenge;
+		if ( count( $pow_ring ) > self::CHALLENGE_RING_MAX ) {
+			$pow_ring = array_slice( $pow_ring, -self::CHALLENGE_RING_MAX );
+		}
+		set_transient( $pow_key, $pow_ring, 2 * HOUR_IN_SECONDS );
 
 		return $challenge;
 	}
@@ -631,27 +654,31 @@ class NBUF_Antibot {
 		}
 
 		$transient_key = self::SESSION_PREFIX . 'pow_' . $session_id;
-		$challenge     = get_transient( $transient_key );
-		self::debug_log( 'Looking for PoW transient: ' . $transient_key );
-		self::debug_log( 'PoW challenge: ' . ( $challenge ? $challenge : '(not found)' ) );
+		$pow_ring      = self::normalize_pow_ring( get_transient( $transient_key ) );
+		self::debug_log( 'Looking for PoW transient: ' . $transient_key . ' (ring size ' . count( $pow_ring ) . ')' );
 
-		if ( ! $challenge ) {
+		if ( empty( $pow_ring ) ) {
 			self::debug_log( 'PoW FAIL: no transient found' );
 			return false;
 		}
 
 		$difficulty = self::get_pow_difficulty();
-		$hash       = hash( 'sha256', $challenge . $nonce );
+		$prefix     = str_repeat( '0', $difficulty );
 
-		/* Check for N leading zeros (hex digits) */
-		$prefix = str_repeat( '0', $difficulty );
+		/* Accept a solution against ANY unexpired ring entry. */
+		foreach ( $pow_ring as $challenge ) {
+			if ( ! is_string( $challenge ) || '' === $challenge ) {
+				continue;
+			}
+			$hash = hash( 'sha256', $challenge . $nonce );
+			if ( 0 === strpos( $hash, $prefix ) ) {
+				self::debug_log( 'PoW PASS' );
+				return true;
+			}
+		}
 
-		self::debug_log( "PoW difficulty=$difficulty, prefix=$prefix, hash=$hash" );
-
-		$result = 0 === strpos( $hash, $prefix );
-		self::debug_log( 'PoW ' . ( $result ? 'PASS' : 'FAIL' ) );
-
-		return $result;
+		self::debug_log( 'PoW FAIL: no ring entry matched' );
+		return false;
 	}
 
 	/**
@@ -932,6 +959,27 @@ class NBUF_Antibot {
 		$session_id = self::get_or_create_session_id();
 		self::debug_log( 'render_fields() session_id: ' . $session_id );
 
+		/*
+		 * Self-heal the enqueue/render gate divergence: the challenge transient
+		 * and antibot.js are normally minted/enqueued by enqueue_scripts() on
+		 * wp_enqueue_scripts, gated by is_registration_page(). If the form is
+		 * placed where that gate cannot see it (reusable block / synced pattern /
+		 * widget / nested shortcode / null $post), enqueue_scripts() bailed: no JS
+		 * loaded and no challenge minted, so a real submit would be hard-blocked.
+		 * If the script was not enqueued for this request, enqueue + localize now
+		 * (localize mints the js/pow challenge for THIS session). Runs from the
+		 * render path so the two gates cannot diverge.
+		 */
+		if ( ! wp_script_is( 'nbuf-antibot', 'enqueued' ) ) {
+			self::debug_log( 'render_fields() self-heal: antibot.js not enqueued, enqueuing + minting now' );
+			NBUF_Asset_Minifier::enqueue_script(
+				'nbuf-antibot',
+				'assets/js/frontend/antibot.js',
+				array()
+			);
+			wp_localize_script( 'nbuf-antibot', 'nbufAntibot', self::get_client_config() );
+		}
+
 		$html  = self::render_honeypot_fields();
 		$html .= self::render_time_field();
 		$html .= sprintf(
@@ -961,5 +1009,51 @@ class NBUF_Antibot {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[NBUF Antibot] ' . $message );
 		}
+	}
+
+	/**
+	 * Normalize the stored JS-seed challenge into a ring (list of entries).
+	 *
+	 * Back-compat: a pre-ring value was a single assoc array
+	 * array('seed'=>.., 'timestamp'=>..); wrap it as a one-element ring so
+	 * in-flight challenges minted before the upgrade still validate.
+	 *
+	 * @param  mixed $value Stored transient value.
+	 * @return array<int, array<string, mixed>> Ring of {seed,timestamp} entries.
+	 */
+	private static function normalize_js_ring( $value ): array {
+		if ( empty( $value ) || ! is_array( $value ) ) {
+			return array();
+		}
+		if ( isset( $value['seed'], $value['timestamp'] ) ) {
+			return array(
+				array(
+					'seed'      => $value['seed'],
+					'timestamp' => $value['timestamp'],
+				),
+			);
+		}
+		return array_values( $value );
+	}
+
+	/**
+	 * Normalize the stored PoW challenge into a ring (list of strings).
+	 *
+	 * Back-compat: a pre-ring value was a single challenge string; wrap it.
+	 *
+	 * @param  mixed $value Stored transient value.
+	 * @return array<int, string> Ring of challenge strings.
+	 */
+	private static function normalize_pow_ring( $value ): array {
+		if ( empty( $value ) ) {
+			return array();
+		}
+		if ( is_string( $value ) ) {
+			return array( $value );
+		}
+		if ( is_array( $value ) ) {
+			return array_values( array_filter( $value, 'is_string' ) );
+		}
+		return array();
 	}
 }

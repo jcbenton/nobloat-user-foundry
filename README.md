@@ -333,6 +333,71 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.37 — Webhooks table SQL error fix (1.7.34 regression)
+
+Fixed a SQL syntax error logged when creating/repairing the `nbuf_webhooks` table. The widened `secret` column (1.7.34) carried a `COMMENT` containing a semicolon, and `dbDelta()` splits SQL on semicolons — tearing the `CREATE TABLE` statement in two. Removed the comment (the `VARCHAR(512)` widening is unchanged). Impact was log-noise only: `CREATE TABLE IF NOT EXISTS` is a no-op on the existing table, and the 255→512 widening runs via a separate, comment-free `ALTER`.
+
+### 1.7.36 — WordPress Plugin Check compliance
+
+Cleared all WordPress Plugin Check warnings.
+
+- **Real changes:** sanitized two IP-restriction inputs in the settings self-lockout guard; converted the webhook-secret and encryption-migration queries to prepared `%i` identifiers; trimmed the 1.7.30 upgrade notice under the 300-character limit.
+- **Annotated false positives:** MySQL `GET_LOCK`/`RELEASE_LOCK` advisory locks, the de-facto-standard `DONOTCACHE*` cache constants, and the restriction-feature `post__not_in` usage. No functional changes.
+
+### 1.7.35 — Authenticator (TOTP) setup requires password re-authentication
+
+Enabling an authenticator app now requires re-entering the current password on the setup form (`NBUF_Auth::verify_reauth`), matching every other sensitive 2FA/passkey self-service action (enable/disable email 2FA, disable TOTP, regenerate backup codes, register/rename/delete passkey). This prevents a hijacked-but-not-credentialed session from turning on 2FA. The setup form gained a password field; customized `2fa-setup-totp` templates get the field injected automatically, so no legitimate enroller is ever locked out.
+
+### 1.7.34 — Cross-file flow audit round 4: 6 legitimate-user-lockout / data-loss fixes
+
+Fourth end-to-end audit round across the subsystems not yet deeply traced (bulk import, activation, log retention, Terms of Service), plus a full regression sweep of 1.7.33 (all prior fixes verified holding). No security bypasses this round — all six were correctness bugs that wrongly blocked legitimate users or silently lost data.
+
+- **HIGH:** a CSV bulk import with email verification OFF (pre-verified accounts) silently failed to record verification (it wrote to non-existent columns), blocking those users at login. Now routed through the canonical writer.
+- **HIGH:** the background "verify existing users" activation task could terminate early and leave higher-numbered users unverified. The progress counter now matches the work performed.
+- **HIGH:** a user forced to change an expired/weak password who set a strong new password could be permanently locked out (caught in a redirect loop) because the weak-password flag was never cleared. Fixed.
+- **HIGH:** log-retention selections were silently coerced to 90 days — the admin-audit field (numeric values) and the security-log "1 Year" token did not match the retention sanitizer's vocabulary, deleting compliance logs up to 9 months early. Aligned the vocabularies; admin-audit now uses a numeric-aware sanitizer defaulting to Forever.
+- **MEDIUM (Terms of Service):** the acceptance grace period is now honored consistently on the admin / AJAX / REST surfaces (previously only the front end honored it), and the front-end acceptance redirect now respects the "Require on Login" master switch.
+
+### 1.7.33 — Cross-file flow audit round 3: regression fix + 11 missed items
+
+Third round, pivoted onto webhooks, roles/caps, sessions, account-merge, the asset pipeline, and the member directory.
+
+- **Regression fix:** a 1.7.32 config-import change caused MERGE mode to overwrite two existing settings groups it should have preserved. The merge "skip existing" check now runs before the sanitizer.
+- **HIGH (privilege escalation):** bulk CSV import could mint full administrators on single-site for a delegated (non-administrator) account holding `manage_options` — the guard was multisite-only. Import now applies the same per-capability containment as the role create/import/multi-role paths, on single-site too.
+- **HIGH (security feature silently broken):** the per-session "Revoke" button never actually revoked a session (a WordPress session-token key-handling mismatch). Revoke now removes the targeted session correctly.
+- **MEDIUM:** webhook signing secrets longer than ~150 characters could be silently truncated by the database column (unsigned deliveries) — column widened + migrated; multi-role assignment now contains over-privileged custom roles; trusted-device rotation now re-reads fresh state under its lock; replaced profile/cover photos are now actually deleted from disk; the member directory honors each member's "Visible Profile Fields" opt-out and its AJAX search respects the enable switch.
+- **LOW:** a superseded email-change link is invalidated when the email changes by another path; the directory/profile NULL-privacy default now resolves consistently.
+
+### 1.7.32 — Cross-file flow audit round 2: regression-clean + missed items
+
+Re-ran the multi-file flow audit with a regression lens (every 1.7.31 fix re-traced and re-verified — all hold) and a missed-items lens.
+
+- **HIGH (self-lockout):** backup-code 2FA failures returned an error code that slipped past the limiter's `2fa` classifier and counted against the cross-IP per-username counter — a user mistyping backup codes ~10 times could lock themselves out from every IP (or an attacker holding the password could lock the victim out). The classifier now matches the `nbuf_2fa` family too.
+- **HIGH (auth side door):** the forced/expired password-change form was a 4th out-of-band login path that minted a session without the IP/account-state gate added to the other doors in 1.7.31; it now runs the same shared gate.
+- **HIGH (config import data loss):** importing a config silently dropped two settings groups (general settings + registration-field configuration) while reporting them imported. Import now processes those values correctly.
+- **MEDIUM (GDPR):** right-to-erasure now also purges the user's verification / password-reset / magic-link tokens.
+- **MEDIUM (restriction info-disclosure):** closed seven sibling surfaces that could leak a restricted post's title/URL (never its body) to unauthorized users — XML sitemap, oEmbed, adjacent-post links, REST search, default front-end search (pages/CPTs, not just posts), multi-type feeds, and comment feeds.
+
+### 1.7.31 — Cross-file flow audit round 1: 6 HIGH + lockout MEDIUMs
+
+First end-to-end multi-file execution-flow audit; every finding adversarially re-verified before and after fixing, focused on not wrongly locking out legitimate users.
+
+- **HIGH (auth side doors):** magic-link, passkey, and 2FA-completion logins now honor IP restrictions via a single shared gate (`NBUF_Auth::enforce_login_status`); previously they authenticated out-of-band and bypassed the password door's IP filter.
+- **HIGH (registration lockout):** the antibot challenge is now a small per-session ring instead of a single overwriting value, so two tabs / refresh / Back no longer clobbers it; the form also self-heals when placed where the enqueue gate cannot detect it.
+- **HIGH (config import):** an imported configuration can no longer lock the admin (and everyone) out; importing a trusted-proxy list no longer fatals.
+- **HIGH (upgrade integrity):** plugin-files-only upgrades now run the full column migrations (not just `CREATE TABLE IF NOT EXISTS`), so columns added by later releases are no longer missing on upgraded sites.
+- **HIGH (GDPR):** right-to-erasure now removes WebAuthn passkeys, ToS acceptance records, and uploaded photos; passkeys are added to the personal-data export.
+- **MEDIUM (lockout):** the per-IP registration throttle now counts only successful account creations, so failed attempts (typos, antibot blocks) cannot exhaust a shared-NAT network's hourly budget.
+
+### 1.7.7–1.7.30 — Security hardening + login-protection overhaul
+
+A multi-round forensic security audit across the whole plugin (impersonation, admin user management, roles, profile/media, logging, GDPR, encryption, restrictions, webhooks, migrations, import/export), fixing CRITICAL/HIGH/MEDIUM issues including a broken End-Impersonation session restore, an orphaned-photo GDPR gap, per-target capability checks, role-adoption containment, and a settings page that rendered to `list_users`-capable non-admins.
+
+- **Encryption:** the data key for TOTP and webhook secrets is now a dedicated, salt-independent key — a WordPress salt rotation no longer destroys stored secrets. Legacy data is read transparently and migrated on upgrade.
+- **Login protection overhaul** (brute force + IP detection + 2FA + bot registration), focused on not wrongly locking out legitimate users: proxy/CDN-aware client IP (CIDR trusted proxies, `CF-Connecting-IP` / `True-Client-IP`); a one-click "Behind Cloudflare" preset with a daily IP-range refresh; per-(IP+username) rate-limit scoping with a per-IP spray backstop and a cross-IP per-username layer, so shared NAT/CGNAT users are not collectively locked out; a composite DB index so floods do not degrade into fail-closed lockouts; server-side clamping of limit settings; a whitelist self-lockout save guard; IPv4-mapped-IPv6 normalization; and a per-IP registration throttle.
+- **Antibot false-positive fixes:** the registration page is non-cacheable (a full-page cache was sharing one-time challenges), a synchronous SHA-256 so the JS token / proof-of-work work on non-HTTPS, and autofill/paste-friendly interaction detection.
+- Removed ~900 lines of dead code; 178 PHP files + JS verified lint-clean throughout.
+
 ### 1.7.6 — WordPress 7.0 "Armstrong" compatibility
 
 Confirms compatibility with WordPress 7.0 (released 2026-05-20). No code changes were required; this release bumps the `Tested up to` header to 7.0 and documents the audit findings.

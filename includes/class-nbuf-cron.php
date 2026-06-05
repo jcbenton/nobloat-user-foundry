@@ -142,6 +142,8 @@ class NBUF_Cron {
 			'nbuf_cleanup_unverified_accounts',
 			'nbuf_enterprise_logging_cleanup',
 			'nbuf_cleanup_login_attempts',
+			'nbuf_cleanup_webhook_logs',
+			'nbuf_refresh_cloudflare_ranges',
 		);
 
 		/* Build list of already scheduled hooks */

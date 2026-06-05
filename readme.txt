@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.29
+Stable tag: 1.7.30
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -324,6 +324,13 @@ Configuration guides, troubleshooting, and examples are available online.
 
 == Changelog ==
 
+= 1.7.30 — Security hardening + login-protection overhaul (1.7.7–1.7.30) =
+* Multi-round forensic security audit across the whole plugin (impersonation, admin user management, roles, profile/media, logging, GDPR, encryption, restrictions, webhooks, migrations, import/export). Fixed CRITICAL/HIGH/MEDIUM issues incl. a broken End-Impersonation session restore, orphaned-photo GDPR gap, per-target capability checks, role-adoption containment, and a settings page that rendered to list_users-capable non-admins.
+* Encryption: the data key (TOTP + webhook secrets) is now a dedicated, salt-independent key — a WordPress salt rotation no longer destroys stored secrets. Legacy data is read transparently and migrated on upgrade.
+* Login protection overhaul (brute force + IP detection + 2FA + bot registration), focused on NOT wrongly locking out legitimate users: proxy/CDN-aware client IP (CIDR trusted proxies, CF-Connecting-IP); a one-click "Behind Cloudflare" preset; per-(IP+username) rate-limit scoping with a spray backstop so shared NAT/CGNAT users aren't collectively locked out; a composite DB index so floods don't degrade into fail-closed lockouts; server-side clamping of limit settings; a whitelist self-lockout save guard; IPv4-mapped-IPv6 normalization; per-IP 2FA-lockout tuning for shared IPs; and a per-IP registration throttle.
+* Antibot registration false-positive fixes: registration page is non-cacheable (was sharing one-time challenges via full-page cache), a synchronous SHA-256 so JS-token/PoW work on non-HTTPS, and autofill/paste-friendly interaction detection.
+* Removed ~900 lines of dead code; ~178 PHP files + JS verified lint-clean.
+
 = 1.7.6 — WordPress 7.0 "Armstrong" compatibility =
 * Tested against WordPress 7.0 (released 2026-05-20). No code changes required; this release bumps the compatibility header and documents the audit.
 * Audit scope vs. WP 7.0 breaking changes: minimum-PHP-7.4 bump (plugin already requires PHP 8.0); HTML5 `script` theme support removal (plugin does not call `add_theme_support()` for `html5`); author-link function signature additions in `get_the_author_link()` / `the_author_link()` (plugin does not call these); Block API v3 iframed-editor enforcement (plugin is not a block plugin); Administrator/Editor removal from the General Settings "new user default role" UI (plugin uses `wp_dropdown_roles()` in its own settings panel — function API is unchanged).
@@ -377,6 +384,9 @@ Earlier security and forensic-audit releases. Highlights: 1.6.8 verified-passkey
 Full per-version history (1.0.0 - 1.5.7) is in README.md / CHANGELOG.md on GitHub: https://github.com/jcbenton/nobloat-user-foundry
 
 == Upgrade Notice ==
+
+= 1.7.30 =
+Major security + login-protection release. Adds proxy/CDN-aware rate limiting (incl. a one-click "Behind Cloudflare" preset), decouples the encryption key from WordPress salts (a salt rotation no longer destroys 2FA/webhook secrets), and fixes numerous wrongful-lockout and bot-registration false positives. Upgrades run a one-time secret migration and add a login-attempts index automatically.
 
 = 1.7.6 =
 WordPress 7.0 "Armstrong" compatibility confirmed. No code changes required — the plugin's authentication, REST, shortcode, user, and capability surfaces are unaffected by the WP 7.0 breaking changes. "Tested up to" header bumped to 7.0.

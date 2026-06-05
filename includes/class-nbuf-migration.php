@@ -65,7 +65,7 @@ class NBUF_Migration {
 		add_action( 'wp_ajax_nbuf_load_migration_plugin', array( __CLASS__, 'ajax_load_migration_plugin' ) );
 		add_action( 'wp_ajax_nbuf_get_field_mappings', array( __CLASS__, 'ajax_get_field_mappings' ) );
 		add_action( 'wp_ajax_nbuf_get_restrictions_preview', array( __CLASS__, 'ajax_get_restrictions_preview' ) );
-		add_action( 'wp_ajax_nbuf_execute_migration', array( __CLASS__, 'ajax_execute_migration' ) );
+		/* Non-batch nbuf_execute_migration removed in v1.7.15 — use the batched handler below. */
 		add_action( 'wp_ajax_nbuf_execute_migration_batch', array( __CLASS__, 'ajax_execute_migration_batch' ) );
 		add_action( 'wp_ajax_nbuf_delete_migration_history', array( __CLASS__, 'ajax_delete_migration_history' ) );
 	}
@@ -682,91 +682,15 @@ class NBUF_Migration {
 		wp_send_json_success( array( 'restrictions' => $restrictions ) );
 	}
 
-	/**
-	 * AJAX: Execute migration
-	 *
-	 * Executes selected migration types (profile_data, restrictions)
-	 *
-	 * @return void
+	/*
+	 * ajax_execute_migration() — the non-batch (batch_size=9999) execute path —
+	 * was removed in v1.7.15. It processed every user in a single request (a
+	 * timeout / OOM and partial-state hazard on large sites) and lacked the slug
+	 * allow-list, rate-limit, concurrency lock, and field-mapping validation that
+	 * ajax_execute_migration_batch() has. The admin UI only ever called the
+	 * batched handler (assets/js/admin/migration.js → nbuf_execute_migration_batch);
+	 * its wp_ajax registration was removed from init().
 	 */
-	public static function ajax_execute_migration(): void {
-		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
-		}
-
-		$plugin_slug = isset( $_POST['plugin_slug'] ) ? sanitize_text_field( wp_unslash( $_POST['plugin_slug'] ) ) : '';
-
-		if ( empty( $plugin_slug ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid plugin slug', 'nobloat-user-foundry' ) ) );
-		}
-
-		/* Parse migration types */
-		$migration_types = array();
-		if ( isset( $_POST['migration_types'] ) && ! empty( $_POST['migration_types'] ) ) {
-			$migration_types_json = sanitize_text_field( wp_unslash( $_POST['migration_types'] ) );
-			$migration_types      = json_decode( $migration_types_json, true );
-
-			if ( ! is_array( $migration_types ) ) {
-				$migration_types = array();
-			}
-		}
-
-		/* Parse field mappings */
-		$field_mappings = array();
-		if ( isset( $_POST['field_mappings'] ) && ! empty( $_POST['field_mappings'] ) ) {
-			$field_mappings_json = sanitize_text_field( wp_unslash( $_POST['field_mappings'] ) );
-			$field_mappings      = json_decode( $field_mappings_json, true );
-
-			if ( ! is_array( $field_mappings ) ) {
-				$field_mappings = array();
-			}
-		}
-
-		$results = array();
-
-		/* Execute profile data migration */
-		if ( in_array( 'profile_data', $migration_types, true ) ) {
-			if ( 'ultimate-member' === $plugin_slug ) {
-				$mapper = self::get_mapper( $plugin_slug );
-				if ( $mapper ) {
-					/* Execute import for all users */
-					$options = array(
-						'send_emails'   => false,
-						'set_verified'  => true,
-						'skip_existing' => false, /* Update existing data */
-						'batch_size'    => 9999,  /* Do all at once */
-						'batch_offset'  => 0,
-					);
-
-					$results['profile_data'] = $mapper->batch_import( $options, $field_mappings );
-				}
-			} elseif ( 'buddypress' === $plugin_slug ) {
-				if ( class_exists( 'NBUF_Migration_BP_Profile' ) ) {
-					$options = array(
-						'field_mapping_override' => $field_mappings,
-					);
-
-					$results['profile_data'] = NBUF_Migration_BP_Profile::migrate_profile_data( $options );
-				}
-			}
-		}
-
-		/* Execute restrictions migration */
-		if ( in_array( 'restrictions', $migration_types, true ) ) {
-			if ( 'ultimate-member' === $plugin_slug && class_exists( 'NBUF_Migration_UM_Restrictions' ) ) {
-				$results['restrictions'] = NBUF_Migration_UM_Restrictions::migrate_restrictions();
-			}
-		}
-
-		/* Log to history */
-		foreach ( $results as $type => $data ) {
-			self::log_import_history( $plugin_slug . '_' . $type, $data );
-		}
-
-		wp_send_json_success( $results );
-	}
 
 	/**
 	 * AJAX: Execute migration in batches with progress tracking

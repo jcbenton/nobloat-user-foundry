@@ -3592,10 +3592,12 @@ Best regards,
 					'{action_url}'      => esc_url( $action_url ),
 					'{cancel_url}'      => esc_url( $cancel_url ),
 					'{nonce_field}'     => $nonce_field,
+					'{reauth_field}'    => self::get_totp_reauth_field_html(),
 					'{success_message}' => '',
 					'{error_message}'   => '',
 				);
 				$template     = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+				$template     = self::ensure_totp_reauth_field( $template );
 
 				echo $template; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template already escaped
 				?>
@@ -3604,6 +3606,41 @@ Best regards,
 
 		<?php
 		return ob_get_clean();
+	}
+
+	/**
+	 * Build the current-password re-authentication field for the TOTP setup form.
+	 *
+	 * @return string Escaped HTML for the password input group.
+	 */
+	private static function get_totp_reauth_field_html(): string {
+		return '<div class="nbuf-form-group nbuf-2fa-reauth-group">'
+			. '<label for="nbuf_totp_current_password">' . esc_html__( 'Confirm your current password', 'nobloat-user-foundry' ) . '</label>'
+			. '<input type="password" name="current_password" id="nbuf_totp_current_password" class="nbuf-input nbuf-2fa-reauth-input" autocomplete="current-password" required aria-label="' . esc_attr__( 'Current password', 'nobloat-user-foundry' ) . '">'
+			. '</div>';
+	}
+
+	/**
+	 * Guarantee the re-auth field is present in the rendered TOTP setup template.
+	 *
+	 * The default template carries a {reauth_field} placeholder, but a site that
+	 * customized/overrode the 2fa-setup-totp template would lack it -- and the
+	 * handler now REQUIRES current_password, so without the field a legitimate
+	 * user could not submit it. If the field is absent after placeholder
+	 * replacement, inject it before the verify form's closing tag.
+	 *
+	 * @param  string $template Rendered template HTML.
+	 * @return string Template guaranteed to contain the current_password field.
+	 */
+	private static function ensure_totp_reauth_field( string $template ): string {
+		if ( false !== strpos( $template, 'name="current_password"' ) ) {
+			return $template;
+		}
+		$pos = strpos( $template, '</form>' );
+		if ( false !== $pos ) {
+			return substr_replace( $template, self::get_totp_reauth_field_html(), $pos, 0 );
+		}
+		return $template;
 	}
 
 	/**
@@ -3621,6 +3658,23 @@ Best regards,
 		/* Verify nonce */
 		if ( ! isset( $_POST['nbuf_2fa_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nbuf_2fa_nonce'] ) ), 'nbuf_2fa_setup_totp' ) ) {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
+		}
+
+		/*
+		 * Re-authenticate with the current password before changing 2FA state.
+		 * Every sibling 2FA self-service action (enable/disable email, disable
+		 * TOTP, regenerate backup codes) and the passkey register/delete/rename
+		 * handlers require this; enrolling TOTP is an equally sensitive change, so
+		 * a hijacked-but-not-credentialed session must not flip it. The setup form
+		 * carries a current_password field (placeholder {reauth_field}, with a
+		 * fallback injection for custom templates). verify_reauth() has its own
+		 * per-user online-guess rate limit.
+		 */
+		if ( class_exists( 'NBUF_Auth' ) && ! NBUF_Auth::verify_reauth( $user_id ) ) {
+			return self::render_totp_setup_with_error(
+				$user_id,
+				__( 'Please re-enter your current password to enable two-factor authentication.', 'nobloat-user-foundry' )
+			);
 		}
 
 		/*
@@ -3861,10 +3915,12 @@ Best regards,
 			'{action_url}'      => esc_url( $action_url ),
 			'{cancel_url}'      => esc_url( $cancel_url ),
 			'{nonce_field}'     => $nonce_field,
+			'{reauth_field}'    => self::get_totp_reauth_field_html(),
 			'{success_message}' => '',
 			'{error_message}'   => $error_html,
 		);
 		$template     = str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
+		$template     = self::ensure_totp_reauth_field( $template );
 
 		return '<div class="nbuf-totp-setup-page">' . $template . '</div>';
 	}

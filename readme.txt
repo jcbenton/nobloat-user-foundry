@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.34
+Stable tag: 1.7.35
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.35 — Authenticator (TOTP) setup now requires password re-authentication =
+* Enabling an authenticator app (TOTP) now requires you to re-enter your current password on the setup form, matching every other sensitive 2FA/passkey self-service action (enable/disable email 2FA, disable TOTP, regenerate backup codes, register/rename/delete passkey). This prevents a hijacked session from turning on 2FA without the account password. The setup form gained a password field; sites using a customized 2fa-setup-totp template get the field injected automatically.
 
 = 1.7.34 — Round-4 convergence audit: 6 legitimate-user-lockout / data-loss fixes =
 * Fourth end-to-end audit round, sweeping the subsystems not yet deeply traced (bulk import, activation, log retention, Terms of Service) + a full regression sweep of 1.7.33 (all prior fixes verified holding). Every finding adversarially verified; each fix re-verified after. No security bypasses found this round — all six are correctness issues that wrongly blocked legitimate users or silently lost data.

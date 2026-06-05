@@ -673,7 +673,10 @@ class NBUF_Magic_Links {
 					'expires'  => time() + 300,
 					'path'     => COOKIEPATH,
 					'domain'   => COOKIE_DOMAIN,
-					'secure'   => is_ssl(),
+					/* Force secure regardless of is_ssl(): the pending-2FA token is
+					 * sensitive enough to refuse a cleartext leg, matching the
+					 * password path (NBUF_2FA_Login). */
+					'secure'   => true,
 					'httponly' => true,
 					'samesite' => 'Strict',
 				)

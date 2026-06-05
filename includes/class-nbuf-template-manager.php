@@ -293,19 +293,16 @@ class NBUF_Template_Manager {
 			'div'      => array(
 				'class'       => true,
 				'id'          => true,
-				'style'       => true,
 				'data-tab'    => true,
 				'data-subtab' => true,
 			),
 			'span'     => array(
 				'class' => true,
 				'id'    => true,
-				'style' => true,
 			),
 			'p'        => array(
 				'class' => true,
 				'id'    => true,
-				'style' => true,
 			),
 			'h1'       => array(
 				'class' => true,

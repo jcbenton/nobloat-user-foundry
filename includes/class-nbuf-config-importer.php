@@ -444,10 +444,11 @@ class NBUF_Config_Importer {
 					continue;
 				}
 
-				/* Skip if merge mode and option already exists */
+				/* Skip if merge mode and option already exists (presence, not
+				 * truthiness — a deliberately-emptied template must be preserved). */
 				if ( 'merge' === $mode ) {
-					$existing = NBUF_Options::get( $option_name );
-					if ( ! empty( $existing ) ) {
+					$existing = NBUF_Options::get( $option_name, null );
+					if ( null !== $existing ) {
 						continue;
 					}
 				}
@@ -465,7 +466,16 @@ class NBUF_Config_Importer {
 				if ( isset( $registry[ $option_name ] ) && is_callable( $registry[ $option_name ] ) ) {
 					$option_value = call_user_func( $registry[ $option_name ], $option_value );
 				} elseif ( is_string( $option_value ) ) {
-					$option_value = wp_kses_post( $option_value );
+					/*
+					 * Email *subjects* are mail headers — wp_kses_post would let
+					 * tags and CRLF through, enabling header injection. Strip them
+					 * with sanitize_text_field. Bodies keep safe HTML.
+					 */
+					if ( false !== strpos( $option_name, 'subject' ) ) {
+						$option_value = sanitize_text_field( $option_value );
+					} else {
+						$option_value = wp_kses_post( $option_value );
+					}
 				}
 
 				/* Update option */

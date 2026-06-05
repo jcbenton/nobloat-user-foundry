@@ -115,6 +115,20 @@ class NBUF_CSS_Manager {
 		$css = preg_replace( '/[\x00-\x08\x0b\x0c\x0e-\x1f]/', '', $css );
 
 		/*
+		 * Strip CSS comments BEFORE the keyword blocklist. The output of this
+		 * function is later run through minify(), which removes comments and
+		 * would otherwise REASSEMBLE a payload split by a comment: an attacker
+		 * can place a CSS comment between `url(` and `data:` so the data-URI
+		 * regex below does not match, then minify() deletes the comment and
+		 * collapses it back to a live data URI. The same trick splits the
+		 * `expression(` / keyword blocks. Removing comments first closes the
+		 * comment-splitting bypass for every rule below. Handle balanced
+		 * comments, then any unterminated trailing comment opener.
+		 */
+		$css = preg_replace( '#/\*.*?\*/#s', '', $css );
+		$css = preg_replace( '#/\*.*$#s', '', $css );
+
+		/*
 		 * Iterate the strip pattern set until the string is stable. A single
 		 * pass converts `expressexpressionion(` → `expression(` (one nested
 		 * payload survives). Iterating to a fixed-point catches arbitrarily

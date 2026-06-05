@@ -219,6 +219,24 @@ class NBUF_Email_Restrictions {
 				$matches_pattern = true;
 				break;
 			}
+
+			/*
+			 * Blacklists are intentionally broad: a bare entry "spam.com" also
+			 * blocks its subdomains ("sub.spam.com"), so disposable-mail
+			 * providers cannot be bypassed by registering on a subdomain.
+			 * Whitelists stay exact (the domain_matches_pattern branch above) to
+			 * avoid unintentionally trusting an attacker-controlled subdomain of
+			 * a trusted base domain.
+			 */
+			if ( 'blacklist' === $mode && 0 !== strpos( $pattern, '*.' ) ) {
+				$pattern_base = ltrim( $pattern, '.' );
+				$suffix       = '.' . $pattern_base;
+				if ( '' !== $pattern_base && strlen( $email_domain ) > strlen( $suffix )
+					&& substr( $email_domain, -strlen( $suffix ) ) === $suffix ) {
+					$matches_pattern = true;
+					break;
+				}
+			}
 		}
 
 		/* Whitelist mode: must match a pattern */

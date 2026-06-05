@@ -83,8 +83,8 @@ class NBUF_Bulk_Import {
 			'phone',
 			'mobile_phone',
 			'fax',
-			'address_line_1',
-			'address_line_2',
+			'address_line1',
+			'address_line2',
 			'city',
 			'state',
 			'postal_code',
@@ -106,7 +106,7 @@ class NBUF_Bulk_Import {
 			'department',
 			'employee_id',
 			'education_level',
-			'school',
+			'school_name',
 			'degree',
 			'graduation_year',
 
@@ -765,6 +765,22 @@ class NBUF_Bulk_Import {
 
 		/* Create or update user */
 		if ( $existing_user ) {
+			/*
+			 * Per-target authorization: importing with "update existing" applies
+			 * the CSV's fields (including role) to an already-existing account.
+			 * Without this gate a manage_options actor who is not authorized for
+			 * a specific target (multisite / delegated admin) could re-role or
+			 * overwrite higher-privilege accounts by email match. Skip the row
+			 * if the actor cannot edit that user.
+			 */
+			if ( ! current_user_can( 'edit_user', $existing_user->ID ) ) {
+				++$this->results['skipped'];
+				$this->results['errors'][] = array(
+					'line'    => $line_number,
+					'message' => sprintf( 'Not permitted to update existing user (ID %d).', $existing_user->ID ),
+				);
+				return;
+			}
 			$user_data['ID'] = $existing_user->ID;
 			$user_id         = wp_update_user( $user_data );
 		} else {
@@ -810,40 +826,27 @@ class NBUF_Bulk_Import {
 	 * @return void
 	 */
 	private function save_profile_data( int $user_id, array $profile_data ): void {
-		global $wpdb;
+		/*
+		 * Route through NBUF_Profile_Data::update(), which allow-lists keys
+		 * against the canonical profile-field registry, sanitizes per type, and
+		 * performs the insert-or-update. The previous implementation wrote the
+		 * $profile_data keys directly as columns via $wpdb->insert/update with
+		 * NO allow-list and NO return check, so a CSV column that did not map to
+		 * a real column (e.g. the stale address_line_1 / school / custom_field_*
+		 * names) made the ENTIRE write fail — silently dropping all profile data
+		 * for the row while the import still reported success. The allow-list
+		 * now drops unknown keys cleanly and a genuine failure is surfaced.
+		 */
+		if ( ! class_exists( 'NBUF_Profile_Data' ) || empty( $profile_data ) ) {
+			return;
+		}
 
-		/* Check if profile row exists */
-		$table_name = $wpdb->prefix . 'nbuf_user_profile';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-		$exists = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT user_id FROM %i WHERE user_id = %d',
-				$table_name,
-				$user_id
-			)
-		);
-
-		if ( $exists ) {
-			/*
-			 * Update existing
-			 */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations for nbuf_profile_data table.
-			$wpdb->update(
-				$table_name,
-				$profile_data,
-				array( 'user_id' => $user_id ),
-				array_fill( 0, count( $profile_data ), '%s' ),
-				array( '%d' )
+		$saved = NBUF_Profile_Data::update( $user_id, $profile_data );
+		if ( false === $saved ) {
+			$this->results['errors'][] = array(
+				'line'    => 0,
+				'message' => sprintf( 'Profile data could not be saved for user ID %d (no recognized profile columns or a database error).', $user_id ),
 			);
-		} else {
-			/* Insert new — build format array matching data key order */
-			$profile_data['user_id'] = $user_id;
-			$formats                 = array();
-			foreach ( $profile_data as $key => $val ) {
-				$formats[] = ( 'user_id' === $key ) ? '%d' : '%s';
-			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-			$wpdb->insert( $table_name, $profile_data, $formats );
 		}
 	}
 

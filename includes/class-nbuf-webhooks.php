@@ -202,6 +202,11 @@ class NBUF_Webhooks {
 			if ( strlen( $secret ) > 256 ) {
 				return false;
 			}
+			/* Enforce the same minimum-length floor as create() so an edit
+			 * cannot weaken a webhook to a brute-forceable short HMAC secret. */
+			if ( '' !== $secret && strlen( $secret ) < 16 ) {
+				return false;
+			}
 			if ( ! empty( $secret ) ) {
 				$encrypted = NBUF_Encryption::encrypt( $secret );
 				if ( false === $encrypted ) {
@@ -223,7 +228,9 @@ class NBUF_Webhooks {
 			return false;
 		}
 
-		return (bool) $wpdb->update( $table, $update_data, array( 'id' => $id ) );
+		/* $wpdb->update returns 0 (=> false) for a no-op save where nothing
+		 * changed; treat only an explicit false (DB error) as failure. */
+		return false !== $wpdb->update( $table, $update_data, array( 'id' => $id ) );
 	}
 
 	/**

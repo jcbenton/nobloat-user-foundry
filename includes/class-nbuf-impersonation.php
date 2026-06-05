@@ -607,6 +607,11 @@ class NBUF_Impersonation {
 			 * WP_Session_Tokens::get_all() returns array_values(get_sessions()),
 			 * which DISCARDS the keys (leaving integer indexes) and thus
 			 * could never match — refusing every legitimate end.
+			 *
+			 * Assumes the default meta-based session manager. A site that swaps
+			 * WordPress's session_token_manager for a non-meta backend has no
+			 * session_tokens usermeta, so this returns empty and the End is
+			 * refused (fail-closed: bounced to login, never an auth bypass).
 			 */
 			$session_map = get_user_meta( $original_user_id, 'session_tokens', true );
 			if ( is_array( $session_map ) ) {

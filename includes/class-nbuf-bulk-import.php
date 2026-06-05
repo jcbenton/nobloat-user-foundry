@@ -798,7 +798,7 @@ class NBUF_Bulk_Import {
 
 		/* Save profile data */
 		if ( ! empty( $profile_data ) ) {
-			$this->save_profile_data( $user_id, $profile_data );
+			$this->save_profile_data( $user_id, $profile_data, $line_number );
 		}
 
 		/* Set verification status */
@@ -825,7 +825,7 @@ class NBUF_Bulk_Import {
 	 * @param array<string, string> $profile_data Profile field data.
 	 * @return void
 	 */
-	private function save_profile_data( int $user_id, array $profile_data ): void {
+	private function save_profile_data( int $user_id, array $profile_data, int $line_number = 0 ): void {
 		/*
 		 * Route through NBUF_Profile_Data::update(), which allow-lists keys
 		 * against the canonical profile-field registry, sanitizes per type, and
@@ -844,7 +844,7 @@ class NBUF_Bulk_Import {
 		$saved = NBUF_Profile_Data::update( $user_id, $profile_data );
 		if ( false === $saved ) {
 			$this->results['errors'][] = array(
-				'line'    => 0,
+				'line'    => $line_number,
 				'message' => sprintf( 'Profile data could not be saved for user ID %d (no recognized profile columns or a database error).', $user_id ),
 			);
 		}

@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.7.21
+ * Version: 1.7.22
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -187,9 +187,19 @@ function nbuf_maybe_upgrade_database(): void {
 	 * irreversibly destroy them. Runs once even though it is idempotent; rows
 	 * that cannot be decrypted are left untouched (never overwritten).
 	 */
-	if ( ! get_option( 'nbuf_encryption_key_migrated' ) && class_exists( 'NBUF_Encryption' ) ) {
-		NBUF_Encryption::migrate_to_dedicated_key();
-		update_option( 'nbuf_encryption_key_migrated', '1' );
+	if ( ! get_option( 'nbuf_encryption_key_migrated' ) && class_exists( 'NBUF_Encryption' ) && NBUF_Encryption::is_available() ) {
+		$nbuf_enc_migration = NBUF_Encryption::migrate_to_dedicated_key();
+		/*
+		 * Only mark the one-shot complete when the migration actually ran AND
+		 * every legacy row was re-encrypted. If OpenSSL was unavailable, or any
+		 * row failed to decrypt, leave the flag unset so a later request retries
+		 * (already-migrated rows are skipped by the LIKE filter). Setting it
+		 * unconditionally would permanently skip a migration that never
+		 * completed — defeating the point of migrating before a salt rotation.
+		 */
+		if ( is_array( $nbuf_enc_migration ) && 0 === (int) ( $nbuf_enc_migration['failed'] ?? 0 ) ) {
+			update_option( 'nbuf_encryption_key_migrated', '1' );
+		}
 	}
 }
 

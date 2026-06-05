@@ -915,7 +915,10 @@ class NBUF_Profile_Photos {
 		$user_id = get_current_user_id();
 
 		/* Delete photo */
-		self::delete_user_photo( $user_id, 'profile' );
+		$deleted = self::delete_user_photo( $user_id, 'profile' );
+		if ( ! $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'The photo could not be fully removed. Please try again.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Return success */
 		wp_send_json_success(
@@ -942,7 +945,10 @@ class NBUF_Profile_Photos {
 		$user_id = get_current_user_id();
 
 		/* Delete photo */
-		self::delete_user_photo( $user_id, 'cover' );
+		$deleted = self::delete_user_photo( $user_id, 'cover' );
+		if ( ! $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'The photo could not be fully removed. Please try again.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Return success */
 		wp_send_json_success(
@@ -980,7 +986,10 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Delete photo */
-		self::delete_user_photo( $user_id, 'profile' );
+		$deleted = self::delete_user_photo( $user_id, 'profile' );
+		if ( ! $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'The photo could not be fully removed. Please try again.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Return success */
 		wp_send_json_success(
@@ -1018,7 +1027,10 @@ class NBUF_Profile_Photos {
 		}
 
 		/* Delete photo */
-		self::delete_user_photo( $user_id, 'cover' );
+		$deleted = self::delete_user_photo( $user_id, 'cover' );
+		if ( ! $deleted ) {
+			wp_send_json_error( array( 'message' => __( 'The photo could not be fully removed. Please try again.', 'nobloat-user-foundry' ) ) );
+		}
 
 		/* Return success */
 		wp_send_json_success(
@@ -1035,7 +1047,7 @@ class NBUF_Profile_Photos {
 	 * @param string $type    Photo type ('profile' or 'cover').
 	 * @return void
 	 */
-	private static function delete_user_photo( int $user_id, string $type = 'profile' ): void {
+	private static function delete_user_photo( int $user_id, string $type = 'profile' ): bool {
 		$user_data = NBUF_User_Data::get( $user_id );
 
 		$url_key  = $type . '_photo_url';
@@ -1114,6 +1126,8 @@ class NBUF_Profile_Photos {
 				)
 			);
 		}
+
+		return $delete_succeeded;
 	}
 
 	/**

@@ -1565,6 +1565,14 @@ class NBUF_Admin_Users {
 			return;
 		}
 
+		/*
+		 * Per-target authorization (parity with the other admin mutators):
+		 * manage_options does not imply edit-all on multisite / delegated admin.
+		 */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			return;
+		}
+
 		$user     = get_userdata( $user_id );
 		$is_admin = $user && user_can( $user, 'manage_options' );
 

@@ -700,13 +700,63 @@ class NBUF_Member_Directory {
 							}
 						}
 					}
-					return $member;
+					return self::format_member_for_json( $member );
 				},
 				$result['members']
 			);
 		}
 
 		wp_send_json_success( $result );
+	}
+
+	/**
+	 * Shape a (privacy-filtered) member row for the directory AJAX response.
+	 *
+	 * Emits exactly the fields member-directory.js consumes, computed to match
+	 * the server-rendered card (get_member_card) so AJAX-rendered cards stay in
+	 * sync with the initial page (previously the JS read avatar/bio_excerpt/
+	 * location/joined which the payload never contained — broken images and
+	 * literal "undefined" text). Values the JS inserts WITHOUT escaping (avatar
+	 * src, website href) are emitted as safe URLs here; free-text fields
+	 * (display_name, bio_excerpt, location) are returned raw because the JS
+	 * escapes them with escapeHtml().
+	 *
+	 * @param  object $member Member row after email + per-field privacy filtering.
+	 * @return array<string,mixed> JSON-safe DTO.
+	 */
+	private static function format_member_for_json( $member ): array {
+		$user_id = isset( $member->ID ) ? (int) $member->ID : 0;
+
+		$location_parts = array_filter(
+			array(
+				isset( $member->city ) ? $member->city : '',
+				isset( $member->state ) ? $member->state : '',
+				isset( $member->country ) ? $member->country : '',
+			)
+		);
+
+		$bio      = isset( $member->bio ) ? (string) $member->bio : '';
+		$website  = isset( $member->website ) ? (string) $member->website : '';
+		$reg_date = isset( $member->user_registered ) ? (string) $member->user_registered : '';
+
+		$avatar       = '';
+		$avatar_small = '';
+		if ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_profile_photo' ) ) {
+			$avatar       = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 96 );
+			$avatar_small = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 48 );
+		}
+
+		return array(
+			'ID'           => $user_id,
+			'display_name' => isset( $member->display_name ) ? (string) $member->display_name : '',
+			'avatar'       => $avatar,
+			'avatar_small' => $avatar_small,
+			'bio'          => $bio,
+			'bio_excerpt'  => '' !== $bio ? wp_trim_words( $bio, 20 ) : '',
+			'location'     => implode( ', ', $location_parts ),
+			'website'      => '' !== $website ? esc_url_raw( $website ) : '',
+			'joined'       => '' !== $reg_date ? date_i18n( get_option( 'date_format' ), strtotime( $reg_date ) ) : '',
+		);
 	}
 
 	/**

@@ -197,9 +197,9 @@
 		 * @return {string} HTML
 		 */
 		buildGridCard: function(member) {
-			let html = '<div class="nbuf-member-card" data-user-id="' + member.ID + '">';
+			let html = '<div class="nbuf-member-card" data-user-id="' + parseInt(member.ID, 10) + '">';
 			html += '<div class="nbuf-member-avatar">';
-			html += '<img src="' + member.avatar + '" alt="' + this.escapeHtml(member.display_name) + '">';
+			html += '<img src="' + this.escapeHtml(member.avatar) + '" alt="' + this.escapeHtml(member.display_name) + '">';
 			html += '</div>';
 			html += '<div class="nbuf-member-info">';
 			html += '<h3 class="nbuf-member-name">' + this.escapeHtml(member.display_name) + '</h3>';
@@ -217,12 +217,12 @@
 
 			if (member.website) {
 				html += '<div class="nbuf-member-website">';
-				html += '<a href="' + member.website + '" target="_blank" rel="noopener noreferrer">Visit Website</a>';
+				html += '<a href="' + this.escapeHtml(member.website) + '" target="_blank" rel="noopener noreferrer">Visit Website</a>';
 				html += '</div>';
 			}
 
 			html += '<div class="nbuf-member-meta">';
-			html += '<span class="nbuf-member-joined">Joined ' + member.joined + '</span>';
+			html += '<span class="nbuf-member-joined">Joined ' + this.escapeHtml(member.joined) + '</span>';
 			html += '</div>';
 			html += '</div>';
 			html += '</div>';
@@ -237,9 +237,9 @@
 		 * @return {string} HTML
 		 */
 		buildListItem: function(member) {
-			let html = '<div class="nbuf-member-item" data-user-id="' + member.ID + '">';
+			let html = '<div class="nbuf-member-item" data-user-id="' + parseInt(member.ID, 10) + '">';
 			html += '<div class="nbuf-member-avatar-small">';
-			html += '<img src="' + member.avatar_small + '" alt="' + this.escapeHtml(member.display_name) + '">';
+			html += '<img src="' + this.escapeHtml(member.avatar_small) + '" alt="' + this.escapeHtml(member.display_name) + '">';
 			html += '</div>';
 			html += '<div class="nbuf-member-details">';
 			html += '<h4 class="nbuf-member-name">' + this.escapeHtml(member.display_name) + '</h4>';
@@ -252,7 +252,7 @@
 				html += '</span>';
 			}
 
-			html += '<span class="nbuf-member-joined-inline">Joined ' + member.joined + '</span>';
+			html += '<span class="nbuf-member-joined-inline">Joined ' + this.escapeHtml(member.joined) + '</span>';
 			html += '</div>';
 
 			if (member.bio) {
@@ -263,7 +263,7 @@
 
 			if (member.website) {
 				html += '<div class="nbuf-member-actions">';
-				html += '<a href="' + member.website + '" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">Website</a>';
+				html += '<a href="' + this.escapeHtml(member.website) + '" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">Website</a>';
 				html += '</div>';
 			}
 

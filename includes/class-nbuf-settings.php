@@ -2179,6 +2179,22 @@ class NBUF_Settings {
 	 * @return void
 	 */
 	public static function render_settings_page(): void {
+		/*
+		 * Authorize the settings body itself. The top-level "User Foundry"
+		 * menu is registered at the list_users capability, but this callback
+		 * renders the full settings UI (including secret-bearing fields such
+		 * as webhook secrets) AND includes every subtab file — some of which
+		 * carry inline POST save handlers gated only by a nonce. A nonce
+		 * authenticates origin, not authorization, so without this gate a
+		 * list_users-capable non-admin could read all settings and persist
+		 * profile-field configuration. Enforce manage_options here so the
+		 * page and every included subtab are protected regardless of which
+		 * menu capability reached this callback.
+		 */
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Sorry, you are not allowed to access this page.', 'nobloat-user-foundry' ), 403 );
+		}
+
 		$structure     = self::get_tab_structure();
 		$active_tab    = self::get_active_tab();
 		$active_subtab = self::get_active_subtab();

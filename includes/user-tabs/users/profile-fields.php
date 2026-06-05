@@ -15,6 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /* Handle form submission */
 if ( isset( $_POST['nbuf_save_profile_fields'] ) && check_admin_referer( 'nbuf_profile_fields_settings', 'nbuf_profile_fields_nonce' ) ) {
+	/*
+	 * Co-located authorization (defense in depth alongside the
+	 * render_settings_page manage_options gate): the nonce proves origin,
+	 * not authority. Refuse the save for anyone lacking manage_options.
+	 */
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Sorry, you are not allowed to do this.', 'nobloat-user-foundry' ), 403 );
+	}
 	$nbuf_registration_fields = isset( $_POST['nbuf_registration_profile_fields'] ) && is_array( $_POST['nbuf_registration_profile_fields'] )
 		? array_map( 'sanitize_text_field', wp_unslash( $_POST['nbuf_registration_profile_fields'] ) )
 		: array();

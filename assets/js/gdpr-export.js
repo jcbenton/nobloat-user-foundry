@@ -103,7 +103,7 @@
 			var self = this;
 
 			/* Show loading message */
-			this.showMessage( 'info', '<span class="nbuf-export-spinner"></span>' + nbuf_gdpr_vars.i18n.generating_export );
+			this.showMessage( 'info', '<span class="nbuf-export-spinner"></span>' + this.escapeHtml( nbuf_gdpr_vars.i18n.generating_export ), true );
 
 			/* Disable export button */
 			$( '#nbuf-request-export' ).prop( 'disabled', true );
@@ -193,10 +193,18 @@
 		/**
 		 * Show message in messages area
 		 */
-		showMessage: function (type, message) {
+		showMessage: function (type, message, isHtml) {
 			var $messagesArea = $( '#nbuf-export-messages' );
-			var html          = '<div class="nbuf-export-notice ' + type + '">' + message + '</div>';
+			var body          = isHtml ? message : this.escapeHtml( message );
+			var html          = '<div class="nbuf-export-notice ' + this.escapeHtml( type ) + '">' + body + '</div>';
 			$messagesArea.html( html ).fadeIn( 200 );
+		},
+
+		/**
+		 * Escape a string for safe insertion as HTML text.
+		 */
+		escapeHtml: function (text) {
+			return $( '<div></div>' ).text( text == null ? '' : text ).html();
 		}
 	};
 

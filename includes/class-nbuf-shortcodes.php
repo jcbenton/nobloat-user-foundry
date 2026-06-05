@@ -1457,6 +1457,11 @@ class NBUF_Shortcodes {
 	 * @return void
 	 */
 	public static function maybe_handle_registration(): void {
+		/* Front-end handler only — match the is_admin() guard on the sibling handlers. */
+		if ( is_admin() ) {
+			return;
+		}
+
 		if ( ! isset( $_POST['nbuf_register'] ) ) {
 			return;
 		}
@@ -1526,19 +1531,15 @@ class NBUF_Shortcodes {
 		}
 
 		/*
-		 * Tell register_user that the antibot challenge has already been
-		 * consumed for this request. Without this signal, validate_registration_data
-		 * runs `NBUF_Antibot::validate( $_POST )` again — and because the
-		 * earlier validate at line ~1379 already DELETED the per-session
-		 * js_token / pow transients on success, the second validate fails
-		 * with `js_token` and `pow` failed checks. On a default install
-		 * (antibot enabled) this turns every legitimate registration into
-		 * "Registration blocked due to suspicious activity."
-		 *
-		 * Pass an explicit sentinel that NBUF_Antibot reads and treats as
-		 * already-validated; see NBUF_Antibot::validate.
+		 * register_user() runs the antibot challenge again. That second pass
+		 * short-circuits on NBUF_Antibot's server-side per-request
+		 * "already validated" flag (set by the validate() call above), so we
+		 * do NOT pass a forged _antibot_post sentinel. If that flag is ever
+		 * reset by a future refactor, register_user() falls back to the real
+		 * $_POST and re-validates against genuine challenge data — the correct
+		 * fail-closed behavior. (The previous forged sentinel was inert dead
+		 * code that would have failed closed anyway.)
 		 */
-		$data['_antibot_post'] = array( '_nbuf_antibot_already_validated' => 1 );
 
 		/* Attempt registration */
 		$user_id = NBUF_Registration::register_user( $data );

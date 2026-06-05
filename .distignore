@@ -1,0 +1,18 @@
+# Files/dirs excluded from the distributed plugin package (wp dist-archive).
+/.git
+/.github
+/.gitignore
+/.distignore
+/.claude
+/memory
+/wporg-assets
+/README.md
+/phpstan.neon
+/LICENSE
+.DS_Store
+Thumbs.db
+node_modules
+vendor
+/tests
+*.zip
+*.log

@@ -70,6 +70,7 @@ wp-config.php
 
 # Claude AI development notes (do not commit)
 .claude/
+memory/
 
 # Vendor plugins for comparison/analysis (not part of this codebase)
 z-others/

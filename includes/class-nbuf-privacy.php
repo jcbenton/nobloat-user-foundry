@@ -916,6 +916,17 @@ class NBUF_Privacy {
 			NBUF_Profile_Data::delete( $user_id );
 		}
 
+		/*
+		 * Delete the user's profile/cover photo files from disk. The DB row
+		 * holding the file path is removed above, so without this the image
+		 * files would be orphaned on disk — defeating the GDPR
+		 * "delete photos on account removal" setting. cleanup_user_photos()
+		 * self-gates on nbuf_gdpr_delete_user_photos (default true).
+		 */
+		if ( class_exists( 'NBUF_Image_Processor' ) ) {
+			NBUF_Image_Processor::cleanup_user_photos( $user_id );
+		}
+
 		/* Delete 2FA data */
 		if ( class_exists( 'NBUF_User_2FA_Data' ) ) {
 			NBUF_User_2FA_Data::delete( $user_id );

@@ -1062,13 +1062,38 @@ class NBUF_Profile_Photos {
 			$real_path = realpath( $file_to_delete );
 			$real_base = realpath( $base_dir );
 
-			if ( $real_path && $real_base && strpos( $real_path, $real_base ) === 0 && file_exists( $real_path ) ) {
-				$delete_succeeded = (bool) wp_delete_file( $real_path );
-				if ( ! $delete_succeeded && class_exists( 'NBUF_Security_Log' ) ) {
+			if ( $real_path && $real_base && strpos( $real_path, $real_base ) === 0 ) {
+				/* Path resolves INSIDE the uploads tree. Delete it; an
+				 * already-absent file counts as success (pointer can be cleared). */
+				if ( file_exists( $real_path ) ) {
+					$delete_succeeded = (bool) wp_delete_file( $real_path );
+					if ( ! $delete_succeeded && class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log(
+							'photo_delete_failed',
+							'warning',
+							'Failed to delete user photo file; DB metadata retained for retry',
+							array(
+								'user_id'    => $user_id,
+								'photo_type' => $type,
+							),
+							$user_id
+						);
+					}
+				}
+			} elseif ( $real_path && $real_base ) {
+				/*
+				 * The stored path resolves OUTSIDE the uploads tree. Do not
+				 * delete it (it is out of our control surface) and do NOT clear
+				 * the DB metadata — retaining the pointer leaves an audit trail
+				 * so the out-of-tree file can be reconciled instead of silently
+				 * orphaned.
+				 */
+				$delete_succeeded = false;
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
 					NBUF_Security_Log::log(
-						'photo_delete_failed',
+						'photo_path_outside_uploads',
 						'warning',
-						'Failed to delete user photo file; DB metadata retained for retry',
+						'User photo path resolved outside the uploads directory; metadata retained, file not deleted',
 						array(
 							'user_id'    => $user_id,
 							'photo_type' => $type,
@@ -1077,7 +1102,7 @@ class NBUF_Profile_Photos {
 					);
 				}
 			}
-			/* If realpath was empty / file already gone, treat as success. */
+			/* If realpath was empty (file already gone), treat as success. */
 		}
 
 		if ( $delete_succeeded ) {

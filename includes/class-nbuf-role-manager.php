@@ -252,6 +252,7 @@ class NBUF_Role_Manager {
 		$data = array(
 			'updated_at' => current_time( 'mysql', true ),
 		);
+		$final_capabilities = null;
 
 		if ( isset( $updates['role_name'] ) ) {
 			$data['role_name'] = sanitize_text_field( $updates['role_name'] );
@@ -279,12 +280,19 @@ class NBUF_Role_Manager {
 		/* Update database */
 		$table = $wpdb->prefix . 'nbuf_user_roles';
 
+		/* Build the format list in lockstep with $data so a partial update
+		 * cannot positionally mis-bind columns (e.g. parent_role getting %d). */
+		$format = array();
+		foreach ( array_keys( $data ) as $col ) {
+			$format[] = ( 'priority' === $col ) ? '%d' : '%s';
+		}
+
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$data,
 			array( 'role_key' => $role_key ),
-			array( '%s', '%s', '%s', '%d', '%s' ),
+			$format,
 			array( '%s' )
 		);
 
@@ -292,9 +300,22 @@ class NBUF_Role_Manager {
 			return new WP_Error( 'db_error', __( 'Failed to update role in database.', 'nobloat-user-foundry' ) );
 		}
 
-		/* Update WordPress role */
-		remove_role( $role_key );
-		add_role( $role_key, $data['role_name'], $final_capabilities ?? null );
+		/*
+		 * Re-sync the live WordPress role only when the name or capabilities
+		 * actually changed. A priority-only update must NOT remove_role()/
+		 * add_role() with null caps, which would wipe the role's capabilities.
+		 */
+		if ( isset( $updates['role_name'] ) || isset( $updates['capabilities'] ) ) {
+			$existing_wp_role = get_role( $role_key );
+			$apply_name       = isset( $data['role_name'] )
+				? $data['role_name']
+				: ( isset( wp_roles()->roles[ $role_key ]['name'] ) ? wp_roles()->roles[ $role_key ]['name'] : $role_key );
+			$apply_caps       = null !== $final_capabilities
+				? $final_capabilities
+				: ( $existing_wp_role ? (array) $existing_wp_role->capabilities : array() );
+			remove_role( $role_key );
+			add_role( $role_key, $apply_name, $apply_caps );
+		}
 
 		/* Clear caches */
 		self::clear_cache();
@@ -701,6 +722,29 @@ class NBUF_Role_Manager {
 					$role_key
 				);
 				continue;
+			}
+
+			/*
+			 * Capability containment: skip any orphaned role that grants a
+			 * capability the adopting actor does not hold (super admins exempt).
+			 */
+			if ( ! is_super_admin() ) {
+				$over_privileged = false;
+				foreach ( (array) $wp_role->capabilities as $cap => $granted ) {
+					if ( $granted && ! current_user_can( $cap ) ) {
+						$over_privileged = true;
+						break;
+					}
+				}
+				if ( $over_privileged ) {
+					++$results['skipped'];
+					$results['errors'][] = sprintf(
+						/* translators: %s: Role key */
+						__( 'Skipped role "%s": it grants capabilities beyond your own.', 'nobloat-user-foundry' ),
+						$role_key
+					);
+					continue;
+				}
 			}
 
 			/*

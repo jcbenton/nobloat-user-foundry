@@ -460,6 +460,10 @@ class NBUF_Member_Directory {
 
 		$args = wp_parse_args( $args, $defaults );
 
+		/* Defensive pagination floor — never divide by zero or build a negative OFFSET. */
+		$args['per_page'] = (int) $args['per_page'] > 0 ? (int) $args['per_page'] : 20;
+		$args['paged']    = max( 1, (int) $args['paged'] );
+
      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$user_table    = $wpdb->users;
 		$data_table    = NBUF_Database::get_table_name( 'user_data' );
@@ -650,6 +654,15 @@ class NBUF_Member_Directory {
 		$role     = isset( $_POST['role'] ) ? sanitize_text_field( wp_unslash( $_POST['role'] ) ) : '';
 		$page     = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
 		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 20;
+
+		/*
+		 * Clamp pagination. This is an unauthenticated (nopriv) endpoint, so a
+		 * crafted per_page=0 would otherwise reach ceil($total / 0) (fatal
+		 * DivisionByZeroError on PHP 8) and page=0 would produce a negative
+		 * SQL OFFSET. Floor both to safe values and cap per_page.
+		 */
+		$page     = max( 1, $page );
+		$per_page = $per_page > 0 ? min( $per_page, 100 ) : 20;
 
 		/* Cap search-string length so the SQL LIKE pattern stays bounded. */
 		if ( strlen( $search ) > 100 ) {

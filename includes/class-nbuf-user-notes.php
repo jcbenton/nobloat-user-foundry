@@ -144,12 +144,22 @@ class NBUF_User_Notes {
 	 * @param  string $note_content New note content.
 	 * @return bool                     True on success, false on failure.
 	 */
-	public static function update_note( $note_id, $note_content ) {
+	public static function update_note( $note_id, $note_content, $expected_user_id = 0 ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_notes';
 
 		/* Get note before update for logging */
 		$note = self::get_note( $note_id );
+
+		/*
+		 * Optional target binding: when a caller scopes the mutation to a
+		 * specific profile (e.g. the per-user profile screen), refuse to touch
+		 * a note that belongs to a different user. The central User Notes page
+		 * passes 0 and may edit any note.
+		 */
+		if ( $expected_user_id > 0 && ( ! $note || (int) $note->user_id !== (int) $expected_user_id ) ) {
+			return false;
+		}
 
 		$updated = $wpdb->update(
 			$table_name,
@@ -188,12 +198,17 @@ class NBUF_User_Notes {
 	 * @param  int $note_id Note ID to delete.
 	 * @return bool               True on success, false on failure.
 	 */
-	public static function delete_note( $note_id ) {
+	public static function delete_note( $note_id, $expected_user_id = 0 ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_user_notes';
 
 		/* Get note before deletion for logging */
 		$note = self::get_note( $note_id );
+
+		/* Optional target binding — see update_note(). */
+		if ( $expected_user_id > 0 && ( ! $note || (int) $note->user_id !== (int) $expected_user_id ) ) {
+			return false;
+		}
 
 		$deleted = $wpdb->delete(
 			$table_name,
@@ -512,6 +527,7 @@ class NBUF_User_Notes {
 					data: {
 						action: 'nbuf_profile_delete_note',
 						note_id: noteId,
+						user_id: <?php echo (int) $user->ID; ?>,
 						nonce: nonce
 					},
 					success: function(response) {
@@ -587,12 +603,15 @@ class NBUF_User_Notes {
 		}
 
 		$note_id = isset( $_POST['note_id'] ) ? absint( $_POST['note_id'] ) : 0;
+		$user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
 
 		if ( ! $note_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid note ID.', 'nobloat-user-foundry' ) ) );
 		}
 
-		$success = self::delete_note( $note_id );
+		/* Bind the delete to the profile being viewed so a stale/forged note_id
+		 * cannot remove another user's note from this screen. */
+		$success = self::delete_note( $note_id, $user_id );
 
 		if ( $success ) {
 			wp_send_json_success();

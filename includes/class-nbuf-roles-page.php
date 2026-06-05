@@ -605,6 +605,30 @@ class NBUF_Roles_Page {
 			wp_send_json_error( array( 'message' => __( 'Role is already managed by NoBloat.', 'nobloat-user-foundry' ) ) );
 		}
 
+		/*
+		 * Capability containment (mirrors import_role / ajax_save_role): a
+		 * non-super-admin cannot adopt a role that grants a capability they do
+		 * not themselves hold. Without this, a delegated manage_options actor
+		 * could pull a high-privilege orphaned role into the managed and
+		 * assignable set.
+		 */
+		if ( ! is_super_admin() ) {
+			foreach ( (array) $wp_role->capabilities as $cap => $granted ) {
+				if ( $granted && ! current_user_can( $cap ) ) {
+					wp_send_json_error(
+						array(
+							'message' => sprintf(
+								/* translators: 1: role key, 2: capability */
+								__( 'Cannot adopt role "%1$s": it grants a capability you do not have (%2$s).', 'nobloat-user-foundry' ),
+								$role_key,
+								$cap
+							),
+						)
+					);
+				}
+			}
+		}
+
 		/* Insert into our database */
 		global $wpdb;
 		$table = $wpdb->prefix . 'nbuf_user_roles';

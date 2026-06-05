@@ -66,6 +66,7 @@ class NBUF_Impersonation {
 			return;
 		}
 		delete_user_meta( (int) $user_id, '_nbuf_impersonation_sudo_until' );
+		delete_user_meta( (int) $user_id, '_nbuf_impersonation_sudo_target' );
 	}
 
 	/**
@@ -336,12 +337,19 @@ class NBUF_Impersonation {
 		 */
 		$sudo_window = (int) apply_filters( 'nbuf_impersonation_sudo_seconds', 10 * MINUTE_IN_SECONDS );
 		$sudo_until  = (int) get_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until', true );
-		if ( $sudo_until < time() ) {
+		$sudo_target = (int) get_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_target', true );
+		/*
+		 * The sudo grant is bound to the specific target the admin
+		 * password-confirmed for. A grant minted for one target cannot be
+		 * replayed to pivot to a different user within the window.
+		 */
+		if ( $sudo_until < time() || $sudo_target !== $target_user_id ) {
 			/* Render the sudo form (renders + exits). */
 			self::render_sudo_form( $target_user_id, $sudo_window );
 		}
 		/* Sudo gate passed — invalidate the token (single-use within window). */
 		delete_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until' );
+		delete_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_target' );
 
 		/* Log impersonation start to admin audit log */
 		if ( class_exists( 'NBUF_Admin_Audit_Log' ) ) {
@@ -484,6 +492,7 @@ class NBUF_Impersonation {
 					}
 				} else {
 					update_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_until', time() + $sudo_window );
+					update_user_meta( $current_user->ID, '_nbuf_impersonation_sudo_target', $target_user_id );
 					$reload = wp_nonce_url(
 						add_query_arg(
 							array(
@@ -568,29 +577,6 @@ class NBUF_Impersonation {
 		$original_user    = get_userdata( $original_user_id );
 		$target_user      = get_userdata( $impersonation_data['target_user_id'] );
 
-		/* Log impersonation end */
-		if ( class_exists( 'NBUF_Admin_Audit_Log' ) && $original_user && $target_user ) {
-			NBUF_Admin_Audit_Log::log(
-				$original_user_id,
-				'impersonation',
-				'end',
-				sprintf(
-					/* translators: 1: admin username, 2: target username */
-					__( 'Admin %1$s ended impersonation of user %2$s', 'nobloat-user-foundry' ),
-					$original_user->user_login,
-					$target_user->user_login
-				),
-				$impersonation_data['target_user_id'],
-				array(
-					'admin_id'        => $original_user_id,
-					'admin_username'  => $original_user->user_login,
-					'target_id'       => $impersonation_data['target_user_id'],
-					'target_username' => $target_user->user_login,
-					'duration'        => time() - $impersonation_data['started_at'],
-				)
-			);
-		}
-
 		/*
 		 * SECURITY: verify the original admin still has the impersonation
 		 * capability BEFORE we destroy any session — otherwise a permission
@@ -614,20 +600,21 @@ class NBUF_Impersonation {
 			/*
 			 * The stored hash is sha256( raw_token ) — captured at start
 			 * via hash('sha256', wp_get_session_token()). WordPress's
-			 * WP_User_Meta_Session_Tokens::get_sessions() returns the
-			 * sessions array keyed by `hash_token($token)`, which is
-			 * itself sha256(raw). So the foreach key already IS sha256(raw).
-			 * The previous comparison ran sha256() on it again, producing
-			 * sha256(sha256(raw)) and thus mismatching every legitimate
-			 * end-impersonation. Compare against the stored verifier
-			 * directly.
+			 * WP_User_Meta_Session_Tokens stores sessions in the
+			 * `session_tokens` usermeta keyed by `hash_token($token)`,
+			 * itself sha256(raw) — so the verifier we match IS a key of
+			 * that map. We read the usermeta map directly because
+			 * WP_Session_Tokens::get_all() returns array_values(get_sessions()),
+			 * which DISCARDS the keys (leaving integer indexes) and thus
+			 * could never match — refusing every legitimate end.
 			 */
-			$original_manager = WP_Session_Tokens::get_instance( $original_user_id );
-			$all_tokens       = $original_manager->get_all();
-			foreach ( (array) $all_tokens as $stored_token => $session ) {
-				if ( hash_equals( $bound_token_hash, (string) $stored_token ) ) {
-					$binding_ok = true;
-					break;
+			$session_map = get_user_meta( $original_user_id, 'session_tokens', true );
+			if ( is_array( $session_map ) ) {
+				foreach ( $session_map as $verifier => $session ) {
+					if ( hash_equals( $bound_token_hash, (string) $verifier ) ) {
+						$binding_ok = true;
+						break;
+					}
 				}
 			}
 		}
@@ -645,6 +632,33 @@ class NBUF_Impersonation {
 			}
 			wp_safe_redirect( wp_login_url() );
 			exit;
+		}
+
+		/*
+		 * Log impersonation end only AFTER the binding check passes, so a
+		 * refused end is not recorded as a successful one.
+		 */
+		/* Log impersonation end */
+		if ( class_exists( 'NBUF_Admin_Audit_Log' ) && $original_user && $target_user ) {
+			NBUF_Admin_Audit_Log::log(
+				$original_user_id,
+				'impersonation',
+				'end',
+				sprintf(
+					/* translators: 1: admin username, 2: target username */
+					__( 'Admin %1$s ended impersonation of user %2$s', 'nobloat-user-foundry' ),
+					$original_user->user_login,
+					$target_user->user_login
+				),
+				$impersonation_data['target_user_id'],
+				array(
+					'admin_id'        => $original_user_id,
+					'admin_username'  => $original_user->user_login,
+					'target_id'       => $impersonation_data['target_user_id'],
+					'target_username' => $target_user->user_login,
+					'duration'        => time() - $impersonation_data['started_at'],
+				)
+			);
 		}
 
 		/* Destroy the target user's session token created during impersonation */

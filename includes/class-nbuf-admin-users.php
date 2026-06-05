@@ -394,6 +394,21 @@ class NBUF_Admin_Users {
 			return $redirect_to;
 		}
 
+		/*
+		 * Per-target authorization. manage_options alone does not imply the
+		 * actor may edit every target (multisite / delegated-admin map
+		 * edit_user per user). Drop any target the actor cannot edit before
+		 * any action branch mutates it.
+		 */
+		$user_ids = array_values(
+			array_filter(
+				$user_ids,
+				static function ( $uid ) {
+					return current_user_can( 'edit_user', (int) $uid );
+				}
+			)
+		);
+
 		$count = 0;
 
 		/* Mark as Verified */
@@ -583,6 +598,11 @@ class NBUF_Admin_Users {
 			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
 		}
 
+		/* Per-target authorization (manage_options does not imply edit-all on multisite). */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_die( esc_html__( 'You are not allowed to manage this user.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Delete any existing tokens for this user */
 		global $wpdb;
 		$table = $wpdb->prefix . NBUF_DB_TABLE;
@@ -632,6 +652,11 @@ class NBUF_Admin_Users {
 			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
 		}
 
+		/* Per-target authorization (manage_options does not imply edit-all on multisite). */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_die( esc_html__( 'You are not allowed to manage this user.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Manually verify the user */
 		$admin_id = get_current_user_id();
 		NBUF_User_Data::manually_verify( $user_id, $admin_id );
@@ -665,6 +690,11 @@ class NBUF_Admin_Users {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
+		}
+
+		/* Per-target authorization (manage_options does not imply edit-all on multisite). */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_die( esc_html__( 'You are not allowed to manage this user.', 'nobloat-user-foundry' ) );
 		}
 
 		/* Approve the user */
@@ -702,6 +732,11 @@ class NBUF_Admin_Users {
 			wp_die( esc_html__( 'Invalid user ID.', 'nobloat-user-foundry' ) );
 		}
 
+		/* Per-target authorization (manage_options does not imply edit-all on multisite). */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_die( esc_html__( 'You are not allowed to manage this user.', 'nobloat-user-foundry' ) );
+		}
+
 		/* Reject the user */
 		$admin_id = get_current_user_id();
 		NBUF_User_Data::reject_user( $user_id, $admin_id, 'Rejected by administrator' );
@@ -735,6 +770,11 @@ class NBUF_Admin_Users {
 
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
+			return;
+		}
+
+		/* Per-target authorization. */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
 			return;
 		}
 
@@ -1722,6 +1762,11 @@ class NBUF_Admin_Users {
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			wp_send_json_error( array( 'message' => __( 'User not found.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* Per-target authorization (see handle_bulk_actions). */
+		if ( ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to edit this user.', 'nobloat-user-foundry' ) ) );
 		}
 
 		/* Set the force password change flag */

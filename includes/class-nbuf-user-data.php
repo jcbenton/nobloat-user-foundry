@@ -692,6 +692,50 @@ class NBUF_User_Data {
 		global $wpdb;
 		$table_name = NBUF_Database::get_table_name( 'user_data' );
 
+		/*
+		 * Allow-list of legal nbuf_user_data columns. $wpdb->update/insert
+		 * treats the $data KEYS as column names, so without this a caller that
+		 * forwarded a request array wholesale could write to any column —
+		 * including the account-state flags (is_verified, is_approved,
+		 * is_disabled, requires_approval). Drop unknown keys. Mirrors the
+		 * allow-list already in NBUF_Profile_Data::update(). user_id is set
+		 * explicitly on insert below and is intentionally NOT writable here.
+		 */
+		static $allowed_columns = array(
+			'is_verified',
+			'verified_date',
+			'requires_approval',
+			'is_approved',
+			'approved_by',
+			'approved_date',
+			'approval_notes',
+			'is_disabled',
+			'disabled_reason',
+			'expires_at',
+			'expiration_warned_at',
+			'weak_password_flagged_at',
+			'password_changed_at',
+			'profile_privacy',
+			'show_in_directory',
+			'privacy_settings',
+			'visible_fields',
+			'profile_photo_url',
+			'profile_photo_path',
+			'cover_photo_url',
+			'cover_photo_path',
+			'use_gravatar',
+			'password_expires_at',
+			'force_password_change',
+			'last_login_at',
+			'pending_email',
+			'last_data_export',
+			'passkey_prompt_dismissed',
+		);
+		$data = array_intersect_key( $data, array_flip( $allowed_columns ) );
+		if ( empty( $data ) ) {
+			return false;
+		}
+
 		// Check if record exists.
 		$exists = self::get( $user_id );
 

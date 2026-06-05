@@ -264,6 +264,7 @@ class NBUF_Activator {
 				'nbuf_login_max_attempts_per_username'  => 10,
 				'nbuf_login_username_lockout_window'    => 60,
 				'nbuf_login_trusted_proxies'            => array(),
+				'nbuf_login_behind_cloudflare'          => false,
 
 				/* IP Restrictions */
 				'nbuf_ip_restriction_enabled'           => false,

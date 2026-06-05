@@ -44,7 +44,19 @@ class NBUF_IP {
 		 * empty list = trust nothing (use REMOTE_ADDR for everyone).
 		 */
 		$trusted_proxies = (array) NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
-		$remote_addr     = isset( $_SERVER['REMOTE_ADDR'] )
+
+		/*
+		 * "Behind Cloudflare" preset: merge Cloudflare's published edge ranges
+		 * into the trusted set so the admin need not paste ~22 CIDRs. Cloudflare
+		 * overwrites CF-Connecting-IP at its edge (preferred below), so once its
+		 * ranges are trusted the real client IP is authoritative and cannot be
+		 * forged through Cloudflare.
+		 */
+		if ( NBUF_Options::get( 'nbuf_login_behind_cloudflare', false ) ) {
+			$trusted_proxies = array_merge( $trusted_proxies, self::get_cloudflare_ranges() );
+		}
+
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] )
 			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
 			: '';
 
@@ -134,6 +146,92 @@ class NBUF_IP {
 	 * @param  array<int, string> $trusted_proxies Configured trusted-proxy entries (IPs and/or CIDRs).
 	 * @return bool True if the address is (or is within) a trusted proxy.
 	 */
+	/**
+	 * Cloudflare's published edge IP ranges (baseline fallback).
+	 *
+	 * Kept current automatically by refresh_cloudflare_ranges() (daily cron);
+	 * this hardcoded list is the offline fallback. Source:
+	 * https://www.cloudflare.com/ips-v4 and /ips-v6.
+	 *
+	 * @var string[]
+	 */
+	const CLOUDFLARE_RANGES_BASELINE = array(
+		'173.245.48.0/20',
+		'103.21.244.0/22',
+		'103.22.200.0/22',
+		'103.31.4.0/22',
+		'141.101.64.0/18',
+		'108.162.192.0/18',
+		'190.93.240.0/20',
+		'188.114.96.0/20',
+		'197.234.240.0/22',
+		'198.41.128.0/17',
+		'162.158.0.0/15',
+		'104.16.0.0/13',
+		'104.24.0.0/14',
+		'172.64.0.0/13',
+		'131.0.72.0/22',
+		'2400:cb00::/32',
+		'2606:4700::/32',
+		'2803:f800::/32',
+		'2405:b500::/32',
+		'2405:8100::/32',
+		'2a06:98c0::/29',
+		'2c0f:f248::/32',
+	);
+
+	/**
+	 * Current Cloudflare edge ranges: the cron-refreshed copy if present and
+	 * sane, otherwise the hardcoded baseline.
+	 *
+	 * @return string[] CIDR ranges.
+	 */
+	public static function get_cloudflare_ranges(): array {
+		$stored = get_option( 'nbuf_cloudflare_ip_ranges' );
+		if ( is_array( $stored ) && count( $stored ) >= 10 ) {
+			return $stored;
+		}
+		return self::CLOUDFLARE_RANGES_BASELINE;
+	}
+
+	/**
+	 * Refresh the cached Cloudflare ranges from cloudflare.com (daily cron).
+	 *
+	 * Only runs when the "behind Cloudflare" preset is enabled. Validates every
+	 * line as a CIDR and only persists a result that has a sane count, so a
+	 * truncated/garbage/empty response can never wipe the trusted set — the
+	 * baseline keeps working.
+	 *
+	 * @return void
+	 */
+	public static function refresh_cloudflare_ranges(): void {
+		if ( ! NBUF_Options::get( 'nbuf_login_behind_cloudflare', false ) ) {
+			return;
+		}
+		$ranges = array();
+		foreach ( array( 'https://www.cloudflare.com/ips-v4', 'https://www.cloudflare.com/ips-v6' ) as $url ) {
+			$resp = wp_remote_get( $url, array( 'timeout' => 10 ) );
+			if ( is_wp_error( $resp ) || 200 !== (int) wp_remote_retrieve_response_code( $resp ) ) {
+				return; /* keep the existing/baseline on any failure */
+			}
+			$lines = preg_split( '/\s+/', trim( (string) wp_remote_retrieve_body( $resp ) ), -1, PREG_SPLIT_NO_EMPTY );
+			foreach ( (array) $lines as $line ) {
+				$line = trim( $line );
+				if ( false === strpos( $line, '/' ) ) {
+					continue;
+				}
+				list( $sn, $mk ) = array_pad( explode( '/', $line ), 2, null );
+				if ( filter_var( $sn, FILTER_VALIDATE_IP ) && is_numeric( $mk ) ) {
+					$ranges[] = $line;
+				}
+			}
+		}
+		/* Sanity floor: Cloudflare publishes ~22 ranges; refuse a short result. */
+		if ( count( $ranges ) >= 15 ) {
+			update_option( 'nbuf_cloudflare_ip_ranges', array_values( array_unique( $ranges ) ), false );
+		}
+	}
+
 	public static function is_trusted_proxy( string $address, array $trusted_proxies ): bool {
 		$address = trim( $address );
 		if ( '' === $address || ! filter_var( $address, FILTER_VALIDATE_IP ) ) {

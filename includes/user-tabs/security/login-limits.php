@@ -18,6 +18,7 @@ $nbuf_login_lockout_duration        = NBUF_Options::get( 'nbuf_login_lockout_dur
 $nbuf_login_max_attempts_username   = NBUF_Options::get( 'nbuf_login_max_attempts_per_username', 10 );
 $nbuf_login_username_lockout_window = NBUF_Options::get( 'nbuf_login_username_lockout_window', 60 );
 $nbuf_trusted_proxies               = NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
+$nbuf_behind_cloudflare             = NBUF_Options::get( 'nbuf_login_behind_cloudflare', false );
 
 /* IP restriction settings */
 $nbuf_ip_restriction_enabled      = NBUF_Options::get( 'nbuf_ip_restriction_enabled', false );
@@ -60,6 +61,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_enable_login_limiting">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_ip_restriction_enabled">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_ip_restriction_admin_bypass">
+	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_login_behind_cloudflare">
 
 	<h2><?php esc_html_e( 'Login Protection', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -136,7 +138,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 				 * (REMOTE_ADDR) for every visitor — which collapses all clients onto
 				 * one bucket and causes mass false lockouts.
 				 */
-				if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && empty( $nbuf_trusted_proxies ) ) : // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- presence check only, value not used.
+				if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && empty( $nbuf_trusted_proxies ) && ! $nbuf_behind_cloudflare ) : // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- presence check only, value not used.
 					?>
 					<div class="notice notice-warning inline" style="margin:0 0 10px;">
 						<p><strong><?php esc_html_e( 'You appear to be behind a proxy or CDN.', 'nobloat-user-foundry' ); ?></strong>
@@ -145,6 +147,13 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 					<?php
 				endif;
 				?>
+				<p style="margin:0 0 8px;">
+					<label>
+						<input type="checkbox" name="nbuf_login_behind_cloudflare" value="1" <?php checked( $nbuf_behind_cloudflare, true ); ?>>
+						<strong><?php esc_html_e( 'This site is behind Cloudflare', 'nobloat-user-foundry' ); ?></strong>
+					</label><br>
+					<span class="description"><?php esc_html_e( 'Automatically trusts Cloudflare\'s published edge ranges (refreshed daily) and uses the real visitor IP from CF-Connecting-IP. No need to paste Cloudflare IPs below. Add any ADDITIONAL non-Cloudflare proxies/load balancers in the box.', 'nobloat-user-foundry' ); ?></span>
+				</p>
 				<textarea name="nbuf_login_trusted_proxies" rows="3" class="large-text code"><?php echo esc_textarea( $nbuf_trusted_proxies_str ); ?></textarea>
 				<p class="description">
 					<?php esc_html_e( 'IPs or CIDR ranges of trusted proxy servers / load balancers / CDN edges (comma-separated or one per line).', 'nobloat-user-foundry' ); ?><br>

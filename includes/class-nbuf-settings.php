@@ -228,6 +228,7 @@ class NBUF_Settings {
 			'nbuf_login_max_attempts_per_username'    => static function ( $v ) { return max( 5, min( 100, absint( $v ) ) ); },
 			'nbuf_login_username_lockout_window'      => static function ( $v ) { return max( 5, min( 1440, absint( $v ) ) ); },
 			'nbuf_login_trusted_proxies'              => array( __CLASS__, 'sanitize_trusted_proxies' ),
+			'nbuf_login_behind_cloudflare'            => array( __CLASS__, 'sanitize_checkbox' ),
 
 			/* Security - IP Restrictions */
 			'nbuf_ip_restriction_enabled'             => array( __CLASS__, 'sanitize_checkbox' ),

@@ -74,6 +74,11 @@ class NBUF_Cron {
 				'description' => __( 'Removes old login attempt records for rate limiting.', 'nobloat-user-foundry' ),
 				'schedule'    => 'daily',
 			),
+			'nbuf_refresh_cloudflare_ranges'   => array(
+				'label'       => __( 'Cloudflare IP Range Refresh', 'nobloat-user-foundry' ),
+				'description' => __( 'Keeps the trusted Cloudflare edge ranges current (only when "behind Cloudflare" is enabled).', 'nobloat-user-foundry' ),
+				'schedule'    => 'daily',
+			),
 
 			/* Logging & History */
 			'nbuf_audit_log_cleanup_cron'      => array(
@@ -196,6 +201,7 @@ class NBUF_Cron {
 		add_action( 'nbuf_cleanup_unverified_accounts', array( __CLASS__, 'run_unverified_cleanup' ) );
 		add_action( 'nbuf_enterprise_logging_cleanup', array( __CLASS__, 'run_enterprise_logging_cleanup' ) );
 		add_action( 'nbuf_cleanup_login_attempts', array( __CLASS__, 'run_login_attempts_cleanup' ) );
+		add_action( 'nbuf_refresh_cloudflare_ranges', array( 'NBUF_IP', 'refresh_cloudflare_ranges' ) );
 		add_action( 'nbuf_cleanup_webhook_logs', array( __CLASS__, 'run_webhook_log_cleanup' ) );
 
 		/* One-time migration hooks */

@@ -241,7 +241,8 @@ class NBUF_Password_Expiration {
 		/* If either condition is true, store a random token and redirect */
 		if ( $force_change || $is_expired ) {
 			$change_token = bin2hex( random_bytes( 32 ) );
-			set_transient( 'nbuf_password_change_token_' . $change_token, $user->ID, 600 );
+			/* 5-minute TTL: ample to complete the change form, short enough to limit replay of a leaked URL. */
+			set_transient( 'nbuf_password_change_token_' . $change_token, $user->ID, 300 );
 
 			/* Create error with redirect flag — include token for the password change form */
 			$message = $force_change
@@ -249,7 +250,7 @@ class NBUF_Password_Expiration {
 			: __( 'Your password has expired. Please choose a new password.', 'nobloat-user-foundry' );
 
 			/* Store the token so the login page can build the correct redirect URL */
-			set_transient( 'nbuf_password_change_redirect_' . $user->ID, $change_token, 600 );
+			set_transient( 'nbuf_password_change_redirect_' . $user->ID, $change_token, 300 );
 
 			return new WP_Error( 'nbuf_password_change_required', $message );
 		}
@@ -518,7 +519,7 @@ class NBUF_Password_Expiration {
 
 			/*
 			 * Token is NOT consumed here — it must survive until the form POST.
-			 * The 10-minute TTL provides sufficient protection against URL reuse.
+			 * The short (5-minute) TTL limits replay of a leaked URL.
 			 * Token is consumed after successful password change (line ~556).
 			 */
 		}
@@ -871,9 +872,9 @@ class NBUF_Password_Expiration {
 			return null;
 		}
 
-		/* Mint the same single-user cryptographic token the password path uses. */
+		/* Mint the same single-user cryptographic token the password path uses (5-minute TTL). */
 		$change_token = bin2hex( random_bytes( 32 ) );
-		set_transient( 'nbuf_password_change_token_' . $change_token, $user_id, 600 );
+		set_transient( 'nbuf_password_change_token_' . $change_token, $user_id, 300 );
 
 		return site_url( 'wp-login.php?action=nbuf_change_expired_password&change_token=' . rawurlencode( $change_token ) );
 	}

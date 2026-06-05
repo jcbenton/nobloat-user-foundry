@@ -1857,44 +1857,7 @@ class NBUF_Passkeys {
 	 * @return true|WP_Error True if user can login, WP_Error if blocked.
 	 */
 	private static function check_user_login_status( $user_id ) {
-		/* Admins bypass all restrictions */
-		if ( user_can( $user_id, 'manage_options' ) ) {
-			return true;
-		}
-
-		/* Check if user is disabled */
-		if ( NBUF_User_Data::is_disabled( $user_id ) ) {
-			return new WP_Error(
-				'user_disabled',
-				__( 'Your account has been disabled.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is expired */
-		if ( NBUF_User_Data::is_expired( $user_id ) ) {
-			return new WP_Error(
-				'account_expired',
-				__( 'Your account has expired.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is verified (only if verification is required) */
-		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
-		if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
-			return new WP_Error(
-				'nbuf_unverified',
-				__( 'Your email address has not been verified. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check admin approval (if user requires it) */
-		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
-			return new WP_Error(
-				'awaiting_approval',
-				__( 'Your account is pending administrator approval.', 'nobloat-user-foundry' )
-			);
-		}
-
-		return true;
+		/* Delegates to the shared gate so every login path enforces identically. */
+		return NBUF_Auth::enforce_login_status( (int) $user_id );
 	}
 }

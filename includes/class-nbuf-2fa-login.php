@@ -451,7 +451,15 @@ class NBUF_2FA_Login {
 		 * device. Persist after the first verify so subsequent flows
 		 * follow the normal enabled-user code path.
 		 */
-		if ( 'email' === $method && ! NBUF_2FA::is_enabled( $user_id ) && NBUF_2FA::is_required( $user_id ) ) {
+		if ( 'email' === $method && ! NBUF_2FA::is_enabled( $user_id ) && NBUF_2FA::is_required( $user_id )
+			/*
+			 * Only persist the auto-enrollment if the login is actually going to
+			 * complete. complete_login() re-checks status and may block (disabled/
+			 * expired/unverified/pending); without this guard a user blocked at
+			 * that final gate would be left marked 2FA-enabled despite never
+			 * logging in.
+			 */
+			&& true === self::check_user_login_status( $user_id ) ) {
 			NBUF_User_2FA_Data::enable( $user_id, 'email', null );
 			NBUF_User_2FA_Data::set_forced_at( $user_id, null );
 			NBUF_Audit_Log::log(
@@ -1002,44 +1010,7 @@ class NBUF_2FA_Login {
 	 * @return true|WP_Error True if user can login, WP_Error if blocked.
 	 */
 	private static function check_user_login_status( $user_id ) {
-		/* Admins bypass all restrictions */
-		if ( user_can( $user_id, 'manage_options' ) ) {
-			return true;
-		}
-
-		/* Check if user is disabled */
-		if ( NBUF_User_Data::is_disabled( $user_id ) ) {
-			return new WP_Error(
-				'user_disabled',
-				__( 'Your account has been disabled. Please contact the site administrator.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is expired */
-		if ( NBUF_User_Data::is_expired( $user_id ) ) {
-			return new WP_Error(
-				'account_expired',
-				__( 'Your account has expired. Please contact the site administrator.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is verified (only if verification is required) */
-		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
-		if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
-			return new WP_Error(
-				'nbuf_unverified',
-				__( 'Your email address has not been verified. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check admin approval (if user requires it) */
-		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
-			return new WP_Error(
-				'awaiting_approval',
-				__( 'Your account is pending administrator approval.', 'nobloat-user-foundry' )
-			);
-		}
-
-		return true;
+		/* Delegates to the shared gate so every login path enforces identically. */
+		return NBUF_Auth::enforce_login_status( (int) $user_id );
 	}
 }

@@ -421,19 +421,26 @@ class NBUF_Account_Merger {
 			wp_die( esc_html__( 'Insufficient permissions', 'nobloat-user-foundry' ) );
 		}
 
-		/* Get merge parameters - support both old multi-account and new source/target formats */
+		/*
+		 * Source/target workflow only. The legacy multi-account format
+		 * (nbuf_merge_accounts[] / nbuf_primary_account) was removed: no current
+		 * UI renders it, and it bypassed apply_field_choices() (gated on
+		 * source_id), so a legacy-format merge silently dropped the secondary
+		 * accounts' custom profile-table fields. Requiring source_id + target_id
+		 * guarantees the field-consolidation path always runs.
+		 */
 		$source_id = isset( $_POST['nbuf_source_account'] ) ? intval( $_POST['nbuf_source_account'] ) : 0;
 		$target_id = isset( $_POST['nbuf_target_account'] ) ? intval( $_POST['nbuf_target_account'] ) : 0;
 
-		/* New source/target workflow */
-		if ( $source_id && $target_id ) {
-			$account_ids = array( $target_id, $source_id );
-			$primary_id  = $target_id;
-		} else {
-			/* Legacy multi-account workflow */
-			$account_ids = isset( $_POST['nbuf_merge_accounts'] ) ? array_map( 'intval', (array) $_POST['nbuf_merge_accounts'] ) : array();
-			$primary_id  = isset( $_POST['nbuf_primary_account'] ) ? intval( $_POST['nbuf_primary_account'] ) : 0;
+		if ( ! $source_id || ! $target_id ) {
+			wp_die( esc_html__( 'Invalid merge parameters: a source and a target account are required.', 'nobloat-user-foundry' ) );
 		}
+		if ( $source_id === $target_id ) {
+			wp_die( esc_html__( 'Source and target accounts must be different.', 'nobloat-user-foundry' ) );
+		}
+
+		$account_ids = array( $target_id, $source_id );
+		$primary_id  = $target_id;
 
 		$merge_posts        = isset( $_POST['nbuf_merge_posts'] );
 		$merge_comments     = isset( $_POST['nbuf_merge_comments'] );
@@ -451,16 +458,6 @@ class NBUF_Account_Merger {
 				$field                   = str_replace( 'nbuf_field_', '', $key );
 				$field_choices[ $field ] = sanitize_text_field( wp_unslash( $value ) );
 			}
-		}
-
-		/* Validate */
-		if ( count( $account_ids ) < 2 || ! $primary_id || ! in_array( $primary_id, $account_ids, true ) ) {
-			wp_die( esc_html__( 'Invalid merge parameters', 'nobloat-user-foundry' ) );
-		}
-
-		/* Validate source and target are different */
-		if ( $source_id && $target_id && $source_id === $target_id ) {
-			wp_die( esc_html__( 'Source and target accounts must be different', 'nobloat-user-foundry' ) );
 		}
 
 		/*
@@ -961,18 +958,19 @@ class NBUF_Account_Merger {
 
 		/*
 		 * SECURITY: allow-list, not deny-list. Only copy known, safe PROFILE
-		 * meta from the secondary account(s). A deny-list inherently misses
+		 * usermeta from the secondary account(s). A deny-list inherently misses
 		 * unknown access-granting keys (per-blog `wp_N_capabilities`, plugin
 		 * entitlement/role meta, sudo grants, session tokens), any of which —
 		 * if copied — silently escalates the surviving account during a routine
-		 * admin merge. The allow-list covers NBUF's registered profile fields,
-		 * the WordPress standard profile fields, and the user's contact methods;
-		 * everything else (including capabilities/user_level) is dropped.
+		 * admin merge. The allow-list covers the WordPress standard profile
+		 * usermeta fields and the user's contact methods; everything else
+		 * (including capabilities/user_level) is dropped.
+		 *
+		 * NOTE: NBUF's CUSTOM profile fields live in the {prefix}nbuf_user_profile
+		 * table, NOT usermeta, so they are consolidated by apply_field_choices()
+		 * — not here. (They are intentionally absent from this list.)
 		 */
 		$allowed_meta_keys = array( 'first_name', 'last_name', 'nickname', 'description', 'locale' );
-		if ( class_exists( 'NBUF_Profile_Data' ) && method_exists( 'NBUF_Profile_Data', 'get_all_field_keys' ) ) {
-			$allowed_meta_keys = array_merge( $allowed_meta_keys, NBUF_Profile_Data::get_all_field_keys() );
-		}
 		if ( function_exists( 'wp_get_user_contact_methods' ) ) {
 			$allowed_meta_keys = array_merge( $allowed_meta_keys, array_keys( wp_get_user_contact_methods() ) );
 		}

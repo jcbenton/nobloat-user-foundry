@@ -1861,9 +1861,17 @@ class NBUF_Settings {
 				continue;
 			}
 
-			/* Validate IP address (IPv4 or IPv6) */
+			/* Accept an exact IP (IPv4/IPv6) or a CIDR range (e.g. 173.245.48.0/20). */
 			if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
 				$valid_ips[] = $ip;
+			} elseif ( false !== strpos( $ip, '/' ) ) {
+				list( $cidr_subnet, $cidr_mask ) = array_pad( explode( '/', $ip ), 2, null );
+				$cidr_mask = is_numeric( $cidr_mask ) ? (int) $cidr_mask : -1;
+				$is_v4     = (bool) filter_var( $cidr_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 );
+				$is_v6     = (bool) filter_var( $cidr_subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 );
+				if ( ( $is_v4 && $cidr_mask >= 0 && $cidr_mask <= 32 ) || ( $is_v6 && $cidr_mask >= 0 && $cidr_mask <= 128 ) ) {
+					$valid_ips[] = $cidr_subnet . '/' . $cidr_mask;
+				}
 			}
 		}
 

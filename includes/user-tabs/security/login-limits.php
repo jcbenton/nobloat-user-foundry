@@ -82,7 +82,7 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 		<tr>
 			<th><?php esc_html_e( 'Maximum Attempts', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<input type="number" name="nbuf_login_max_attempts" value="<?php echo esc_attr( $nbuf_login_max_attempts ); ?>" min="1" max="100" class="small-text">
+				<input type="number" name="nbuf_login_max_attempts" value="<?php echo esc_attr( $nbuf_login_max_attempts ); ?>" min="3" max="100" class="small-text">
 				<p class="description">
 					<?php esc_html_e( 'Number of failed login attempts allowed before the IP address is blocked. Default: 5', 'nobloat-user-foundry' ); ?>
 				</p>
@@ -128,12 +128,29 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 		<tr>
 			<th><?php esc_html_e( 'Trusted Proxy Servers', 'nobloat-user-foundry' ); ?></th>
 			<td>
+				<?php
+				/*
+				 * Proxy-misconfiguration warning: if the request arrived with an
+				 * X-Forwarded-For header but no trusted proxy is configured, the
+				 * plugin is keying rate limiting / IP restrictions on the proxy IP
+				 * (REMOTE_ADDR) for every visitor — which collapses all clients onto
+				 * one bucket and causes mass false lockouts.
+				 */
+				if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && empty( $nbuf_trusted_proxies ) ) : // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- presence check only, value not used.
+					?>
+					<div class="notice notice-warning inline" style="margin:0 0 10px;">
+						<p><strong><?php esc_html_e( 'You appear to be behind a proxy or CDN.', 'nobloat-user-foundry' ); ?></strong>
+						<?php esc_html_e( 'This request carried an X-Forwarded-For header but no trusted proxy is configured, so rate limiting and IP restrictions currently see your proxy\'s IP for every visitor (this can lock out all users at once). Add your proxy/CDN IPs or CIDR ranges below.', 'nobloat-user-foundry' ); ?></p>
+					</div>
+					<?php
+				endif;
+				?>
 				<textarea name="nbuf_login_trusted_proxies" rows="3" class="large-text code"><?php echo esc_textarea( $nbuf_trusted_proxies_str ); ?></textarea>
 				<p class="description">
-					<?php esc_html_e( 'IP addresses of trusted proxy servers or load balancers (comma-separated or one per line).', 'nobloat-user-foundry' ); ?><br>
-					<?php esc_html_e( 'Only requests from these IPs will have X-Forwarded-For headers trusted for rate limiting.', 'nobloat-user-foundry' ); ?><br>
-					<strong><?php esc_html_e( 'Leave blank to ignore all proxy headers (most secure for direct connections).', 'nobloat-user-foundry' ); ?></strong><br>
-					<?php esc_html_e( 'Example:', 'nobloat-user-foundry' ); ?> <code>127.0.0.1, 10.0.0.1</code> <?php esc_html_e( '(localhost and internal load balancer)', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'IPs or CIDR ranges of trusted proxy servers / load balancers / CDN edges (comma-separated or one per line).', 'nobloat-user-foundry' ); ?><br>
+					<?php esc_html_e( 'Only requests from these are allowed to set the real client IP (via X-Forwarded-For, CF-Connecting-IP, or True-Client-IP).', 'nobloat-user-foundry' ); ?><br>
+					<strong><?php esc_html_e( 'Leave blank only for direct connections. If you are behind Cloudflare / a load balancer, you MUST list its ranges or all visitors share one IP.', 'nobloat-user-foundry' ); ?></strong><br>
+					<?php esc_html_e( 'Examples:', 'nobloat-user-foundry' ); ?> <code>127.0.0.1, 10.0.0.0/8</code>, <code>173.245.48.0/20</code>, <code>2400:cb00::/32</code> <?php esc_html_e( '(Cloudflare ranges)', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

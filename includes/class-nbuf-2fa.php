@@ -872,7 +872,7 @@ If you did not request this code, please ignore this email.
 			'expires'    => $expires,
 			'created'    => time(),
 			'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
-			'ip'         => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ip'         => class_exists( 'NBUF_IP' ) ? NBUF_IP::get_client_ip( true ) : ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' ),
 		);
 		NBUF_User_2FA_Data::add_trusted_device( $user_id, $token, $device_data );
 
@@ -943,7 +943,7 @@ If you did not request this code, please ignore this email.
 		 * cannot use a victim's username to lock the victim out. The per-IP
 		 * counter trips its own lockout for the IP itself.
 		 */
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip = class_exists( 'NBUF_IP' ) ? NBUF_IP::get_client_ip( true ) : ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
 		if ( $ip ) {
 			$ip_key   = 'nbuf_2fa_ip_attempts_' . md5( $ip );
 			$ip_state = get_transient( $ip_key );
@@ -998,7 +998,7 @@ If you did not request this code, please ignore this email.
 			return true;
 		}
 
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip = class_exists( 'NBUF_IP' ) ? NBUF_IP::get_client_ip( true ) : ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
 		if ( $ip && get_transient( 'nbuf_2fa_ip_lockout_' . md5( $ip ) ) ) {
 			return true;
 		}
@@ -1018,7 +1018,7 @@ If you did not request this code, please ignore this email.
 		delete_transient( $lockout_key );
 
 		/* Also clear the per-IP counters on a successful authentication. */
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip = class_exists( 'NBUF_IP' ) ? NBUF_IP::get_client_ip( true ) : ( isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '' );
 		if ( $ip ) {
 			delete_transient( 'nbuf_2fa_ip_attempts_' . md5( $ip ) );
 			delete_transient( 'nbuf_2fa_ip_lockout_' . md5( $ip ) );

@@ -169,19 +169,29 @@ class NBUF_Login_Limiting {
 		 * (10/hr by default) by varying the case of the typed username while
 		 * still attacking the same actual account.
 		 */
-		$sanitized_username = self::normalize_username( $username );
+		/*
+		 * Resolve the typed value to the canonical account so the counter key
+		 * matches what clear_attempts_on_success() / clear_attempts_on_password_reset()
+		 * delete (both key on the resolved user_login/email). Keying on the raw
+		 * typed string diverged for inputs where sanitize_user (login form) and
+		 * sanitize_text_field (here) disagree, leaving some users locked out even
+		 * after a successful reset. Unknown users fall back to the typed value.
+		 */
+		$resolved_user = get_user_by( 'login', $username );
+		if ( ! $resolved_user ) {
+			$resolved_user = get_user_by( 'email', $username );
+		}
+		$counter_username = $resolved_user
+			? self::normalize_username( $resolved_user->user_login )
+			: self::normalize_username( $username );
 
 		/*
-		 * SECURITY: 2FA code failures feed the per-IP brute-force counter
-		 * (intentional — see NBUF_2FA_Login) but must NOT feed the cross-IP
-		 * per-USERNAME counter. Otherwise an attacker who holds the victim's
-		 * password but is correctly stopped at the 2FA step can submit wrong
-		 * codes to drive the username over its threshold and lock the victim out
-		 * from every IP (targeted DoS). Store such failures with an empty
-		 * username in the rate-limit table; the real username is still recorded
-		 * in the security log below.
+		 * SECURITY: 2FA code failures feed the per-IP brute-force counters
+		 * (intentional) but must NOT feed the cross-IP per-USERNAME counter, or an
+		 * attacker holding the password but stopped at 2FA could lock the victim
+		 * out from every IP. Store such failures with an empty username; the real
+		 * username is still recorded in the security log below.
 		 */
-		$counter_username = $sanitized_username;
 		if ( $error instanceof WP_Error && 0 === strpos( (string) $error->get_error_code(), '2fa' ) ) {
 			$counter_username = '';
 		}
@@ -197,13 +207,8 @@ class NBUF_Login_Limiting {
 		);
 
 		/* Log to security log only (using upsert to reduce log pollution) */
-		$user = get_user_by( 'login', $username );
-		if ( ! $user ) {
-			$user = get_user_by( 'email', $username );
-		}
-
-		$user_id = $user ? $user->ID : 0;
-		$message = $user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
+		$user_id = $resolved_user ? $resolved_user->ID : 0;
+		$message = $resolved_user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
 
 		/*
 		 * Use log_or_update() to aggregate repeated failures from same IP
@@ -218,24 +223,30 @@ class NBUF_Login_Limiting {
 				array(
 					'ip_address'  => $ip_address,
 					'username'    => $username,
-					'user_exists' => $user ? true : false,
+					'user_exists' => $resolved_user ? true : false,
 				),
 				$user_id
 			);
 		}
 
 		/*
-		Clean up old attempts (older than 24 hours)
-		*/
-		/* NOTE: gmdate() is server-generated so this is safe, but pre-calculate for best practice */
-		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
-		$wpdb->query(
-			$wpdb->prepare(
-				'DELETE FROM %i WHERE attempt_time < %s',
-				$table_name,
-				$cutoff_time
-			)
-		);
+		 * Prune old rows opportunistically (~1% of failures), not on EVERY failed
+		 * login. The per-failure DELETE caused heavy write amplification + index
+		 * lock contention under a brute-force flood (exactly when the table is
+		 * hottest), which could induce COUNT timeouts and, via the fail-closed
+		 * count handling, lock out legitimate users. The cron job is the primary
+		 * reaper; this is a cheap backstop.
+		 */
+		if ( 0 === wp_rand( 0, 99 ) ) {
+			$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( '-24 hours' ) );
+			$wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM %i WHERE attempt_time < %s',
+					$table_name,
+					$cutoff_time
+				)
+			);
+		}
 	}
 
 	/**
@@ -260,6 +271,17 @@ class NBUF_Login_Limiting {
 				'ip_address' => $ip_address,
 				'username'   => self::normalize_username( (string) $username ),
 			),
+			array( '%s', '%s' )
+		);
+
+		/*
+		 * Also drop this IP's 2FA-failure rows (stored with an empty username) so
+		 * a successful login resets the IP's contribution to the all-usernames
+		 * backstop; otherwise normal 2FA mistypes would linger up to 24h.
+		 */
+		$wpdb->delete(
+			$table_name,
+			array( 'ip_address' => $ip_address, 'username' => '' ),
 			array( '%s', '%s' )
 		);
 	}
@@ -334,13 +356,41 @@ class NBUF_Login_Limiting {
 	private static function is_locked_out( $ip_address, $username, $lockout_duration ) {
 		$max_attempts_per_ip = NBUF_Options::get( 'nbuf_login_max_attempts', 5 );
 
-		/* Check IP-based lockout */
-		$ip_count = self::get_recent_attempt_count( $ip_address, $username, $lockout_duration );
-		if ( $ip_count >= $max_attempts_per_ip ) {
+		/*
+		 * Layer 1 — this IP attacking THIS username (the precise brute-force
+		 * shape). Previously the per-IP count summed EVERY username, so a few
+		 * unrelated users fumbling passwords behind one shared NAT/CGNAT/CDN
+		 * egress IP collectively tripped the lock and locked everyone out.
+		 */
+		$ip_user_count = self::get_recent_attempt_count( $ip_address, $username, $lockout_duration );
+		if ( $ip_user_count >= $max_attempts_per_ip ) {
 			return true;
 		}
 
-		/* Check username-based lockout (prevents distributed brute force) */
+		/*
+		 * Layer 2 — this IP across ALL usernames (password spray / one IP
+		 * hammering many accounts). Higher threshold so legitimate shared-IP
+		 * traffic is not collateral-damaged. Filterable; defaults to 6x the
+		 * per-(IP+username) limit (min 20).
+		 */
+		$max_attempts_per_ip_global = (int) apply_filters(
+			'nbuf_login_max_attempts_per_ip_global',
+			max( (int) $max_attempts_per_ip * 6, 20 )
+		);
+		$ip_global_count = self::get_recent_attempt_count_by_ip( $ip_address, $lockout_duration );
+		if ( $ip_global_count >= $max_attempts_per_ip_global ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log_or_update(
+					'ip_spray_detected',
+					'critical',
+					'High volume of failed logins from a single IP across multiple usernames',
+					array( 'ip_address' => $ip_address, 'attempts' => $ip_global_count )
+				);
+			}
+			return true;
+		}
+
+		/* Layer 3 — cross-IP per-username (prevents distributed brute force) */
 		$max_attempts_per_username = NBUF_Options::get( 'nbuf_login_max_attempts_per_username', 10 );
 		$username_lockout_duration = NBUF_Options::get( 'nbuf_login_username_lockout_window', 60 );
 
@@ -379,18 +429,49 @@ class NBUF_Login_Limiting {
 	 * @param  int    $lockout_duration Lockout duration in minutes.
 	 * @return int Number of recent attempts from this IP.
 	 */
-	private static function get_recent_attempt_count( $ip_address, $username, $lockout_duration ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed -- $username kept for compatibility
+	private static function get_recent_attempt_count( $ip_address, $username, $lockout_duration ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
 
 		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
 
 		/*
-		 * SECURITY: Count attempts from this IP only.
-		 * This blocks the attacker's IP without locking out the legitimate user.
-		 * Distributed brute force protection is handled separately by
-		 * get_recent_attempt_count_by_username() with a higher threshold.
+		 * Count attempts from this IP AGAINST THIS USERNAME. Scoping to the
+		 * (IP, username) pair blocks the real single-account brute force without
+		 * locking out unrelated accounts that share the same egress IP. The
+		 * all-usernames-per-IP backstop and the cross-IP per-username layer are
+		 * handled separately in is_locked_out().
 		 */
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE ip_address = %s AND username = %s AND attempt_time > %s',
+				$table_name,
+				$ip_address,
+				self::normalize_username( (string) $username ),
+				$cutoff_time
+			)
+		);
+
+		return self::handle_count_result( $count, $wpdb->last_error, 'ip_user' );
+	}
+
+	/**
+	 * Count recent failed attempts from an IP across ALL usernames.
+	 *
+	 * Backstop for password spray / one IP hammering many accounts. Uses a
+	 * higher threshold than the per-(IP+username) layer so shared-IP traffic is
+	 * not collateral-damaged.
+	 *
+	 * @param  string $ip_address       IP address to check.
+	 * @param  int    $lockout_duration Window in minutes.
+	 * @return int Number of recent attempts from this IP.
+	 */
+	private static function get_recent_attempt_count_by_ip( $ip_address, $lockout_duration ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'nbuf_login_attempts';
+
+		$cutoff_time = gmdate( 'Y-m-d H:i:s', strtotime( "-{$lockout_duration} minutes" ) );
+
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE ip_address = %s AND attempt_time > %s',
@@ -400,7 +481,7 @@ class NBUF_Login_Limiting {
 			)
 		);
 
-		return self::handle_count_result( $count, $wpdb->last_error, 'ip' );
+		return self::handle_count_result( $count, $wpdb->last_error, 'ip_global' );
 	}
 
 	/**

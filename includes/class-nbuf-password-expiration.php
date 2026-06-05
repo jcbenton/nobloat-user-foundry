@@ -63,7 +63,15 @@ class NBUF_Password_Expiration {
 		add_action( 'user_register', array( __CLASS__, 'track_password_change_on_registration' ), 10, 1 );
 
 		/* Login interception - check if password expired or forced change */
-		add_filter( 'authenticate', array( __CLASS__, 'check_password_on_login' ), 30, 3 );
+		/*
+		 * Priority 28: run AFTER WP credential validation (20) and the
+		 * verification gate (25), but BEFORE the rate limiter (30) and the 2FA
+		 * intercept (31), so the limiter remains the final lockout verdict. This
+		 * was previously 30 — colliding with NBUF_Login_Limiting — and the order
+		 * depended on init() call order. check_password_on_login no-ops on a
+		 * WP_Error input, so a locked-out user still sees the lockout.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'check_password_on_login' ), 28, 3 );
 
 		/* Password change form handler */
 		add_action( 'login_form_nbuf_change_expired_password', array( __CLASS__, 'handle_password_change_form' ) );

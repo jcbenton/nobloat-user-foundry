@@ -874,6 +874,19 @@ class NBUF_Privacy {
 		}
 
 		/*
+		 * Delete verification / password-reset / magic-link tokens. Each row
+		 * carries user_email (PII) and a live magic-link/reset token is account
+		 * recovery capability, so an anonymize-without-delete erasure must purge
+		 * them too (handle_user_deletion already does this on full deletion).
+		 * delete_user_tokens() is scoped by user_id.
+		 */
+		if ( class_exists( 'NBUF_Database' ) ) {
+			NBUF_Database::delete_user_tokens( $user->ID );
+			$items_removed = true;
+			$messages[]    = __( 'Verification, password-reset, and magic-link tokens removed.', 'nobloat-user-foundry' );
+		}
+
+		/*
 		 * Remove uploaded profile/cover photo FILES from disk and null their path
 		 * columns. The exporter classifies these as the user's PII, so erasure
 		 * must remove them too (previously only full account deletion did). Gated

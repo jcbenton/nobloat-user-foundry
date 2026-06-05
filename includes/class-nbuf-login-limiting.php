@@ -187,9 +187,15 @@ class NBUF_Login_Limiting {
 		 * (intentional) but must NOT feed the cross-IP per-USERNAME counter, or an
 		 * attacker holding the password but stopped at 2FA could lock the victim
 		 * out from every IP. Store such failures with an empty username; the real
-		 * username is still recorded in the security log below.
+		 * username is still recorded in the security log below. Match BOTH the
+		 * '2fa_*' convention (email/TOTP codes) AND the 'nbuf_2fa_*' family (the
+		 * backup-code path returns nbuf_2fa_invalid_backup_code / _no_backup_codes,
+		 * which would otherwise slip past a bare '2fa' prefix test and pollute the
+		 * per-username counter -> self/victim cross-IP lockout). Every code reaching
+		 * here in either family is a post-password 2FA-stage failure.
 		 */
-		if ( $error instanceof WP_Error && 0 === strpos( (string) $error->get_error_code(), '2fa' ) ) {
+		$err_code_2fa = $error instanceof WP_Error ? (string) $error->get_error_code() : '';
+		if ( '' !== $err_code_2fa && ( 0 === strpos( $err_code_2fa, '2fa' ) || 0 === strpos( $err_code_2fa, 'nbuf_2fa' ) ) ) {
 			$counter_username = '';
 		}
 

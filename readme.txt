@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.31
+Stable tag: 1.7.32
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,14 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.32 — Round-2 cross-file flow audit: regression-clean + missed items =
+* Re-ran the end-to-end (multi-file) flow audit with a regression lens (every v1.7.31 fix re-traced and adversarially re-verified — all hold, no new wrong-block/bypass/fatal) and a missed-items lens. Each new fix re-verified after applying.
+* HIGH (self-lockout, brute-force): backup-code 2FA failures returned an error code (nbuf_2fa_*) that slipped past the limiter's '2fa' classifier, so they were counted against the CROSS-IP per-username counter. A user fat-fingering backup codes ~10 times could lock themselves out from every IP (and an attacker holding the password could deliberately do so to the victim). The classifier now matches the nbuf_2fa family too — those failures feed only the per-IP counter, as intended.
+* HIGH (auth side door): the forced/expired password-change form was a 4th out-of-band login path that minted a session without the IP-restriction / account-state gate added to the magic-link/passkey/2FA paths in 1.7.31. The unauthenticated token-redeem path now runs the same shared gate before changing the password or setting a cookie (the already-logged-in path is unchanged).
+* HIGH (config import data loss): importing a config silently dropped two settings groups (general settings + registration-field configuration) because their sanitizers only run when the matching form field is present in the request — yet reported them as imported. Import now makes those sanitizers process the imported values, so a staging->production config clone transfers them correctly.
+* MEDIUM (GDPR): right-to-erasure now also purges the user's verification / password-reset / magic-link tokens (email PII + live login/recovery credentials), matching what full account deletion already did.
+* MEDIUM (restriction info-disclosure): closed seven sibling surfaces that could leak a restricted post's TITLE/URL (never its body) to unauthorized/anonymous users — the XML sitemap, the oEmbed endpoint, previous/next adjacent-post links, the REST search endpoint, default front-end search (which spans pages/CPTs, not just posts), multi-type (array) feed/search queries, and comment feeds. Each new filter only ever excludes posts the current viewer cannot access, so authorized users and admins are unaffected.
 
 = 1.7.31 — Cross-file flow audit: 6 HIGH + lockout MEDIUMs =
 * New end-to-end (multi-file execution-flow) forensic pass; every finding adversarially re-verified before and after fixing. Focus remained on NOT wrongly locking out legitimate users.

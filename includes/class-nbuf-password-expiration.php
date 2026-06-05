@@ -513,7 +513,8 @@ class NBUF_Password_Expiration {
 	 */
 	public static function handle_password_change_form(): void {
 		/* Check if user is logged in */
-		$user_id = get_current_user_id();
+		$user_id   = get_current_user_id();
+		$via_token = false;
 
 		/* If not logged in, verify via cryptographic token (not predictable user_id) */
 		if ( ! $user_id && isset( $_GET['change_token'] ) ) {
@@ -523,7 +524,8 @@ class NBUF_Password_Expiration {
 				wp_safe_redirect( wp_login_url() );
 				exit;
 			}
-			$user_id = (int) $token_user;
+			$user_id   = (int) $token_user;
+			$via_token = true;
 
 			/*
 			 * Token is NOT consumed here — it must survive until the form POST.
@@ -541,6 +543,25 @@ class NBUF_Password_Expiration {
 		if ( ! $user ) {
 			wp_safe_redirect( wp_login_url() );
 			exit;
+		}
+
+		/*
+		 * OOB session-mint gate. The UNAUTHENTICATED token-redeem path below mints
+		 * a full login session (wp_set_auth_cookie) WITHOUT running the authenticate
+		 * filter chain, so the priority-1 IP gate and the account-state gates never
+		 * re-evaluate at redeem time -- the same out-of-band bypass class closed for
+		 * magic-link / passkey / 2FA-completion in v1.7.31. Enforce the same single
+		 * source of truth (NBUF_Auth::enforce_login_status) BEFORE any password
+		 * change or session mint. Only the token path is gated; an already
+		 * logged-in user keeps the session they already hold, so this adds no new
+		 * wrong-block. No-op on default installs (IP restriction off, account ok).
+		 */
+		if ( $via_token && class_exists( 'NBUF_Auth' ) ) {
+			$oob_status = NBUF_Auth::enforce_login_status( (int) $user_id );
+			if ( is_wp_error( $oob_status ) ) {
+				wp_safe_redirect( add_query_arg( 'nbuf_login_error', $oob_status->get_error_code(), wp_login_url() ) );
+				exit;
+			}
 		}
 
 		/* Verify authorization BEFORE rendering form - prevent IDOR */

@@ -40,11 +40,7 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		add_action( 'template_redirect', array( __CLASS__, 'handle_redirect' ), 1 );
 
 		/* Enforce restrictions on REST API responses for all configured post types */
-		$restricted_types = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
-		if ( ! is_array( $restricted_types ) ) {
-			$restricted_types = array( 'post', 'page' );
-		}
-		foreach ( $restricted_types as $post_type ) {
+		foreach ( self::get_restricted_post_types() as $post_type ) {
 			add_filter( 'rest_prepare_' . $post_type, array( __CLASS__, 'filter_rest_content' ), 10, 3 );
 		}
 
@@ -57,6 +53,24 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		 * scope per request.
 		 */
 		add_action( 'pre_get_posts', array( __CLASS__, 'exclude_from_queries' ) );
+
+		/*
+		 * Close the remaining sibling surfaces that render a restricted post's
+		 * TITLE/URL without ever passing through the_content / the main query /
+		 * rest_prepare_{type}. Each only ever excludes posts the CURRENT user
+		 * cannot access, so authorized users are unaffected.
+		 */
+		/* XML sitemap (wp-sitemap.xml) runs its own per-type secondary query. */
+		add_filter( 'wp_sitemaps_posts_query_args', array( __CLASS__, 'filter_sitemap_query_args' ), 10, 2 );
+		/* oEmbed endpoint assembles {title,author,thumbnail} via a separate path. */
+		add_filter( 'oembed_response_data', array( __CLASS__, 'filter_oembed_response' ), 10, 2 );
+		/* Adjacent-post links (previous/next_post_link) use a direct neighbor SQL. */
+		add_filter( 'get_previous_post_where', array( __CLASS__, 'filter_adjacent_post_where' ) );
+		add_filter( 'get_next_post_where', array( __CLASS__, 'filter_adjacent_post_where' ) );
+		/* REST search controller emits id/title/url via rest_prepare_search_result. */
+		add_filter( 'rest_post_search_query', array( __CLASS__, 'filter_rest_search_query' ), 10, 2 );
+		/* Comment feeds render parent-post titles via a separate comments query. */
+		add_filter( 'comment_feed_where', array( __CLASS__, 'filter_comment_feed_where' ) );
 	}
 
 	/**
@@ -324,14 +338,29 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 			return;
 		}
 
-		/* Get post type being queried */
+		/*
+		 * Resolve which post type(s) to compute exclusions for:
+		 *  - explicit ARRAY (multi-type feed / multi-type search): use each. A bare
+		 *    array passed to get_excluded_post_ids would bind as the literal string
+		 *    'Array' and match zero rows -> silent no-op leak, so iterate.
+		 *  - explicit single type: use it.
+		 *  - empty / 'any' (a default front-end search spans ALL searchable types):
+		 *    union EVERY configured restricted type, not just 'post', so a restricted
+		 *    page/CPT is not left in the result set with its title/URL exposed.
+		 */
 		$post_type = $query->get( 'post_type' );
-		if ( empty( $post_type ) ) {
-			$post_type = 'post'; // Default.
+		if ( is_array( $post_type ) ) {
+			$types = $post_type;
+		} elseif ( ! empty( $post_type ) && 'any' !== $post_type ) {
+			$types = array( $post_type );
+		} else {
+			$types = self::get_restricted_post_types();
 		}
 
-		/* Get excluded post IDs */
-		$excluded_ids = self::get_excluded_post_ids( $post_type );
+		$excluded_ids = array();
+		foreach ( $types as $pt ) {
+			$excluded_ids = array_merge( $excluded_ids, self::get_excluded_post_ids( (string) $pt ) );
+		}
 
 		if ( ! empty( $excluded_ids ) ) {
 			/* Merge with existing post__not_in */
@@ -412,5 +441,148 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 		wp_cache_set( $cache_key, $excluded, 'nbuf_restrictions', 300 );
 
 		return $excluded;
+	}
+
+	/**
+	 * Configured restricted post types (with a safe default).
+	 *
+	 * @return array<int, string>
+	 */
+	private static function get_restricted_post_types(): array {
+		$types = NBUF_Options::get( 'nbuf_restrictions_post_types', array( 'post', 'page' ) );
+		if ( ! is_array( $types ) || empty( $types ) ) {
+			$types = array( 'post', 'page' );
+		}
+		return $types;
+	}
+
+	/**
+	 * Union of excluded post IDs across EVERY configured restricted post type.
+	 *
+	 * For surfaces that are not scoped to a single post type (oEmbed, adjacent
+	 * links, REST search, comment feeds). Each per-type lookup is cached.
+	 *
+	 * @return array<int, int>
+	 */
+	private static function get_all_excluded_post_ids(): array {
+		$all = array();
+		foreach ( self::get_restricted_post_types() as $pt ) {
+			$all = array_merge( $all, self::get_excluded_post_ids( (string) $pt ) );
+		}
+		return array_values( array_unique( $all ) );
+	}
+
+	/**
+	 * Exclude no-access restricted posts from the core XML sitemap.
+	 *
+	 * WP_Sitemaps_Posts runs its own per-post-type secondary WP_Query that never
+	 * hits the main-query pre_get_posts gate, so restricted permalinks would be
+	 * published to anonymous users without this.
+	 *
+	 * @param  array<string, mixed> $args      Query args for the sitemap provider.
+	 * @param  string               $post_type Post type being listed.
+	 * @return array<string, mixed> Filtered args.
+	 */
+	public static function filter_sitemap_query_args( $args, $post_type ) {
+		$excluded = self::get_excluded_post_ids( (string) $post_type );
+		if ( ! empty( $excluded ) ) {
+			$existing = ( isset( $args['post__not_in'] ) && is_array( $args['post__not_in'] ) ) ? $args['post__not_in'] : array();
+			$args['post__not_in'] = array_merge( $existing, $excluded );
+		}
+		return $args;
+	}
+
+	/**
+	 * Strip title/author/thumbnail from the oEmbed response for a no-access post.
+	 *
+	 * The oembed/1.0/embed route assembles its payload outside rest_prepare_{type},
+	 * so it would otherwise leak a restricted post's title + author to anyone.
+	 *
+	 * @param  array<string, mixed> $data oEmbed response data.
+	 * @param  WP_Post              $post Post object.
+	 * @return array<string, mixed> Filtered data.
+	 */
+	public static function filter_oembed_response( $data, $post ) {
+		if ( ! ( $post instanceof WP_Post ) ) {
+			return $data;
+		}
+		$restriction = NBUF_Restrictions::get_content_restriction( $post->ID, $post->post_type );
+		if ( empty( $restriction ) ) {
+			return $data;
+		}
+		if ( self::check_access( $restriction['visibility'], $restriction['allowed_roles'] ) ) {
+			return $data;
+		}
+		/* No access: keep a valid shape but remove the leaked fields. */
+		if ( is_array( $data ) ) {
+			$data['title'] = __( 'Restricted content', 'nobloat-user-foundry' );
+			unset(
+				$data['author_name'],
+				$data['author_url'],
+				$data['thumbnail_url'],
+				$data['thumbnail_width'],
+				$data['thumbnail_height'],
+				$data['html']
+			);
+		}
+		return $data;
+	}
+
+	/**
+	 * Exclude no-access restricted neighbors from adjacent-post link queries.
+	 *
+	 * get_adjacent_post() runs a direct SQL neighbor lookup (alias `p`) that does
+	 * not fire pre_get_posts, so previous/next_post_link() would render a
+	 * restricted neighbor's title + URL.
+	 *
+	 * @param  string $where Adjacent-post WHERE clause.
+	 * @return string Filtered WHERE.
+	 */
+	public static function filter_adjacent_post_where( $where ) {
+		$excluded = self::get_all_excluded_post_ids();
+		if ( ! empty( $excluded ) ) {
+			$ids    = implode( ',', array_map( 'absint', $excluded ) );
+			$where .= ' AND p.ID NOT IN (' . $ids . ')';
+		}
+		return $where;
+	}
+
+	/**
+	 * Exclude no-access restricted posts from the REST search controller.
+	 *
+	 * /wp/v2/search emits id/title/url via rest_prepare_search_result, not
+	 * rest_prepare_{type}, so the round-1 REST 403 does not cover it.
+	 *
+	 * @param  array<string, mixed> $query_args Search WP_Query args.
+	 * @param  mixed                $request    REST request (unused).
+	 * @return array<string, mixed> Filtered args.
+	 */
+	public static function filter_rest_search_query( $query_args, $request ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $request kept for hook signature.
+		unset( $request );
+		$excluded = self::get_all_excluded_post_ids();
+		if ( ! empty( $excluded ) ) {
+			$existing = ( isset( $query_args['post__not_in'] ) && is_array( $query_args['post__not_in'] ) ) ? $query_args['post__not_in'] : array();
+			$query_args['post__not_in'] = array_merge( $existing, $excluded );
+		}
+		return $query_args;
+	}
+
+	/**
+	 * Drop comments on no-access restricted posts from comment feeds.
+	 *
+	 * Comment feeds iterate a SEPARATE comments query (comment_feed_where) and
+	 * render each comment's parent-post title + permalink, which post__not_in on
+	 * the posts query does not constrain.
+	 *
+	 * @param  string $cwhere Comment-feed WHERE clause.
+	 * @return string Filtered WHERE.
+	 */
+	public static function filter_comment_feed_where( $cwhere ) {
+		$excluded = self::get_all_excluded_post_ids();
+		if ( ! empty( $excluded ) ) {
+			$ids     = implode( ',', array_map( 'absint', $excluded ) );
+			$cwhere .= ' AND comment_post_ID NOT IN (' . $ids . ')';
+		}
+		return $cwhere;
 	}
 }

@@ -326,6 +326,22 @@ class NBUF_Config_Importer {
 
 				/* Apply settings registry sanitizer (guaranteed to exist by the check above). */
 				if ( is_callable( $registry[ $option_name ] ) ) {
+					/*
+					 * Some registry sanitizers (nbuf_settings, nbuf_registration_fields)
+					 * are coupled to the live request: they early-return the EXISTING DB
+					 * value (and self-write) UNLESS $_POST[<key>] is set. On the import
+					 * AJAX request that key is absent, so the imported value would be
+					 * silently dropped and the old value re-saved -- yet counted as
+					 * imported. Inject the key as a presence marker for the duration of
+					 * the call so those sanitizers process the IMPORTED array (passed as
+					 * the $input argument) instead of bailing. Harmless for sanitizers
+					 * that ignore $_POST. Restored immediately after.
+					 */
+					$nbuf_post_injected = false;
+					if ( ! isset( $_POST[ $option_name ] ) ) {
+						$_POST[ $option_name ] = $option_value; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in ajax_import_config; presence marker only, the real value is the sanitized $option_value argument.
+						$nbuf_post_injected    = true;
+					}
 					try {
 						$option_value = call_user_func( $registry[ $option_name ], $option_value );
 					} catch ( \Throwable $e ) {
@@ -335,12 +351,18 @@ class NBUF_Config_Importer {
 						 * Skip the offending setting instead of fataling mid-import
 						 * and leaving a half-applied config.
 						 */
+						if ( $nbuf_post_injected ) {
+							unset( $_POST[ $option_name ] );
+						}
 						$this->results['errors'][] = sprintf(
 							/* translators: %s: setting key whose sanitizer threw */
 							__( 'Skipped setting (sanitizer error): %s', 'nobloat-user-foundry' ),
 							$option_name
 						);
 						continue;
+					}
+					if ( $nbuf_post_injected ) {
+						unset( $_POST[ $option_name ] );
 					}
 				}
 

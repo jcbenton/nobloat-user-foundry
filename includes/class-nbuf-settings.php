@@ -380,6 +380,9 @@ class NBUF_Settings {
 			'nbuf_passkeys_attestation'               => function ( $value ) {
 				return in_array( $value, array( 'none', 'indirect', 'direct' ), true ) ? $value : 'none';
 			},
+			'nbuf_passkeys_authenticator_attachment'  => function ( $value ) {
+				return in_array( $value, array( 'platform', 'cross-platform', 'any' ), true ) ? $value : 'platform';
+			},
 			'nbuf_passkeys_timeout'                   => function ( $value ) {
 				return max( 30000, min( 300000, absint( $value ) ) );
 			},

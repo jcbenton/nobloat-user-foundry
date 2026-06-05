@@ -16,6 +16,7 @@ $nbuf_passkeys_enabled           = NBUF_Options::get( 'nbuf_passkeys_enabled', f
 $nbuf_passkey_prompt_enabled     = NBUF_Options::get( 'nbuf_passkey_prompt_enabled', true );
 $nbuf_passkeys_max_per_user      = NBUF_Options::get( 'nbuf_passkeys_max_per_user', 10 );
 $nbuf_passkeys_user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+$nbuf_passkeys_attachment        = NBUF_Options::get( 'nbuf_passkeys_authenticator_attachment', 'platform' );
 $nbuf_passkeys_attestation       = NBUF_Options::get( 'nbuf_passkeys_attestation', 'none' );
 $nbuf_passkeys_timeout           = NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 );
 
@@ -114,6 +115,25 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 				</select>
 				<p class="description">
 					<?php esc_html_e( '"Preferred" requests biometric/PIN verification when available. "Required" always requires it. "Discouraged" skips user verification.', 'nobloat-user-foundry' ); ?>
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Passkey Device Type', 'nobloat-user-foundry' ); ?></th>
+			<td>
+				<select name="nbuf_passkeys_authenticator_attachment">
+					<option value="platform" <?php selected( $nbuf_passkeys_attachment, 'platform' ); ?>>
+						<?php esc_html_e( 'This device — Touch ID, Windows Hello, Android (Recommended)', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="cross-platform" <?php selected( $nbuf_passkeys_attachment, 'cross-platform' ); ?>>
+						<?php esc_html_e( 'Phone, tablet, or security key (cross-device QR)', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="any" <?php selected( $nbuf_passkeys_attachment, 'any' ); ?>>
+						<?php esc_html_e( 'Any — let the user choose', 'nobloat-user-foundry' ); ?>
+					</option>
+				</select>
+				<p class="description">
+					<?php esc_html_e( '"This device" registers the passkey directly with the built-in authenticator (fingerprint, face, or PIN) instead of first showing a QR code to scan with another device. Note: on a device with no built-in authenticator, choose "Any" so users can still register with a phone or security key.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

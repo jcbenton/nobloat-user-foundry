@@ -316,6 +316,20 @@ class NBUF_Passkeys {
 			),
 		);
 
+		/*
+		 * Authenticator attachment preference. 'platform' tells the browser to go
+		 * straight to THIS device's built-in authenticator (Touch ID, Windows
+		 * Hello, Android biometrics) instead of leading with the cross-device
+		 * "scan this QR code with your phone" flow. 'cross-platform' biases toward
+		 * phones / security keys. 'any' leaves it unset so the browser presents the
+		 * full chooser. Default 'platform' for the smoothest register-on-this-device
+		 * experience.
+		 */
+		$nbuf_attachment = NBUF_Options::get( 'nbuf_passkeys_authenticator_attachment', 'platform' );
+		if ( 'platform' === $nbuf_attachment || 'cross-platform' === $nbuf_attachment ) {
+			$options['authenticatorSelection']['authenticatorAttachment'] = $nbuf_attachment;
+		}
+
 		if ( ! empty( $exclude_credentials ) ) {
 			$options['excludeCredentials'] = $exclude_credentials;
 		}

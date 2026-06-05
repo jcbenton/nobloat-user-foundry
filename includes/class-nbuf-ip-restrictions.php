@@ -144,6 +144,19 @@ class NBUF_IP_Restrictions {
 			return true;
 		}
 
+		/*
+		 * Canonicalized exact match. The client IP arrives already canonical
+		 * (NBUF_IP::get_client_ip), but an admin-entered IPv6 may be expanded /
+		 * zero-padded / mixed-case. Without canonicalizing the pattern, a
+		 * blacklist entry fails open and a whitelist entry locks the admin out.
+		 * Skip wildcard/CIDR patterns (handled below).
+		 */
+		if ( false === strpos( $pattern, '/' ) && false === strpos( $pattern, '*' )
+			&& class_exists( 'NBUF_IP' ) && method_exists( 'NBUF_IP', 'canonicalize_ip' )
+			&& NBUF_IP::canonicalize_ip( $ip ) === NBUF_IP::canonicalize_ip( $pattern ) ) {
+			return true;
+		}
+
 		/* CIDR notation: 192.168.1.0/24 */
 		if ( strpos( $pattern, '/' ) !== false ) {
 			return self::ip_in_cidr( $ip, $pattern );

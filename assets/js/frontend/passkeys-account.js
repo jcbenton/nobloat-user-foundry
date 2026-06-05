@@ -81,7 +81,7 @@
 	}
 
 	/* Send registration to server */
-	async function registerCredential(credential, deviceName) {
+	async function registerCredential(credential, deviceName, password) {
 		const data = getPasskeyData();
 
 		/* Get transports if available */
@@ -103,6 +103,7 @@
 		formData.append('nonce', data.nonce);
 		formData.append('response', JSON.stringify(response));
 		formData.append('device_name', deviceName);
+		formData.append('current_password', password);
 
 		const fetchResponse = await fetch(data.ajaxUrl, {
 			method: 'POST',
@@ -182,6 +183,12 @@
 
 		const deviceName = deviceNameInput ? deviceNameInput.value.trim() : '';
 
+		/* Re-authentication: require the current password to enroll a new authenticator. */
+		const password = window.prompt('Enter your current password to add a new passkey:');
+		if (!password) {
+			return;
+		}
+
 		/* Update UI */
 		registerBtn.disabled = true;
 		const originalText = registerBtn.innerHTML;
@@ -230,7 +237,7 @@
 			}
 
 			/* Send to server */
-			await registerCredential(credential, deviceName);
+			await registerCredential(credential, deviceName, password);
 
 			/* Success - reload page to show new passkey with passkeys subtab active */
 			reloadWithPasskeysTab();

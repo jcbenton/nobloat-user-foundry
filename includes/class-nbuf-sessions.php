@@ -229,6 +229,16 @@ class NBUF_Sessions {
 		/* Capture pre-state so we can verify destroy_others actually ran. */
 		$before_count = count( (array) $manager->get_all() );
 
+		/*
+		 * Only the current session exists — there is nothing to revoke, which is
+		 * success, not failure. Returning here avoids a spurious
+		 * 'session_revoke_failed' error-log entry when destroy_others legitimately
+		 * removes zero rows (e.g. a session expired between page render and click).
+		 */
+		if ( $before_count <= 1 ) {
+			return 1;
+		}
+
 		$manager->destroy_others( $current_token );
 
 		/*

@@ -127,7 +127,7 @@ class NBUF_IP {
 	 * @param  string $ip Raw IP string.
 	 * @return string Canonical lowercase IP, or '' for empty input.
 	 */
-	private static function canonicalize_ip( string $ip ): string {
+	public static function canonicalize_ip( string $ip ): string {
 		$ip = trim( $ip );
 		if ( '' === $ip ) {
 			return '';

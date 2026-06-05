@@ -541,6 +541,22 @@ class NBUF_2FA_Login {
 			exit;
 		}
 
+		/*
+		 * Re-check the password-change gate after the 2FA round-trip: an admin
+		 * could have set force_password_change (or it could have expired) during
+		 * the window between the initial auth and 2FA completion. This makes
+		 * complete_login the single authoritative post-2FA terminus enforcing
+		 * BOTH the account-state gate (above) and the password gate.
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
+			$change_redirect = NBUF_Password_Expiration::maybe_get_change_redirect( $user_id );
+			if ( $change_redirect ) {
+				self::clear_2fa_transient();
+				wp_safe_redirect( $change_redirect );
+				exit;
+			}
+		}
+
 		/* Log the user in */
 		wp_clear_auth_cookie();
 		wp_set_current_user( $user_id );

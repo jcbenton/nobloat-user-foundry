@@ -144,6 +144,9 @@ class NBUF_Login_Limiting {
 				'nbuf_password_change_required',
 				'too_many_attempts',
 				'ip_blocked',
+				/* Defensive: today intercept_login exits before returning this, but
+				   if that ever changes a correct-password 2FA user must not count. */
+				'2fa_required',
 			);
 			if ( in_array( $error->get_error_code(), $non_credential_codes, true ) ) {
 				return;
@@ -168,11 +171,26 @@ class NBUF_Login_Limiting {
 		 */
 		$sanitized_username = self::normalize_username( $username );
 
+		/*
+		 * SECURITY: 2FA code failures feed the per-IP brute-force counter
+		 * (intentional — see NBUF_2FA_Login) but must NOT feed the cross-IP
+		 * per-USERNAME counter. Otherwise an attacker who holds the victim's
+		 * password but is correctly stopped at the 2FA step can submit wrong
+		 * codes to drive the username over its threshold and lock the victim out
+		 * from every IP (targeted DoS). Store such failures with an empty
+		 * username in the rate-limit table; the real username is still recorded
+		 * in the security log below.
+		 */
+		$counter_username = $sanitized_username;
+		if ( $error instanceof WP_Error && 0 === strpos( (string) $error->get_error_code(), '2fa' ) ) {
+			$counter_username = '';
+		}
+
 		$wpdb->insert(
 			$table_name,
 			array(
 				'ip_address'   => $ip_address,
-				'username'     => $sanitized_username,
+				'username'     => $counter_username,
 				'attempt_time' => gmdate( 'Y-m-d H:i:s' ),
 			),
 			array( '%s', '%s', '%s' )

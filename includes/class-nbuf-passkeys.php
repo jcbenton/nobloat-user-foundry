@@ -1407,6 +1407,22 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => __( 'You must be logged in.', 'nobloat-user-foundry' ) ) );
 		}
 
+		/*
+		 * SECURITY: require password re-authentication before enrolling a NEW
+		 * passkey. Registration is MORE dangerous than delete/rename: a
+		 * hijacked / XSS'd session that enrolls an attacker-controlled
+		 * authenticator gains a permanent passwordless backdoor that survives
+		 * the victim changing their password. Gate it like delete/rename.
+		 */
+		if ( ! NBUF_Auth::verify_reauth( $user_id ) ) {
+			wp_send_json_error(
+				array(
+					'message'         => __( 'Password verification failed. Please re-enter your current password.', 'nobloat-user-foundry' ),
+					'reauth_required' => true,
+				)
+			);
+		}
+
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON contains base64url data that must not be modified
 		$response_raw = isset( $_POST['response'] ) ? wp_unslash( $_POST['response'] ) : '';
 		$response     = json_decode( $response_raw, true );

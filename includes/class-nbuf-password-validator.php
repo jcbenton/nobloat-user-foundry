@@ -84,6 +84,12 @@ class NBUF_Password_Validator {
 			if ( $weak_flagged ) {
 				NBUF_User_Data::clear_weak_password_flag( $user->ID );
 			}
+			/*
+			 * Record that this user's CURRENT password is policy-compliant, so
+			 * out-of-band login paths (passkey/magic link) don't route them to
+			 * the change form. See NBUF_Password_Expiration::maybe_get_change_redirect.
+			 */
+			update_user_meta( $user->ID, '_nbuf_pw_strength_confirmed', 1 );
 			return $user;
 		}
 

@@ -604,6 +604,30 @@ class NBUF_Role_Manager {
 			}
 		}
 
+		/*
+		 * Same containment for capabilities INHERITED via parent_role —
+		 * create_role/update_role merge the parent's caps on top of the explicit
+		 * list, so a `"capabilities": {}` + `"parent_role": "administrator"`
+		 * payload would otherwise grant the full admin cap set unchecked.
+		 */
+		if ( ! empty( $data['parent_role'] ) && ! is_super_admin() ) {
+			$parent_obj = get_role( $data['parent_role'] );
+			if ( $parent_obj ) {
+				foreach ( (array) $parent_obj->capabilities as $cap => $granted ) {
+					if ( $granted && ! current_user_can( $cap ) ) {
+						return new WP_Error(
+							'cap_escalation',
+							sprintf(
+								/* translators: %s: capability inherited from the parent role that the importer lacks */
+								__( 'Refused: the parent role grants a capability you do not have (%s).', 'nobloat-user-foundry' ),
+								$cap
+							)
+						);
+					}
+				}
+			}
+		}
+
 		$exists = self::role_exists( $data['role_key'] );
 
 		if ( $exists && ! $overwrite ) {

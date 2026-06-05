@@ -889,7 +889,8 @@ class NBUF_Settings {
 				$data = array(
 					'name'    => isset( $_POST['webhook_name'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_name'] ) ) : '',
 					'url'     => isset( $_POST['webhook_url'] ) ? esc_url_raw( wp_unslash( $_POST['webhook_url'] ) ) : '',
-					'secret'  => isset( $_POST['webhook_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_secret'] ) ) : '',
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- HMAC secret must preserve special chars; sanitize_text_field would corrupt it. Length is validated in NBUF_Webhooks::create/update.
+				'secret'  => isset( $_POST['webhook_secret'] ) ? wp_unslash( $_POST['webhook_secret'] ) : '',
 					'events'  => isset( $_POST['webhook_events'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['webhook_events'] ) ) : array(),
 					'enabled' => ! empty( $_POST['webhook_enabled'] ),
 				);
@@ -916,7 +917,8 @@ class NBUF_Settings {
 				$data = array(
 					'name'    => isset( $_POST['webhook_name'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_name'] ) ) : '',
 					'url'     => isset( $_POST['webhook_url'] ) ? esc_url_raw( wp_unslash( $_POST['webhook_url'] ) ) : '',
-					'secret'  => isset( $_POST['webhook_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_secret'] ) ) : '',
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- HMAC secret must preserve special chars; sanitize_text_field would corrupt it. Length is validated in NBUF_Webhooks::create/update.
+				'secret'  => isset( $_POST['webhook_secret'] ) ? wp_unslash( $_POST['webhook_secret'] ) : '',
 					'events'  => isset( $_POST['webhook_events'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['webhook_events'] ) ) : array(),
 					'enabled' => ! empty( $_POST['webhook_enabled'] ),
 				);

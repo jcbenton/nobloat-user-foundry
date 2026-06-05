@@ -574,6 +574,9 @@ class NBUF_Password_Expiration {
 			if ( empty( $errors ) ) {
 				wp_set_password( $new_password, $user_id );
 
+				/* The new password passed validation above — mark strength confirmed. */
+				update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
+
 				/*
 				 * SECURITY: clean up the change-token transient regardless of
 				 * which path the user reached the form through. If $user_id
@@ -858,11 +861,24 @@ class NBUF_Password_Expiration {
 			}
 		}
 
-		/* Weak-password migration (mirrors check_password_at_login, priority 29). */
-		if ( ! $needs_change && class_exists( 'NBUF_Password_Validator' ) ) {
+		/*
+		 * Weak-password migration. OOB login paths (passkey, magic link) never
+		 * run the priority-29 validator, so the weak flag is never set for
+		 * OOB-only users and is_password_change_required() can't see them. When
+		 * force_weak_change is on, ALSO route a user who has never had their
+		 * password strength confirmed (no _nbuf_pw_strength_confirmed marker)
+		 * through the change form once, so they establish a policy-compliant
+		 * password. The marker is set on a strong password-login, a completed
+		 * forced change, or a policy-validated reset — so this fires at most
+		 * once per user.
+		 */
+		if ( ! $needs_change
+			&& NBUF_Options::get( 'nbuf_password_force_weak_change', false )
+			&& class_exists( 'NBUF_Password_Validator' ) ) {
 			$weak_admin_bypass = NBUF_Options::get( 'nbuf_password_admin_bypass', false );
 			if ( ! ( $weak_admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
-				if ( NBUF_Password_Validator::is_password_change_required( $user_id ) ) {
+				if ( NBUF_Password_Validator::is_password_change_required( $user_id )
+					|| ! get_user_meta( $user_id, '_nbuf_pw_strength_confirmed', true ) ) {
 					$needs_change = true;
 				}
 			}

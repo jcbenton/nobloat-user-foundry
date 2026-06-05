@@ -517,6 +517,20 @@ class NBUF_Shortcodes {
 			exit;
 		}
 
+		/*
+		 * Also rate-limit per client IP. The per-email cap alone throttles only
+		 * per recipient, so one host could email-bomb many different victim
+		 * inboxes (3 each) using real accounts. Cap total reset requests per IP.
+		 */
+		if ( class_exists( 'NBUF_IP' ) ) {
+			$ip_identifier = hash( 'sha256', NBUF_IP::get_client_ip( true ) );
+			$ip_attempts   = NBUF_Transients::increment( 'password_reset_ip_rate', $ip_identifier, 1, 15 * MINUTE_IN_SECONDS );
+			if ( $ip_attempts > 10 ) {
+				wp_safe_redirect( add_query_arg( 'error', rawurlencode( __( 'Too many password reset attempts. Please try again later.', 'nobloat-user-foundry' ) ), $redirect_base_url ) );
+				exit;
+			}
+		}
+
 		/* Get user by email */
 		$user = get_user_by( 'email', $user_login );
 
@@ -698,6 +712,15 @@ class NBUF_Shortcodes {
 		}
 
 		reset_password( $user, $pass1 );
+
+		/*
+		 * If the reset flow enforced the password policy, the new password is
+		 * policy-compliant — mark strength confirmed so out-of-band login paths
+		 * don't route this user to the change form.
+		 */
+		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'reset' ) ) {
+			update_user_meta( $user->ID, '_nbuf_pw_strength_confirmed', 1 );
+		}
 
 		/* Log password reset completion */
 		NBUF_Audit_Log::log(

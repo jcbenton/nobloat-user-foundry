@@ -420,6 +420,16 @@ class NBUF_Registration {
 			return $user_id;
 		}
 
+		/*
+		 * If registration enforced the password policy, the new password is
+		 * policy-compliant — mark strength confirmed so the weak-password
+		 * migration's out-of-band routing doesn't send brand-new users to the
+		 * change form on their first passkey/magic-link login.
+		 */
+		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'registration' ) ) {
+			update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
+		}
+
 		/* Assign user role based on settings */
 		$default_role = NBUF_Options::get( 'nbuf_new_user_default_role', 'subscriber' );
 		$user         = new WP_User( $user_id );

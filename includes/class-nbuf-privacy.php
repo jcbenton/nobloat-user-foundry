@@ -649,10 +649,10 @@ class NBUF_Privacy {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query required for custom table, pagination makes caching impractical.
 		$attempts = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT * FROM %i WHERE username = %s OR username = %s ORDER BY attempt_time DESC LIMIT %d OFFSET %d',
+				'SELECT * FROM %i WHERE LOWER(username) = %s OR LOWER(username) = %s ORDER BY attempt_time DESC LIMIT %d OFFSET %d',
 				$table_name,
-				$user->user_login,
-				$user->user_email,
+				strtolower( $user->user_login ),
+				strtolower( $user->user_email ),
 				$per_page,
 				$offset
 			)

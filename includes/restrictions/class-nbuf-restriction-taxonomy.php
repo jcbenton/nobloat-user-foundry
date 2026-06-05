@@ -205,8 +205,9 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 		 * Try to get from cache
 		 *
 		 */
+		$last_changed = wp_cache_get_last_changed( 'nbuf_restrictions' );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Storing role arrays in termmeta, used only for cache key generation.
-		$cache_key = 'nbuf_excluded_terms_' . md5( serialize( $taxonomies ) ) . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' );
+		$cache_key = 'nbuf_excluded_terms_' . md5( serialize( $taxonomies ) ) . '_' . ( is_user_logged_in() ? get_current_user_id() : 'guest' ) . '_' . $last_changed;
 		$cached    = wp_cache_get( $cache_key, 'nbuf_restrictions' );
 
 		if ( false !== $cached ) {
@@ -491,15 +492,13 @@ class NBUF_Restriction_Taxonomy extends NBUF_Abstract_Restriction {
 		update_term_meta( $term_id, '_nbuf_redirect_url', $redirect_url );
 
 		/*
-		 * Clear cache — use serialize(array()) to match the creation format in get_excluded_term_ids().
+		 * Invalidate ALL cached exclusion lists via the shared last_changed
+		 * version. The previous per-key delete only cleared the current editor's
+		 * and the guest entry, leaving every other logged-in user's term
+		 * exclusion list stale for the full 5-minute TTL.
 		 */
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Must match cache key format.
-		$cache_keys = array(
-			'nbuf_excluded_terms_' . md5( serialize( array( $taxonomy ) ) ) . '_guest',
-			'nbuf_excluded_terms_' . md5( serialize( array( $taxonomy ) ) ) . '_' . get_current_user_id(),
-		);
-		foreach ( $cache_keys as $key ) {
-			wp_cache_delete( $key, 'nbuf_restrictions' );
+		if ( class_exists( 'NBUF_Restrictions' ) ) {
+			NBUF_Restrictions::flush_excluded_cache();
 		}
 	}
 }

@@ -65,7 +65,7 @@ class NBUF_Migration_UM_Restrictions {
 		foreach ( $posts as $post ) {
 			try {
 				/* Get UM restriction data (serialized array) */
-				$um_restriction = get_post_meta( $post->ID, 'um_content_restriction', true );
+				$um_restriction = self::read_um_restriction_safe( (int) $post->ID );
 
 				/* Parse the serialized data */
 				if ( empty( $um_restriction ) || ! is_array( $um_restriction ) ) {
@@ -175,7 +175,7 @@ class NBUF_Migration_UM_Restrictions {
 		);
 
 		/* Get UM restriction data (serialized array) */
-		$um_data = get_post_meta( $post_id, 'um_content_restriction', true );
+		$um_data = self::read_um_restriction_safe( (int) $post_id );
 
 		if ( empty( $um_data ) || ! is_array( $um_data ) ) {
 			return $nbuf;
@@ -212,7 +212,13 @@ class NBUF_Migration_UM_Restrictions {
 				break;
 
 			default:
-				$nbuf['visibility'] = 'everyone';
+				/*
+				 * SECURITY: fail closed. This default is only reached for a
+				 * non-empty `_um_accessible` that is neither 1 nor 2 (a corrupted
+				 * or future UM encoding) — the post WAS restricted, so do NOT
+				 * downgrade it to public ('everyone'). Require login at minimum.
+				 */
+				$nbuf['visibility'] = 'logged_in';
 				break;
 		}
 
@@ -280,7 +286,7 @@ class NBUF_Migration_UM_Restrictions {
 
 		foreach ( $posts as $post ) {
 			/* Get UM restriction data */
-			$um_data = get_post_meta( $post->ID, 'um_content_restriction', true );
+			$um_data = self::read_um_restriction_safe( (int) $post->ID );
 
 			if ( empty( $um_data ) || ! is_array( $um_data ) ) {
 				continue;
@@ -387,5 +393,39 @@ class NBUF_Migration_UM_Restrictions {
 			'success' => true,
 			'deleted' => absint( $count ),
 		);
+	}
+
+	/**
+	 * Read UM's serialized `um_content_restriction` postmeta WITHOUT instantiating
+	 * objects.
+	 *
+	 * get_post_meta() auto-unserializes with class instantiation ENABLED, which is
+	 * a POP-gadget surface for attacker-influenceable postmeta. Read the raw value
+	 * and unserialize with allowed_classes => false instead.
+	 *
+	 * @param  int $post_id Post ID.
+	 * @return array<string, mixed>|null The restriction array, or null if absent / not an array.
+	 */
+	private static function read_um_restriction_safe( int $post_id ): ?array {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Raw read to avoid auto-unserialize object instantiation.
+		$raw = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = 'um_content_restriction' LIMIT 1",
+				$post_id
+			)
+		);
+
+		if ( null === $raw || '' === $raw ) {
+			return null;
+		}
+
+		if ( is_serialized( $raw ) ) {
+			$data = @unserialize( $raw, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed input.
+		} else {
+			$data = $raw;
+		}
+
+		return is_array( $data ) ? $data : null;
 	}
 }

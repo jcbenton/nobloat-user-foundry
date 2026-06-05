@@ -59,7 +59,7 @@ class NBUF_Migration {
 		add_action( 'wp_ajax_nbuf_suggest_mapping', array( __CLASS__, 'ajax_suggest_mapping' ) );
 		add_action( 'wp_ajax_nbuf_preview_import', array( __CLASS__, 'ajax_preview_import' ) );
 		add_action( 'wp_ajax_nbuf_execute_import', array( __CLASS__, 'ajax_execute_import' ) );
-		add_action( 'wp_ajax_nbuf_rollback_import', array( __CLASS__, 'ajax_rollback_import' ) );
+		/* Rollback removed: migrations are one-way and nothing snapshots prior state. */
 
 		/* Register NEW simplified UI AJAX handlers */
 		add_action( 'wp_ajax_nbuf_load_migration_plugin', array( __CLASS__, 'ajax_load_migration_plugin' ) );
@@ -423,27 +423,12 @@ class NBUF_Migration {
 		wp_send_json_success( array( 'suggestions' => $suggestions ) );
 	}
 
-	/**
-	 * AJAX: Rollback import
-	 *
-	 * @return void
+	/*
+	 * ajax_rollback_import() was removed in v1.7.14. Migrations are one-way and
+	 * nothing snapshots prior row state, so the handler only ever returned a
+	 * "not available" error — an affordance that implied a capability that did
+	 * not exist. The corresponding wp_ajax registration was removed from init().
 	 */
-	public static function ajax_rollback_import(): void {
-		check_ajax_referer( 'nbuf_migration_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'nobloat-user-foundry' ) ) );
-		}
-
-		$import_id = isset( $_POST['import_id'] ) ? absint( $_POST['import_id'] ) : 0;
-
-		if ( ! $import_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid import ID', 'nobloat-user-foundry' ) ) );
-		}
-
-		/* Rollback feature not available - migrations are one-way */
-		wp_send_json_error( array( 'message' => __( 'Rollback is not available. Migrations are one-way operations.', 'nobloat-user-foundry' ) ) );
-	}
 
 	/*
 	============================================================
@@ -814,16 +799,24 @@ class NBUF_Migration {
 			set_transient( $rate_key, $attempts + 1, MINUTE_IN_SECONDS );
 		}
 
-		/* Migration lock: prevent concurrent migrations by same user */
-		$migration_lock_key = 'nbuf_migration_lock_' . $user_id;
-		$migration_lock     = get_transient( $migration_lock_key );
-
-		if ( $migration_lock ) {
+		/*
+		 * Migration lock: prevent concurrent migrations. GLOBAL, not per-user —
+		 * two different admins running overlapping migrations would corrupt each
+		 * other's offset math and clobber account flags. Acquire the lock
+		 * atomically under a short MySQL advisory lock so the check-and-set has
+		 * no TOCTOU window; the transient's 5-minute TTL remains the safety net
+		 * if a batch fatals without releasing.
+		 */
+		global $wpdb;
+		$migration_lock_key = 'nbuf_migration_lock';
+		$acquire_mutex      = 'nbuf_migration_acquire';
+		$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $acquire_mutex ) );
+		if ( get_transient( $migration_lock_key ) ) {
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $acquire_mutex ) );
 			wp_send_json_error( array( 'message' => __( 'A migration is already in progress. Please wait for it to complete.', 'nobloat-user-foundry' ) ) );
 		}
-
-		/* Set migration lock for 5 minutes */
 		set_transient( $migration_lock_key, time(), 5 * MINUTE_IN_SECONDS );
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $acquire_mutex ) );
 
 		/* Increase execution time for this batch (only if safe) */
 		if ( ! ini_get( 'safe_mode' ) && function_exists( 'set_time_limit' ) ) {

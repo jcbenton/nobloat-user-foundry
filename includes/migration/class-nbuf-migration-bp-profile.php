@@ -467,24 +467,36 @@ class NBUF_Migration_BP_Profile {
 		 */
 		if ( is_serialized( $value ) ) {
 			$unserialized = @unserialize( $value, array( 'allowed_classes' => false ) ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged,WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Object instantiation disabled; @ suppresses E_NOTICE on malformed input.
-			if ( false === $unserialized && 'b:0;' !== $value ) {
-				/* Malformed payload — keep raw value. */
-				$unserialized = $value;
-			}
 			if ( is_array( $unserialized ) ) {
-				/* Join array values with commas */
-				$value = implode( ', ', $unserialized );
+				/* Multi-value field (checkbox/multiselect): join with commas. */
+				$value = implode( ', ', array_map( 'strval', $unserialized ) );
+			} elseif ( is_scalar( $unserialized ) ) {
+				/*
+				 * A scalar that merely LOOKED serialized (a member can type
+				 * s:5:"hello"; into a free-text field). Decode it to the real
+				 * value rather than storing the serialization wrapper intact.
+				 */
+				$value = (string) $unserialized;
 			}
+			/* else: malformed / object payload — leave $value raw; the
+			   per-destination sanitizers below neutralize it to plain text. */
 		}
 
 		/* Date field conversions */
 		$date_fields = array( 'date_of_birth', 'hire_date', 'termination_date' );
 		if ( in_array( $nbuf_field, $date_fields, true ) ) {
-			/* Try to parse and format as Y-m-d */
+			/* Try to parse and format as Y-m-d. */
 			$timestamp = strtotime( $value );
 			if ( false !== $timestamp ) {
 				return gmdate( 'Y-m-d', $timestamp );
 			}
+			/*
+			 * Unparseable date — return empty so the DATE column stays NULL.
+			 * Falling through to sanitize_text_field would write a non-date
+			 * string into a DATE column (silent 0000-00-00 / NULL coercion, or a
+			 * whole-row INSERT failure under MySQL strict mode).
+			 */
+			return '';
 		}
 
 		/* Sanitize based on field type */

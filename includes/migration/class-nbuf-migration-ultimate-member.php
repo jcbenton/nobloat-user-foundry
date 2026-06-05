@@ -442,8 +442,15 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				break;
 
 			default:
-				/* Unknown status - treat as needing verification */
-				$user_data['is_verified'] = 0;
+				/*
+				 * Unknown status — fail closed: require BOTH email verification AND
+				 * admin approval rather than leaving the init default is_approved=1,
+				 * which would silently auto-approve any unmappable UM status.
+				 */
+				$user_data['is_verified']       = 0;
+				$user_data['requires_approval'] = 1;
+				$user_data['is_approved']       = 0;
+				$user_data['approval_notes']    = 'Migrated from Ultimate Member - unrecognized status, held for review';
 				break;
 		}
 
@@ -622,8 +629,8 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 					break;
 
 				default:
-					/* If unknown value, default to public */
-					$user_data['profile_privacy'] = 'public';
+					/* Unknown value — fail closed to the most restrictive setting. */
+					$user_data['profile_privacy'] = 'private';
 					break;
 			}
 		}
@@ -659,15 +666,64 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 		foreach ( $user_data as $key => $_value ) {
 			$resolved_formats[] = $user_data_formats[ $key ] ?? '%s';
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration requires direct database query for bulk operations.
-		$wpdb->replace(
-			$user_data_table,
-			$user_data,
-			$resolved_formats
+		/*
+		 * SECURITY/CORRECTNESS: never REPLACE. REPLACE deletes-then-inserts,
+		 * resetting every nbuf_user_data column NOT present in $user_data
+		 * (password_changed_at, privacy/visibility, expiry, etc.) to its schema
+		 * default. And for a user who ALREADY exists in NoBloat, the operator's
+		 * prior verify/approve/disable decision must win over UM-derived values.
+		 * So: insert NEW rows fully; for EXISTING rows update only the
+		 * non-account-state columns and leave account flags untouched.
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$user_data_exists = $wpdb->get_var(
+			$wpdb->prepare( 'SELECT user_id FROM %i WHERE user_id = %d', $user_data_table, $user_id )
 		);
+
+		if ( $user_data_exists ) {
+			$account_state_keys = array(
+				'is_verified',
+				'verified_date',
+				'requires_approval',
+				'is_approved',
+				'approved_by',
+				'approved_date',
+				'approval_notes',
+				'is_disabled',
+				'disabled_reason',
+			);
+			$update_data = $user_data;
+			unset( $update_data['user_id'] );
+			foreach ( $account_state_keys as $state_key ) {
+				unset( $update_data[ $state_key ] );
+			}
+			if ( ! empty( $update_data ) ) {
+				$update_formats = array();
+				foreach ( array_keys( $update_data ) as $key ) {
+					$update_formats[] = $user_data_formats[ $key ] ?? '%s';
+				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$write_ok = false !== $wpdb->update( $user_data_table, $update_data, array( 'user_id' => $user_id ), $update_formats, array( '%d' ) );
+			} else {
+				$write_ok = true;
+			}
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$write_ok = false !== $wpdb->insert( $user_data_table, $user_data, $resolved_formats );
+		}
+
+		if ( ! $write_ok ) {
+			/* Surface the failure instead of reporting a false success. */
+			return false;
+		}
 
 		/* Import profile data */
 		$profile_data = array( 'user_id' => $user_id );
+
+		/* Allow-list of writable nbuf_user_profile destination columns. */
+		$allowed_targets = ( class_exists( 'NBUF_Profile_Data' ) && method_exists( 'NBUF_Profile_Data', 'get_all_field_keys' ) )
+			? array_flip( NBUF_Profile_Data::get_all_field_keys() )
+			: array();
 
 		foreach ( $all_mappings as $um_field => $target ) {
 			$value = get_user_meta( $user_id, $um_field, true );
@@ -695,6 +751,21 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				$target_field_name = $target_field;
 			} else {
 				$target_field_name = $target;
+			}
+
+			/*
+			 * SECURITY: allow-list the destination column. The target half of a
+			 * custom mapping is caller-supplied and is used as a COLUMN NAME in
+			 * the $wpdb->update/insert below — without this gate a mapping could
+			 * write into any nbuf_user_profile column. Mirror the BuddyPress
+			 * migrator and NBUF_Profile_Data::update(): accept only registered
+			 * profile-field keys, and reject user_id / nbuf_ / audit_ targets.
+			 */
+			if ( 'user_id' === $target_field_name
+				|| 0 === strpos( $target_field_name, 'nbuf_' )
+				|| 0 === strpos( $target_field_name, 'audit_' )
+				|| ( ! empty( $allowed_targets ) && ! isset( $allowed_targets[ $target_field_name ] ) ) ) {
+				continue;
 			}
 
 			/* Sanitize value based on field type */
@@ -726,7 +797,7 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				Update existing
 				*/
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->update(
+				$profile_write = $wpdb->update(
 					$profile_table,
 					$profile_data,
 					array( 'user_id' => $user_id ),
@@ -738,11 +809,16 @@ class NBUF_Migration_Ultimate_Member extends NBUF_Abstract_Migration_Plugin {
 				Insert new
 				*/
              // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-				$wpdb->insert(
+				$profile_write = $wpdb->insert(
 					$profile_table,
 					$profile_data,
 					array_fill( 0, count( $profile_data ), '%s' )
 				);
+			}
+
+			/* Surface a failed profile write instead of reporting a false success. */
+			if ( false === $profile_write ) {
+				return false;
 			}
 		}
 

@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.33
+Stable tag: 1.7.34
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,14 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.34 — Round-4 convergence audit: 6 legitimate-user-lockout / data-loss fixes =
+* Fourth end-to-end audit round, sweeping the subsystems not yet deeply traced (bulk import, activation, log retention, Terms of Service) + a full regression sweep of 1.7.33 (all prior fixes verified holding). Every finding adversarially verified; each fix re-verified after. No security bypasses found this round — all six are correctness issues that wrongly blocked legitimate users or silently lost data.
+* HIGH: a CSV bulk import with email verification OFF (pre-verified accounts) silently failed to record the verification (it wrote to non-existent columns), so those users were blocked at login when verification is required. Fixed to use the canonical writer.
+* HIGH: the background "verify existing users" activation task could terminate early and leave higher-numbered users unverified (and thus blocked at login). The progress counter now matches the work performed.
+* HIGH: a user forced to change an expired/weak password who set a fully strong new password could still be permanently locked out (and caught in a redirect loop) because the weak-password flag was never cleared. The forced-change form now clears it like the reset/profile paths do.
+* HIGH: log retention selections were silently coerced to 90 days — the admin-audit field (numeric values) and the security-log "1 Year" option didn't match the retention sanitizer's vocabulary, so compliance/forensic logs were deleted up to 9 months earlier than configured. Aligned the vocabularies (admin-audit now has a numeric-aware sanitizer defaulting to Forever).
+* MEDIUM (Terms of Service): the acceptance grace period is now honored consistently on the admin / AJAX / REST surfaces (previously only the front-end honored it, hard-blocking in-grace users off the back-end); and the front-end acceptance redirect now respects the "Require on Login" master switch (disabling it no longer traps users on the acceptance page).
 
 = 1.7.33 — Round-3 cross-file flow audit: regression fix + 11 missed items =
 * Third end-to-end audit round, pivoted onto subsystems the first two didn't deeply trace (webhooks, roles/caps, sessions, account-merge, asset pipeline, member directory). Each finding adversarially verified; each fix re-verified after.

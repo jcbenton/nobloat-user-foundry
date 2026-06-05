@@ -146,17 +146,16 @@ class NBUF_Background_Activation {
 		}
 
 		/*
-		 * Count users needing verification (not in table or is_verified != 1).
+		 * Count ALL users. verify_users_batch() walks the user table UNFILTERED and
+		 * upserts every user via INSERT ... ON DUPLICATE KEY UPDATE (idempotent, no
+		 * side effects), so total_users MUST count the same unfiltered population --
+		 * otherwise the processed-vs-total completion test terminates early and
+		 * leaves higher-ID users unverified (wrongly blocked at login when
+		 * verification is required).
 		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time activation check.
-		$count = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->users} u
-				LEFT JOIN %i ud ON u.ID = ud.user_id
-				WHERE ud.user_id IS NULL OR ud.is_verified != 1",
-				$user_data_table
-			)
-		);
+		$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->users}" );
+		unset( $user_data_table );
 
 		return (int) $count;
 	}

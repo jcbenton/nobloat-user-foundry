@@ -463,7 +463,7 @@ class NBUF_Settings {
 
 			/* Logging - Admin Audit Log */
 			'nbuf_logging_admin_audit_enabled'        => array( __CLASS__, 'sanitize_checkbox' ),
-			'nbuf_logging_admin_audit_retention'      => array( __CLASS__, 'sanitize_log_retention' ),
+			'nbuf_logging_admin_audit_retention'      => array( __CLASS__, 'sanitize_admin_audit_retention' ),
 			'nbuf_logging_admin_audit_categories'     => array( __CLASS__, 'sanitize_checkbox_group' ),
 
 			/* Logging - Security Log */
@@ -1756,9 +1756,27 @@ class NBUF_Settings {
 	 * @return string One of the allow-listed retention tokens, defaulting to '90days'.
 	 */
 	public static function sanitize_log_retention( $input ): string {
-		$allowed = array( '7days', '30days', '90days', '180days', '1year', '2years', 'forever' );
+		$allowed = array( '7days', '30days', '90days', '180days', '365days', '1year', '2years', 'forever' );
 		$value   = is_string( $input ) ? sanitize_text_field( $input ) : '';
 		return in_array( $value, $allowed, true ) ? $value : '90days';
+	}
+
+	/**
+	 * Sanitize the admin-audit retention setting.
+	 *
+	 * This field uses NUMERIC day values (365/730/1095/1825/2555) or 'forever',
+	 * a DIFFERENT vocabulary than sanitize_log_retention's tokens. Routing it
+	 * through the token sanitizer coerced every numeric selection to '90days',
+	 * silently pruning compliance logs ~9 months early. Default 'forever' so an
+	 * unexpected value never silently deletes (fail-safe for compliance).
+	 *
+	 * @param  mixed $input Raw input value.
+	 * @return string One of the allow-listed day counts, or 'forever'.
+	 */
+	public static function sanitize_admin_audit_retention( $input ): string {
+		$value   = ( is_string( $input ) || is_int( $input ) ) ? sanitize_text_field( (string) $input ) : '';
+		$allowed = array( '365', '730', '1095', '1825', '2555', 'forever' );
+		return in_array( $value, $allowed, true ) ? $value : 'forever';
 	}
 
 	/**

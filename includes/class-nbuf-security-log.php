@@ -920,6 +920,7 @@ class NBUF_Security_Log {
 			'90days'  => 90,
 			'180days' => 180,
 			'365days' => 365,
+			'1year'   => 365,
 			'2years'  => 730,
 			'forever' => 0,
 		);

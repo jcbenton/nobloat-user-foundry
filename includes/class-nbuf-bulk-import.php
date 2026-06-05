@@ -904,44 +904,21 @@ class NBUF_Bulk_Import {
 	 * @return void
 	 */
 	private function set_user_verified( int $user_id, bool $verified ): void {
-		global $wpdb;
-
-		$table_name = $wpdb->prefix . 'nbuf_user_data';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-		$exists = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT user_id FROM %i WHERE user_id = %d',
-				$table_name,
-				$user_id
-			)
-		);
-
-		$status      = $verified ? 'verified' : 'pending';
-		$verified_at = $verified ? current_time( 'mysql', true ) : null;
-
-		if ( $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-			$wpdb->update(
-				$table_name,
-				array(
-					'status'      => $status,
-					'verified_at' => $verified_at,
-				),
-				array( 'user_id' => $user_id ),
-				array( '%s', '%s' ),
-				array( '%d' )
-			);
+		/*
+		 * Route through the canonical writer. A previous direct \$wpdb write named
+		 * non-existent columns (`status`/`verified_at`); the schema and every
+		 * reader use is_verified/verified_date, so the write silently failed and a
+		 * pre-verified imported user got NO nbuf_user_data row -> wrongly blocked
+		 * at login when verification is required. set_verified()/set_unverified()
+		 * write the correct columns and upsert the row.
+		 */
+		if ( ! class_exists( 'NBUF_User_Data' ) ) {
+			return;
+		}
+		if ( $verified ) {
+			NBUF_User_Data::set_verified( $user_id );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table operations
-			$wpdb->insert(
-				$table_name,
-				array(
-					'user_id'     => $user_id,
-					'status'      => $status,
-					'verified_at' => $verified_at,
-				),
-				array( '%d', '%s', '%s' )
-			);
+			NBUF_User_Data::set_unverified( $user_id );
 		}
 	}
 

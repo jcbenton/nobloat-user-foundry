@@ -102,6 +102,10 @@ class NBUF_ToS {
 		if ( self::has_user_accepted_current( $user_id ) ) {
 			return;
 		}
+		/* Honor the grace period like the front-end redirect (shared helper). */
+		if ( self::is_within_grace_period() ) {
+			return;
+		}
 		$accept_url = class_exists( 'NBUF_URL' ) ? NBUF_URL::get( 'accept-tos' ) : '';
 		if ( $accept_url ) {
 			wp_safe_redirect( $accept_url );
@@ -132,6 +136,10 @@ class NBUF_ToS {
 			return;
 		}
 		if ( self::has_user_accepted_current( $user_id ) ) {
+			return;
+		}
+		/* Honor the grace period like the front-end redirect (shared helper). */
+		if ( self::is_within_grace_period() ) {
 			return;
 		}
 
@@ -187,6 +195,10 @@ class NBUF_ToS {
 			return $errors;
 		}
 		if ( self::has_user_accepted_current( $user_id ) ) {
+			return $errors;
+		}
+		/* Honor the grace period like the front-end redirect (shared helper). */
+		if ( self::is_within_grace_period() ) {
 			return $errors;
 		}
 		return new WP_Error(
@@ -852,8 +864,35 @@ class NBUF_ToS {
 	 *
 	 * @since 1.5.2
 	 */
+	/**
+	 * Whether the active ToS version is still within its acceptance grace period.
+	 *
+	 * Single source of truth shared by the front-end redirect AND the admin /
+	 * AJAX / REST gates so an in-grace user is treated consistently on every
+	 * surface (previously only the front-end honored grace, hard-blocking the
+	 * back-end for a user the front-end said need not accept yet).
+	 *
+	 * @return bool True if currently inside the grace window.
+	 */
+	private static function is_within_grace_period(): bool {
+		$active_version = self::get_active_version();
+		if ( ! $active_version || empty( $active_version->effective_date ) ) {
+			return false;
+		}
+		$grace_hours = (int) self::get_grace_period_hours();
+		if ( $grace_hours <= 0 ) {
+			return false;
+		}
+		$effective_time = strtotime( $active_version->effective_date );
+		$current_time   = strtotime( current_time( 'mysql', false ) );
+		if ( false === $effective_time || false === $current_time ) {
+			return false;
+		}
+		return $current_time < ( $effective_time + ( $grace_hours * HOUR_IN_SECONDS ) );
+	}
+
 	public static function maybe_redirect_to_acceptance(): void {
-		if ( ! self::is_enabled() || ! is_user_logged_in() ) {
+		if ( ! self::is_enabled() || ! self::is_required_on_login() || ! is_user_logged_in() ) {
 			return;
 		}
 
@@ -880,24 +919,9 @@ class NBUF_ToS {
 		/* Check if user has pending ToS or hasn't accepted current. */
 		$has_pending = get_transient( 'nbuf_tos_pending_' . $user_id );
 		if ( $has_pending || ! self::has_user_accepted_current( $user_id ) ) {
-			/* Check grace period */
-			$active_version = self::get_active_version();
-			if ( $active_version ) {
-				$grace_hours = self::get_grace_period_hours();
-
-				/*
-				 * Both effective_date and current time need to be in the same timezone.
-				 * effective_date is stored in local time, so compare with current local time.
-				 * Convert both to timestamps using the same reference point.
-				 */
-				$effective_time = strtotime( $active_version->effective_date );
-				$current_time   = strtotime( current_time( 'mysql', false ) );
-				$grace_end      = $effective_time + ( $grace_hours * HOUR_IN_SECONDS );
-
-				/* If still in grace period, don't force redirect */
-				if ( $current_time < $grace_end ) {
-					return;
-				}
+			/* Honor the grace period (shared with the admin/ajax/rest gates). */
+			if ( self::is_within_grace_period() ) {
+				return;
 			}
 
 			/* Redirect to acceptance page */

@@ -607,6 +607,19 @@ class NBUF_Password_Expiration {
 				update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
 
 				/*
+				 * Clear the weak-password flag and advance password_changed_at, exactly
+				 * as the reset / profile-update paths do (hooks.php). wp_set_password()
+				 * does NOT fire the password-change hooks that normally clear these, so
+				 * without this a user who just set a STRONG password stays hard-blocked
+				 * by the priority-25 weak_password_expired gate (which reads
+				 * weak_password_flagged_at raw) -> permanent lockout + redirect loop
+				 * back to this very form.
+				 */
+				if ( class_exists( 'NBUF_Password_Validator' ) ) {
+					NBUF_Password_Validator::clear_weak_password_flag( $user_id );
+				}
+
+				/*
 				 * SECURITY: clean up the change-token transient regardless of
 				 * which path the user reached the form through. If $user_id
 				 * came from get_current_user_id() (logged-in path), the

@@ -1471,6 +1471,32 @@ class NBUF_Shortcodes {
 			wp_die( esc_html__( 'Security verification failed.', 'nobloat-user-foundry' ) );
 		}
 
+		/*
+		 * Per-IP registration flood backstop. The antibot proves a request is
+		 * human-ish but does not cap VOLUME, so a bot solving cheap challenges
+		 * could mass-create accounts. Cap registrations per IP per hour. Kept
+		 * generous and filterable so legitimate shared-IP signups (office/school)
+		 * are not blocked; tighten via the filter if needed. Behind a configured
+		 * trusted proxy this keys on the real client IP.
+		 */
+		if ( class_exists( 'NBUF_IP' ) ) {
+			$nbuf_reg_ip = NBUF_IP::get_client_ip( true );
+			if ( $nbuf_reg_ip ) {
+				$nbuf_reg_key   = 'nbuf_reg_rl_' . md5( $nbuf_reg_ip );
+				$nbuf_reg_count = (int) get_transient( $nbuf_reg_key );
+				$nbuf_reg_limit = (int) apply_filters( 'nbuf_registration_max_per_ip_hour', 20 );
+				if ( $nbuf_reg_count >= $nbuf_reg_limit ) {
+					if ( class_exists( 'NBUF_Security_Log' ) ) {
+						NBUF_Security_Log::log_or_update( 'registration_rate_limited', 'warning', 'Registration blocked: too many signups from this IP', array( 'ip_address' => $nbuf_reg_ip ) );
+					}
+					$nbuf_reg_msg = __( 'Too many registrations from your network recently. Please try again later.', 'nobloat-user-foundry' );
+					wp_safe_redirect( add_query_arg( 'error', rawurlencode( $nbuf_reg_msg ), self::get_current_page_url() ) );
+					exit;
+				}
+				set_transient( $nbuf_reg_key, $nbuf_reg_count + 1, HOUR_IN_SECONDS );
+			}
+		}
+
 		/* Anti-bot validation - must run BEFORE any other validation */
 		if ( class_exists( 'NBUF_Antibot' ) ) {
 			$antibot_result = NBUF_Antibot::validate( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce already verified above

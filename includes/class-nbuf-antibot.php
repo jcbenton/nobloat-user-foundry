@@ -677,12 +677,38 @@ class NBUF_Antibot {
 	 * @param  array<string, mixed> $post_data POST data from form submission.
 	 * @return true|WP_Error True if valid, WP_Error if blocked.
 	 */
+	/**
+	 * Whether at least one antibot sub-check is enabled.
+	 *
+	 * @return bool True if any of honeypot/time/js/interaction/pow is active.
+	 */
+	private static function any_check_active(): bool {
+		return (bool) NBUF_Options::get( 'nbuf_antibot_honeypot', true )
+			|| (bool) NBUF_Options::get( 'nbuf_antibot_time_check', true )
+			|| (bool) NBUF_Options::get( 'nbuf_antibot_js_token', true )
+			|| (bool) NBUF_Options::get( 'nbuf_antibot_interaction', true )
+			|| (bool) NBUF_Options::get( 'nbuf_antibot_pow', true );
+	}
+
 	public static function validate( array $post_data ) {
 		self::debug_log( '========== ANTIBOT VALIDATION START ==========' );
 
 		if ( ! self::is_enabled() ) {
 			self::debug_log( 'Antibot disabled - skipping validation' );
 			return true;
+		}
+
+		/*
+		 * Misconfiguration signal: antibot is ON but every sub-check is disabled,
+		 * so validate() would pass any POST. Log it (rate-limited) so the operator
+		 * sees that no detection is active. The per-IP registration throttle still
+		 * applies as a flood backstop.
+		 */
+		if ( ! self::any_check_active() && false === get_transient( 'nbuf_antibot_misconfig_logged' ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log( 'antibot_no_checks_active', 'warning', 'Anti-bot is enabled but all detection methods are disabled; registration bot protection is inactive.' );
+			}
+			set_transient( 'nbuf_antibot_misconfig_logged', 1, HOUR_IN_SECONDS );
 		}
 
 		/*

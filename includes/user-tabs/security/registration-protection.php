@@ -47,6 +47,20 @@ if ( class_exists( 'NBUF_Security_Log' ) ) {
 	<?php
 	NBUF_Settings::settings_nonce_field();
 	settings_errors( 'nbuf_security' );
+
+	/*
+	 * Warn when bot protection is enabled but every detection method is off —
+	 * in that state validate() passes any POST and only the per-IP volume
+	 * backstop applies.
+	 */
+	if ( $nbuf_enabled && ! $nbuf_honeypot_enabled && ! $nbuf_time_check && ! $nbuf_js_token && ! $nbuf_interaction && ! $nbuf_pow_enabled ) {
+		?>
+		<div class="notice notice-warning inline" style="margin:10px 0;">
+			<p><strong><?php esc_html_e( 'Bot protection is enabled but every detection method is turned off.', 'nobloat-user-foundry' ); ?></strong>
+			<?php esc_html_e( 'No registration bot checks are active. Enable at least one method (the honeypot is zero-friction) or bots can register freely.', 'nobloat-user-foundry' ); ?></p>
+		</div>
+		<?php
+	}
 	?>
 
 	<!-- Hidden inputs to preserve tab state after save -->

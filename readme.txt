@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.36
+Stable tag: 1.7.37
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.37 — Fix webhooks table SQL error (1.7.34 regression) =
+* Fixed a SQL syntax error logged when creating/repairing the webhooks table: the webhook secret column carried a COMMENT containing a semicolon, which dbDelta splits SQL on, tearing the CREATE TABLE statement in two. Removed the column comment (the VARCHAR(512) widening is unchanged). Data was unaffected (CREATE used IF NOT EXISTS and the column-widening migration ran via a separate clean statement); this clears the error-log noise.
 
 = 1.7.36 — WordPress Plugin Check compliance (warnings cleared) =
 * Resolved all WordPress Plugin Check warnings: sanitized two IP-restriction inputs in the settings self-lockout guard; converted the webhook-secret and encryption-migration queries to prepared %i identifiers; trimmed the 1.7.30 upgrade notice under the 300-char limit; and annotated the remaining false positives (MySQL advisory locks GET_LOCK/RELEASE_LOCK, the de-facto-standard DONOTCACHE* cache constants, and the restriction-feature post__not_in usage). No functional changes.

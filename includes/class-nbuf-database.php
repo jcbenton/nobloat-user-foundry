@@ -1277,7 +1277,7 @@ class NBUF_Database {
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             name VARCHAR(255) NOT NULL,
             url VARCHAR(2048) NOT NULL,
-            secret VARCHAR(512) DEFAULT NULL COMMENT 'AES-256-GCM ciphertext expands ~1.5x; 512 holds a 256-byte plaintext',
+            secret VARCHAR(512) DEFAULT NULL,
             events TEXT NOT NULL COMMENT 'JSON array of event types',
             enabled TINYINT(1) NOT NULL DEFAULT 1,
             last_triggered DATETIME DEFAULT NULL,

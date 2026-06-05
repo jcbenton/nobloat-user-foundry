@@ -407,8 +407,9 @@ class NBUF_Antibot {
 			return false;
 		}
 
-		/* Reject forms older than 1 hour (stale tokens) */
-		if ( $elapsed > 3600 ) {
+		/* Reject forms older than 2 hours (stale tokens). Raised from 1h so a
+		 * user who leaves the tab open is not blocked before the challenge TTL. */
+		if ( $elapsed > 7200 ) {
 			return false;
 		}
 
@@ -446,7 +447,7 @@ class NBUF_Antibot {
 				'seed'      => $seed,
 				'timestamp' => $timestamp,
 			),
-			HOUR_IN_SECONDS
+			2 * HOUR_IN_SECONDS
 		);
 
 		return array(
@@ -554,12 +555,12 @@ class NBUF_Antibot {
 			return false;
 		}
 
-		/* Require at least some keyboard interaction (typing) */
-		if ( $key_events < 1 ) {
-			self::debug_log( 'Interaction FAIL: no keyboard events' );
-			return false;
-		}
-
+		/*
+		 * Do NOT hard-require a keyboard event: password-manager autofill and
+		 * paste-only flows produce zero keydowns and were wrongly blocked. The
+		 * total-interactions threshold above is the gate. (The client also now
+		 * counts input/paste/change toward interaction.)
+		 */
 		self::debug_log( 'Interaction PASS' );
 		return true;
 	}
@@ -587,7 +588,7 @@ class NBUF_Antibot {
 		set_transient(
 			self::SESSION_PREFIX . 'pow_' . $session_id,
 			$challenge,
-			HOUR_IN_SECONDS
+			2 * HOUR_IN_SECONDS
 		);
 
 		return $challenge;
@@ -859,8 +860,43 @@ class NBUF_Antibot {
 	 * @since  1.5.0
 	 * @return string HTML for all anti-bot fields.
 	 */
+	/**
+	 * Mark the current page as non-cacheable.
+	 *
+	 * Sets the constants honored by the major page-cache plugins (WP Super
+	 * Cache, W3TC, WP Rocket, LiteSpeed, etc.) so a page carrying a nonce or a
+	 * one-time antibot challenge is never written to a shared cache. Also emits
+	 * no-cache headers when output has not started.
+	 *
+	 * @return void
+	 */
+	public static function prevent_page_caching(): void {
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		if ( ! defined( 'DONOTCACHEOBJECT' ) ) {
+			define( 'DONOTCACHEOBJECT', true );
+		}
+		if ( ! defined( 'DONOTCACHEDB' ) ) {
+			define( 'DONOTCACHEDB', true );
+		}
+		if ( ! headers_sent() && function_exists( 'nocache_headers' ) ) {
+			nocache_headers();
+		}
+	}
+
 	public static function render_fields() {
 		self::debug_log( 'render_fields() called' );
+
+		/*
+		 * The registration form embeds a per-request WordPress nonce AND (when
+		 * enabled) a one-time antibot session/challenge. Serving it from a
+		 * full-page cache shares those across visitors: the first submit consumes
+		 * the one-time tokens and every later visitor is blocked, and a cached
+		 * nonce fails verification. Mark the page non-cacheable. Done before the
+		 * is_enabled() check so the nonce is protected even with antibot off.
+		 */
+		self::prevent_page_caching();
 
 		if ( ! self::is_enabled() ) {
 			self::debug_log( 'Antibot disabled - returning empty' );

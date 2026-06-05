@@ -429,7 +429,7 @@ Full per-version history (1.0.0 - 1.5.7) is in README.md / CHANGELOG.md on GitHu
 == Upgrade Notice ==
 
 = 1.7.30 =
-Security + login-protection release: proxy/CDN-aware rate limiting with a "Behind Cloudflare" preset, encryption key decoupled from WP salts (salt rotation no longer destroys 2FA/webhook secrets), plus many wrongful-lockout and bot-registration fixes. One-time secret migration runs on upgrade.
+Major security + login-protection update: proxy/CDN-aware rate limiting, a "Behind Cloudflare" preset, salt-independent encryption keys, and many wrongful-lockout and bot-registration fixes.
 
 = 1.7.6 =
 WordPress 7.0 "Armstrong" compatibility confirmed. No code changes required — the plugin's authentication, REST, shortcode, user, and capability surfaces are unaffected by the WP 7.0 breaking changes. "Tested up to" header bumped to 7.0.

@@ -240,11 +240,19 @@ class NBUF_IP_Restrictions {
 	 * @return bool True if IP matches pattern.
 	 */
 	private static function ip_matches_wildcard( string $ip, string $pattern ): bool {
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+		$pattern_is_ipv6 = false !== strpos( $pattern, ':' );
+
+		/* IPv6 client matches only an IPv6 wildcard pattern. */
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			return $pattern_is_ipv6 ? self::ipv6_matches_wildcard( $ip, $pattern ) : false;
+		}
+
+		/* IPv4 client: reject non-IPv4 client or an IPv6 pattern outright. */
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) || $pattern_is_ipv6 ) {
 			return false;
 		}
 
-		/* Escape all regex metacharacters first, then replace escaped \* with octet pattern */
+		/* IPv4 octet wildcard: 192.168.1.* or 192.168.*.* */
 		$escaped = preg_quote( $pattern, '/' );
 		$regex   = '/^' . str_replace( '\\*', '(\\d{1,3})', $escaped ) . '$/';
 
@@ -260,6 +268,102 @@ class NBUF_IP_Restrictions {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Match an IPv6 address against an IPv6 wildcard pattern.
+	 *
+	 * Supports a trailing-prefix wildcard ("2001:db8:*" / "2001:db8::*" — the
+	 * trailing * matches any remaining hextets) and a full per-hextet form
+	 * ("2001:db8:0:0:0:0:0:*" — exactly 8 groups, each * matches one hextet).
+	 * Both the client IP and the pattern's literal hextets are normalized (the
+	 * client is expanded from its packed form) so :: compression / zero-padding
+	 * cannot cause a mismatch. CIDR ranges (2001:db8::/32) are handled by
+	 * ip_in_cidr, exact addresses by the canonical exact-match branch.
+	 *
+	 * @param  string $ip      Canonical IPv6 client address.
+	 * @param  string $pattern Lowercased IPv6 wildcard pattern.
+	 * @return bool True if the address matches the pattern.
+	 */
+	private static function ipv6_matches_wildcard( string $ip, string $pattern ): bool {
+		$ip_groups = self::expand_ipv6( $ip );
+		if ( null === $ip_groups ) {
+			return false;
+		}
+
+		/* Prefix form: a trailing * matches any remaining hextets. */
+		if ( '*' === substr( $pattern, -1 ) ) {
+			$prefix = rtrim( substr( $pattern, 0, -1 ), ':' );
+			if ( '' !== $prefix && false === strpos( $prefix, '*' ) && false === strpos( $prefix, '::' ) ) {
+				$pattern_groups = explode( ':', $prefix );
+				if ( count( $pattern_groups ) > 8 ) {
+					return false;
+				}
+				foreach ( $pattern_groups as $i => $pg ) {
+					$normalized = self::normalize_hextet( $pg );
+					if ( null === $normalized || $normalized !== $ip_groups[ $i ] ) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+
+		/* Full per-hextet form: exactly 8 groups, '*' matches one hextet. */
+		if ( false !== strpos( $pattern, '::' ) ) {
+			return false;
+		}
+		$pattern_groups = explode( ':', $pattern );
+		if ( count( $pattern_groups ) !== 8 ) {
+			return false;
+		}
+		foreach ( $pattern_groups as $i => $pg ) {
+			if ( '*' === $pg ) {
+				continue;
+			}
+			$normalized = self::normalize_hextet( $pg );
+			if ( null === $normalized || $normalized !== $ip_groups[ $i ] ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Expand an IPv6 address to its eight normalized (lowercase,
+	 * leading-zero-stripped) hextets, or null if not a valid IPv6 address.
+	 *
+	 * @param  string $ip IPv6 address.
+	 * @return array<int,string>|null Eight hextets, or null.
+	 */
+	private static function expand_ipv6( string $ip ): ?array {
+		$packed = @inet_pton( $ip );
+		if ( false === $packed || 16 !== strlen( $packed ) ) {
+			return null;
+		}
+		$groups = str_split( bin2hex( $packed ), 4 );
+		return array_map(
+			static function ( $g ) {
+				$g = ltrim( $g, '0' );
+				return '' === $g ? '0' : $g;
+			},
+			$groups
+		);
+	}
+
+	/**
+	 * Normalize a single hextet literal (lowercase, leading-zero-stripped), or
+	 * null if it is not a valid 1-4 digit hex group.
+	 *
+	 * @param  string $hextet Hextet literal.
+	 * @return string|null Normalized hextet, or null.
+	 */
+	private static function normalize_hextet( string $hextet ): ?string {
+		if ( ! preg_match( '/^[0-9a-f]{1,4}$/', $hextet ) ) {
+			return null;
+		}
+		$hextet = ltrim( $hextet, '0' );
+		return '' === $hextet ? '0' : $hextet;
 	}
 
 	/**

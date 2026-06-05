@@ -48,11 +48,15 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 			add_filter( 'rest_prepare_' . $post_type, array( __CLASS__, 'filter_rest_content' ), 10, 3 );
 		}
 
-		/* Optionally hide from queries */
-		$hide_from_queries = NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
-		if ( $hide_from_queries ) {
-			add_action( 'pre_get_posts', array( __CLASS__, 'exclude_from_queries' ) );
-		}
+		/*
+		 * Always exclude no-access restricted posts from FEEDS and SEARCH so
+		 * their titles/URLs/existence are not leaked there — bringing those
+		 * surfaces in line with the already fully-closed REST path. The
+		 * nbuf_restrictions_hide_from_queries toggle additionally removes them
+		 * from normal archive/listing queries. The callback applies the right
+		 * scope per request.
+		 */
+		add_action( 'pre_get_posts', array( __CLASS__, 'exclude_from_queries' ) );
 	}
 
 	/**
@@ -306,6 +310,17 @@ class NBUF_Restriction_Content extends NBUF_Abstract_Restriction {
 	public static function exclude_from_queries( $query ): void {
 		/* Skip for admin, singular, and non-main queries */
 		if ( is_admin() || $query->is_singular || ! $query->is_main_query() ) {
+			return;
+		}
+
+		/*
+		 * Feeds and search always get the exclusion (parity with REST, which is
+		 * fully closed). Normal archive/listing queries are excluded only when
+		 * the operator opts in via nbuf_restrictions_hide_from_queries, to avoid
+		 * silently changing which posts appear in ordinary archives.
+		 */
+		$hide_all = (bool) NBUF_Options::get( 'nbuf_restrictions_hide_from_queries', false );
+		if ( ! $hide_all && ! ( $query->is_feed() || $query->is_search() ) ) {
 			return;
 		}
 

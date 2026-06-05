@@ -746,6 +746,28 @@ class NBUF_Privacy {
 		}
 
 		/*
+		 * Clear the core WordPress identity usermeta this plugin classifies as
+		 * PII and includes in its own GDPR export (first/last name, nickname,
+		 * bio). These carry the person's name with no functional dependency, so
+		 * clearing them completes the anonymize-without-delete erasure. The
+		 * wp_users columns (user_email / user_login / display_name) are left to
+		 * WordPress core's own erasure and account-deletion handling, since
+		 * rewriting them changes login identity and author references.
+		 */
+		$pii_meta_keys = array( 'first_name', 'last_name', 'nickname', 'description' );
+		$pii_meta_cleared = false;
+		foreach ( $pii_meta_keys as $pii_meta_key ) {
+			if ( '' !== (string) get_user_meta( $user->ID, $pii_meta_key, true ) ) {
+				delete_user_meta( $user->ID, $pii_meta_key );
+				$pii_meta_cleared = true;
+			}
+		}
+		if ( $pii_meta_cleared ) {
+			$items_removed = true;
+			$messages[]    = __( 'Name and bio profile fields cleared.', 'nobloat-user-foundry' );
+		}
+
+		/*
 		 * Disable 2FA AND drop trusted-device entries / TOTP secret /
 		 * backup codes. Previously only `enabled=0` was set, leaving the
 		 * encrypted TOTP secret and the trusted_devices JSON in place.

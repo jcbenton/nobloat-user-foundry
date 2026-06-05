@@ -176,12 +176,15 @@ if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $nbuf_table_name ) )
 		<tr id="nbuf_ip_list_row">
 			<th><?php esc_html_e( 'IP Address List', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<textarea name="nbuf_ip_restriction_list" rows="6" class="large-text code" placeholder="192.168.1.1&#10;10.0.0.0/8&#10;172.16.*.*"><?php echo esc_textarea( $nbuf_ip_restriction_list ); ?></textarea>
+				<textarea name="nbuf_ip_restriction_list" rows="6" class="large-text code" placeholder="192.168.1.1&#10;10.0.0.0/8&#10;172.16.*.*&#10;2001:db8::1&#10;2001:db8::/32&#10;2001:db8:*"><?php echo esc_textarea( $nbuf_ip_restriction_list ); ?></textarea>
 				<p class="description">
-					<?php esc_html_e( 'One IP per line. Supports:', 'nobloat-user-foundry' ); ?><br>
+					<?php esc_html_e( 'One IP per line. IPv4 and IPv6 are both supported:', 'nobloat-user-foundry' ); ?><br>
 					<code>192.168.1.1</code> <?php esc_html_e( '(exact IP)', 'nobloat-user-foundry' ); ?>,
 					<code>192.168.1.0/24</code> <?php esc_html_e( '(CIDR notation)', 'nobloat-user-foundry' ); ?>,
-					<code>192.168.1.*</code> <?php esc_html_e( '(wildcard)', 'nobloat-user-foundry' ); ?>
+					<code>192.168.1.*</code> <?php esc_html_e( '(wildcard)', 'nobloat-user-foundry' ); ?><br>
+					<code>2001:db8::1</code> <?php esc_html_e( '(exact IPv6)', 'nobloat-user-foundry' ); ?>,
+					<code>2001:db8::/32</code> <?php esc_html_e( '(IPv6 CIDR)', 'nobloat-user-foundry' ); ?>,
+					<code>2001:db8:*</code> <?php esc_html_e( '(IPv6 prefix wildcard)', 'nobloat-user-foundry' ); ?>
 				</p>
 				<p class="description" style="margin-top: 8px;">
 					<strong><?php esc_html_e( 'Your current IP:', 'nobloat-user-foundry' ); ?></strong>

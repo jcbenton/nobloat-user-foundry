@@ -960,53 +960,34 @@ class NBUF_Account_Merger {
 		global $wpdb;
 
 		/*
-		 * Skip WordPress core and sensitive meta keys. The static literals
-		 * `wp_capabilities` / `wp_user_level` only catch the DEFAULT
-		 * single-site/main-blog table prefix; on multisite the per-blog
-		 * capabilities are stored under `{$wpdb->base_prefix}{$blog_id}_capabilities`
-		 * (e.g. `wp_2_capabilities`, `wp_3_capabilities`). Without dynamic
-		 * generation those slip through the deny check, and merging a
-		 * secondary user who is administrator on blog N silently grants
-		 * the primary user that elevated role on blog N — a privilege-
-		 * escalation vector triggered by a routine admin merge.
+		 * SECURITY: allow-list, not deny-list. Only copy known, safe PROFILE
+		 * meta from the secondary account(s). A deny-list inherently misses
+		 * unknown access-granting keys (per-blog `wp_N_capabilities`, plugin
+		 * entitlement/role meta, sudo grants, session tokens), any of which —
+		 * if copied — silently escalates the surviving account during a routine
+		 * admin merge. The allow-list covers NBUF's registered profile fields,
+		 * the WordPress standard profile fields, and the user's contact methods;
+		 * everything else (including capabilities/user_level) is dropped.
 		 */
-		$skip_meta_keys = array(
-			'session_tokens',
-			'dismissed_wp_pointers',
-			$wpdb->prefix . 'capabilities',
-			$wpdb->prefix . 'user_level',
-			'capabilities',
-			'user_level',
-			/* Access-granting plugin meta: never copy an impersonation sudo grant. */
-			'_nbuf_impersonation_sudo_until',
-		);
-
-		if ( is_multisite() ) {
-			$site_ids = get_sites(
-				array(
-					'fields' => 'ids',
-					'number' => 0,
-				)
-			);
-			foreach ( (array) $site_ids as $site_id ) {
-				$blog_prefix = $wpdb->get_blog_prefix( (int) $site_id );
-				if ( $blog_prefix ) {
-					$skip_meta_keys[] = $blog_prefix . 'capabilities';
-					$skip_meta_keys[] = $blog_prefix . 'user_level';
-				}
-			}
-			$skip_meta_keys = array_values( array_unique( $skip_meta_keys ) );
+		$allowed_meta_keys = array( 'first_name', 'last_name', 'nickname', 'description', 'locale' );
+		if ( class_exists( 'NBUF_Profile_Data' ) && method_exists( 'NBUF_Profile_Data', 'get_all_field_keys' ) ) {
+			$allowed_meta_keys = array_merge( $allowed_meta_keys, NBUF_Profile_Data::get_all_field_keys() );
 		}
+		if ( function_exists( 'wp_get_user_contact_methods' ) ) {
+			$allowed_meta_keys = array_merge( $allowed_meta_keys, array_keys( wp_get_user_contact_methods() ) );
+		}
+		$allowed_meta_keys = array_values( array_unique( array_filter( $allowed_meta_keys ) ) );
 
 		foreach ( $secondary_ids as $secondary_id ) {
 			$meta_keys = get_user_meta( $secondary_id );
 
 			foreach ( $meta_keys as $meta_key => $meta_values ) {
-				/* Skip core keys and keys that already exist on primary */
-				if ( in_array( $meta_key, $skip_meta_keys, true ) ) {
+				/* Allow-list: skip anything that is not a known profile field. */
+				if ( ! in_array( $meta_key, $allowed_meta_keys, true ) ) {
 					continue;
 				}
 
+				/* Don't overwrite values already present on the primary. */
 				if ( metadata_exists( 'user', $primary_id, $meta_key ) ) {
 					continue;
 				}

@@ -119,13 +119,14 @@
 	}
 
 	/* Delete a passkey */
-	async function deletePasskey(passkeyId) {
+	async function deletePasskey(passkeyId, password) {
 		const data = getPasskeyData();
 
 		const formData = new FormData();
 		formData.append('action', 'nbuf_passkey_delete');
 		formData.append('nonce', data.nonce);
 		formData.append('passkey_id', passkeyId);
+		formData.append('current_password', password);
 
 		const response = await fetch(data.ajaxUrl, {
 			method: 'POST',
@@ -142,7 +143,7 @@
 	}
 
 	/* Rename a passkey */
-	async function renamePasskey(passkeyId, newName) {
+	async function renamePasskey(passkeyId, newName, password) {
 		const data = getPasskeyData();
 
 		const formData = new FormData();
@@ -150,6 +151,7 @@
 		formData.append('nonce', data.nonce);
 		formData.append('passkey_id', passkeyId);
 		formData.append('device_name', newName);
+		formData.append('current_password', password);
 
 		const response = await fetch(data.ajaxUrl, {
 			method: 'POST',
@@ -259,7 +261,8 @@
 		const passkeyId = button.dataset.passkeyId;
 		if (!passkeyId) return;
 
-		if (!confirm('Delete this passkey? You will not be able to use it to sign in.')) {
+		const password = window.prompt('Enter your current password to delete this passkey. You will not be able to use it to sign in afterward.');
+		if (!password) {
 			return;
 		}
 
@@ -267,7 +270,7 @@
 			button.disabled = true;
 			button.textContent = 'Deleting...';
 
-			await deletePasskey(passkeyId);
+			await deletePasskey(passkeyId, password);
 
 			/* Remove row from table */
 			const row = button.closest('tr');
@@ -306,12 +309,17 @@
 			return;
 		}
 
+		const password = window.prompt('Enter your current password to rename this passkey:');
+		if (!password) {
+			return;
+		}
+
 		try {
 			button.disabled = true;
 			const originalText = button.textContent;
 			button.textContent = 'Saving...';
 
-			await renamePasskey(passkeyId, newName.trim());
+			await renamePasskey(passkeyId, newName.trim(), password);
 
 			/* Reload page to show updated name */
 			reloadWithPasskeysTab();

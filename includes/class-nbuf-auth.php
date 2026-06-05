@@ -71,4 +71,63 @@ class NBUF_Auth {
 
 		return true;
 	}
+
+	/**
+	 * Verify the current request carries the user's correct password (re-auth).
+	 *
+	 * Shared helper for sensitive self-service actions (2FA changes, passkey
+	 * delete/rename, app-password create/revoke). Reads $_POST['current_password']
+	 * and checks it against the user's hash, with a per-user online-guess rate
+	 * limit (10 attempts / 15 min, window anchored to the first failure) so a
+	 * hijacked session cannot brute-force the password against these endpoints.
+	 * The CALLER must verify its own nonce + capability before calling this.
+	 *
+	 * @param  int $user_id User whose password (the actor's) must be confirmed.
+	 * @return bool True if the submitted password is correct and not rate-limited.
+	 */
+	public static function verify_reauth( int $user_id ): bool {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Raw password passed to wp_check_password(); sanitizing would corrupt it. Nonce is verified by the calling action handler before this helper is invoked.
+		$password = isset( $_POST['current_password'] ) ? wp_unslash( $_POST['current_password'] ) : '';
+
+		if ( '' === $password ) {
+			return false;
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return false;
+		}
+
+		$state_key = 'nbuf_reauth_state_' . $user_id;
+		$state     = get_transient( $state_key );
+		if ( ! is_array( $state ) || empty( $state['first_at'] ) ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
+		$window = 15 * MINUTE_IN_SECONDS;
+		if ( time() - (int) $state['first_at'] > $window ) {
+			$state = array(
+				'count'    => 0,
+				'first_at' => time(),
+			);
+		}
+		if ( (int) $state['count'] >= 10 ) {
+			return false;
+		}
+
+		$ok = wp_check_password( $password, $user->user_pass, $user_id );
+
+		if ( $ok ) {
+			delete_transient( $state_key );
+			return true;
+		}
+
+		++$state['count'];
+		$ttl_remaining = max( 60, $window - ( time() - (int) $state['first_at'] ) );
+		set_transient( $state_key, $state, $ttl_remaining );
+
+		return false;
+	}
 }

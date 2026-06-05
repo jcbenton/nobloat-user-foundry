@@ -1455,6 +1455,21 @@ class NBUF_Passkeys {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to delete this passkey.', 'nobloat-user-foundry' ) ) );
 		}
 
+		/*
+		 * SECURITY: require password re-authentication. Deleting a passkey
+		 * removes an authentication factor and is as sensitive as disabling 2FA
+		 * (which already re-auths). This blocks a hijacked / XSS'd session from
+		 * silently stripping a victim's passkeys.
+		 */
+		if ( ! NBUF_Auth::verify_reauth( $user_id ) ) {
+			wp_send_json_error(
+				array(
+					'message'         => __( 'Password verification failed. Please re-enter your current password.', 'nobloat-user-foundry' ),
+					'reauth_required' => true,
+				)
+			);
+		}
+
 		$result = NBUF_User_Passkeys_Data::delete( $passkey_id );
 
 		if ( $result ) {
@@ -1488,6 +1503,16 @@ class NBUF_Passkeys {
 		}
 		if ( (int) $passkey->user_id !== $user_id && ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to rename this passkey.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/* SECURITY: require password re-authentication (consistent with passkey delete). */
+		if ( ! NBUF_Auth::verify_reauth( $user_id ) ) {
+			wp_send_json_error(
+				array(
+					'message'         => __( 'Password verification failed. Please re-enter your current password.', 'nobloat-user-foundry' ),
+					'reauth_required' => true,
+				)
+			);
 		}
 
 		$result = NBUF_User_Passkeys_Data::update_device_name( $passkey_id, $device_name );

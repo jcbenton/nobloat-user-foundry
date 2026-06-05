@@ -855,57 +855,8 @@ class NBUF_2FA_Account {
 	 * @return bool True if the submitted password is correct.
 	 */
 	private static function verify_reauth( int $user_id ): bool {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Raw password passed to wp_check_password(); sanitizing would corrupt it. Nonce is verified by the calling action handler before this helper is invoked.
-		$password = isset( $_POST['current_password'] ) ? wp_unslash( $_POST['current_password'] ) : '';
-
-		if ( '' === $password ) {
-			return false;
-		}
-
-		$user = get_userdata( $user_id );
-		if ( ! $user ) {
-			return false;
-		}
-
-		/*
-		 * Per-user rate limit on this re-auth path. Without this, a stolen-
-		 * session attacker can mount an online password brute-force against
-		 * the 2FA-account endpoints — bcrypt slows it but does not stop it,
-		 * and weak passwords succumb in hours. Anchor the window to the
-		 * first failed attempt so the limit cannot be extended indefinitely
-		 * by a slow-drip attacker.
-		 */
-		$state_key = 'nbuf_reauth_state_' . $user_id;
-		$state     = get_transient( $state_key );
-		if ( ! is_array( $state ) || empty( $state['first_at'] ) ) {
-			$state = array(
-				'count'    => 0,
-				'first_at' => time(),
-			);
-		}
-		$window = 15 * MINUTE_IN_SECONDS;
-		if ( time() - (int) $state['first_at'] > $window ) {
-			$state = array(
-				'count'    => 0,
-				'first_at' => time(),
-			);
-		}
-		if ( (int) $state['count'] >= 10 ) {
-			return false;
-		}
-
-		$ok = wp_check_password( $password, $user->user_pass, $user_id );
-
-		if ( $ok ) {
-			delete_transient( $state_key );
-			return true;
-		}
-
-		++$state['count'];
-		$ttl_remaining = max( 60, $window - ( time() - (int) $state['first_at'] ) );
-		set_transient( $state_key, $state, $ttl_remaining );
-
-		return false;
+		/* Delegates to the shared re-auth helper (one per-user rate-limit bucket across all sensitive actions). */
+		return NBUF_Auth::verify_reauth( $user_id );
 	}
 
 	/**

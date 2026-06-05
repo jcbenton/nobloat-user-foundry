@@ -369,6 +369,32 @@ class NBUF_Multi_Role {
 		}
 		$new_roles = array_intersect( $new_roles, $editable_roles );
 
+		/*
+		 * SECURITY: per-capability containment (matches the role create/import/adopt
+		 * siblings). Stripping only the literal 'administrator' is not enough -- a
+		 * non-'administrator' custom role can still bear manage_options/edit_users/
+		 * promote_users (e.g. minted by a role-editor plugin). A non-admin actor must
+		 * not assign a role granting a capability the actor does not itself hold.
+		 */
+		if ( ! $is_admin ) {
+			$new_roles = array_values(
+				array_filter(
+					$new_roles,
+					static function ( $role_slug ) {
+						$role = get_role( $role_slug );
+						if ( $role && ! empty( $role->capabilities ) ) {
+							foreach ( $role->capabilities as $cap => $granted ) {
+								if ( $granted && ! current_user_can( $cap ) ) {
+									return false;
+								}
+							}
+						}
+						return true;
+					}
+				)
+			);
+		}
+
 		/* Get user object */
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {

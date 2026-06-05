@@ -2914,6 +2914,20 @@ class NBUF_Shortcodes {
 				exit;
 			}
 
+			/*
+			 * Invalidate any in-flight pending email-change request + its token from
+			 * the verify-required path, so a still-valid old link cannot later
+			 * re-pivot user_email back to a superseded address. Mirrors the
+			 * re-request cleanup above.
+			 */
+			if ( class_exists( 'NBUF_User_Data' ) ) {
+				NBUF_User_Data::clear_pending_email( $user_id );
+			}
+			global $wpdb;
+			$nbuf_ec_table = $wpdb->prefix . NBUF_DB_TABLE;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table cleanup.
+			$wpdb->delete( $nbuf_ec_table, array( 'user_id' => $user_id, 'type' => 'email_change' ), array( '%d', '%s' ) );
+
 			/* Send notification to old email */
 			self::send_email_change_notification( $user_id, $old_email, $new_email );
 

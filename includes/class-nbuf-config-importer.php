@@ -324,6 +324,28 @@ class NBUF_Config_Importer {
 					continue;
 				}
 
+				/*
+				 * Skip if merge mode and option already exists. This MUST run BEFORE
+				 * the sanitizer call below: a few registry sanitizers (nbuf_settings,
+				 * nbuf_registration_fields) self-write to the DB as a side effect once
+				 * the $_POST marker is injected, so running the sanitizer first would
+				 * overwrite an existing option that merge mode promised to preserve.
+				 */
+				if ( 'merge' === $mode ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
+					$merge_existing = $wpdb->get_var(
+						$wpdb->prepare(
+							'SELECT option_value FROM %i WHERE option_name = %s',
+							$table_name,
+							$option_name
+						)
+					);
+					if ( null !== $merge_existing ) {
+						++$this->results['settings_skipped'];
+						continue;
+					}
+				}
+
 				/* Apply settings registry sanitizer (guaranteed to exist by the check above). */
 				if ( is_callable( $registry[ $option_name ] ) ) {
 					/*
@@ -363,23 +385,6 @@ class NBUF_Config_Importer {
 					}
 					if ( $nbuf_post_injected ) {
 						unset( $_POST[ $option_name ] );
-					}
-				}
-
-				/* Skip if merge mode and option already exists */
-				if ( 'merge' === $mode ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom options table.
-					$existing = $wpdb->get_var(
-						$wpdb->prepare(
-							'SELECT option_value FROM %i WHERE option_name = %s',
-							$table_name,
-							$option_name
-						)
-					);
-
-					if ( null !== $existing ) {
-								++$this->results['settings_skipped'];
-								continue;
 					}
 				}
 

@@ -339,6 +339,22 @@ class NBUF_Member_Directory {
 	}
 
 	/**
+	 * Decode a member row's per-field visibility opt-out (visible_fields).
+	 *
+	 * Mirrors what the public profile page honors so the directory does not
+	 * expose a field the member removed from their public profile.
+	 *
+	 * @param  object $member Member row (may carry ->visible_fields).
+	 * @return array<int, string> Registry field keys the member chose to show.
+	 */
+	private static function member_visible_fields( $member ): array {
+		if ( ! class_exists( 'NBUF_User_Data' ) ) {
+			return array();
+		}
+		return NBUF_User_Data::decode_visible_fields( isset( $member->visible_fields ) ? $member->visible_fields : null );
+	}
+
+	/**
 	 * Get member list item HTML (for list view)
 	 *
 	 * @param  object $member Member data.
@@ -346,6 +362,7 @@ class NBUF_Member_Directory {
 	 */
 	public static function get_member_list_item( $member ) {
 		$viewer_id = get_current_user_id();
+		$vf        = self::member_visible_fields( $member );
 		$username  = isset( $member->user_login ) ? $member->user_login : get_userdata( $member->ID )->user_login;
 
 		$html  = '<div class="nbuf-member-item" data-user-id="' . esc_attr( $member->ID ) . '">';
@@ -359,14 +376,20 @@ class NBUF_Member_Directory {
 
 		$html .= '<div class="nbuf-member-meta-inline">';
 
-		/* Location */
+		/* Location — also honor the member's per-field visible_fields opt-out. */
 		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'location', $viewer_id ) ) {
-			if ( ! empty( $member->city ) || ! empty( $member->country ) ) {
-				$location_parts = array_filter( array( $member->city, $member->state, $member->country ) );
-				$html          .= '<span class="nbuf-member-location-inline">';
-				$html          .= '<span class="dashicons dashicons-location"></span>';
-				$html          .= esc_html( implode( ', ', $location_parts ) );
-				$html          .= '</span>';
+			$location_parts = array_filter(
+				array(
+					in_array( 'city', $vf, true ) ? $member->city : '',
+					in_array( 'state', $vf, true ) ? $member->state : '',
+					in_array( 'country', $vf, true ) ? $member->country : '',
+				)
+			);
+			if ( ! empty( $location_parts ) ) {
+				$html .= '<span class="nbuf-member-location-inline">';
+				$html .= '<span class="dashicons dashicons-location"></span>';
+				$html .= esc_html( implode( ', ', $location_parts ) );
+				$html .= '</span>';
 			}
 		}
 
@@ -378,14 +401,14 @@ class NBUF_Member_Directory {
 		$html .= '</div>';
 
 		/* Bio */
-		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && ! empty( $member->bio ) ) {
+		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && in_array( 'bio', $vf, true ) && ! empty( $member->bio ) ) {
 			$html .= '<div class="nbuf-member-bio-inline">' . esc_html( wp_trim_words( $member->bio, 15 ) ) . '</div>';
 		}
 
 		$html .= '</div>';
 
 		/* Website link */
-		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && ! empty( $member->website ) ) {
+		if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && in_array( 'website', $vf, true ) && ! empty( $member->website ) ) {
 			$html .= '<div class="nbuf-member-actions">';
 			$html .= '<a href="' . esc_url( $member->website ) . '" target="_blank" rel="noopener noreferrer" class="nbuf-member-link">' . esc_html__( 'Website', 'nobloat-user-foundry' ) . '</a>';
 			$html .= '</div>';
@@ -480,6 +503,7 @@ class NBUF_Member_Directory {
 		        u.user_email,
 		        u.user_registered,
 		        ud.profile_privacy,
+		        ud.visible_fields,
 		        ud.last_login_at,
 		        up.bio,
 		        up.city,
@@ -630,6 +654,16 @@ class NBUF_Member_Directory {
 		}
 
 		/*
+		 * Honor the master feature switch on the DATA endpoint too. render_directory()
+		 * refuses to render when nbuf_enable_member_directory is off, but this AJAX
+		 * sibling (incl. its nopriv variant) still served the roster, ignoring the
+		 * admin's disable action. Mirror the render-side gate.
+		 */
+		if ( ! NBUF_Options::get( 'nbuf_enable_member_directory', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Member directory is disabled.', 'nobloat-user-foundry' ) ) );
+		}
+
+		/*
 		 * Rate-limit per IP. The endpoint is registered for both logged-in
 		 * and unauthenticated users (wp_ajax_nopriv_*), and the underlying
 		 * SQL uses leading-wildcard LIKE on the bio TEXT column — an
@@ -693,9 +727,13 @@ class NBUF_Member_Directory {
 			$result['members']  = array_map(
 				function ( $member ) use ( $privacy_filterable ) {
 					unset( $member->user_email );
+					$viewer_id = get_current_user_id();
+					$vf        = self::member_visible_fields( $member );
 					if ( class_exists( 'NBUF_Privacy_Manager' ) && method_exists( 'NBUF_Privacy_Manager', 'can_view_field' ) && isset( $member->ID ) ) {
 						foreach ( $privacy_filterable as $field ) {
-							if ( property_exists( $member, $field ) && ! NBUF_Privacy_Manager::can_view_field( (int) $member->ID, $field ) ) {
+							if ( property_exists( $member, $field )
+								&& ( ! NBUF_Privacy_Manager::can_view_field( (int) $member->ID, $field, $viewer_id )
+									|| ! in_array( $field, $vf, true ) ) ) {
 								unset( $member->$field );
 							}
 						}
@@ -767,6 +805,7 @@ class NBUF_Member_Directory {
 	 */
 	public static function get_member_card( $member ) {
 		$viewer_id = get_current_user_id();
+		$vf        = self::member_visible_fields( $member );
 
 		ob_start();
 		?>
@@ -788,25 +827,31 @@ class NBUF_Member_Directory {
 					</a>
 				</h3>
 
-		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && ! empty( $member->bio ) ) : ?>
+		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'bio', $viewer_id ) && in_array( 'bio', $vf, true ) && ! empty( $member->bio ) ) : ?>
 					<div class="nbuf-member-bio">
 			<?php echo esc_html( wp_trim_words( $member->bio, 20 ) ); ?>
 					</div>
 		<?php endif; ?>
 
 		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'location', $viewer_id ) ) : ?>
-			<?php if ( ! empty( $member->city ) || ! empty( $member->country ) ) : ?>
+			<?php
+			$location_parts = array_filter(
+				array(
+					in_array( 'city', $vf, true ) ? $member->city : '',
+					in_array( 'state', $vf, true ) ? $member->state : '',
+					in_array( 'country', $vf, true ) ? $member->country : '',
+				)
+			);
+			?>
+			<?php if ( ! empty( $location_parts ) ) : ?>
 						<div class="nbuf-member-location">
 							<span class="dashicons dashicons-location"></span>
-				<?php
-				$location_parts = array_filter( array( $member->city, $member->state, $member->country ) );
-				echo esc_html( implode( ', ', $location_parts ) );
-				?>
+				<?php echo esc_html( implode( ', ', $location_parts ) ); ?>
 						</div>
 			<?php endif; ?>
 		<?php endif; ?>
 
-		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && ! empty( $member->website ) ) : ?>
+		<?php if ( NBUF_Privacy_Manager::can_view_field( $member->ID, 'website', $viewer_id ) && in_array( 'website', $vf, true ) && ! empty( $member->website ) ) : ?>
 					<div class="nbuf-member-website">
 						<a href="<?php echo esc_url( $member->website ); ?>" target="_blank" rel="noopener noreferrer">
 			<?php esc_html_e( 'Visit Website', 'nobloat-user-foundry' ); ?>

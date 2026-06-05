@@ -882,8 +882,12 @@ class NBUF_Image_Processor {
 			$user_data = NBUF_User_Data::get( $user_id );
 			if ( $user_data && ! empty( $user_data->$path_key ) && is_file( $user_data->$path_key ) ) {
 				/* Validate path is within uploads directory to prevent arbitrary file deletion */
-				$real_path = realpath( $user_data->$path_key );
-				$real_base = realpath( $upload_dir['basedir'] );
+				$real_path     = realpath( $user_data->$path_key );
+				$wp_upload_dir = wp_upload_dir();
+				/* get_upload_directory() returns {path,url} with NO 'basedir'; derive the
+				   containment base from wp_upload_dir() so this guard is not always false
+				   (which left every replaced random-token photo orphaned on disk). */
+				$real_base = realpath( $wp_upload_dir['basedir'] );
 				if ( $real_path && $real_base && 0 === strpos( $real_path, $real_base . DIRECTORY_SEPARATOR ) ) {
 					wp_delete_file( $real_path );
 					$deleted = true;

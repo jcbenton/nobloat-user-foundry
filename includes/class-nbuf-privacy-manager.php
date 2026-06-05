@@ -75,7 +75,7 @@ class NBUF_Privacy_Manager {
 
 		/* If no level set, use default from settings */
 		if ( ! $level ) {
-			$level = NBUF_Options::get( 'nbuf_directory_default_privacy', self::PRIVACY_PRIVATE );
+			$level = NBUF_Options::get( 'nbuf_profile_default_privacy', self::PRIVACY_PRIVATE );
 		}
 
 		return $level;
@@ -178,11 +178,11 @@ class NBUF_Privacy_Manager {
 
 		if ( ! $settings_json ) {
 			/* Use default from settings */
-			return NBUF_Options::get( 'nbuf_directory_default_privacy', self::PRIVACY_PRIVATE );
+			return NBUF_Options::get( 'nbuf_profile_default_privacy', self::PRIVACY_PRIVATE );
 		}
 
 		$settings = json_decode( $settings_json, true );
-		$default  = NBUF_Options::get( 'nbuf_directory_default_privacy', self::PRIVACY_PRIVATE );
+		$default  = NBUF_Options::get( 'nbuf_profile_default_privacy', self::PRIVACY_PRIVATE );
 		return isset( $settings[ $field_name ] ) ? $settings[ $field_name ] : $default;
 	}
 

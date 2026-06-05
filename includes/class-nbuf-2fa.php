@@ -752,7 +752,13 @@ If you did not request this code, please ignore this email.
 					 * new cookie is already in their browser, so there is no
 					 * scenario where the same ROTATED token should re-confer
 					 * trust to a different request.
+					 *
+					 * NBUF_User_2FA_Data::get() short-circuits on a per-request static
+					 * cache populated by the pre-lock read, so clear it first or the
+					 * "re-read" returns the SAME stale snapshot (defeating the defense
+					 * and causing a lost-update overwrite of a concurrent rotation).
 					 */
+					NBUF_User_2FA_Data::clear_cache( $user_id );
 					$trusted_devices = NBUF_User_2FA_Data::get_trusted_devices( $user_id );
 					if ( ! isset( $trusted_devices[ $token ] ) ) {
 						return false;

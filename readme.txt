@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.32
+Stable tag: 1.7.33
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,15 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.33 — Round-3 cross-file flow audit: regression fix + 11 missed items =
+* Third end-to-end audit round, pivoted onto subsystems the first two didn't deeply trace (webhooks, roles/caps, sessions, account-merge, asset pipeline, member directory). Each finding adversarially verified; each fix re-verified after.
+* REGRESSION fix: a config-import change in 1.7.32 caused MERGE mode to overwrite two existing settings groups it should have preserved. The merge "skip existing" check now runs before the sanitizer.
+* HIGH (privilege escalation): bulk CSV import could mint full administrators on single-site for a delegated (non-administrator) account holding manage_options — the guard was multisite-only. Import now applies the same per-capability containment the role create/import/multi-role paths enforce, on single-site too.
+* HIGH (security feature silently broken): the per-session "Revoke" button never actually revoked the session (a WordPress session-token key-handling mismatch). Revoke now removes the targeted session correctly; "Log out all other sessions" was already working.
+* MEDIUM: webhook signing secrets longer than ~150 chars could be silently truncated by the database column (unsigned deliveries) — column widened + migrated. Multi-role assignment now contains over-privileged custom roles. Trusted-device rotation now re-reads fresh state under its lock (defense + lost-update fix). Replaced profile/cover photos are now actually deleted from disk (a broken path check left orphans). The member directory now honors each member's "Visible Profile Fields" opt-out (bio/location/website) just like the public profile page, and its AJAX search now respects the directory's enable switch.
+* LOW: a superseded email-change link is now invalidated when the email changes by another path; the directory/profile NULL-privacy default now resolves consistently.
+* Deferred (low + already mitigated): TOTP-enrollment re-auth — adding it safely needs a password field on the setup form; the enrollment secret is already server-pinned and enrolling logs out other sessions.
 
 = 1.7.32 — Round-2 cross-file flow audit: regression-clean + missed items =
 * Re-ran the end-to-end (multi-file) flow audit with a regression lens (every v1.7.31 fix re-traced and adversarially re-verified — all hold, no new wrong-block/bypass/fatal) and a missed-items lens. Each new fix re-verified after applying.

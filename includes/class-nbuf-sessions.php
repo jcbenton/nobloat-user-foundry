@@ -177,14 +177,26 @@ class NBUF_Sessions {
 			return false;
 		}
 
-		$manager = WP_Session_Tokens::get_instance( $user_id );
-		$tokens  = $manager->get_all();
-
-		if ( ! isset( $tokens[ $token_hash ] ) ) {
+		/*
+		 * Revoke by VERIFIER HASH. The UI only ever holds the sha256 verifier
+		 * (the KEY of the session_tokens usermeta map), never the raw token.
+		 * WP_Session_Tokens::get_all() strips those keys (array_values) so an
+		 * isset() probe always misses, and ::destroy() re-hashes its argument
+		 * expecting a RAW token -- so the old get_all()/destroy() pair no-opped
+		 * every single-session revoke. Operate on the raw usermeta map directly,
+		 * mirroring get_user_sessions() and the impersonation end-binding loop.
+		 */
+		$session_map = get_user_meta( $user_id, 'session_tokens', true );
+		if ( ! is_array( $session_map ) || ! isset( $session_map[ $token_hash ] ) ) {
 			return false;
 		}
 
-		$manager->destroy( $token_hash );
+		unset( $session_map[ $token_hash ] );
+		if ( empty( $session_map ) ) {
+			delete_user_meta( $user_id, 'session_tokens' );
+		} else {
+			update_user_meta( $user_id, 'session_tokens', $session_map );
+		}
 
 		/* Log revocation */
 		if ( class_exists( 'NBUF_Audit_Log' ) ) {

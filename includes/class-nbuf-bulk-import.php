@@ -428,6 +428,47 @@ class NBUF_Bulk_Import {
 	}
 
 	/**
+	 * Whether the current actor may assign the given role to an imported user.
+	 *
+	 * Mirrors the per-capability containment the role-creation / import / multi-role
+	 * siblings enforce, on BOTH single-site and multisite: a true administrator /
+	 * super admin may assign anything; otherwise the 'administrator' role is refused
+	 * and any role granting a capability the actor does not hold is refused.
+	 *
+	 * @param  string $role_slug Role slug to assign.
+	 * @return bool True if the actor may assign it.
+	 */
+	private static function actor_can_assign_role( string $role_slug ): bool {
+		if ( is_multisite() ) {
+			if ( is_super_admin() ) {
+				return true;
+			}
+		} else {
+			$actor = wp_get_current_user();
+			if ( $actor && in_array( 'administrator', (array) $actor->roles, true ) ) {
+				return true;
+			}
+		}
+
+		/* Never let a non-(super)admin assign the administrator role. */
+		if ( 'administrator' === $role_slug ) {
+			return false;
+		}
+
+		/* Per-capability containment: refuse a role granting a cap the actor lacks. */
+		$role = get_role( $role_slug );
+		if ( $role && ! empty( $role->capabilities ) ) {
+			foreach ( $role->capabilities as $cap => $granted ) {
+				if ( $granted && ! current_user_can( $cap ) ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validate single row
 	 *
 	 * @param  array<string, string> $row         Row data.
@@ -593,17 +634,22 @@ class NBUF_Bulk_Import {
 			}
 
 			/*
-			 * SECURITY: On multisite, only a super admin may create administrator
-			 * accounts. get_editable_roles() can leak `administrator` to a network
-			 * role granted manage_options without true super-admin status.
+			 * SECURITY: per-actor role containment on BOTH single-site and multisite.
+			 * The role-creation/import/multi-role siblings all refuse to grant a role
+			 * (esp. 'administrator', or any custom role bearing a cap the actor lacks)
+			 * above the actor's own level -- the same threat model where a role-editor
+			 * plugin grants manage_options to a non-administrator. Bulk-import
+			 * previously only guarded administrator on multisite, letting a delegated
+			 * manage_options actor mass-mint administrators on single-site.
 			 */
-			if ( 'administrator' === $row['role'] && is_multisite() && ! is_super_admin() ) {
+			if ( ! self::actor_can_assign_role( $row['role'] ) ) {
 				return new WP_Error(
 					'invalid_role',
 					sprintf(
-						/* translators: %d: CSV line number */
-						__( 'Line %d: Only a network super admin may import administrator accounts.', 'nobloat-user-foundry' ),
-						$line_number
+						/* translators: 1: CSV line number, 2: role slug */
+						__( 'Line %1$d: You are not permitted to assign the role: %2$s', 'nobloat-user-foundry' ),
+						$line_number,
+						$row['role']
 					)
 				);
 			}
@@ -613,12 +659,12 @@ class NBUF_Bulk_Import {
 			$default_role = NBUF_Options::get( 'nbuf_import_default_role', 'subscriber' );
 
 			/*
-			 * SECURITY: Mirror the explicit-role super-admin guard above. A
-			 * malicious or careless setting of nbuf_import_default_role to
-			 * 'administrator' must not allow a non-super-admin to mass-mint
-			 * administrators on multisite by uploading a CSV with no role column.
+			 * SECURITY: mirror the explicit-role containment above. A careless/
+			 * malicious nbuf_import_default_role set to 'administrator' (or any role
+			 * above the actor) must not let a non-admin mass-mint privileged accounts
+			 * by omitting the role column. Falls back to subscriber.
 			 */
-			if ( 'administrator' === $default_role && is_multisite() && ! is_super_admin() ) {
+			if ( ! self::actor_can_assign_role( $default_role ) ) {
 				$default_role = 'subscriber';
 			}
 

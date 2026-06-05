@@ -1277,7 +1277,7 @@ class NBUF_Database {
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             name VARCHAR(255) NOT NULL,
             url VARCHAR(2048) NOT NULL,
-            secret VARCHAR(255) DEFAULT NULL,
+            secret VARCHAR(512) DEFAULT NULL COMMENT 'AES-256-GCM ciphertext expands ~1.5x; 512 holds a 256-byte plaintext',
             events TEXT NOT NULL COMMENT 'JSON array of event types',
             enabled TINYINT(1) NOT NULL DEFAULT 1,
             last_triggered DATETIME DEFAULT NULL,
@@ -1508,6 +1508,32 @@ class NBUF_Database {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Widen the webhooks `secret` column to hold AES-256-GCM ciphertext.
+	 *
+	 * The column was VARCHAR(255) while create()/update() accept a 256-byte
+	 * plaintext secret, which encrypts to up to 391 bytes -> silent truncation
+	 * (non-strict sql_mode) yielding an undecryptable secret and unsigned
+	 * deliveries, or an INSERT failure (strict mode). Idempotent via an option
+	 * flag; safe (existing <=255 values fit in 512).
+	 *
+	 * @return void
+	 */
+	public static function migrate_webhook_secret_length(): void {
+		if ( get_option( 'nbuf_webhook_secret_widened_v1' ) ) {
+			return;
+		}
+		global $wpdb;
+		$table = $wpdb->prefix . 'nbuf_webhooks';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- DDL guarded by table-existence check on a known table.
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		if ( $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL on a known, prefix-built table name.
+			$wpdb->query( "ALTER TABLE `{$table}` MODIFY `secret` VARCHAR(512) DEFAULT NULL" );
+		}
+		update_option( 'nbuf_webhook_secret_widened_v1', '1' );
+	}
+
 	public static function repair_all_tables(): void {
 		/* Create all core tables */
 		self::create_table();
@@ -1527,6 +1553,7 @@ class NBUF_Database {
 		self::create_profile_versions_table();
 		self::create_webhooks_table();
 		self::create_webhook_log_table();
+		self::migrate_webhook_secret_length();
 		self::create_tos_versions_table();
 		self::create_tos_acceptances_table();
 

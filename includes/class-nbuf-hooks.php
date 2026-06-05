@@ -300,6 +300,19 @@ class NBUF_Hooks {
 			NBUF_User_Data::set_unverified( $user_id );
 
 			/*
+			 * Invalidate any stale pending-email request + its 'email_change' token
+			 * from the account-page change flow, so an old link cannot later redeem
+			 * and re-pivot user_email after this out-of-band (admin/profile) change.
+			 */
+			if ( method_exists( 'NBUF_User_Data', 'clear_pending_email' ) ) {
+				NBUF_User_Data::clear_pending_email( $user_id );
+			}
+			global $wpdb;
+			$nbuf_ec_table = $wpdb->prefix . NBUF_DB_TABLE;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom tokens table cleanup.
+			$wpdb->delete( $nbuf_ec_table, array( 'user_id' => $user_id, 'type' => 'email_change' ), array( '%d', '%s' ) );
+
+			/*
 			 * SECURITY: Generate cryptographically secure verification token.
 			 * Use random_bytes() instead of wp_generate_password() for security tokens.
 			 */

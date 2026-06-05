@@ -168,6 +168,94 @@
 		return result.data;
 	}
 
+	/* Inject the masked-password modal styles once. */
+	function ensurePasswordModalStyles() {
+		if (document.getElementById('nbuf-pw-modal-styles')) {
+			return;
+		}
+		const style = document.createElement('style');
+		style.id = 'nbuf-pw-modal-styles';
+		style.textContent =
+			'.nbuf-pw-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;' +
+			'align-items:center;justify-content:center;z-index:100000;padding:16px;}' +
+			'.nbuf-pw-modal{background:#fff;color:#1e1e1e;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.25);' +
+			'max-width:400px;width:100%;padding:24px;box-sizing:border-box;}' +
+			'.nbuf-pw-modal-message{margin:0 0 14px;font-size:14px;line-height:1.5;}' +
+			'.nbuf-pw-modal-input{width:100%;padding:10px 12px;font-size:15px;border:1px solid #8c8f94;' +
+			'border-radius:6px;box-sizing:border-box;margin-bottom:18px;}' +
+			'.nbuf-pw-modal-input:focus{outline:2px solid #2271b1;outline-offset:1px;border-color:#2271b1;}' +
+			'.nbuf-pw-modal-actions{display:flex;gap:10px;justify-content:flex-end;}';
+		document.head.appendChild(style);
+	}
+
+	/* Masked password prompt. Replaces window.prompt(), which renders the typed
+	   password in cleartext. Resolves to the entered value, or null if cancelled. */
+	function promptPassword(message) {
+		return new Promise(function(resolve) {
+			ensurePasswordModalStyles();
+
+			const overlay = document.createElement('div');
+			overlay.className = 'nbuf-pw-modal-overlay';
+			overlay.setAttribute('role', 'dialog');
+			overlay.setAttribute('aria-modal', 'true');
+
+			const modal = document.createElement('div');
+			modal.className = 'nbuf-pw-modal';
+
+			const msg = document.createElement('p');
+			msg.className = 'nbuf-pw-modal-message';
+			msg.textContent = message;
+
+			const input = document.createElement('input');
+			input.type = 'password';
+			input.className = 'nbuf-pw-modal-input';
+			input.setAttribute('autocomplete', 'current-password');
+			input.setAttribute('aria-label', 'Current password');
+
+			const actions = document.createElement('div');
+			actions.className = 'nbuf-pw-modal-actions';
+
+			const cancelBtn = document.createElement('button');
+			cancelBtn.type = 'button';
+			cancelBtn.className = 'nbuf-button nbuf-button-secondary nbuf-pw-modal-cancel';
+			cancelBtn.textContent = 'Cancel';
+
+			const okBtn = document.createElement('button');
+			okBtn.type = 'button';
+			okBtn.className = 'nbuf-button nbuf-button-primary nbuf-pw-modal-ok';
+			okBtn.textContent = 'Confirm';
+
+			actions.appendChild(cancelBtn);
+			actions.appendChild(okBtn);
+			modal.appendChild(msg);
+			modal.appendChild(input);
+			modal.appendChild(actions);
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			function close(value) {
+				document.removeEventListener('keydown', onKeydown);
+				if (overlay.parentNode) {
+					overlay.parentNode.removeChild(overlay);
+				}
+				resolve(value);
+			}
+			function onKeydown(e) {
+				if (e.key === 'Escape') {
+					close(null);
+				} else if (e.key === 'Enter' && document.activeElement === input) {
+					e.preventDefault();
+					close(input.value);
+				}
+			}
+			okBtn.addEventListener('click', function() { close(input.value); });
+			cancelBtn.addEventListener('click', function() { close(null); });
+			overlay.addEventListener('click', function(e) { if (e.target === overlay) { close(null); } });
+			document.addEventListener('keydown', onKeydown);
+			input.focus();
+		});
+	}
+
 	/* Register new passkey flow */
 	async function handleRegister() {
 		const registerBtn = document.getElementById('nbuf-register-passkey');
@@ -184,7 +272,7 @@
 		const deviceName = deviceNameInput ? deviceNameInput.value.trim() : '';
 
 		/* Re-authentication: require the current password to enroll a new authenticator. */
-		const password = window.prompt('Enter your current password to add a new passkey:');
+		const password = await promptPassword('Enter your current password to add a new passkey:');
 		if (!password) {
 			return;
 		}
@@ -268,7 +356,7 @@
 		const passkeyId = button.dataset.passkeyId;
 		if (!passkeyId) return;
 
-		const password = window.prompt('Enter your current password to delete this passkey. You will not be able to use it to sign in afterward.');
+		const password = await promptPassword('Enter your current password to delete this passkey. You will not be able to use it to sign in afterward.');
 		if (!password) {
 			return;
 		}
@@ -316,7 +404,7 @@
 			return;
 		}
 
-		const password = window.prompt('Enter your current password to rename this passkey:');
+		const password = await promptPassword('Enter your current password to rename this passkey:');
 		if (!password) {
 			return;
 		}

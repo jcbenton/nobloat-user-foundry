@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.39
+Stable tag: 1.7.40
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.40 — Mask the password in passkey re-auth prompts =
+* The current-password prompts shown when registering, renaming, or deleting a passkey on the account page used the browser's window.prompt(), which displays the typed password in cleartext. Replaced them with a masked password modal (input type=password, with Confirm/Cancel and Enter/Escape support) so the password is obscured as entered.
 
 = 1.7.39 — Passkeys register on the local device by default (no QR detour) =
 * Added a "Passkey Device Type" setting (Security > Passkeys) and wired authenticatorAttachment into passkey registration. It now defaults to "This device", so registering a passkey goes straight to the built-in authenticator (Touch ID, Windows Hello, Android biometrics) instead of the browser first showing a cross-device "scan this QR code with your phone" screen. Choose "Phone, tablet, or security key" to bias toward external/cross-device authenticators, or "Any" to let the browser present all options (use "Any" on devices that have no built-in authenticator).

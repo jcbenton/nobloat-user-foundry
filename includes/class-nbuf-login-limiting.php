@@ -203,6 +203,20 @@ class NBUF_Login_Limiting {
 			array( '%s', '%s', '%s' )
 		);
 
+		/*
+		 * Layer-4 backstop bump. Behind a trusted proxy the stored ip_address is
+		 * a FORWARDED (forgeable) client IP, so an attacker can rotate it to get a
+		 * fresh per-(IP) / per-(IP+username) bucket every request. Also count this
+		 * failure against the IMMUTABLE upstream connection (REMOTE_ADDR = the
+		 * proxy), which the attacker cannot rotate. Only when a trusted proxy is
+		 * configured AND this request actually came through it.
+		 */
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$trusted_px  = (array) NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
+		if ( '' !== $remote_addr && ! empty( $trusted_px ) && class_exists( 'NBUF_IP' ) && NBUF_IP::is_trusted_proxy( $remote_addr, $trusted_px ) ) {
+			self::bump_proxy_backstop( $remote_addr, (int) NBUF_Options::get( 'nbuf_login_lockout_duration', 10 ) );
+		}
+
 		/* Log to security log only (using upsert to reduce log pollution) */
 		$user_id = $resolved_user ? $resolved_user->ID : 0;
 		$message = $resolved_user ? 'Failed login attempt' : 'Failed login attempt (unknown user)';
@@ -420,7 +434,78 @@ class NBUF_Login_Limiting {
 			return true;
 		}
 
+		/*
+		 * Layer 4 — proxy-connection backstop. Behind a trusted proxy the
+		 * resolved client IP is forgeable, so Layers 1-2 can be evaded by
+		 * rotating the forwarded IP. Throttle by the immutable upstream
+		 * (REMOTE_ADDR) at a HIGH, filterable threshold so one hostile connection
+		 * spraying thousands of forged client IPs is stopped — while normal
+		 * aggregate traffic through the proxy (which all shares this REMOTE_ADDR)
+		 * never reaches it. Set the filter to 0 to disable. Only active when a
+		 * trusted proxy is configured and this request came through it.
+		 */
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$trusted_px  = (array) NBUF_Options::get( 'nbuf_login_trusted_proxies', array() );
+		if ( '' !== $remote_addr && ! empty( $trusted_px ) && class_exists( 'NBUF_IP' ) && NBUF_IP::is_trusted_proxy( $remote_addr, $trusted_px ) ) {
+			$proxy_threshold = (int) apply_filters( 'nbuf_login_max_attempts_per_proxy', 200 );
+			$proxy_count     = self::proxy_backstop_count( $remote_addr, (int) $lockout_duration );
+			if ( $proxy_threshold > 0 && $proxy_count >= $proxy_threshold ) {
+				if ( class_exists( 'NBUF_Security_Log' ) ) {
+					NBUF_Security_Log::log_or_update(
+						'proxy_spray_detected',
+						'critical',
+						'High volume of failed logins from one upstream proxy connection (forwarded-IP rotation suspected)',
+						array( 'remote_addr' => $remote_addr, 'attempts' => $proxy_count )
+					);
+				}
+				return true;
+			}
+		}
+
 		return false;
+	}
+
+	/**
+	 * Increment the per-upstream-connection (REMOTE_ADDR) failure counter.
+	 *
+	 * A sliding fixed-window transient counter (mirrors the 2FA per-IP counter):
+	 * resets once the window elapses; the TTL never extends past the window so a
+	 * sustained attacker cannot hold the counter open indefinitely.
+	 *
+	 * @param  string $remote_addr     The upstream connection IP (REMOTE_ADDR).
+	 * @param  int    $window_minutes  Window length in minutes.
+	 * @return int New count.
+	 */
+	private static function bump_proxy_backstop( string $remote_addr, int $window_minutes ): int {
+		$key    = 'nbuf_login_proxy_rl_' . md5( $remote_addr );
+		$window = max( 60, $window_minutes * 60 );
+		$state  = get_transient( $key );
+		if ( ! is_array( $state ) || empty( $state['first_at'] ) || ( time() - (int) $state['first_at'] ) > $window ) {
+			$state = array( 'count' => 0, 'first_at' => time() );
+		}
+		++$state['count'];
+		$ttl = max( 60, $window - ( time() - (int) $state['first_at'] ) );
+		set_transient( $key, $state, $ttl );
+		return (int) $state['count'];
+	}
+
+	/**
+	 * Current per-upstream-connection failure count (0 if none / expired).
+	 *
+	 * @param  string $remote_addr Upstream connection IP.
+	 * @return int Count.
+	 */
+	private static function proxy_backstop_count( string $remote_addr, int $window_minutes ): int {
+		$state = get_transient( 'nbuf_login_proxy_rl_' . md5( $remote_addr ) );
+		if ( ! is_array( $state ) || empty( $state['first_at'] ) ) {
+			return 0;
+		}
+		/* Honour the logical window even though the transient TTL has a 60s floor,
+		 * so a threshold-crossed counter cannot over-block past the window's end. */
+		if ( ( time() - (int) $state['first_at'] ) > max( 60, $window_minutes * 60 ) ) {
+			return 0;
+		}
+		return (int) $state['count'];
 	}
 
 	/**

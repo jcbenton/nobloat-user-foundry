@@ -147,7 +147,9 @@ class NBUF_IP {
 				continue;
 			}
 			if ( false !== strpos( $entry, '/' ) ) {
-				if ( self::ip_in_cidr( $address, $entry ) ) {
+				/* Use the canonical (IPv4-mapped-folded) address so a dual-stack
+				 * ::ffff: REMOTE_ADDR still matches an IPv4 trusted-proxy CIDR. */
+				if ( self::ip_in_cidr( $address_canon, $entry ) ) {
 					return true;
 				}
 			} elseif ( self::canonicalize_ip( $entry ) === $address_canon ) {

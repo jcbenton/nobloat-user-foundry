@@ -150,7 +150,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<input type="checkbox" name="nbuf_consolidate_emails" value="1" checked>
 								<?php esc_html_e( 'Store source email as secondary email on target account', 'nobloat-user-foundry' ); ?>
 							</label>
-							<p class="description"><?php esc_html_e( 'The source account\'s email will be added as a secondary email, allowing login with either address.', 'nobloat-user-foundry' ); ?></p>
+							<p class="description"><?php esc_html_e( 'The source account\'s email is stored on the target account for reference only. It is not usable for login.', 'nobloat-user-foundry' ); ?></p>
 						</td>
 					</tr>
 					<tr>

@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.44
+Stable tag: 1.7.45
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.45 — Forced password changes are always enforced; admin weak-password handling is consistent =
+* Two fixes from the login-subsystem audit. (1) An admin "require password change" (bulk action or per-user) was a silent no-op at login when the separate password-expiration (aging) feature was turned off — the flag was set but nothing enforced it. Forced-change enforcement is now independent of the aging toggle: the change is required at the next login (password, passkey, magic link, or 2FA) regardless, while age-based expiry still requires the expiration feature. (2) Admin exemption from the weak-password gate is now consistent across all login paths — previously the front-door login exempted administrators outright while passkey/magic-link logins and the strength check did not. All paths now follow the single "Admin bypass" password-policy option. NOTE: that option is OFF by default, so with "force change for weak passwords" enabled, an administrator whose own password is weak (and past the grace period) will now be prompted/blocked to update it on the front-door login too, just as on the other paths; set the password admin-bypass option ON to exempt administrators. Account lockout/expiry/verification gates still always exempt administrators.
 
 = 1.7.44 — Password-compliance state is set consistently across every change path =
 * Follow-up to 1.7.43, from a forensic audit of the login subsystem. Changing your password on the account page cleared the weak-password lockout flags but did not record the "password is compliant" marker that out-of-band logins read — so a passkey or magic-link user who set a strong password on the account page was still routed through the forced-change form on their next login (it cleared itself after one pass, but was a confusing repeat prompt). Centralized the operation into a single NBUF_Password_Validator::mark_compliant() that clears the weak and force flags AND sets the strength-confirmed marker together, and routed every strength-validated change path (reset, account page, registration, and the forced-change form) through it so they can no longer drift apart. No lockout was possible from this; it removed a spurious recurring prompt. The front-door reset lockout fixed in 1.7.43 was re-confirmed closed across the password, passkey, magic-link, and 2FA login paths.

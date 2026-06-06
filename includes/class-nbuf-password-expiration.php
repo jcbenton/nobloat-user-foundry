@@ -50,37 +50,38 @@ class NBUF_Password_Expiration {
 	 * @return void
 	 */
 	public static function init(): void {
-		/* Check if password expiration is enabled */
+		/* Check if age-based password expiration is enabled */
 		$enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
+
+		/*
+		 * Forced-change enforcement is INDEPENDENT of the age-based expiration
+		 * feature. An admin "require password change" (and the weak-password flow)
+		 * sets force_password_change, and that mandate must be honored at login
+		 * even when password aging is turned off — otherwise the force is a silent
+		 * no-op. So the login interception, the change-form handler, the
+		 * login-error redirect, and the force AJAX are registered unconditionally;
+		 * check_password_on_login / maybe_get_change_redirect only evaluate the
+		 * age-based expiry when $enabled.
+		 *
+		 * Priority 28: run AFTER WP credential validation (20) and the
+		 * verification gate (25), but BEFORE the rate limiter (30) and the 2FA
+		 * intercept (31), so the limiter remains the final lockout verdict.
+		 * check_password_on_login no-ops on a WP_Error input, so a locked-out
+		 * user still sees the lockout.
+		 */
+		add_filter( 'authenticate', array( __CLASS__, 'check_password_on_login' ), 28, 3 );
+		add_action( 'login_form_nbuf_change_expired_password', array( __CLASS__, 'handle_password_change_form' ) );
+		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_redirect_to_password_change' ), 10, 2 );
+		add_action( 'wp_ajax_nbuf_force_logout_user', array( __CLASS__, 'ajax_force_logout_user' ) );
 
 		if ( ! $enabled ) {
 			return;
 		}
 
-		/* Track password changes automatically */
+		/* Age-based expiration tracking — only when the feature is enabled. */
 		add_action( 'password_reset', array( __CLASS__, 'track_password_change' ), 10, 2 );
 		add_action( 'profile_update', array( __CLASS__, 'track_password_change_on_profile_update' ), 10, 2 );
 		add_action( 'user_register', array( __CLASS__, 'track_password_change_on_registration' ), 10, 1 );
-
-		/* Login interception - check if password expired or forced change */
-		/*
-		 * Priority 28: run AFTER WP credential validation (20) and the
-		 * verification gate (25), but BEFORE the rate limiter (30) and the 2FA
-		 * intercept (31), so the limiter remains the final lockout verdict. This
-		 * was previously 30 — colliding with NBUF_Login_Limiting — and the order
-		 * depended on init() call order. check_password_on_login no-ops on a
-		 * WP_Error input, so a locked-out user still sees the lockout.
-		 */
-		add_filter( 'authenticate', array( __CLASS__, 'check_password_on_login' ), 28, 3 );
-
-		/* Password change form handler */
-		add_action( 'login_form_nbuf_change_expired_password', array( __CLASS__, 'handle_password_change_form' ) );
-
-		/* Redirect to password change form when required */
-		add_filter( 'wp_login_errors', array( __CLASS__, 'maybe_redirect_to_password_change' ), 10, 2 );
-
-		/* AJAX handler for force logout */
-		add_action( 'wp_ajax_nbuf_force_logout_user', array( __CLASS__, 'ajax_force_logout_user' ) );
 	}
 
 	/**
@@ -240,11 +241,13 @@ class NBUF_Password_Expiration {
 			return $user;
 		}
 
-		/* Check if password change is forced */
+		/* Forced change is honored regardless of the age-based expiration toggle. */
 		$force_change = self::is_password_change_forced( $user->ID );
 
-		/* Check if password is expired */
-		$is_expired = self::is_password_expired( $user->ID );
+		/* Age-based expiry only applies when the expiration feature is enabled. */
+		$is_expired = NBUF_Options::get( 'nbuf_password_expiration_enabled', false )
+			? self::is_password_expired( $user->ID )
+			: false;
 
 		/* If either condition is true, store a random token and redirect */
 		if ( $force_change || $is_expired ) {
@@ -881,7 +884,7 @@ class NBUF_Password_Expiration {
 	 *
 	 * Centralizes the post-authentication password gates that the password
 	 * login path enforces via the `authenticate` filter (check_password_on_login
-	 * at priority 30 + check_password_at_login at priority 29). Out-of-band
+	 * at priority 28 + check_password_at_login at priority 29). Out-of-band
 	 * session-minting paths (magic links, passkeys) never run `authenticate`,
 	 * so they must call this to avoid silently bypassing an admin-mandated or
 	 * policy-mandated password change. Mirrors both filters' admin-bypass logic.
@@ -892,13 +895,17 @@ class NBUF_Password_Expiration {
 	public static function maybe_get_change_redirect( int $user_id ): ?string {
 		$needs_change = false;
 
-		/* Forced change / expiration (mirrors check_password_on_login, priority 30). */
-		if ( NBUF_Options::get( 'nbuf_password_expiration_enabled', false ) ) {
-			$admin_bypass = NBUF_Options::get( 'nbuf_password_expiration_admin_bypass', true );
-			if ( ! ( $admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
-				if ( self::is_password_change_forced( $user_id ) || self::is_password_expired( $user_id ) ) {
-					$needs_change = true;
-				}
+		/*
+		 * Forced change / expiration (mirrors check_password_on_login, priority 28).
+		 * A forced change (admin "require change" / weak flow) is honored regardless
+		 * of the age-based expiration toggle; password aging only when enabled.
+		 */
+		$forced_admin_bypass = NBUF_Options::get( 'nbuf_password_expiration_admin_bypass', true );
+		$expiration_enabled  = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
+		if ( ! ( $forced_admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
+			if ( self::is_password_change_forced( $user_id )
+				|| ( $expiration_enabled && self::is_password_expired( $user_id ) ) ) {
+				$needs_change = true;
 			}
 		}
 
@@ -916,8 +923,7 @@ class NBUF_Password_Expiration {
 		if ( ! $needs_change
 			&& NBUF_Options::get( 'nbuf_password_force_weak_change', false )
 			&& class_exists( 'NBUF_Password_Validator' ) ) {
-			$weak_admin_bypass = NBUF_Options::get( 'nbuf_password_admin_bypass', false );
-			if ( ! ( $weak_admin_bypass && user_can( $user_id, 'manage_options' ) ) ) {
+			if ( ! NBUF_Password_Validator::admin_bypasses_weak_gate( $user_id ) ) {
 				if ( NBUF_Password_Validator::is_password_change_required( $user_id )
 					|| ! get_user_meta( $user_id, '_nbuf_pw_strength_confirmed', true ) ) {
 					$needs_change = true;

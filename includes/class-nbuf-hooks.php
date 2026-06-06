@@ -423,47 +423,56 @@ class NBUF_Hooks {
 
 		$user_id = $user->ID;
 
-		/* Admins bypass all restrictions */
-		if ( ! self::should_enforce_restrictions( $user_id ) ) {
-			return $user;
+		/*
+		 * Account-state gates (disabled / expired / unverified / pending approval):
+		 * administrators are always exempt — we never lock an admin out of their
+		 * own site over account state.
+		 */
+		if ( self::should_enforce_restrictions( $user_id ) ) {
+			/* Check if user is disabled */
+			if ( NBUF_User_Data::is_disabled( $user_id ) ) {
+				return new WP_Error(
+					'user_disabled',
+					__( 'Your account has been disabled. Please contact the site administrator.', 'nobloat-user-foundry' )
+				);
+			}
+
+			/* Check if user is expired */
+			if ( NBUF_User_Data::is_expired( $user_id ) ) {
+				return new WP_Error(
+					'account_expired',
+					__( 'Your account has expired. Please contact the site administrator.', 'nobloat-user-foundry' )
+				);
+			}
+
+			/* Check if user is verified (only if verification is required) */
+			$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
+			if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
+				return new WP_Error(
+					'email_not_verified',
+					__( 'Your email address has not been verified yet. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
+				);
+			}
+
+			/* Check admin approval (if user requires it) */
+			if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
+				return new WP_Error(
+					'awaiting_approval',
+					__( 'Your account is pending administrator approval. You will receive an email once your account has been reviewed.', 'nobloat-user-foundry' )
+				);
+			}
 		}
 
-		/* Check if user is disabled */
-		if ( NBUF_User_Data::is_disabled( $user_id ) ) {
-			return new WP_Error(
-				'user_disabled',
-				__( 'Your account has been disabled. Please contact the site administrator.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is expired */
-		if ( NBUF_User_Data::is_expired( $user_id ) ) {
-			return new WP_Error(
-				'account_expired',
-				__( 'Your account has expired. Please contact the site administrator.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user is verified (only if verification is required) */
-		$require_verification = NBUF_Options::get( 'nbuf_require_verification', true );
-		if ( $require_verification && ! NBUF_User_Data::is_verified( $user_id ) ) {
-			return new WP_Error(
-				'email_not_verified',
-				__( 'Your email address has not been verified yet. Please check your inbox for a verification link.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check admin approval (if user requires it) */
-		if ( NBUF_User_Data::requires_approval( $user_id ) && ! NBUF_User_Data::is_approved( $user_id ) ) {
-			return new WP_Error(
-				'awaiting_approval',
-				__( 'Your account is pending administrator approval. You will receive an email once your account has been reviewed.', 'nobloat-user-foundry' )
-			);
-		}
-
-		/* Check if user has weak password and grace period expired */
+		/*
+		 * Weak-password gate. Admin exemption here is governed by the shared
+		 * nbuf_password_admin_bypass option (NOT the blanket account-state
+		 * exemption above), so the front door, the priority-29 validator, and the
+		 * out-of-band gate (maybe_get_change_redirect) all treat admins identically.
+		 * See NBUF_Password_Validator::admin_bypasses_weak_gate().
+		 */
 		$force_weak_change = NBUF_Options::get( 'nbuf_password_force_weak_change', false );
-		if ( $force_weak_change && class_exists( 'NBUF_Password_Validator' ) ) {
+		if ( $force_weak_change && class_exists( 'NBUF_Password_Validator' )
+			&& ! NBUF_Password_Validator::admin_bypasses_weak_gate( $user_id ) ) {
 			$weak_password_flagged = NBUF_User_Data::get_weak_password_flagged_at( $user_id );
 
 			if ( $weak_password_flagged ) {

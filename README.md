@@ -333,6 +333,16 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.45 — Forced password changes are always enforced; admin weak-password handling is consistent
+
+Two fixes from the login-subsystem audit.
+
+1. **Admin "require password change" is no longer a silent no-op when password aging is off.** The forced-change flag (set by the bulk action or the per-user control) was only enforced at login when the separate `nbuf_password_expiration_enabled` (aging) feature was on. Forced-change enforcement is now decoupled from the aging toggle — the change is required on the next login across all paths (password, passkey, magic link, 2FA) regardless, while age-based expiry still requires the expiration feature. The change-form handler is registered unconditionally so the redeem flow works in this state, and completing it clears the flag via `mark_compliant()`.
+
+2. **Admin exemption from the weak-password gate is consistent across all login paths.** Previously the front-door login (`NBUF_Hooks::enforce_verification_before_login`, priority 25) exempted administrators outright, while the priority-29 validator and the out-of-band gate (`maybe_get_change_redirect`) honored the `nbuf_password_admin_bypass` option. All three now consult a single `NBUF_Password_Validator::admin_bypasses_weak_gate()`. **Behavior change:** that option defaults to off, so with "force change for weak passwords" enabled, an administrator whose own password is weak and past the grace period will now be blocked/prompted on the front-door login too (matching the other paths); set `nbuf_password_admin_bypass` on to exempt admins. The account disabled/expired/unverified/approval gates still always exempt administrators.
+
+Verified by a forensic re-audit: no regressions to gate ordering, no new lockouts, and a weak-blocked admin always retains the reset-link recovery path (which clears the flags).
+
 ### 1.7.44 — Password-compliance state is set consistently across every change path
 
 Follow-up to 1.7.43, prompted by a forensic audit of the login subsystem. Changing your password on the account page cleared the weak-password lockout flags but did not record the `_nbuf_pw_strength_confirmed` marker that out-of-band logins consult — so a passkey or magic-link user who set a strong password on the account page was still routed through the forced-change form on their next login (self-healing after one pass, but a confusing repeat prompt). The clear-flags-and-set-marker operation is now centralized in a single `NBUF_Password_Validator::mark_compliant()`, and every strength-validated change path (reset link, account-page change, registration, and the forced-change form) routes through it, so they can no longer drift out of sync. No lockout was possible from this — it removed a spurious recurring prompt. The front-door post-reset lockout fixed in 1.7.43 was re-confirmed closed across the password, passkey, magic-link, and 2FA login paths.

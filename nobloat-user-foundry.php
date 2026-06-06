@@ -3,7 +3,7 @@
  * Plugin Name: NoBloat User Foundry
  * Plugin URI: https://github.com/jcbenton/nobloat-user-foundry
  * Description: Business focused user management with email verification, 2FA, passkeys, role management, GDPR, auditing, and lifecycle control.
- * Version: 1.7.44
+ * Version: 1.7.45
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author: Jerry Benton
@@ -587,10 +587,14 @@ add_action(
 		/* Password expiration - requires main system to be enabled */
 		$system_enabled = NBUF_Options::get( 'nbuf_user_manager_enabled', false );
 		if ( $system_enabled ) {
-			$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
-			if ( $password_expiration_enabled ) {
-				NBUF_Password_Expiration::init();
-			}
+			/*
+			 * Always init: NBUF_Password_Expiration::init() self-gates. It registers
+			 * the forced-password-change enforcement (admin "require change" plus the
+			 * change form) regardless of the expiration toggle, and the age-based
+			 * expiration tracking only when the toggle is on — so an admin-forced
+			 * change is honored at login even when password aging is disabled.
+			 */
+			NBUF_Password_Expiration::init();
 
 			/* Weak password migration - validates passwords at login */
 			NBUF_Password_Validator::init();

@@ -84,9 +84,8 @@ class NBUF_Password_Validator {
 			return $user;
 		}
 
-		/* Admin bypass check */
-		$admin_bypass = NBUF_Options::get( 'nbuf_password_admin_bypass', false );
-		if ( $admin_bypass && user_can( $user->ID, 'manage_options' ) ) {
+		/* Admin bypass — shared rule with the front-door and out-of-band weak gates. */
+		if ( self::admin_bypasses_weak_gate( $user->ID ) ) {
 			return $user;
 		}
 
@@ -459,6 +458,26 @@ class NBUF_Password_Validator {
 
 		self::clear_lockout_flags( $user_id );
 		update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
+	}
+
+	/**
+	 * Single source of truth for "is this admin exempt from the weak-password gate".
+	 *
+	 * Keyed on the nbuf_password_admin_bypass option (default false = admins ARE
+	 * subject to the weak-password policy). Used identically by the three weak
+	 * enforcement sites — the front-door gate (NBUF_Hooks::enforce_verification_
+	 * before_login, priority 25), this validator (priority 29), and the
+	 * out-of-band gate (NBUF_Password_Expiration::maybe_get_change_redirect) — so
+	 * an admin is treated the same whether they log in by password, passkey,
+	 * magic link, or 2FA. (Distinct from nbuf_password_expiration_admin_bypass,
+	 * which governs the forced/expired gate.)
+	 *
+	 * @param int $user_id User to test.
+	 * @return bool True if the weak gate should be skipped for this admin.
+	 */
+	public static function admin_bypasses_weak_gate( int $user_id ): bool {
+		return (bool) NBUF_Options::get( 'nbuf_password_admin_bypass', false )
+			&& user_can( $user_id, 'manage_options' );
 	}
 
 	/**

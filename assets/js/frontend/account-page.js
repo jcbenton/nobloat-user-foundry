@@ -172,19 +172,32 @@
             }
         }
 
+        /*
+         * After a pointer click, drop focus from the tab so it does not retain
+         * a focus box (the active-tab underline is the selection indicator).
+         * event.detail > 0 means a real mouse/touch click; keyboard activation
+         * (Enter/Space) reports detail === 0 and keeps focus for accessibility.
+         */
+        function blurOnPointer(el, event) {
+            if (event && event.detail > 0 && typeof el.blur === 'function') {
+                el.blur();
+            }
+        }
+
         /* Main tab click handlers */
         for (var i = 0; i < tabs.length; i++) {
-            tabs[i].addEventListener('click', function() {
+            tabs[i].addEventListener('click', function(event) {
                 var tabName = this.getAttribute('data-tab');
                 activateTab(tabName);
                 updateUrl(tabName, null);
                 updateHiddenFields(tabName, null);
+                blurOnPointer(this, event);
             });
         }
 
         /* Sub-tab click handlers */
         for (var j = 0; j < subtabs.length; j++) {
-            subtabs[j].addEventListener('click', function() {
+            subtabs[j].addEventListener('click', function(event) {
                 var parent = this.closest('.nbuf-tab-content');
                 if (parent) {
                     var subtabName = this.getAttribute('data-subtab');
@@ -193,6 +206,7 @@
                     updateUrl(tabName, subtabName);
                     updateHiddenFields(tabName, subtabName);
                 }
+                blurOnPointer(this, event);
             });
         }
 

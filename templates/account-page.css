@@ -203,14 +203,19 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
    TAB NAVIGATION
    ========================================================== */
 
+/*
+ * Top-level tabs use an editorial underline strip (primary navigation).
+ * Sub-tabs keep the segmented-pill control below — the contrast is
+ * intentional and establishes a clear primary/secondary hierarchy.
+ */
 .nbuf-account-tabs {
     display: flex;
-    align-items: center;
-    gap: var(--nbuf-space-sm);
+    align-items: stretch;
+    gap: var(--nbuf-space-xl);
     margin-bottom: var(--nbuf-space-xl);
-    padding: var(--nbuf-space-xs);
-    background: var(--nbuf-background);
-    border-radius: var(--nbuf-radius-md);
+    padding: 0;
+    background: transparent;
+    border-bottom: 1px solid var(--nbuf-border-light);
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -221,35 +226,79 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    padding: var(--nbuf-space-sm) var(--nbuf-space-lg);
+    position: relative;
+    padding: var(--nbuf-space-md) var(--nbuf-space-xs);
     background: transparent;
     border: none;
-    border-radius: var(--nbuf-radius-sm);
+    border-radius: 0;
     cursor: pointer;
     font: inherit;
     font-weight: 500;
-    color: var(--nbuf-text-secondary);
-    transition: color var(--nbuf-transition-base),
-                background-color var(--nbuf-transition-base);
+    letter-spacing: 0.005em;
+    color: var(--nbuf-text-tertiary);
+    transition: color var(--nbuf-transition-base);
     flex-shrink: 0;
     white-space: nowrap;
 }
 
+/* Animated underline indicator; overlaps the strip's baseline hairline. */
+.nbuf-tab-button::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--nbuf-primary);
+    transform: scaleX(0);
+    transition: transform var(--nbuf-transition-base),
+                background-color var(--nbuf-transition-base);
+}
+
 .nbuf-tab-button:hover {
-    color: var(--nbuf-primary);
-    background: rgba(0, 115, 170, 0.08);
+    color: var(--nbuf-text-primary);
+}
+
+/* Muted underline on hover telegraphs interactivity without shouting. */
+.nbuf-tab-button:hover::after {
+    background: var(--nbuf-border);
+    transform: scaleX(1);
 }
 
 .nbuf-tab-button.nbuf-tab-active {
     color: var(--nbuf-primary);
-    background: var(--nbuf-surface);
     font-weight: 600;
-    box-shadow: var(--nbuf-shadow-sm);
 }
 
-.nbuf-tab-button:focus-visible {
-    outline: 2px solid var(--nbuf-primary);
-    outline-offset: 2px;
+.nbuf-tab-button.nbuf-tab-active::after {
+    background: var(--nbuf-primary);
+    transform: scaleX(1);
+}
+
+/*
+ * Suppress focus decoration from globally-loaded stylesheets (Bootstrap 5.3
+ * .btn box-shadow, Vantage button:focus outline/border/background). These can
+ * arrive with high specificity and/or !important, so we neutralize every
+ * decoration channel with !important on both :focus and :focus-visible, then
+ * re-add a keyboard-only ring via :focus-visible. The active-tab underline
+ * (::after) is the only selection indicator.
+ *
+ * Chrome retains visible focus on mouse-clicked <button>s where Safari does
+ * not; resetting all channels here makes the two browsers match.
+ */
+.nbuf-account-wrapper .nbuf-account-tabs .nbuf-tab-button:focus,
+.nbuf-account-wrapper .nbuf-account-tabs .nbuf-tab-button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Keyboard-only ring: drawn with box-shadow so it sits above the strip and
+   cannot be clipped, and so it overrides the reset above for keyboard nav. */
+.nbuf-account-wrapper .nbuf-account-tabs .nbuf-tab-button:focus-visible {
+    box-shadow: 0 0 0 2px var(--nbuf-primary) !important;
+    border-radius: var(--nbuf-radius-sm);
 }
 
 /* ==========================================================
@@ -268,13 +317,21 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
    SUB-TAB NAVIGATION
    ========================================================== */
 
+/*
+ * Sub-tabs mirror the top-level underline strip, at a slightly smaller
+ * scale so the primary/secondary relationship still reads.
+ */
 .nbuf-subtabs {
     display: flex;
-    gap: var(--nbuf-space-xs);
+    gap: var(--nbuf-space-lg);
     margin-bottom: var(--nbuf-space-lg);
-    padding: var(--nbuf-space-xs);
-    background: var(--nbuf-background);
-    border-radius: var(--nbuf-radius-sm);
+    padding: 0;
+    background: transparent;
+    border-bottom: 1px solid var(--nbuf-border-light);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 .nbuf-subtab-link,
@@ -282,37 +339,77 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    padding: var(--nbuf-space-xs) var(--nbuf-space-md);
+    position: relative;
+    padding: var(--nbuf-space-sm) var(--nbuf-space-xs);
     background: transparent;
     border: none;
-    border-radius: var(--nbuf-radius-sm);
+    border-radius: 0;
     cursor: pointer;
     font: inherit;
     font-size: 0.9em;
-    color: var(--nbuf-text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: var(--nbuf-text-tertiary);
     text-decoration: none;
-    transition: color var(--nbuf-transition-base),
+    transition: color var(--nbuf-transition-base);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Animated underline indicator; overlaps the strip's baseline hairline. */
+.nbuf-subtab-link::after,
+.nbuf-subtab-button::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--nbuf-primary);
+    transform: scaleX(0);
+    transition: transform var(--nbuf-transition-base),
                 background-color var(--nbuf-transition-base);
 }
 
 .nbuf-subtab-link:hover,
 .nbuf-subtab-button:hover {
-    color: var(--nbuf-primary);
-    background: rgba(0, 115, 170, 0.08);
+    color: var(--nbuf-text-primary);
+}
+
+.nbuf-subtab-link:hover::after,
+.nbuf-subtab-button:hover::after {
+    background: var(--nbuf-border);
+    transform: scaleX(1);
 }
 
 .nbuf-subtab-link.active,
 .nbuf-subtab-button.nbuf-subtab-active {
     color: var(--nbuf-primary);
-    background: var(--nbuf-surface);
     font-weight: 600;
-    box-shadow: var(--nbuf-shadow-sm);
 }
 
-.nbuf-subtab-link:focus-visible,
-.nbuf-subtab-button:focus-visible {
-    outline: 2px solid var(--nbuf-primary);
-    outline-offset: 2px;
+.nbuf-subtab-link.active::after,
+.nbuf-subtab-button.nbuf-subtab-active::after {
+    background: var(--nbuf-primary);
+    transform: scaleX(1);
+}
+
+/* Same global-decoration suppression as the top tabs (see note above). */
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-link:focus,
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-link:focus-visible,
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-button:focus,
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Keyboard-only ring. */
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-link:focus-visible,
+.nbuf-account-wrapper .nbuf-subtabs .nbuf-subtab-button:focus-visible {
+    box-shadow: 0 0 0 2px var(--nbuf-primary) !important;
+    border-radius: var(--nbuf-radius-sm);
 }
 
 /* ==========================================================
@@ -993,7 +1090,7 @@ a.nbuf-button-primary:active {
     }
 
     .nbuf-tab-button {
-        padding: var(--nbuf-space-sm) var(--nbuf-space-md);
+        padding: var(--nbuf-space-sm) var(--nbuf-space-xs);
     }
 }
 
@@ -1017,7 +1114,7 @@ a.nbuf-button-primary:active {
     }
 
     .nbuf-account-tabs {
-        gap: var(--nbuf-space-xs);
+        gap: var(--nbuf-space-md);
         /* Hide scrollbar on mobile for cleaner look, users can still swipe */
         scrollbar-width: none;
         -ms-overflow-style: none;
@@ -1034,19 +1131,21 @@ a.nbuf-button-primary:active {
         font-size: 14px;
     }
 
-    /* Sub-tabs responsive */
+    /* Sub-tabs responsive — scroll horizontally to keep one baseline rule. */
     .nbuf-subtabs {
-        flex-wrap: wrap;
-        gap: var(--nbuf-space-xs);
+        flex-wrap: nowrap;
+        gap: var(--nbuf-space-md);
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .nbuf-subtabs::-webkit-scrollbar {
+        display: none;
     }
 
     .nbuf-subtab-link,
     .nbuf-subtab-button {
         font-size: 13px;
-        min-height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
 }
 

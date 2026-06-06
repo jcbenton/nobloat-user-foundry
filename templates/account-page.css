@@ -144,9 +144,24 @@ body.nbuf-page .nbuf-account-wrapper .nbuf-message {
     min-height: 90vh;
 }
 
+/*
+ * Trim theme-injected top spacing above the account UI.
+ * Themes (e.g. Vantage) pad the content-area chain that wraps the virtual
+ * page (#main.site-main / #primary / .entry-content), which stacks on top of
+ * the plugin's own wrapper margin and produces a large gap above the tabs.
+ * Scoped to the account virtual page so other pages are unaffected.
+ */
+body.nbuf-page-account #main.site-main,
+body.nbuf-page-account .nbuf-virtual-page-wrapper,
+body.nbuf-page-account .nbuf-virtual-page,
+body.nbuf-page-account .nbuf-virtual-page .entry-content {
+    padding-top: 0;
+    margin-top: 0;
+}
+
 .nbuf-account-wrapper {
-    margin: var(--nbuf-space-2xl) auto;
-    padding: var(--nbuf-space-lg);
+    margin: 0 auto var(--nbuf-space-2xl);
+    padding: 20px var(--nbuf-space-lg) var(--nbuf-space-lg);
     width: 90%;
     box-sizing: border-box;
 }
@@ -953,8 +968,8 @@ a.nbuf-button-primary:active {
 
 @media (max-width: 768px) {
     .nbuf-account-wrapper {
-        padding: var(--nbuf-space-md);
-        margin: var(--nbuf-space-lg) auto;
+        padding: 20px var(--nbuf-space-md) var(--nbuf-space-md);
+        margin: 0 auto var(--nbuf-space-lg);
     }
 
     .nbuf-account-layout {

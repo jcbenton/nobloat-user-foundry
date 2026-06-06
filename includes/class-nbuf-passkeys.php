@@ -74,6 +74,54 @@ class NBUF_Passkeys {
 
 		/* Delete passkeys when user is deleted */
 		add_action( 'delete_user', array( __CLASS__, 'on_user_delete' ) );
+
+		/*
+		 * Record a short "recently authenticated" grace on every login (all login
+		 * methods fire wp_login) so the post-login passkey-setup prompt — which has
+		 * no password field — can enroll a passkey without re-typing the password
+		 * the user just entered.
+		 */
+		add_action( 'wp_login', array( __CLASS__, 'record_login_grace' ), 10, 2 );
+	}
+
+	/**
+	 * Transient-key prefix for the post-login passkey-registration grace.
+	 *
+	 * @var string
+	 */
+	const LOGIN_GRACE_PREFIX = 'nbuf_pk_login_grace_';
+
+	/**
+	 * Record that the user has just authenticated (any login method).
+	 *
+	 * Lets the immediate post-login passkey prompt enroll a passkey without a
+	 * redundant password re-auth. Outside this window, registration still requires
+	 * the password so a long-lived hijacked/XSS session cannot silently add an
+	 * attacker passkey.
+	 *
+	 * @param  string        $user_login Username (unused; required by hook signature).
+	 * @param  \WP_User|null $user       Authenticated user.
+	 * @return void
+	 */
+	public static function record_login_grace( $user_login, $user = null ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed -- $user_login required by the wp_login hook signature.
+		unset( $user_login );
+		$user_id = ( $user instanceof \WP_User ) ? (int) $user->ID : 0;
+		if ( ! $user_id ) {
+			return;
+		}
+		$minutes = (int) apply_filters( 'nbuf_passkey_login_grace_minutes', 15 );
+		$minutes = max( 1, min( 60, $minutes ) );
+		set_transient( self::LOGIN_GRACE_PREFIX . $user_id, 1, $minutes * MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Whether the user authenticated recently enough to skip passkey-registration re-auth.
+	 *
+	 * @param  int $user_id User ID.
+	 * @return bool True if within the post-login grace window.
+	 */
+	private static function has_recent_login_grace( int $user_id ): bool {
+		return (bool) get_transient( self::LOGIN_GRACE_PREFIX . $user_id );
 	}
 
 	/**
@@ -1428,7 +1476,7 @@ class NBUF_Passkeys {
 		 * authenticator gains a permanent passwordless backdoor that survives
 		 * the victim changing their password. Gate it like delete/rename.
 		 */
-		if ( ! NBUF_Auth::verify_reauth( $user_id ) ) {
+		if ( ! self::has_recent_login_grace( $user_id ) && ! NBUF_Auth::verify_reauth( $user_id ) ) {
 			wp_send_json_error(
 				array(
 					'message'         => __( 'Password verification failed. Please re-enter your current password.', 'nobloat-user-foundry' ),

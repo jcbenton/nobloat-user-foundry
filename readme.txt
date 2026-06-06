@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.40
+Stable tag: 1.7.41
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.41 — Fix "Password verification failed" on the post-login passkey prompt =
+* The post-login "set up a passkey" prompt could not register a passkey — it has no password field, but passkey registration required a current-password re-authentication, so it always failed with "Password verification failed." Added a short "recently authenticated" grace (set on every login, default 15 minutes, filterable via nbuf_passkey_login_grace_minutes): registering a passkey right after logging in no longer asks for the password you just entered. Outside that window, registration still requires the password so a long-lived hijacked session cannot silently add a passkey. (The cross-device QR's PIN/biometric is your device unlocking the passkey and is never sent to the site; it is unrelated to the account password.)
 
 = 1.7.40 — Mask the password in passkey re-auth prompts =
 * The current-password prompts shown when registering, renaming, or deleting a passkey on the account page used the browser's window.prompt(), which displays the typed password in cleartext. Replaced them with a masked password modal (input type=password, with Confirm/Cancel and Enter/Escape support) so the password is obscured as entered.

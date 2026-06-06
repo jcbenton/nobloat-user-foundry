@@ -427,7 +427,7 @@ class NBUF_Registration {
 		 * change form on their first passkey/magic-link login.
 		 */
 		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'registration' ) ) {
-			update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
+			NBUF_Password_Validator::mark_compliant( $user_id );
 		}
 
 		/* Assign user role based on settings */

@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.43
+Stable tag: 1.7.44
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.44 — Password-compliance state is set consistently across every change path =
+* Follow-up to 1.7.43, from a forensic audit of the login subsystem. Changing your password on the account page cleared the weak-password lockout flags but did not record the "password is compliant" marker that out-of-band logins read — so a passkey or magic-link user who set a strong password on the account page was still routed through the forced-change form on their next login (it cleared itself after one pass, but was a confusing repeat prompt). Centralized the operation into a single NBUF_Password_Validator::mark_compliant() that clears the weak and force flags AND sets the strength-confirmed marker together, and routed every strength-validated change path (reset, account page, registration, and the forced-change form) through it so they can no longer drift apart. No lockout was possible from this; it removed a spurious recurring prompt. The front-door reset lockout fixed in 1.7.43 was re-confirmed closed across the password, passkey, magic-link, and 2FA login paths.
 
 = 1.7.43 — Resetting your password can no longer lock you out =
 * When the "force change for weak passwords" feature was on, a user whose password was flagged weak (grace period expired) was blocked at login with "Please reset your password to continue" — but resetting the password did not clear the weak-password flag. The login-gate that blocks weak passwords (priority 25) runs before the validator that clears the flag for a now-compliant password (priority 29), so once the grace period expired the flag was never cleared and the user stayed locked out no matter how many times they reset. The reset, account-page change, and admin-edit paths now clear the weak-password and force-change flags on every genuine password change, so a reset reliably restores access. Existing locked-out accounts are cleared by resetting (or via a one-time UPDATE on wp_nbuf_user_data setting weak_password_flagged_at = NULL and force_password_change = 0).

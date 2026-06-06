@@ -603,20 +603,23 @@ class NBUF_Password_Expiration {
 			if ( empty( $errors ) ) {
 				wp_set_password( $new_password, $user_id );
 
-				/* The new password passed validation above — mark strength confirmed. */
-				update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
-
 				/*
-				 * Clear the weak-password flag and advance password_changed_at, exactly
-				 * as the reset / profile-update paths do (hooks.php). wp_set_password()
-				 * does NOT fire the password-change hooks that normally clear these, so
-				 * without this a user who just set a STRONG password stays hard-blocked
-				 * by the priority-25 weak_password_expired gate (which reads
+				 * The new password passed validation above. Record it compliant in
+				 * one step: clears weak_password_flagged_at AND force_password_change
+				 * AND sets _nbuf_pw_strength_confirmed. wp_set_password() fires none of
+				 * the password-change hooks that normally clear these, so without this
+				 * a user who just set a STRONG password stays hard-blocked by the
+				 * priority-25 weak_password_expired gate (which reads
 				 * weak_password_flagged_at raw) -> permanent lockout + redirect loop
-				 * back to this very form.
+				 * back to this very form. (mark_compliant subsumes the previous
+				 * separate clear_weak_password_flag + clear_force_password_change +
+				 * marker writes.)
 				 */
 				if ( class_exists( 'NBUF_Password_Validator' ) ) {
-					NBUF_Password_Validator::clear_weak_password_flag( $user_id );
+					NBUF_Password_Validator::mark_compliant( $user_id );
+				} else {
+					/* Validator unavailable: still clear the force flag we set. */
+					self::clear_force_password_change( $user_id );
 				}
 
 				/*
@@ -639,11 +642,7 @@ class NBUF_Password_Expiration {
 				}
 				delete_transient( 'nbuf_password_change_redirect_' . $user_id );
 
-				/*
-				 * Now that the user has actually been forced through the
-				 * password-change form, clear the force flag.
-				 */
-				self::clear_force_password_change( $user_id );
+				/* (force_password_change was cleared above via mark_compliant.) */
 
 				/* Regenerate session to prevent session fixation */
 				wp_clear_auth_cookie();

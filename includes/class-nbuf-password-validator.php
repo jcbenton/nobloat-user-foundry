@@ -434,6 +434,34 @@ class NBUF_Password_Validator {
 	}
 
 	/**
+	 * Record that a user's CURRENT password is policy-compliant.
+	 *
+	 * Single source of truth for "a validated, compliant password was just set":
+	 * clears the lockout flags AND writes the _nbuf_pw_strength_confirmed marker
+	 * that out-of-band login paths (passkey / magic link) consult via
+	 * NBUF_Password_Expiration::maybe_get_change_redirect(). Every password-change
+	 * site that validates strength must call this rather than clearing flags and
+	 * setting the marker separately — doing only one of the two is what produced
+	 * both the post-reset lockout and the account-page re-prompt divergence.
+	 *
+	 * Call ONLY after the new password has passed validation (e.g. inside a
+	 * should_enforce() branch). For an unvalidated change (admin edit, or a
+	 * context with enforcement off) call clear_lockout_flags() instead, which
+	 * resolves any stale lockout without falsely asserting compliance.
+	 *
+	 * @param int $user_id User whose password was just validated compliant.
+	 * @return void
+	 */
+	public static function mark_compliant( int $user_id ): void {
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		self::clear_lockout_flags( $user_id );
+		update_user_meta( $user_id, '_nbuf_pw_strength_confirmed', 1 );
+	}
+
+	/**
 	 * Adapter for the after_password_reset action (reset-link flow).
 	 *
 	 * @param WP_User|null $user     User whose password was reset.

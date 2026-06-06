@@ -715,11 +715,13 @@ class NBUF_Shortcodes {
 
 		/*
 		 * If the reset flow enforced the password policy, the new password is
-		 * policy-compliant — mark strength confirmed so out-of-band login paths
-		 * don't route this user to the change form.
+		 * policy-compliant — record that (clears the lockout flags and sets the
+		 * strength-confirmed marker) so out-of-band login paths don't route this
+		 * user to the change form. (after_password_reset also clears the flags;
+		 * mark_compliant is idempotent.)
 		 */
 		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'reset' ) ) {
-			update_user_meta( $user->ID, '_nbuf_pw_strength_confirmed', 1 );
+			NBUF_Password_Validator::mark_compliant( $user->ID );
 		}
 
 		/* Log password reset completion */
@@ -2695,14 +2697,22 @@ class NBUF_Shortcodes {
 		wp_set_password( $new_password, $user_id );
 
 		/*
-		 * Clear weak-password / force-change lockout flags. wp_set_password()
-		 * fires neither after_password_reset nor profile_update, so the flag
-		 * clears registered in NBUF_Password_Validator::init() do not run here;
-		 * clear inline so a user who changes to a compliant password is not
-		 * still blocked by the priority-25 weak gate on their next login.
+		 * wp_set_password() fires neither after_password_reset nor profile_update,
+		 * so the flag-clears registered in NBUF_Password_Validator::init() never run
+		 * for this path — resolve the lockout state inline. When the change was
+		 * strength-validated above (should_enforce 'profile_change'), mark the
+		 * password compliant: this clears the weak/force flags AND records
+		 * _nbuf_pw_strength_confirmed, so a passkey/magic-link login afterwards is
+		 * not re-routed to the forced-change form. When strength was not enforced
+		 * for this context, only clear the stale lockout flags — we cannot assert
+		 * the new password is compliant.
 		 */
 		if ( class_exists( 'NBUF_Password_Validator' ) ) {
-			NBUF_Password_Validator::clear_lockout_flags( $user_id );
+			if ( NBUF_Password_Validator::should_enforce( 'profile_change' ) ) {
+				NBUF_Password_Validator::mark_compliant( $user_id );
+			} else {
+				NBUF_Password_Validator::clear_lockout_flags( $user_id );
+			}
 		}
 
 		/* Log password change */

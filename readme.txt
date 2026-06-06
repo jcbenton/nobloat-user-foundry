@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.42
+Stable tag: 1.7.43
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.43 — Resetting your password can no longer lock you out =
+* When the "force change for weak passwords" feature was on, a user whose password was flagged weak (grace period expired) was blocked at login with "Please reset your password to continue" — but resetting the password did not clear the weak-password flag. The login-gate that blocks weak passwords (priority 25) runs before the validator that clears the flag for a now-compliant password (priority 29), so once the grace period expired the flag was never cleared and the user stayed locked out no matter how many times they reset. The reset, account-page change, and admin-edit paths now clear the weak-password and force-change flags on every genuine password change, so a reset reliably restores access. Existing locked-out accounts are cleared by resetting (or via a one-time UPDATE on wp_nbuf_user_data setting weak_password_flagged_at = NULL and force_password_change = 0).
 
 = 1.7.42 — A passkey login can never bounce you to wp-login.php =
 * Out-of-band login paths (passkey, magic link, 2FA completion) resolve the account from a stored credential or token. A stale or malformed record could carry a user_id that no longer maps to a real user (for example an old passkey row created under an earlier version). The shared login gate never confirmed the user existed, so the flow set a WordPress auth cookie for an account core could not load — and the next /wp-admin/ request bounced the user to the wp-login.php login screen (or, with the wp-login redirect enabled, onward to the plugin login page), with no explanation. Added an explicit user-existence check at the top of NBUF_Auth::enforce_login_status() (the single gate every out-of-band path shares): a zero or orphaned user_id is now rejected with a clear inline message instead of minting an unusable session. Deleting and re-creating the affected passkey was the previous workaround; it is no longer needed.

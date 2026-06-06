@@ -43,6 +43,21 @@ class NBUF_Password_Validator {
 		 * handler to detect and redirect.
 		 */
 		add_filter( 'authenticate', array( __CLASS__, 'check_password_at_login' ), 29, 3 );
+
+		/*
+		 * Clear the weak-password lockout flag whenever a password is genuinely
+		 * changed. The weak gate (NBUF_Hooks::enforce_verification_before_login,
+		 * priority 25) blocks login when weak_password_flagged_at is set past the
+		 * grace period, and it runs BEFORE check_password_at_login (priority 29) —
+		 * the only path that clears the flag for a now-compliant password. So once
+		 * grace expires, a user who resets to a strong password is still locked out
+		 * because the clearing code never runs. Clearing on the password-change
+		 * events themselves closes that loop. (The account-page change uses
+		 * wp_set_password(), which fires neither event, so it clears the flag
+		 * inline — see NBUF_Shortcodes password change handler.)
+		 */
+		add_action( 'after_password_reset', array( __CLASS__, 'clear_lockout_flags_on_reset' ), 10, 2 );
+		add_action( 'profile_update', array( __CLASS__, 'clear_lockout_flags_on_profile_update' ), 10, 2 );
 	}
 
 	/**
@@ -391,6 +406,62 @@ class NBUF_Password_Validator {
 	 */
 	public static function clear_weak_password_flag( int $user_id ): void {
 		NBUF_User_Data::set_password_changed( $user_id );
+	}
+
+	/**
+	 * Clear the password-policy lockout flags after a genuine password change.
+	 *
+	 * Nulls weak_password_flagged_at (consumed by the priority-25 weak gate) and
+	 * the force_password_change flag (priority-28 expiration gate), so a reset or
+	 * change actually lets the user back in. Safe to call unconditionally: if the
+	 * flags are already clear it is a no-op write, and re-flagging still happens
+	 * at the next login if the new password is genuinely weak (with a fresh grace
+	 * window), so enforcement is preserved.
+	 *
+	 * @param int $user_id User whose password just changed.
+	 * @return void
+	 */
+	public static function clear_lockout_flags( int $user_id ): void {
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		NBUF_User_Data::clear_weak_password_flag( $user_id );
+
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
+			NBUF_Password_Expiration::clear_force_password_change( $user_id );
+		}
+	}
+
+	/**
+	 * Adapter for the after_password_reset action (reset-link flow).
+	 *
+	 * @param WP_User|null $user     User whose password was reset.
+	 * @param string       $new_pass New password (unused; required by signature).
+	 * @return void
+	 */
+	public static function clear_lockout_flags_on_reset( $user, $new_pass = '' ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $new_pass required by after_password_reset signature.
+		if ( $user instanceof WP_User ) {
+			self::clear_lockout_flags( $user->ID );
+		}
+	}
+
+	/**
+	 * Adapter for the profile_update action (admin user edits via wp_update_user).
+	 *
+	 * Only clears when the password hash actually changed, so an ordinary profile
+	 * save does not reset the lockout state.
+	 *
+	 * @param int     $user_id       Updated user ID.
+	 * @param WP_User $old_user_data Pre-update user object.
+	 * @return void
+	 */
+	public static function clear_lockout_flags_on_profile_update( $user_id, $old_user_data ): void {
+		$new_user = get_userdata( $user_id );
+
+		if ( $new_user && isset( $old_user_data->user_pass ) && $new_user->user_pass !== $old_user_data->user_pass ) {
+			self::clear_lockout_flags( (int) $user_id );
+		}
 	}
 
 	/**

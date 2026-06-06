@@ -2694,6 +2694,17 @@ class NBUF_Shortcodes {
 		/* Update password */
 		wp_set_password( $new_password, $user_id );
 
+		/*
+		 * Clear weak-password / force-change lockout flags. wp_set_password()
+		 * fires neither after_password_reset nor profile_update, so the flag
+		 * clears registered in NBUF_Password_Validator::init() do not run here;
+		 * clear inline so a user who changes to a compliant password is not
+		 * still blocked by the priority-25 weak gate on their next login.
+		 */
+		if ( class_exists( 'NBUF_Password_Validator' ) ) {
+			NBUF_Password_Validator::clear_lockout_flags( $user_id );
+		}
+
 		/* Log password change */
 		NBUF_Audit_Log::log(
 			$user_id,

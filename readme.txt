@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.41
+Stable tag: 1.7.42
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.42 — A passkey login can never bounce you to wp-login.php =
+* Out-of-band login paths (passkey, magic link, 2FA completion) resolve the account from a stored credential or token. A stale or malformed record could carry a user_id that no longer maps to a real user (for example an old passkey row created under an earlier version). The shared login gate never confirmed the user existed, so the flow set a WordPress auth cookie for an account core could not load — and the next /wp-admin/ request bounced the user to the wp-login.php login screen (or, with the wp-login redirect enabled, onward to the plugin login page), with no explanation. Added an explicit user-existence check at the top of NBUF_Auth::enforce_login_status() (the single gate every out-of-band path shares): a zero or orphaned user_id is now rejected with a clear inline message instead of minting an unusable session. Deleting and re-creating the affected passkey was the previous workaround; it is no longer needed.
 
 = 1.7.41 — Fix "Password verification failed" on the post-login passkey prompt =
 * The post-login "set up a passkey" prompt could not register a passkey — it has no password field, but passkey registration required a current-password re-authentication, so it always failed with "Password verification failed." Added a short "recently authenticated" grace (set on every login, default 15 minutes, filterable via nbuf_passkey_login_grace_minutes): registering a passkey right after logging in no longer asks for the password you just entered. Outside that window, registration still requires the password so a long-lived hijacked session cannot silently add a passkey. (The cross-device QR's PIN/biometric is your device unlocking the passkey and is never sent to the site; it is unrelated to the account password.)

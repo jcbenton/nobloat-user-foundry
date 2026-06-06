@@ -38,6 +38,34 @@ class NBUF_Auth {
 	 */
 	public static function enforce_login_status( int $user_id ) {
 		/*
+		 * Validate the resolved user actually exists before any gate runs.
+		 * Out-of-band login paths (magic link, passkey, 2FA completion) derive
+		 * the user_id from a stored credential or token; a stale or malformed
+		 * record can carry a zero or orphaned id that no longer maps to a real
+		 * user. Without this guard the gates below fall through silently —
+		 * user_can() is false so the admin bypass is skipped, and the
+		 * NBUF_User_Data checks are inconclusive for a non-user — the caller
+		 * then mints an auth cookie for a user WordPress cannot load, and the
+		 * browser is bounced to wp-login.php on the next /wp-admin/ request
+		 * (core auth_redirect()). Reject it here with a clear message instead so
+		 * no login path can ever dump the user on the backend login screen.
+		 */
+		if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log_or_update(
+					'invalid_user_login',
+					'warning',
+					'Login blocked (out-of-band): resolved account does not exist',
+					array( 'user_id' => $user_id )
+				);
+			}
+			return new WP_Error(
+				'invalid_user',
+				__( 'We could not complete sign-in for this account. Please try again, or contact the site administrator if the problem continues.', 'nobloat-user-foundry' )
+			);
+		}
+
+		/*
 		 * IP-restriction gate. The authenticate priority-1 filter
 		 * (NBUF_IP_Restrictions::check_ip_restrictions) only runs on the password
 		 * front door; out-of-band paths (magic link, passkey, 2FA completion)

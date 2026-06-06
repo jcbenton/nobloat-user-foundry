@@ -333,6 +333,22 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.41 — Fix "Password verification failed" on the post-login passkey prompt
+
+The post-login "set up a passkey" prompt could not register a passkey: it has no password field, but passkey registration required a current-password re-authentication, so it always failed with "Password verification failed." Added a short "recently authenticated" grace (set on every login, default 15 minutes, filterable via `nbuf_passkey_login_grace_minutes`) — registering a passkey right after logging in no longer asks for the password you just entered. Outside that window, registration still requires the password so a long-lived hijacked session cannot silently add a passkey. (The cross-device QR's PIN/biometric is your device unlocking the passkey and is never sent to the site; it is unrelated to the account password.)
+
+### 1.7.40 — Mask the password in passkey re-auth prompts
+
+The current-password prompts shown when registering, renaming, or deleting a passkey on the account page used the browser's `window.prompt()`, which displays the typed password in cleartext. Replaced them with a masked password modal (`input type="password"`, with Confirm/Cancel and Enter/Escape support) so the password is obscured as entered.
+
+### 1.7.39 — Passkeys register on the local device by default (no QR detour)
+
+Added a "Passkey Device Type" setting (Security → Passkeys) and wired `authenticatorAttachment` into passkey registration. It now defaults to "This device", so registering a passkey goes straight to the built-in authenticator (Touch ID, Windows Hello, Android biometrics) instead of the browser first showing a cross-device "scan this QR code with your phone" screen. Choose "Phone, tablet, or security key" to bias toward external/cross-device authenticators, or "Any" to let the browser present all options (use "Any" on devices that have no built-in authenticator).
+
+### 1.7.38 — Passkeys satisfy a "TOTP required" policy; passkey help text corrected
+
+With TOTP Method = Required (Security → 2FA Config → Authenticator), users were force-redirected to TOTP setup on every page — even on a passkey-first site where "Also require TOTP / email 2FA after a passkey login" is off (a verified passkey is already multi-factor). A passkey-preferring user was trapped in a redirect loop and could not even reach passkey registration. When passkeys are enabled and that setting is off, the forced-TOTP redirect is now suppressed, so users can register and use a passkey instead of being pushed into TOTP; enable "require 2FA after passkey" to keep forcing TOTP on top of a passkey. Also corrected the Passkeys settings help text, which wrongly described passkeys as single-factor that always need 2FA — a user-verified passkey (biometric/PIN) is multi-factor and satisfies 2FA by default.
+
 ### 1.7.37 — Webhooks table SQL error fix (1.7.34 regression)
 
 Fixed a SQL syntax error logged when creating/repairing the `nbuf_webhooks` table. The widened `secret` column (1.7.34) carried a `COMMENT` containing a semicolon, and `dbDelta()` splits SQL on semicolons — tearing the `CREATE TABLE` statement in two. Removed the comment (the `VARCHAR(512)` widening is unchanged). Impact was log-noise only: `CREATE TABLE IF NOT EXISTS` is a no-op on the existing table, and the 255→512 widening runs via a separate, comment-free `ALTER`.

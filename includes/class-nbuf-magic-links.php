@@ -286,9 +286,6 @@ class NBUF_Magic_Links {
 				return new WP_Error( 'db_error', __( 'Failed to generate magic link. Please try again.', 'nobloat-user-foundry' ) );
 			}
 
-			/* Build magic link URL */
-			$magic_link_url = self::get_magic_link_url( $token );
-
 			/*
 			 * Defer the email send to a near-immediate cron event. wp_mail /
 			 * SMTP can take 100ms — several seconds, dwarfing the dummy-hash
@@ -296,11 +293,21 @@ class NBUF_Magic_Links {
 			 * that the dummy hash was meant to defeat. Scheduling a one-off
 			 * event makes the synchronous response time uniform regardless
 			 * of whether the email address belongs to a real user.
+			 *
+			 * SECURITY: do NOT place the plaintext token (or its URL) into the
+			 * persistent wp-cron array — that array lives in wp_options until the
+			 * event fires, so a wp_options leak would expose a live token,
+			 * defeating the at-rest hashing. Stash the token in a short-lived
+			 * one-time transient and pass only an opaque reference through cron;
+			 * the handler resolves + deletes it at send time. With an external
+			 * object cache the token never touches the database at all.
 			 */
+			$dispatch_ref = bin2hex( random_bytes( 16 ) );
+			set_transient( 'nbuf_magic_link_dispatch_' . $dispatch_ref, $token, 5 * MINUTE_IN_SECONDS );
 			wp_schedule_single_event(
 				time() + 1,
 				'nbuf_magic_link_send_email',
-				array( (int) $user->ID, (string) $magic_link_url )
+				array( (int) $user->ID, $dispatch_ref )
 			);
 
 			/* Log the request */
@@ -336,17 +343,48 @@ class NBUF_Magic_Links {
 	 * fails, log the failure rather than swallowing it silently.
 	 *
 	 * @since 1.6.4
-	 * @param int    $user_id        User ID to deliver the link to.
-	 * @param string $magic_link_url Full magic-link URL containing the token.
+	 * @param int    $user_id      User ID to deliver the link to.
+	 * @param string $dispatch_ref One-time transient reference holding the token
+	 *                             (or, for events scheduled by an older version,
+	 *                             the full magic-link URL).
 	 * @return void
 	 */
-	public static function dispatch_magic_link_email( $user_id, $magic_link_url ): void {
+	public static function dispatch_magic_link_email( $user_id, $dispatch_ref ): void {
 		$user = get_user_by( 'id', (int) $user_id );
 		if ( ! $user ) {
 			return;
 		}
 
-		$sent = self::send_magic_link_email( $user, (string) $magic_link_url );
+		$dispatch_ref   = (string) $dispatch_ref;
+		$magic_link_url = '';
+
+		/*
+		 * Resolve the one-time dispatch reference to the plaintext token and
+		 * delete it so it cannot be reused. Back-compat: events scheduled before
+		 * this change carried the full URL directly — detect and use it.
+		 */
+		$token = get_transient( 'nbuf_magic_link_dispatch_' . $dispatch_ref );
+		if ( false !== $token && '' !== (string) $token ) {
+			delete_transient( 'nbuf_magic_link_dispatch_' . $dispatch_ref );
+			$magic_link_url = self::get_magic_link_url( (string) $token );
+		} elseif ( false !== strpos( $dispatch_ref, '://' ) ) {
+			$magic_link_url = $dispatch_ref;
+		}
+
+		if ( '' === $magic_link_url ) {
+			if ( class_exists( 'NBUF_Security_Log' ) ) {
+				NBUF_Security_Log::log(
+					'magic_link_send_failed',
+					'error',
+					'Magic link dispatch reference expired or missing before send',
+					array( 'user_id' => $user->ID ),
+					$user->ID
+				);
+			}
+			return;
+		}
+
+		$sent = self::send_magic_link_email( $user, $magic_link_url );
 
 		if ( ! $sent && class_exists( 'NBUF_Security_Log' ) ) {
 			NBUF_Security_Log::log(

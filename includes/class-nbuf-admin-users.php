@@ -1366,9 +1366,20 @@ class NBUF_Admin_Users {
 		<?php endif; ?>
 
 		<?php
-		/* Password Expiration Section */
-		$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
-		if ( $password_expiration_enabled && class_exists( 'NBUF_Password_Expiration' ) ) :
+		/*
+		 * Password Expiration Section.
+		 *
+		 * Rendered whenever the class is available, NOT only when password
+		 * expiration is enabled. A forced password change is enforced at login
+		 * regardless of the expiration toggle (since v1.7.45), so an admin must
+		 * always be able to SET and CLEAR the force-change flag (and force a
+		 * logout) here — otherwise a flag set via the bulk/AJAX actions while
+		 * expiration is off could never be rescinded from the UI. The age/expiry
+		 * display lines self-suppress when no expiry is configured
+		 * (is_password_expired()/get_days_until_expiration() return false/null
+		 * without a password_expires_at value).
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) :
 			$force_change          = NBUF_Password_Expiration::is_password_change_forced( $user_id );
 			$is_expired            = NBUF_Password_Expiration::is_password_expired( $user_id );
 			$password_age          = NBUF_Password_Expiration::get_password_age( $user_id );
@@ -1631,9 +1642,13 @@ class NBUF_Admin_Users {
 			NBUF_Profile_Data::update( $user_id, $profile_fields );
 		}
 
-		/* Handle Force Password Change */
-		$password_expiration_enabled = NBUF_Options::get( 'nbuf_password_expiration_enabled', false );
-		if ( $password_expiration_enabled && class_exists( 'NBUF_Password_Expiration' ) ) {
+		/*
+		 * Handle Force Password Change. Processed whenever the class exists (not
+		 * gated on the expiration toggle) so the always-rendered checkbox above
+		 * can both set and clear the flag. A forced change is enforced at login
+		 * regardless of the toggle, so its clear control must not depend on it.
+		 */
+		if ( class_exists( 'NBUF_Password_Expiration' ) ) {
 			if ( isset( $_POST['nbuf_force_password_change'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['nbuf_force_password_change'] ) ) ) {
 				// Checkbox is checked - force password change.
 				NBUF_Password_Expiration::force_password_change( $user_id );

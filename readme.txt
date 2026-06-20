@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.49
+Stable tag: 1.7.50
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,22 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.50 — Security & correctness pass: GDPR export completeness, 2FA on forced password change, directory photo privacy, and 10 more fixes =
+* Follows a full forensic re-audit of the plugin. No critical or high-severity issues were found; these are the medium/low correctness, privacy, and availability fixes it surfaced.
+* GDPR export: the self-service data export now actually includes your extended profile fields (phone, company, address, social links, and so on). It had been reading a set of placeholder field names that matched no real database column, so the profile section of the export — and the on-screen "fields" count — was always empty. It now reads the real profile store, the same one the WordPress core "Export Personal Data" tool uses.
+* Forced password change + 2FA: completing a forced or expired password change reached through an emailed change link (the out-of-band path used by passkey and magic-link logins) now requires you to pass two-factor authentication before a session is created, instead of logging you straight in. The ordinary logged-in change path is unchanged.
+* Member directory photo privacy: a member who set their profile photo to "members only" or "private" no longer has their real uploaded photo shown to logged-out visitors in the directory cards or search results — the non-identifying initials avatar is shown instead, matching how bio, location, and website already behave.
+* Password policy changes: tightening your password requirements now re-prompts passkey/magic-link-only users to set a compliant password on their next login (previously they could keep a now-noncompliant password indefinitely, because those login methods have no password to re-check).
+* Forced-password-change admin control: an administrator can now always clear a "force password change" flag from the user profile screen, even when password expiration is turned off — the control used to be hidden in that case, so a flag set via the bulk or "force now" actions could not be undone from the UI. The same screen's "Force Logout" control is likewise always available now.
+* Password reset no longer leaves a stale forced-change flag: completing a reset always clears any administrator-set "force password change" flag, even with password expiration and weak-password enforcement both turned off.
+* Magic-link tokens are no longer placed in the WordPress cron array while waiting to be emailed; the send now resolves the token from a short-lived one-time reference, so a database leak in that brief window cannot expose a usable login link.
+* Passkey login rate limit no longer counts successful logins, so several people behind the same office/CGNAT IP can no longer exhaust the per-IP budget through normal use. Brute-force attempts, which always fail, are still counted.
+* Password-reset request timing is evened out so the response time no longer reveals whether an email address belongs to a real account (the request was already rate-limited and already showed a generic message).
+* Profile photo upload: your existing photo is now removed only after the new one is processed successfully, so a failed or unsupported upload no longer deletes the photo you already had.
+* Audit-log and admin-action-log date filters now validate the date and treat the end date as inclusive, matching the security log — a malformed date no longer silently produces a wrong or empty result on those views. These filters were already safe from SQL injection.
+* Configuration export/import now uses the real option names for the e-mail and CSS templates, so customized templates round-trip correctly through a config backup/restore instead of being silently dropped.
+* Minor: the "use Gravatar" preference saved from the profile tab is now stored as a strict 0 or 1.
 
 = 1.7.49 — Admin banner offers to load updated form/page templates after an update =
 * Front-end form and page templates are served from a copy stored in the database (seeded from the template files at first activation), and that stored copy takes priority over the file. So when a plugin update ships a changed template — like the Account-page tweaks in 1.7.48 — the change did not reach an existing site until the stored copy was manually reset under Settings. This adds a dismissible admin notice that detects the difference automatically (by comparing a content hash of the stored copy against the shipped default — no per-version bookkeeping) and, for each affected template, offers a one-click "Load updated default". A "Dismiss" action remembers the current version of each template and stays quiet until that template changes again in a future update. The notice appears on the plugin's own admin pages, the Dashboard, and the Plugins screen, and only to users with manage_options. Covers the user-facing form/page templates: account page, login form, registration form, the two password-reset forms, the three 2FA pages, and the privacy/terms policies. "Load updated default" writes the raw shipped template (exactly as the activator seeds it at install), so the result is identical to a fresh install; loading overwrites any manual edits you made to that template in the Forms editors. NOTE: this is the supported way to pull template changes from an update onto an existing site — after upgrading, watch for the banner and load the defaults for any template you have not customized.

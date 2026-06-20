@@ -535,7 +535,17 @@ class NBUF_Shortcodes {
 		$user = get_user_by( 'email', $user_login );
 
 		if ( ! $user ) {
-			/* For security, show success message even if user not found */
+			/*
+			 * Anti-enumeration: the found branch below runs
+			 * get_password_reset_key() (which hashes a key via wp_hash_password)
+			 * before redirecting, so returning immediately here would make the
+			 * response time a reliable "this account exists" oracle. Do equivalent
+			 * throwaway hashing so the synchronous timing is comparable. (The
+			 * subsequent wp_mail() SMTP cost is the residual variance, bounded by
+			 * the per-IP and per-email reset rate limits enforced above.) Always
+			 * show the generic "sent" message.
+			 */
+			wp_hash_password( wp_generate_password( 64, true, true ) );
 			wp_safe_redirect( add_query_arg( 'reset', 'sent', $redirect_base_url ) );
 			exit;
 		}
@@ -714,14 +724,21 @@ class NBUF_Shortcodes {
 		reset_password( $user, $pass1 );
 
 		/*
-		 * If the reset flow enforced the password policy, the new password is
-		 * policy-compliant — record that (clears the lockout flags and sets the
-		 * strength-confirmed marker) so out-of-band login paths don't route this
-		 * user to the change form. (after_password_reset also clears the flags;
-		 * mark_compliant is idempotent.)
+		 * A completed reset is a genuine password change, so the user must not be
+		 * left lockout-flagged. Clear the weak + force flags UNCONDITIONALLY here
+		 * rather than relying on the after_password_reset hook: that hook's
+		 * handlers are only registered when force_weak_change / expiration are
+		 * enabled, so with both off an admin-set force_password_change flag would
+		 * otherwise survive the reset and re-block the user at next login. When the
+		 * reset flow actually enforced the policy, upgrade to mark_compliant (which
+		 * additionally sets the strength-confirmed marker for out-of-band logins).
 		 */
-		if ( class_exists( 'NBUF_Password_Validator' ) && NBUF_Password_Validator::should_enforce( 'reset' ) ) {
-			NBUF_Password_Validator::mark_compliant( $user->ID );
+		if ( class_exists( 'NBUF_Password_Validator' ) ) {
+			if ( NBUF_Password_Validator::should_enforce( 'reset' ) ) {
+				NBUF_Password_Validator::mark_compliant( $user->ID );
+			} else {
+				NBUF_Password_Validator::clear_lockout_flags( $user->ID );
+			}
 		}
 
 		/* Log password reset completion */
@@ -3177,7 +3194,8 @@ Best regards,
 
 		/* Update gravatar preference if submitted */
 		if ( isset( $_POST['nbuf_use_gravatar'] ) ) {
-			$use_gravatar = absint( $_POST['nbuf_use_gravatar'] );
+			/* Clamp to a strict 0/1 (TINYINT) — matches handle_gravatar_update. */
+			$use_gravatar = ! empty( $_POST['nbuf_use_gravatar'] ) ? 1 : 0;
 			NBUF_User_Data::update( $user_id, array( 'use_gravatar' => $use_gravatar ) );
 		}
 

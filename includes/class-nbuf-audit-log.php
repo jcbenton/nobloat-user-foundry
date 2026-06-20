@@ -237,15 +237,27 @@ class NBUF_Audit_Log {
 			$where_values[]  = $filters['event_status'];
 		}
 
-		/* Filter by date range */
+		/* Filter by date range — strict Y-m-d validation (mirrors the security-log
+		 * reader). A malformed date is dropped rather than handed to MySQL, where
+		 * it would silently produce an always-true/false comparison and a wrong or
+		 * empty result set on the forensic log. Not SQLi (values are bound), but a
+		 * correctness/integrity gap on the table used for incident review. */
 		if ( ! empty( $filters['date_from'] ) ) {
-			$where_clauses[] = 'created_at >= %s';
-			$where_values[]  = $filters['date_from'];
+			$date_from = sanitize_text_field( $filters['date_from'] );
+			$date_obj  = DateTime::createFromFormat( 'Y-m-d', $date_from );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_from ) {
+				$where_clauses[] = 'created_at >= %s';
+				$where_values[]  = $date_from . ' 00:00:00';
+			}
 		}
 
 		if ( ! empty( $filters['date_to'] ) ) {
-			$where_clauses[] = 'created_at <= %s';
-			$where_values[]  = $filters['date_to'];
+			$date_to  = sanitize_text_field( $filters['date_to'] );
+			$date_obj = DateTime::createFromFormat( 'Y-m-d', $date_to );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_to ) {
+				$where_clauses[] = 'created_at <= %s';
+				$where_values[]  = $date_to . ' 23:59:59';
+			}
 		}
 
 		/* Filter by search (username, first/last name, message, IP) */
@@ -325,15 +337,27 @@ class NBUF_Audit_Log {
 			$where_values[]  = $filters['event_status'];
 		}
 
-		/* Filter by date range */
+		/* Filter by date range — strict Y-m-d validation (mirrors the security-log
+		 * reader). A malformed date is dropped rather than handed to MySQL, where
+		 * it would silently produce an always-true/false comparison and a wrong or
+		 * empty result set on the forensic log. Not SQLi (values are bound), but a
+		 * correctness/integrity gap on the table used for incident review. */
 		if ( ! empty( $filters['date_from'] ) ) {
-			$where_clauses[] = 'created_at >= %s';
-			$where_values[]  = $filters['date_from'];
+			$date_from = sanitize_text_field( $filters['date_from'] );
+			$date_obj  = DateTime::createFromFormat( 'Y-m-d', $date_from );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_from ) {
+				$where_clauses[] = 'created_at >= %s';
+				$where_values[]  = $date_from . ' 00:00:00';
+			}
 		}
 
 		if ( ! empty( $filters['date_to'] ) ) {
-			$where_clauses[] = 'created_at <= %s';
-			$where_values[]  = $filters['date_to'];
+			$date_to  = sanitize_text_field( $filters['date_to'] );
+			$date_obj = DateTime::createFromFormat( 'Y-m-d', $date_to );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_to ) {
+				$where_clauses[] = 'created_at <= %s';
+				$where_values[]  = $date_to . ' 23:59:59';
+			}
 		}
 
 		/* Filter by search (username, first/last name, message, IP) */

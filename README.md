@@ -333,6 +333,23 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.50 — Security & correctness pass (post-audit): GDPR export, 2FA on forced change, directory photo privacy, +10
+
+Follows a full forensic re-audit of the whole plugin (0 Critical / 0 High found). These are the medium/low correctness, privacy, and availability fixes it surfaced.
+
+- **GDPR export completeness (MED).** `NBUF_GDPR_Export::get_profile_field_names()` returned placeholder `profile_field_1..53` names that matched no column, so the self-service export's profile section and field count were always empty. It now derives keys from `NBUF_Profile_Data::get_all_field_keys()` and reads the real `nbuf_user_profile` store in `create_nbuf_export()` and `get_data_counts()`.
+- **2FA on out-of-band forced change (LOW).** `handle_password_change_form()` minted a full session with no 2FA step on the unauthenticated change-token path. It now hands off to the 2FA challenge first via the new public `NBUF_2FA_Login::begin_2fa_challenge()` (extracted from `intercept_login`); the already-logged-in path is unchanged.
+- **Directory photo privacy (LOW).** `get_member_avatar()` and `format_member_for_json()` now gate the uploaded photo on `NBUF_Privacy_Manager::can_view_field( .., 'profile_photo', .. )`, falling back to the initials avatar — parity with the existing bio/location/website gates.
+- **Password-policy marker reset (LOW).** `handle_settings_save()` snapshots the password-policy signature and clears `_nbuf_pw_strength_confirmed` for all users when it changes, so passkey/magic-link-only users are re-routed through the change form once under a tightened policy.
+- **Force-change flag symmetry (LOW).** The profile-screen force-change / force-logout controls and their save handler are no longer gated on the expiration toggle, so an admin can always clear a flag that login enforces regardless. A completed reset (`maybe_handle_password_reset`) now clears a stale force flag unconditionally.
+- **Magic-link token transit (LOW).** The plaintext token URL is no longer placed in the wp-cron array; `send_magic_link()` stashes the token in a one-time transient and passes only an opaque reference, resolved and deleted in `dispatch_magic_link_email()` (with back-compat for in-flight URL events).
+- **Passkey rate limit (LOW).** `ajax_authenticate()` charges the per-IP limiter only on failed/invalid attempts, not on successful logins (shared-NAT lockout).
+- **Reset-request timing (LOW).** The not-found branch of `maybe_handle_request_reset()` now performs equivalent throwaway hashing to blunt the account-enumeration timing oracle.
+- **Photo-upload data loss (LOW).** `NBUF_Image_Processor::process_image()` deletes the previous photo only after the new file is written successfully.
+- **Log date filters (LOW).** `NBUF_Audit_Log` and `NBUF_Admin_Audit_Log` readers now strictly validate `date_from`/`date_to` (`Y-m-d`) and treat the end date as inclusive, matching `NBUF_Security_Log`. (Not SQLi — values were already bound.)
+- **Config template round-trip (LOW).** `NBUF_Config_Exporter` emits the real email/CSS option keys (derived from `NBUF_CSS_Manager::get_css_templates()` and the template map) instead of placeholder names that never round-tripped.
+- **Minor.** `handle_profile_tab_update()` stores `use_gravatar` as a strict `0`/`1`.
+
 ### 1.7.49 — Admin banner offers to load updated form/page templates after an update
 
 Front-end form/page templates are served from a DB copy seeded at first activation, and that copy takes priority over the file — so a template change shipped in an update (e.g. the 1.7.48 Account-page edits) never reached an existing install until the stored copy was manually reset.

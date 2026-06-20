@@ -108,8 +108,19 @@ class NBUF_Member_Directory {
 		$user = get_userdata( $user_id );
 		$alt  = $user ? $user->display_name : '';
 
-		/* Try to use profile photos class if available */
-		if ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_profile_photo' ) ) {
+		/*
+		 * Honor the member's per-field profile_photo privacy — parity with the
+		 * bio / location / website gates used in the cards below. A directory
+		 * member who restricted their photo to members-only / private must NOT
+		 * have their real uploaded photo served to a viewer who fails that
+		 * check; show the non-identifying initials avatar instead.
+		 */
+		$photo_viewable = ! class_exists( 'NBUF_Privacy_Manager' )
+			|| ! method_exists( 'NBUF_Privacy_Manager', 'can_view_field' )
+			|| NBUF_Privacy_Manager::can_view_field( (int) $user_id, 'profile_photo', get_current_user_id() );
+
+		/* Try to use profile photos class if available and the photo is viewable */
+		if ( $photo_viewable && class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_profile_photo' ) ) {
 			$photo_url = NBUF_Profile_Photos::get_profile_photo( $user_id, $size );
 
 			/* Check if it's a data URI (SVG initials avatar) */
@@ -136,7 +147,23 @@ class NBUF_Member_Directory {
 			);
 		}
 
-		/* Fallback: Use get_avatar if profile photos not available */
+		/*
+		 * Photo restricted (or photos class unavailable): emit the initials
+		 * avatar, never the uploaded file.
+		 */
+		if ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_svg_avatar' ) ) {
+			$svg = NBUF_Profile_Photos::get_svg_avatar( $user ? $user->first_name : '', $user ? $user->last_name : '', $size );
+			return sprintf(
+				'<img src="%s" alt="%s" class="avatar avatar-%d photo nbuf-avatar nbuf-svg-avatar nbuf-avatar-rounded" width="%d" height="%d" loading="lazy" />',
+				esc_attr( $svg ),
+				esc_attr( $alt ),
+				$size,
+				$size,
+				$size
+			);
+		}
+
+		/* Last-resort fallback: Use get_avatar if profile photos not available */
 		return get_avatar( $user_id, $size );
 	}
 
@@ -780,8 +807,22 @@ class NBUF_Member_Directory {
 		$avatar       = '';
 		$avatar_small = '';
 		if ( class_exists( 'NBUF_Profile_Photos' ) && method_exists( 'NBUF_Profile_Photos', 'get_profile_photo' ) ) {
-			$avatar       = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 96 );
-			$avatar_small = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 48 );
+			/* Honor per-field profile_photo privacy (parity with get_member_avatar). */
+			$photo_viewable = ! class_exists( 'NBUF_Privacy_Manager' )
+				|| ! method_exists( 'NBUF_Privacy_Manager', 'can_view_field' )
+				|| NBUF_Privacy_Manager::can_view_field( $user_id, 'profile_photo', get_current_user_id() );
+
+			if ( $photo_viewable ) {
+				$avatar       = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 96 );
+				$avatar_small = (string) NBUF_Profile_Photos::get_profile_photo( $user_id, 48 );
+			} elseif ( method_exists( 'NBUF_Profile_Photos', 'get_svg_avatar' ) ) {
+				/* Photo restricted: non-identifying initials avatar, never the upload. */
+				$member_user  = get_userdata( $user_id );
+				$first        = $member_user ? $member_user->first_name : '';
+				$last         = $member_user ? $member_user->last_name : '';
+				$avatar       = (string) NBUF_Profile_Photos::get_svg_avatar( $first, $last, 96 );
+				$avatar_small = (string) NBUF_Profile_Photos::get_svg_avatar( $first, $last, 48 );
+			}
 		}
 
 		return array(

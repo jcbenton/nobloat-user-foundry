@@ -813,6 +813,30 @@ class NBUF_Settings {
 		$saved_count = 0;
 		$errors      = array();
 
+		/*
+		 * Snapshot the password-policy signature BEFORE saving so we can detect a
+		 * change afterwards. The _nbuf_pw_strength_confirmed marker records that a
+		 * user's current password satisfied the policy in force when they last set
+		 * it; out-of-band logins (passkey / magic link) consult that marker via
+		 * NBUF_Password_Expiration::maybe_get_change_redirect() instead of
+		 * re-validating (they have no plaintext). If the policy changes the marker
+		 * is stale, so after the save we clear it for all users to re-route
+		 * OOB-only users through the change form once under the new policy.
+		 */
+		$pw_policy_keys   = array(
+			'nbuf_password_requirements_enabled',
+			'nbuf_password_min_length',
+			'nbuf_password_require_uppercase',
+			'nbuf_password_require_lowercase',
+			'nbuf_password_require_numbers',
+			'nbuf_password_require_special',
+			'nbuf_password_force_weak_change',
+		);
+		$pw_policy_before = array();
+		foreach ( $pw_policy_keys as $pw_policy_key ) {
+			$pw_policy_before[ $pw_policy_key ] = NBUF_Options::get( $pw_policy_key, null );
+		}
+
 		/* Process each submitted field */
 		foreach ( $_POST as $key => $value ) {
 			/* Skip non-nbuf fields and meta fields */
@@ -897,6 +921,26 @@ class NBUF_Settings {
 					}
 				}
 			}
+		}
+
+		/*
+		 * If the password policy changed, the _nbuf_pw_strength_confirmed marker
+		 * is stale for everyone. Clear it for all users so OOB-only users are
+		 * re-routed through the change form once under the new policy. (No-op for
+		 * password-login users — they re-validate against the live policy at
+		 * priority 29 every login. Only impactful while force_weak_change is on,
+		 * which is what gates the OOB weak re-route.) Reads are post-save and
+		 * cache-fresh because NBUF_Options::update() invalidates the cache.
+		 */
+		$pw_policy_changed = false;
+		foreach ( $pw_policy_keys as $pw_policy_key ) {
+			if ( (string) $pw_policy_before[ $pw_policy_key ] !== (string) NBUF_Options::get( $pw_policy_key, null ) ) {
+				$pw_policy_changed = true;
+				break;
+			}
+		}
+		if ( $pw_policy_changed ) {
+			delete_metadata( 'user', 0, '_nbuf_pw_strength_confirmed', '', true );
 		}
 
 		/* Sync NBUF registration setting with WordPress users_can_register */

@@ -169,6 +169,33 @@ class NBUF_2FA_Login {
 			return $user;
 		}
 
+		/* Mint the pending-2FA challenge and redirect (this exits). */
+		self::begin_2fa_challenge( $user );
+
+		/* Safety net — begin_2fa_challenge() redirects + exits before here. */
+		return new WP_Error(
+			'2fa_required',
+			__( 'Redirecting to two-factor authentication...', 'nobloat-user-foundry' )
+		);
+	}
+
+	/**
+	 * Begin the pending-2FA challenge for a freshly-authenticated user.
+	 *
+	 * Mints the pending-2FA transient + secure cookie, dispatches an email code
+	 * when applicable, and redirects to the verification page (this method
+	 * exits). Shared by the authenticate-filter interception (priority 31) and
+	 * the forced-password-change completion path so a user who finishes a forced
+	 * change is challenged for 2FA exactly as a normal password login would be,
+	 * instead of being handed a full session straight from the change form.
+	 *
+	 * Callers are responsible for the should_challenge()/admin-bypass gate; this
+	 * method unconditionally starts the challenge for the given user.
+	 *
+	 * @param WP_User $user Authenticated user.
+	 * @return void
+	 */
+	public static function begin_2fa_challenge( WP_User $user ): void {
 		/*
 		 * SECURITY: Generate cryptographically secure 2FA session token.
 		 * Use random_bytes() instead of wp_generate_password() for security tokens.
@@ -227,14 +254,8 @@ class NBUF_2FA_Login {
 			NBUF_2FA::send_email_code( $user->ID );
 		}
 
-		/* Redirect to 2FA verification page */
+		/* Redirect to 2FA verification page (exits). */
 		self::redirect_to_2fa_page( $user->ID );
-
-		/* Return error to prevent automatic login */
-		return new WP_Error(
-			'2fa_required',
-			__( 'Redirecting to two-factor authentication...', 'nobloat-user-foundry' )
-		);
 	}
 
 	/**

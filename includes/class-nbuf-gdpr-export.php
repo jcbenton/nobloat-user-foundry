@@ -148,12 +148,12 @@ class NBUF_GDPR_Export {
 			'estimated_size' => 0,
 		);
 
-		/* Count NoBloat profile fields */
-		$user_data = NBUF_User_Data::get( $user_id );
-		if ( $user_data ) {
+		/* Count NoBloat profile fields (extended data lives in nbuf_user_profile). */
+		$profile_data = NBUF_Profile_Data::get( $user_id );
+		if ( $profile_data ) {
 			$profile_fields = self::get_profile_field_names();
 			foreach ( $profile_fields as $field ) {
-				if ( ! empty( $user_data->$field ) ) {
+				if ( property_exists( $profile_data, $field ) && ! empty( $profile_data->$field ) ) {
 					++$counts['nbuf_fields'];
 				}
 			}
@@ -381,12 +381,13 @@ class NBUF_GDPR_Export {
 			'profile_fields'   => array(),
 		);
 
-		/* Get all profile fields */
-		if ( $user_data ) {
+		/* Get all profile fields (extended profile data lives in nbuf_user_profile). */
+		$profile_data = NBUF_Profile_Data::get( $user_id );
+		if ( $profile_data ) {
 			$profile_fields = self::get_profile_field_names();
 			foreach ( $profile_fields as $field ) {
-				if ( property_exists( $user_data, $field ) && ! empty( $user_data->$field ) ) {
-					$export['profile_fields'][ $field ] = $user_data->$field;
+				if ( property_exists( $profile_data, $field ) && null !== $profile_data->$field && '' !== (string) $profile_data->$field ) {
+					$export['profile_fields'][ $field ] = $profile_data->$field;
 				}
 			}
 		}
@@ -515,67 +516,22 @@ class NBUF_GDPR_Export {
 	}
 
 	/**
-	 * Get profile field names
+	 * Get profile field names.
+	 *
+	 * Extended profile data lives in the {prefix}nbuf_user_profile table and is
+	 * read via NBUF_Profile_Data. Earlier releases returned placeholder
+	 * `profile_field_N` names that never matched a real column, so the export's
+	 * profile section was always empty. We now derive the names from the live
+	 * field registry so every stored profile value is exported.
 	 *
 	 * @since 1.4.0
 	 * @return array<int, string> Array of field names.
 	 */
 	private static function get_profile_field_names() {
-		return array(
-			'profile_field_1',
-			'profile_field_2',
-			'profile_field_3',
-			'profile_field_4',
-			'profile_field_5',
-			'profile_field_6',
-			'profile_field_7',
-			'profile_field_8',
-			'profile_field_9',
-			'profile_field_10',
-			'profile_field_11',
-			'profile_field_12',
-			'profile_field_13',
-			'profile_field_14',
-			'profile_field_15',
-			'profile_field_16',
-			'profile_field_17',
-			'profile_field_18',
-			'profile_field_19',
-			'profile_field_20',
-			'profile_field_21',
-			'profile_field_22',
-			'profile_field_23',
-			'profile_field_24',
-			'profile_field_25',
-			'profile_field_26',
-			'profile_field_27',
-			'profile_field_28',
-			'profile_field_29',
-			'profile_field_30',
-			'profile_field_31',
-			'profile_field_32',
-			'profile_field_33',
-			'profile_field_34',
-			'profile_field_35',
-			'profile_field_36',
-			'profile_field_37',
-			'profile_field_38',
-			'profile_field_39',
-			'profile_field_40',
-			'profile_field_41',
-			'profile_field_42',
-			'profile_field_43',
-			'profile_field_44',
-			'profile_field_45',
-			'profile_field_46',
-			'profile_field_47',
-			'profile_field_48',
-			'profile_field_49',
-			'profile_field_50',
-			'profile_field_51',
-			'profile_field_52',
-			'profile_field_53',
-		);
+		if ( class_exists( 'NBUF_Profile_Data' ) ) {
+			return NBUF_Profile_Data::get_all_field_keys();
+		}
+		return array();
 	}
 
 	/**

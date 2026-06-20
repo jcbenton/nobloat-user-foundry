@@ -184,17 +184,24 @@ class NBUF_Config_Exporter {
 			'email' => array(),
 		);
 
-		/* CSS templates */
-		$css_options = array(
-			'nbuf_reset_page_css',
-			'nbuf_login_page_css',
-			'nbuf_registration_page_css',
-			'nbuf_verify_page_css',
-			'nbuf_account_page_css',
-			'nbuf_2fa_verify_css',
-			'nbuf_2fa_setup_css',
-			'nbuf_profile_custom_css',
-		);
+		/*
+		 * CSS templates — derive the key list from the live CSS registry so the
+		 * export always matches the option names the loader actually reads.
+		 * Earlier releases hand-listed keys (nbuf_verify_page_css,
+		 * nbuf_2fa_verify_css, nbuf_2fa_setup_css) that no loader reads and
+		 * omitted real ones (member-directory, version-history, data-export,
+		 * tos-acceptance), so customized CSS never round-tripped through
+		 * export/import.
+		 */
+		$css_options = array();
+		if ( class_exists( 'NBUF_CSS_Manager' ) && method_exists( 'NBUF_CSS_Manager', 'get_css_templates' ) ) {
+			foreach ( NBUF_CSS_Manager::get_css_templates() as $css_template ) {
+				if ( ! empty( $css_template['db_option'] ) ) {
+					$css_options[] = $css_template['db_option'];
+				}
+			}
+		}
+		$css_options = array_values( array_unique( $css_options ) );
 
 		foreach ( $css_options as $option ) {
 			$value = NBUF_Options::get( $option, '' );
@@ -203,22 +210,29 @@ class NBUF_Config_Exporter {
 			}
 		}
 
-		/* Email templates */
+		/*
+		 * Email/text templates — option names must match NBUF_Template_Manager's
+		 * map (the keys the email senders actually read). Earlier releases listed
+		 * placeholder `nbuf_email_*_body` / `nbuf_email_*_subject` names that no
+		 * loader reads (and the plugin stores no separate email-subject options),
+		 * so customized emails never round-tripped through export/import.
+		 */
 		$email_options = array(
 			'nbuf_email_template_html',
 			'nbuf_email_template_text',
-			'nbuf_email_verification_subject',
-			'nbuf_email_verification_body',
-			'nbuf_email_welcome_subject',
-			'nbuf_email_welcome_body',
-			'nbuf_email_expiring_subject',
-			'nbuf_email_expiring_body',
-			'nbuf_email_expired_subject',
-			'nbuf_email_expired_body',
-			'nbuf_email_2fa_subject',
-			'nbuf_email_2fa_body',
-			'nbuf_email_password_reset_subject',
-			'nbuf_email_password_reset_body',
+			'nbuf_welcome_email_html',
+			'nbuf_welcome_email_text',
+			'nbuf_expiration_warning_email_html',
+			'nbuf_expiration_warning_email_text',
+			'nbuf_expiration_notice_email_html',
+			'nbuf_expiration_notice_email_text',
+			'nbuf_2fa_email_html',
+			'nbuf_2fa_email_text',
+			'nbuf_password_reset_email_html',
+			'nbuf_password_reset_email_text',
+			'nbuf_admin_new_user_html',
+			'nbuf_admin_new_user_text',
+			'nbuf_security_alert_email_html',
 		);
 
 		foreach ( $email_options as $option ) {

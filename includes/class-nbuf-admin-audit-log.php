@@ -188,12 +188,20 @@ class NBUF_Admin_Audit_Log {
 
 		/* Date range filter */
 		if ( ! empty( $filters['date_from'] ) ) {
-			$where[]  = 'created_at >= %s';
-			$values[] = sanitize_text_field( $filters['date_from'] );
+			$date_from = sanitize_text_field( $filters['date_from'] );
+			$date_obj  = DateTime::createFromFormat( 'Y-m-d', $date_from );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_from ) {
+				$where[]  = 'created_at >= %s';
+				$values[] = $date_from . ' 00:00:00';
+			}
 		}
 		if ( ! empty( $filters['date_to'] ) ) {
-			$where[]  = 'created_at <= %s';
-			$values[] = sanitize_text_field( $filters['date_to'] );
+			$date_to  = sanitize_text_field( $filters['date_to'] );
+			$date_obj = DateTime::createFromFormat( 'Y-m-d', $date_to );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_to ) {
+				$where[]  = 'created_at <= %s';
+				$values[] = $date_to . ' 23:59:59';
+			}
 		}
 
 		/* Admin filter */
@@ -281,12 +289,20 @@ class NBUF_Admin_Audit_Log {
 
 		/* Apply same filters as get_logs() */
 		if ( ! empty( $filters['date_from'] ) ) {
-			$where[]  = 'created_at >= %s';
-			$values[] = sanitize_text_field( $filters['date_from'] );
+			$date_from = sanitize_text_field( $filters['date_from'] );
+			$date_obj  = DateTime::createFromFormat( 'Y-m-d', $date_from );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_from ) {
+				$where[]  = 'created_at >= %s';
+				$values[] = $date_from . ' 00:00:00';
+			}
 		}
 		if ( ! empty( $filters['date_to'] ) ) {
-			$where[]  = 'created_at <= %s';
-			$values[] = sanitize_text_field( $filters['date_to'] );
+			$date_to  = sanitize_text_field( $filters['date_to'] );
+			$date_obj = DateTime::createFromFormat( 'Y-m-d', $date_to );
+			if ( $date_obj && $date_obj->format( 'Y-m-d' ) === $date_to ) {
+				$where[]  = 'created_at <= %s';
+				$values[] = $date_to . ' 23:59:59';
+			}
 		}
 		if ( ! empty( $filters['admin_id'] ) ) {
 			$where[]  = 'admin_id = %d';

@@ -169,8 +169,13 @@ class NBUF_Image_Processor {
 		 */
 		$random_token = bin2hex( random_bytes( 20 ) ); /* 40 hex characters, cryptographically secure */
 
-		/* Delete old photo if exists (before creating new one with different token) */
-		self::delete_photo( $user_id, $type );
+		/*
+		 * The previous photo is deleted only AFTER the new file is written
+		 * successfully (see the success returns below) — NOT up-front. Deleting
+		 * it first would lose the user's existing photo if every conversion path
+		 * then failed, leaving the DB pointing at a now-missing file. The new
+		 * filename uses a fresh random token, so it never collides with the old.
+		 */
 
 		/* Try WebP conversion if enabled */
 		if ( $convert_to_webp && self::webp_supported() ) {
@@ -179,6 +184,8 @@ class NBUF_Image_Processor {
 			$result      = self::convert_to_webp( $source_path, $output_path, $webp_quality, $max_width, $max_height, $strip_exif );
 
 			if ( ! is_wp_error( $result ) ) {
+				/* New file written successfully — now safe to remove the old one. */
+				self::delete_photo( $user_id, $type );
 				return array(
 					'path'      => $output_path,
 					'url'       => $upload_dir['url'] . $filename,
@@ -223,6 +230,9 @@ class NBUF_Image_Processor {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
+
+		/* New file written successfully — now safe to remove the old one. */
+		self::delete_photo( $user_id, $type );
 
 		return array(
 			'path'      => $output_path,

@@ -1664,23 +1664,31 @@ class NBUF_Passkeys {
 	 * @return void
 	 */
 	public static function ajax_authenticate(): void {
-		/* SECURITY: Rate limit pre-login endpoint to prevent abuse */
+		/*
+		 * SECURITY: Rate limit this pre-login endpoint to prevent abuse. The
+		 * counter is charged only on FAILED / invalid attempts (below), NOT on a
+		 * successful authentication, so legitimate users behind a shared egress
+		 * IP (CGNAT / office NAT / proxy) cannot exhaust the per-IP budget through
+		 * normal successful logins. A brute-force attacker never holds a valid
+		 * assertion, so every spray attempt fails and is still counted.
+		 */
 		if ( self::is_rate_limited() ) {
 			self::send_rate_limit_error();
 		}
-		self::record_rate_limit_request();
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON contains base64url data that must not be modified; pre-login endpoint.
 		$response_raw = isset( $_POST['response'] ) ? wp_unslash( $_POST['response'] ) : '';
 		$response     = json_decode( $response_raw, true );
 
 		if ( null === $response || JSON_ERROR_NONE !== json_last_error() ) {
+			self::record_rate_limit_request();
 			wp_send_json_error( array( 'message' => __( 'Invalid response format.', 'nobloat-user-foundry' ) ) );
 		}
 
 		$verify_result = self::verify_authentication( $response );
 
 		if ( is_wp_error( $verify_result ) ) {
+			self::record_rate_limit_request();
 			wp_send_json_error( array( 'message' => $verify_result->get_error_message() ) );
 		}
 

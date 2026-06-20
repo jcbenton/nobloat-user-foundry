@@ -647,6 +647,26 @@ class NBUF_Password_Expiration {
 
 				/* (force_password_change was cleared above via mark_compliant.) */
 
+				/*
+				 * 2FA PARITY (token path only): the UNAUTHENTICATED token-redeem
+				 * path mints a full session out-of-band (no authenticate filter
+				 * runs), so the priority-31 2FA interception never fired and an
+				 * OOB user (magic-link / passkey / front-door bounce) redirected
+				 * here could obtain a session WITHOUT a second factor. Hand off to
+				 * the 2FA challenge BEFORE minting the session. The password is
+				 * already changed and the lockout flags cleared, so once the user
+				 * clears 2FA, complete_login mints the final session normally.
+				 * Mirrors NBUF_2FA_Login::intercept_login (incl. admin-bypass).
+				 * An already-logged-in user is NOT re-challenged — they
+				 * authenticated (and passed any 2FA) earlier this session.
+				 * begin_2fa_challenge() redirects + exits.
+				 */
+				if ( $via_token && class_exists( 'NBUF_2FA_Login' ) && class_exists( 'NBUF_2FA' )
+					&& ! ( NBUF_Options::get( 'nbuf_2fa_admin_bypass', false ) && user_can( $user_id, 'manage_options' ) )
+					&& NBUF_2FA::should_challenge( $user_id ) ) {
+					NBUF_2FA_Login::begin_2fa_challenge( $user );
+				}
+
 				/* Regenerate session to prevent session fixation */
 				wp_clear_auth_cookie();
 				wp_set_current_user( $user_id );

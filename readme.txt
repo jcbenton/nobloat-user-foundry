@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.48
+Stable tag: 1.7.49
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.49 — Admin banner offers to load updated form/page templates after an update =
+* Front-end form and page templates are served from a copy stored in the database (seeded from the template files at first activation), and that stored copy takes priority over the file. So when a plugin update ships a changed template — like the Account-page tweaks in 1.7.48 — the change did not reach an existing site until the stored copy was manually reset under Settings. This adds a dismissible admin notice that detects the difference automatically (by comparing a content hash of the stored copy against the shipped default — no per-version bookkeeping) and, for each affected template, offers a one-click "Load updated default". A "Dismiss" action remembers the current version of each template and stays quiet until that template changes again in a future update. The notice appears on the plugin's own admin pages, the Dashboard, and the Plugins screen, and only to users with manage_options. Covers the user-facing form/page templates: account page, login form, registration form, the two password-reset forms, the three 2FA pages, and the privacy/terms policies. "Load updated default" writes the raw shipped template (exactly as the activator seeds it at install), so the result is identical to a fresh install; loading overwrites any manual edits you made to that template in the Forms editors. NOTE: this is the supported way to pull template changes from an update onto an existing site — after upgrading, watch for the banner and load the defaults for any template you have not customized.
 
 = 1.7.48 — Front-end Account tab: minimal, customizable styling instead of bare text =
 * The Account tab rendered as unstyled text floating on the page because the section container had padding but no background, border, or shadow — so it looked broken rather than minimal. The `.nbuf-account-section` container now uses the existing design tokens for a restrained card (white surface, a 1px hairline border, 6px radius, and a very subtle shadow); the same class is used by the Security and Sessions tabs, so the whole account area now reads consistently. Removed the redundant "Account Information" heading and its "View your account details…" description from the top of the tab. Also moved every inline style="" out of the account template and into token-based CSS classes (the read-only info panel, the "Edit Profile" sub-heading, the Save button), so site owners can now restyle the page by overriding the CSS custom properties or classes rather than fighting inline styles with !important. No new fonts, colors, or heavy effects were introduced, and the tab-strip styling is unchanged. These styles are served from templates/account-page.css; if you previously pasted custom CSS into Styles → Account, re-save/regenerate that tab so your override is rebuilt on top of the new defaults.

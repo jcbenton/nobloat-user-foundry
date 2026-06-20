@@ -837,6 +837,57 @@ class NBUF_Template_Manager {
 	}
 
 	/**
+	 * GET STORED RAW.
+	 *
+	 * Return the raw template content stored in the custom options table for a
+	 * template, WITHOUT the default-file fallback. Used to tell whether a DB
+	 * copy actually exists (and to compare it against the shipped default).
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return string Stored content, or '' when no DB copy exists.
+	 */
+	public static function get_stored_raw( $template_name ) {
+		$option_key = self::get_option_key( $template_name );
+		if ( ! $option_key ) {
+			return '';
+		}
+		$value = NBUF_Options::get( $option_key, '' );
+		return is_string( $value ) ? $value : '';
+	}
+
+	/**
+	 * RESTORE DEFAULT.
+	 *
+	 * Overwrite the stored template with the RAW shipped default file, matching
+	 * the activator's install-time seeding (file_get_contents, no extra kses
+	 * sanitization — the default is plugin-shipped, trusted content). Use this
+	 * to refresh a stored copy after a template file changes in an update so the
+	 * result is byte-identical to a fresh install (and not run through the
+	 * editor's sanitizer, which could strip tags/attributes the template needs).
+	 *
+	 * @param  string $template_name Template identifier.
+	 * @return bool True when the default was written, false if unknown/missing.
+	 */
+	public static function restore_default( $template_name ) {
+		$option_key = self::get_option_key( $template_name );
+		if ( ! $option_key ) {
+			return false;
+		}
+
+		$default = self::load_default_file( $template_name );
+		if ( '' === $default ) {
+			return false;
+		}
+
+		NBUF_Options::update( $option_key, $default, false, 'templates' );
+
+		/* Keep the runtime cache consistent for the remainder of this request. */
+		self::$cache[ $template_name ] = $default;
+
+		return true;
+	}
+
+	/**
 	 * LOAD FALLBACK.
 	 *
 	 * Return minimal fallback content if template not found.

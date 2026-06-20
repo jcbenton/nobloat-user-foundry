@@ -333,6 +333,17 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.49 — Admin banner offers to load updated form/page templates after an update
+
+Front-end form/page templates are served from a DB copy seeded at first activation, and that copy takes priority over the file — so a template change shipped in an update (e.g. the 1.7.48 Account-page edits) never reached an existing install until the stored copy was manually reset.
+
+- **New `NBUF_Template_Sync_Notice`** (`includes/class-nbuf-template-sync-notice.php`). On each admin load (plugin pages, Dashboard, Plugins screen; `manage_options` only) it compares an `md5` of each stored template against the shipped default file. Any mismatch surfaces a dismissible `admin_notices` banner with a per-template **Load updated default** button and a **Dismiss** action. Detection is hash-based, so no per-version manifest is needed — if the file differs, it changed.
+- **Dismiss is per-change.** It records the current file hash in `nbuf_template_sync_ack`; the banner stays quiet until that template's shipped default changes again (a new hash), then re-appears.
+- **Load writes the raw default.** `NBUF_Template_Manager::restore_default()` writes `file_get_contents()` of the shipped template straight to the option (matching the activator's install seeding) rather than routing through `save_template()`'s `wp_kses` sanitizer — which is used nowhere else for these templates and could strip tags/attributes the markup needs. Result is byte-identical to a fresh install. Added `get_stored_raw()` (raw DB read, no file fallback) alongside it.
+- **Scope:** account page, login form, registration form, both password-reset forms, the three 2FA pages, and the privacy/terms policies. Wired via `NBUF_Template_Sync_Notice::init()` in the admin bootstrap.
+
+This is the supported path to pull template changes from an update onto an existing site: after upgrading, load the defaults for any template you have not hand-customized. Loading overwrites manual edits made in the Forms editors, which is why it is opt-in per template.
+
 ### 1.7.48 — Front-end Account tab: minimal, customizable styling instead of bare text
 
 The front-end Account tab rendered as unstyled text on the page background — the `.nbuf-account-section` container had padding but no surface/border/shadow, so it read as broken rather than minimal.

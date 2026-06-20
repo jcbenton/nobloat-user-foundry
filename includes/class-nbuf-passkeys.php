@@ -332,7 +332,7 @@ class NBUF_Passkeys {
 		}
 
 		/* User verification preference */
-		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
+		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 
 		/* Build registration options */
 		$options = array(
@@ -482,7 +482,7 @@ class NBUF_Passkeys {
 		 * and from then on every subsequent assertion bypasses the UV
 		 * requirement at line ~628.
 		 */
-		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
 			return new WP_Error( 'user_verification_required', __( 'User verification was required but not performed.', 'nobloat-user-foundry' ) );
 		}
@@ -524,6 +524,33 @@ class NBUF_Passkeys {
 	}
 
 	/**
+	 * Resolve the effective "does a passkey login satisfy 2FA" policy.
+	 *
+	 * This is independent of the WebAuthn User Verification (UV) policy, which
+	 * only governs whether the device demands a biometric / PIN at login.
+	 * Returns one of:
+	 *  - 'always'   : any successful passkey login satisfies 2FA — no extra
+	 *                 code, and UV is not required for the skip.
+	 *  - 'verified' : only a user-verified passkey (UV bit set) satisfies 2FA;
+	 *                 a non-verified assertion falls through to the 2FA challenge.
+	 *  - 'require'  : a passkey never satisfies 2FA on its own; always step up.
+	 *
+	 * Back-compat: when the explicit option is unset, derive from the legacy
+	 * boolean `nbuf_2fa_require_after_passkey` (true => 'require', otherwise the
+	 * 'always' default).
+	 *
+	 * @since  1.7.47
+	 * @return string One of 'always', 'verified', 'require'.
+	 */
+	public static function resolve_2fa_policy(): string {
+		$policy = NBUF_Options::get( 'nbuf_2fa_passkey_policy', '' );
+		if ( in_array( $policy, array( 'always', 'verified', 'require' ), true ) ) {
+			return $policy;
+		}
+		return NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false ) ? 'require' : 'always';
+	}
+
+	/**
 	 * Generate authentication options for WebAuthn.
 	 *
 	 * @since  1.5.0
@@ -549,7 +576,7 @@ class NBUF_Passkeys {
 		);
 
 		/* User verification preference */
-		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
+		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 
 		/* Build authentication options */
 		$options = array(
@@ -809,7 +836,7 @@ class NBUF_Passkeys {
 		 * authenticate without biometric/PIN and the operator's "required"
 		 * setting is silently inert.
 		 */
-		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(
@@ -1691,25 +1718,29 @@ class NBUF_Passkeys {
 		}
 
 		/*
-		 * Check if 2FA should be challenged (covers both user-enabled
-		 * and admin-required).
+		 * Decide whether this passkey login satisfies the 2FA requirement, per
+		 * the admin's passkey-2FA policy (resolve_2fa_policy()). This is
+		 * deliberately INDEPENDENT of the WebAuthn User Verification policy:
+		 * UV governs whether the device demands a biometric / PIN at login,
+		 * not whether the resulting login counts as 2FA.
 		 *
-		 * SECURITY trade-off: a verified passkey (UV bit set in the
-		 * authenticator data flags) is itself a multi-factor credential
-		 * — possession of the device plus the platform's biometric / PIN
-		 * gesture. Layering a TOTP / email code on top of that is
-		 * usually noise. The setting `nbuf_2fa_require_after_passkey`
-		 * defaults to false, meaning a UV-verified passkey assertion
-		 * skips the 2FA step. Sites that need belt-and-suspenders for
-		 * compliance reasons can flip the setting to true to force the
-		 * step-up regardless. A passkey assertion WITHOUT UV (rare on
-		 * modern platforms but possible on some keys configured for
-		 * presence-only) is treated as a single-factor credential and
-		 * always falls through to 2FA when policy requires it.
+		 *  - 'always'   (default): a successful passkey login is enough on its
+		 *                own; no TOTP / email code is requested, regardless of
+		 *                whether the assertion carried the UV bit.
+		 *  - 'verified': only a UV-verified assertion skips the 2FA step; a
+		 *                non-verified assertion falls through to 2FA.
+		 *  - 'require' : a passkey never satisfies 2FA on its own; always step up.
 		 */
-		$twofa_required            = false;
-		$require_2fa_after_passkey = (bool) NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
-		$skip_2fa_for_passkey      = $user_verified && ! $require_2fa_after_passkey;
+		$twofa_required     = false;
+		$passkey_2fa_policy = self::resolve_2fa_policy();
+
+		if ( 'require' === $passkey_2fa_policy ) {
+			$skip_2fa_for_passkey = false;
+		} elseif ( 'verified' === $passkey_2fa_policy ) {
+			$skip_2fa_for_passkey = $user_verified;
+		} else { /* 'always' */
+			$skip_2fa_for_passkey = true;
+		}
 
 		if ( ! $skip_2fa_for_passkey && class_exists( 'NBUF_2FA' ) && NBUF_2FA::should_challenge( $user_id ) ) {
 			$twofa_required = true;

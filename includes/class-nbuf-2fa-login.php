@@ -675,23 +675,24 @@ class NBUF_2FA_Login {
 		}
 
 		/*
-		 * Passkeys are an accepted second factor. When passkeys are enabled AND
-		 * "Also require TOTP / email 2FA after a passkey login" is OFF, a verified
-		 * passkey is itself sufficient MFA — exactly the config under which the
-		 * passkey LOGIN flow skips the 2FA challenge. In that case "require
-		 * authenticator app" means "require a strong second factor," so we must
-		 * NOT force TOTP specifically: doing so traps a passkey-preferring user in
-		 * a redirect loop and prevents them from ever reaching passkey
-		 * registration (they have no passkey yet). With the redirect suppressed
-		 * they remain free to set up a passkey OR TOTP from their account's
-		 * Security tab.
+		 * Passkeys are an accepted second factor. Unless the passkey-2FA policy
+		 * is 'require' (always also demand a code), a passkey login can satisfy
+		 * 2FA on its own — exactly the config under which the passkey LOGIN flow
+		 * skips the 2FA challenge. In that case "require authenticator app" means
+		 * "require a strong second factor," so we must NOT force TOTP
+		 * specifically: doing so traps a passkey-preferring user in a redirect
+		 * loop and prevents them from ever reaching passkey registration (they
+		 * have no passkey yet). With the redirect suppressed they remain free to
+		 * set up a passkey OR TOTP from their account's Security tab.
 		 *
-		 * To hard-require TOTP in addition to a passkey, enable
-		 * "Also require TOTP / email 2FA after a passkey login".
+		 * To hard-require TOTP in addition to a passkey, set the passkey-2FA
+		 * policy to "Always require a 2FA code".
 		 */
-		$passkeys_enabled      = (bool) NBUF_Options::get( 'nbuf_passkeys_enabled', false );
-		$require_after_passkey = (bool) NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
-		if ( $passkeys_enabled && ! $require_after_passkey ) {
+		$passkeys_enabled   = (bool) NBUF_Options::get( 'nbuf_passkeys_enabled', false );
+		$passkey_2fa_policy = class_exists( 'NBUF_Passkeys' )
+			? NBUF_Passkeys::resolve_2fa_policy()
+			: ( NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false ) ? 'require' : 'always' );
+		if ( $passkeys_enabled && 'require' !== $passkey_2fa_policy ) {
 			return false;
 		}
 

@@ -333,6 +333,21 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.47 — Passkey vs. 2FA is now a single clear choice; a passkey login is enough by default
+
+Reworks 1.7.46 after real-world testing. 1.7.46 made a verified passkey satisfy 2FA by defaulting the WebAuthn User Verification policy to `'required'` — but on some systems `'required'` makes the OS prompt for the device password, while `'preferred'` let the login fall through to TOTP. There was no setting that meant "a passkey login is enough — no device-password prompt **and** no code." The two concerns are now decoupled.
+
+1. **User Verification governs only device behavior at login.** It controls whether the passkey demands a fingerprint/face/PIN — nothing more. Default reverted to `'preferred'` (the four read-sites in `class-nbuf-passkeys.php`, the activator seed, and the sanitizer fallback), so it no longer forces the device-password prompt. The dropdown and its description were rewritten to say so explicitly, and the JS `userVerification` fallbacks were restored to `'preferred'` to match.
+
+2. **A new passkey-2FA policy decides whether a passkey counts as 2FA.** New option `nbuf_2fa_passkey_policy` resolved by `NBUF_Passkeys::resolve_2fa_policy()`, with three values surfaced as radios on the Passkeys tab:
+   - `always` (**default**) — a successful passkey login satisfies 2FA on its own; no TOTP/email code, regardless of the UV bit.
+   - `verified` — only a user-verified assertion skips 2FA; a non-verified one falls through to the challenge (pair with User Verification = "Always require" for reliability).
+   - `require` — a passkey never satisfies 2FA on its own; always step up.
+
+   The login skip logic (`class-nbuf-passkeys.php` `ajax_authenticate`) and the forced-TOTP-setup gate (`class-nbuf-2fa-login.php` `maybe_redirect_to_totp_setup`) both consume the resolver. When the option is unset it derives from the legacy `nbuf_2fa_require_after_passkey` boolean (`true → require`, else `always`), so a site that had "require both" enabled keeps it; no migration needed.
+
+**Net effect with defaults:** a passkey login logs you straight in — no device-password prompt and no TOTP. **Security note:** `always` accepts a passkey as a complete second factor even without a biometric/PIN check; choose `verified` (with User Verification = "Always require") if your policy needs that step.
+
 ### 1.7.46 — A verified passkey reliably satisfies 2FA; passkey 2FA controls relocated and relabeled
 
 Fixes a report that signing in with a passkey still demanded an authenticator code even with "Also require TOTP / email 2FA after a passkey login" turned off.

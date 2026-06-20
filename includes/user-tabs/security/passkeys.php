@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $nbuf_passkeys_enabled           = NBUF_Options::get( 'nbuf_passkeys_enabled', false );
 $nbuf_passkey_prompt_enabled     = NBUF_Options::get( 'nbuf_passkey_prompt_enabled', true );
 $nbuf_passkeys_max_per_user      = NBUF_Options::get( 'nbuf_passkeys_max_per_user', 10 );
-$nbuf_passkeys_user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
+$nbuf_passkeys_user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
 $nbuf_passkeys_attachment        = NBUF_Options::get( 'nbuf_passkeys_authenticator_attachment', 'platform' );
 $nbuf_passkeys_attestation       = NBUF_Options::get( 'nbuf_passkeys_attestation', 'none' );
 $nbuf_passkeys_timeout           = NBUF_Options::get( 'nbuf_passkeys_timeout', 60000 );
-$nbuf_2fa_require_after_passkey  = NBUF_Options::get( 'nbuf_2fa_require_after_passkey', false );
+$nbuf_2fa_passkey_policy         = class_exists( 'NBUF_Passkeys' ) ? NBUF_Passkeys::resolve_2fa_policy() : 'always';
 
 /* Statistics */
 $nbuf_total_passkeys      = 0;
@@ -42,7 +42,6 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	<!-- Declare checkboxes so unchecked state is saved -->
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_passkeys_enabled">
 	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_passkey_prompt_enabled">
-	<input type="hidden" name="nbuf_form_checkboxes[]" value="nbuf_2fa_require_after_passkey">
 
 	<h2><?php esc_html_e( 'Passkey Authentication', 'nobloat-user-foundry' ); ?></h2>
 	<p class="description">
@@ -105,21 +104,18 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 			<th><?php esc_html_e( 'User Verification', 'nobloat-user-foundry' ); ?></th>
 			<td>
 				<select name="nbuf_passkeys_user_verification">
-					<option value="required" <?php selected( $nbuf_passkeys_user_verification, 'required' ); ?>>
-						<?php esc_html_e( 'Always require biometric or PIN (Recommended)', 'nobloat-user-foundry' ); ?>
-					</option>
 					<option value="preferred" <?php selected( $nbuf_passkeys_user_verification, 'preferred' ); ?>>
-						<?php esc_html_e( 'Use biometric or PIN only when the device offers it', 'nobloat-user-foundry' ); ?>
+						<?php esc_html_e( 'Use biometric or PIN when the device offers it (Recommended)', 'nobloat-user-foundry' ); ?>
+					</option>
+					<option value="required" <?php selected( $nbuf_passkeys_user_verification, 'required' ); ?>>
+						<?php esc_html_e( 'Always require biometric or PIN', 'nobloat-user-foundry' ); ?>
 					</option>
 					<option value="discouraged" <?php selected( $nbuf_passkeys_user_verification, 'discouraged' ); ?>>
 						<?php esc_html_e( 'Never require biometric or PIN', 'nobloat-user-foundry' ); ?>
 					</option>
 				</select>
 				<p class="description">
-					<?php esc_html_e( 'Whether a passkey must prove it is really you (a fingerprint, face, or PIN) at login. A passkey can only stand in for 2FA when it does this, so "Always require" is recommended and is the default.', 'nobloat-user-foundry' ); ?>
-				</p>
-				<p class="description" style="margin-top: 6px;">
-					<?php esc_html_e( 'If you choose one of the weaker options, some passkey logins may arrive without that proof and will fall through to the normal 2FA prompt (below) even when you have not asked to require 2FA after a passkey.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'Controls only what the device does at login — whether the passkey demands a fingerprint, face, or PIN. "Always require" is the strictest, but on some systems it makes the operating system prompt for your device password. This setting does NOT decide whether a passkey counts as your 2FA — that is the "2FA with Passkeys" setting below.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>
@@ -176,18 +172,24 @@ if ( class_exists( 'NBUF_User_Passkeys_Data' ) ) {
 	<h2><?php esc_html_e( '2FA with Passkeys', 'nobloat-user-foundry' ); ?></h2>
 	<table class="form-table">
 		<tr>
-			<th><?php esc_html_e( '2FA Requirement', 'nobloat-user-foundry' ); ?></th>
+			<th><?php esc_html_e( 'When a user signs in with a passkey', 'nobloat-user-foundry' ); ?></th>
 			<td>
-				<label>
-					<input type="checkbox" name="nbuf_2fa_require_after_passkey" value="1" <?php checked( $nbuf_2fa_require_after_passkey, true ); ?>>
-					<?php esc_html_e( 'Also require TOTP / email 2FA after a passkey login', 'nobloat-user-foundry' ); ?>
-				</label>
+				<fieldset>
+					<label style="display: block; margin-bottom: 6px;">
+						<input type="radio" name="nbuf_2fa_passkey_policy" value="always" <?php checked( $nbuf_2fa_passkey_policy, 'always' ); ?>>
+						<?php esc_html_e( 'The passkey is enough — never ask for an additional 2FA code (Recommended)', 'nobloat-user-foundry' ); ?>
+					</label>
+					<label style="display: block; margin-bottom: 6px;">
+						<input type="radio" name="nbuf_2fa_passkey_policy" value="verified" <?php checked( $nbuf_2fa_passkey_policy, 'verified' ); ?>>
+						<?php esc_html_e( 'Only if the passkey verified identity (biometric / PIN) — otherwise ask for a 2FA code', 'nobloat-user-foundry' ); ?>
+					</label>
+					<label style="display: block;">
+						<input type="radio" name="nbuf_2fa_passkey_policy" value="require" <?php checked( $nbuf_2fa_passkey_policy, 'require' ); ?>>
+						<?php esc_html_e( 'Always also ask for a 2FA code after a passkey login', 'nobloat-user-foundry' ); ?>
+					</label>
+				</fieldset>
 				<p class="description" style="margin-top: 10px;">
-					<?php esc_html_e( 'A passkey unlocked with biometrics or a PIN (user verification) is itself a multi-factor credential, so by default signing in with a verified passkey satisfies the 2FA requirement and no extra code is requested. Enable the option above to demand a second factor anyway. How a passkey that performs no user verification is handled depends on the "User Verification" setting above: with "Always require" such a login is refused outright; with the weaker settings it falls through to the normal 2FA challenge when 2FA is required.', 'nobloat-user-foundry' ); ?>
-				</p>
-				<p class="description" style="margin-top: 10px;">
-					<strong><?php esc_html_e( 'Flow:', 'nobloat-user-foundry' ); ?></strong>
-					<?php esc_html_e( 'User clicks "Sign in with Passkey" &rarr; Biometric/PIN verification &rarr; Logged in. An extra 2FA code is requested only if "require 2FA after passkey" is enabled, or the passkey performed no user verification.', 'nobloat-user-foundry' ); ?>
+					<?php esc_html_e( 'A passkey already proves possession of this specific device, so "The passkey is enough" treats a passkey login as satisfying 2FA and never asks for a TOTP / email code — most users want this. The middle option additionally requires the device to have checked a fingerprint, face, or PIN; for it to work reliably, set "User Verification" above to "Always require" so that check always happens. "Always also ask" demands a separate code on top of every passkey login.', 'nobloat-user-foundry' ); ?>
 				</p>
 			</td>
 		</tr>

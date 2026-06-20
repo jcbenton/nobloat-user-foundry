@@ -303,7 +303,7 @@
 				attestation: options.attestation || 'none',
 				authenticatorSelection: options.authenticatorSelection || {
 					residentKey: 'preferred',
-					userVerification: 'required'
+					userVerification: 'preferred'
 				}
 			};
 

@@ -350,6 +350,16 @@ class NBUF_Settings {
 			 * compliance can flip this to true.
 			 */
 			'nbuf_2fa_require_after_passkey'          => array( __CLASS__, 'sanitize_checkbox' ),
+
+			/*
+			 * Passkey-2FA policy (supersedes the legacy boolean above):
+			 *   always   - a passkey login satisfies 2FA on its own (default)
+			 *   verified - only a user-verified passkey satisfies 2FA
+			 *   require  - always require a 2FA code after a passkey login
+			 */
+			'nbuf_2fa_passkey_policy'                 => function ( $value ) {
+				return in_array( $value, array( 'always', 'verified', 'require' ), true ) ? $value : 'always';
+			},
 			'nbuf_2fa_lockout_attempts'               => function ( $value ) {
 				return max( 3, min( 20, absint( $value ) ) );
 			},
@@ -375,7 +385,7 @@ class NBUF_Settings {
 				return max( 1, min( 20, absint( $value ) ) );
 			},
 			'nbuf_passkeys_user_verification'         => function ( $value ) {
-				return in_array( $value, array( 'preferred', 'required', 'discouraged' ), true ) ? $value : 'required';
+				return in_array( $value, array( 'preferred', 'required', 'discouraged' ), true ) ? $value : 'preferred';
 			},
 			'nbuf_passkeys_attestation'               => function ( $value ) {
 				return in_array( $value, array( 'none', 'indirect', 'direct' ), true ) ? $value : 'none';

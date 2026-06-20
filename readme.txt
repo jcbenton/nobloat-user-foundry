@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.47
+Stable tag: 1.7.48
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.48 — Front-end Account tab: minimal, customizable styling instead of bare text =
+* The Account tab rendered as unstyled text floating on the page because the section container had padding but no background, border, or shadow — so it looked broken rather than minimal. The `.nbuf-account-section` container now uses the existing design tokens for a restrained card (white surface, a 1px hairline border, 6px radius, and a very subtle shadow); the same class is used by the Security and Sessions tabs, so the whole account area now reads consistently. Removed the redundant "Account Information" heading and its "View your account details…" description from the top of the tab. Also moved every inline style="" out of the account template and into token-based CSS classes (the read-only info panel, the "Edit Profile" sub-heading, the Save button), so site owners can now restyle the page by overriding the CSS custom properties or classes rather than fighting inline styles with !important. No new fonts, colors, or heavy effects were introduced, and the tab-strip styling is unchanged. These styles are served from templates/account-page.css; if you previously pasted custom CSS into Styles → Account, re-save/regenerate that tab so your override is rebuilt on top of the new defaults.
 
 = 1.7.47 — Passkey vs. 2FA is now a single clear choice; a passkey login is enough by default =
 * Reworks 1.7.46 after real-world testing. 1.7.46 tried to make a verified passkey satisfy 2FA by defaulting the WebAuthn "User Verification" policy to "Required" — but on some systems "Required" makes the operating system prompt for the device password, while the weaker "Preferred" setting let the login fall through to a TOTP prompt. There was no way to say "a passkey login is enough — don't prompt for a device password AND don't ask for a code." This release separates the two concerns that were tangled together: (1) **User Verification** now controls ONLY what the device does at login (whether it demands a fingerprint/face/PIN); its default is back to "Preferred" so it no longer forces the device-password prompt. (2) A new **"2FA with Passkeys"** control decides whether a passkey login counts as 2FA, with three plain choices: "The passkey is enough — never ask for an additional 2FA code" (the new default), "Only if the passkey verified identity (biometric/PIN) — otherwise ask for a code", and "Always also ask for a 2FA code after a passkey login". Net effect with defaults: signing in with a passkey logs you straight in — no device-password prompt and no TOTP. Stored as the new option nbuf_2fa_passkey_policy (always|verified|require); when unset it derives from the legacy nbuf_2fa_require_after_passkey toggle, so a site that had "require both" enabled keeps that behavior. NOTE: "The passkey is enough" accepts a passkey as a complete second factor even if the device performed no biometric/PIN check — choose the middle option (and User Verification = "Always require") if your policy needs the verification step.

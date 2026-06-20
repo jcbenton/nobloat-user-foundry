@@ -700,6 +700,10 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
 .nbuf-account-section {
     padding: var(--nbuf-space-xl);
     margin-bottom: var(--nbuf-space-xl);
+    background: var(--nbuf-surface);
+    border: 1px solid var(--nbuf-border-light);
+    border-radius: var(--nbuf-radius-md);
+    box-shadow: var(--nbuf-shadow-sm);
 }
 
 .nbuf-account-section:last-child {
@@ -710,8 +714,18 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
     margin-top: 0;
 }
 
-.nbuf-section-title {
-    /* Heading class available for customization if needed */
+/*
+ * Section heading used for sub-headings within a section card (e.g. "Edit Profile").
+ * A bottom hairline provides visual separation without adding heavy weight.
+ */
+.nbuf-section-title,
+.nbuf-section-heading {
+    margin: 0 0 var(--nbuf-space-lg) 0;
+    padding-bottom: var(--nbuf-space-sm);
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--nbuf-text-primary);
+    border-bottom: 1px solid var(--nbuf-border-light);
 }
 
 .nbuf-info-grid {
@@ -723,10 +737,11 @@ body.nbuf-page-account .nbuf-virtual-page .entry-content {
 
 .nbuf-info-label {
     font-weight: 600;
+    color: var(--nbuf-text-secondary);
 }
 
 .nbuf-info-value {
-    /* Override styles here for info values */
+    color: var(--nbuf-text-primary);
 }
 
 /* ==========================================================
@@ -1198,10 +1213,17 @@ a.nbuf-button-primary:active {
    ACCOUNT INFO (READ-ONLY)
    ========================================================== */
 
+/*
+ * Read-only account info box — light tinted background to distinguish it
+ * from the editable form below, using token-based values so site owners
+ * can override via CSS custom properties.
+ */
 .nbuf-account-info {
+    padding: var(--nbuf-space-xl);
     margin-bottom: var(--nbuf-space-xl);
-    padding-bottom: var(--nbuf-space-xl);
-    border-bottom: 1px solid var(--nbuf-border);
+    background: var(--nbuf-background);
+    border: 1px solid var(--nbuf-border-light);
+    border-radius: var(--nbuf-radius-md);
 }
 
 /* ==========================================================
@@ -1300,8 +1322,9 @@ a.nbuf-button-primary:active {
     max-width: 400px;
 }
 
-.nbuf-password-form .nbuf-button {
-    margin-top: 10px;
+.nbuf-password-form .nbuf-button,
+.nbuf-account-form > .nbuf-button {
+    margin-top: var(--nbuf-space-sm);
 }
 
 /* ==========================================================

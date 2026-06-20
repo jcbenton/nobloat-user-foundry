@@ -333,6 +333,17 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.48 — Front-end Account tab: minimal, customizable styling instead of bare text
+
+The front-end Account tab rendered as unstyled text on the page background — the `.nbuf-account-section` container had padding but no surface/border/shadow, so it read as broken rather than minimal.
+
+- **Section now has a minimal card.** `.nbuf-account-section` (`templates/account-page.css`) uses the existing `:root` tokens — `--nbuf-surface`, `--nbuf-border-light`, `--nbuf-radius-md`, `--nbuf-shadow-sm` — for a restrained bordered card. The same class is used by the Security and Sessions tabs, so the account area is now visually consistent.
+- **Removed redundant copy.** The "Account Information" `<h3>` and its "View your account details…" description were dropped from the top of the tab (`templates/account-page.html`).
+- **Inline styles → customizable CSS.** Every `style=""` in the account template (the read-only info panel, the "Edit Profile" sub-heading via `.nbuf-section-heading`, the Save button) was moved into token-based CSS classes, so site owners can restyle by overriding the CSS custom properties / classes instead of fighting inline styles with `!important`. Light typographic polish on `.nbuf-info-label` / `.nbuf-info-value`.
+- **Restraint preserved.** No new fonts, colors, gradients, or heavy effects; no new tokens added; the tab-navigation styling (the underline strip and its focus handling) was left untouched.
+
+Served from `templates/account-page.css` (authoritative — no rebuild needed). If you previously pasted custom CSS into **Styles → Account**, re-save that tab so your override is rebuilt on the new defaults.
+
 ### 1.7.47 — Passkey vs. 2FA is now a single clear choice; a passkey login is enough by default
 
 Reworks 1.7.46 after real-world testing. 1.7.46 made a verified passkey satisfy 2FA by defaulting the WebAuthn User Verification policy to `'required'` — but on some systems `'required'` makes the OS prompt for the device password, while `'preferred'` let the login fall through to TOTP. There was no setting that meant "a passkey login is enough — no device-password prompt **and** no code." The two concerns are now decoupled.

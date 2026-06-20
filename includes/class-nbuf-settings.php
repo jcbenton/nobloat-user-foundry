@@ -375,7 +375,7 @@ class NBUF_Settings {
 				return max( 1, min( 20, absint( $value ) ) );
 			},
 			'nbuf_passkeys_user_verification'         => function ( $value ) {
-				return in_array( $value, array( 'preferred', 'required', 'discouraged' ), true ) ? $value : 'preferred';
+				return in_array( $value, array( 'preferred', 'required', 'discouraged' ), true ) ? $value : 'required';
 			},
 			'nbuf_passkeys_attestation'               => function ( $value ) {
 				return in_array( $value, array( 'none', 'indirect', 'direct' ), true ) ? $value : 'none';

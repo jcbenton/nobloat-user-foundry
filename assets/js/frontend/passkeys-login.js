@@ -414,7 +414,7 @@
 				challenge: base64urlDecode(options.challenge),
 				timeout: options.timeout || 60000,
 				rpId: options.rpId,
-				userVerification: options.userVerification || 'preferred'
+				userVerification: options.userVerification || 'required'
 			};
 
 			if (options.allowCredentials && options.allowCredentials.length > 0) {

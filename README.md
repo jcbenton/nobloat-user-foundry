@@ -333,6 +333,16 @@ The plugin creates isolated custom tables (prefixed with `nbuf_`):
 
 ## Changelog
 
+### 1.7.46 — A verified passkey reliably satisfies 2FA; passkey 2FA controls relocated and relabeled
+
+Fixes a report that signing in with a passkey still demanded an authenticator code even with "Also require TOTP / email 2FA after a passkey login" turned off.
+
+1. **A verified passkey now reliably satisfies 2FA.** The skip-2FA-after-passkey path is gated on the WebAuthn **user verification (UV)** flag (`class-nbuf-passkeys.php` — `$user_verified` at line 897, consumed at line 1712). The passkey `nbuf_passkeys_user_verification` policy defaulted to `'preferred'`, which lets an authenticator return an assertion **without** UV; the server then treats the passkey as single-factor and correctly falls through to the 2FA challenge — surprising, because the UI prose promised a biometric passkey skips 2FA. The default is now `'required'` across the registration ceremony, the authentication ceremony, both verify-side enforcement checks, the activator seed, and the settings sanitizer fallback. **Existing installs keep their stored value** (the activator only seeds on first install), so to adopt the new behavior set **Settings → Security → Passkeys → User Verification** to "Always require biometric or PIN" and Save. Existing passkeys keep working — platform authenticators perform UV on demand, no re-registration needed.
+
+2. **The "require 2FA after passkey" toggle moved to where it is documented.** The control (`nbuf_2fa_require_after_passkey`) now renders on the Passkeys tab directly beneath the explanatory text that references it, instead of only on the 2FA Config tab — previously the prose said "enable the option below" but no control was present on that tab. Removed the duplicate from the 2FA Config tab; the save handler is global, so persistence is unchanged.
+
+3. **Plain-language labels.** The User Verification dropdown was rewritten ("Always require biometric or PIN" / "Use biometric or PIN only when the device offers it" / "Never require biometric or PIN") with descriptions that explain the effect on the 2FA challenge rather than WebAuthn jargon.
+
 ### 1.7.45 — Forced password changes are always enforced; admin weak-password handling is consistent
 
 Two fixes from the login-subsystem audit.

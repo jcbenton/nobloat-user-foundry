@@ -332,7 +332,7 @@ class NBUF_Passkeys {
 		}
 
 		/* User verification preference */
-		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
 
 		/* Build registration options */
 		$options = array(
@@ -482,7 +482,7 @@ class NBUF_Passkeys {
 		 * and from then on every subsequent assertion bypasses the UV
 		 * requirement at line ~628.
 		 */
-		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
 		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
 			return new WP_Error( 'user_verification_required', __( 'User verification was required but not performed.', 'nobloat-user-foundry' ) );
 		}
@@ -549,7 +549,7 @@ class NBUF_Passkeys {
 		);
 
 		/* User verification preference */
-		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		$user_verification = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
 
 		/* Build authentication options */
 		$options = array(
@@ -809,7 +809,7 @@ class NBUF_Passkeys {
 		 * authenticate without biometric/PIN and the operator's "required"
 		 * setting is silently inert.
 		 */
-		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'preferred' );
+		$uv_policy = NBUF_Options::get( 'nbuf_passkeys_user_verification', 'required' );
 		if ( 'required' === $uv_policy && ! ( $auth_data['flags'] & 0x04 ) ) {
 			if ( class_exists( 'NBUF_Security_Log' ) ) {
 				NBUF_Security_Log::log(

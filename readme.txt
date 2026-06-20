@@ -4,7 +4,7 @@ Donate link: https://donate.stripe.com/3cIfZi81NbxX9CX4uybfO01
 Tags: user manager, passkey, 2fa, authentication, role manager
 Requires at least: 6.2
 Tested up to: 7.0
-Stable tag: 1.7.45
+Stable tag: 1.7.46
 Requires PHP: 8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -323,6 +323,9 @@ Configuration guides, troubleshooting, and examples are available online.
 8. GDPR data export
 
 == Changelog ==
+
+= 1.7.46 — A verified passkey reliably satisfies 2FA; passkey 2FA controls relocated and relabeled =
+* Fixes a report that signing in with a passkey still demanded a code from the authenticator app even though "Also require TOTP / email 2FA after a passkey login" was OFF. Root cause: the passkey "User Verification" policy defaulted to "Preferred", which under the WebAuthn spec lets an authenticator complete the login WITHOUT performing biometric/PIN verification. An unverified passkey is not multi-factor on its own, so it correctly fell through to the normal 2FA challenge — but the result was surprising because the prose promised that a biometric passkey skips 2FA. The default is now "Required", so a passkey must prove identity (fingerprint, face, or PIN) at login and therefore reliably satisfies 2FA on its own. NOTE: this default applies to NEW installs only; existing sites keep their stored value, so to adopt it set Settings > Security > Passkeys > User Verification to "Always require biometric or PIN" and Save. Existing passkeys keep working — platform authenticators (Touch ID, Windows Hello, Android) perform verification on demand, no re-registration needed. (2) The "Also require TOTP / email 2FA after a passkey login" toggle now appears on the Passkeys tab directly beneath the text that describes it (it was previously only on the 2FA Config tab, so the prose pointed to a control that was not there). (3) The User Verification options were rewritten in plain language ("Always require biometric or PIN" / "Use biometric or PIN only when the device offers it" / "Never require biometric or PIN") with descriptions that explain the effect on the 2FA challenge instead of WebAuthn jargon.
 
 = 1.7.45 — Forced password changes are always enforced; admin weak-password handling is consistent =
 * Two fixes from the login-subsystem audit. (1) An admin "require password change" (bulk action or per-user) was a silent no-op at login when the separate password-expiration (aging) feature was turned off — the flag was set but nothing enforced it. Forced-change enforcement is now independent of the aging toggle: the change is required at the next login (password, passkey, magic link, or 2FA) regardless, while age-based expiry still requires the expiration feature. (2) Admin exemption from the weak-password gate is now consistent across all login paths — previously the front-door login exempted administrators outright while passkey/magic-link logins and the strength check did not. All paths now follow the single "Admin bypass" password-policy option. NOTE: that option is OFF by default, so with "force change for weak passwords" enabled, an administrator whose own password is weak (and past the grace period) will now be prompted/blocked to update it on the front-door login too, just as on the other paths; set the password admin-bypass option ON to exempt administrators. Account lockout/expiry/verification gates still always exempt administrators.

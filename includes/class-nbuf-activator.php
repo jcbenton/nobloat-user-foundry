@@ -385,7 +385,7 @@ class NBUF_Activator {
 				'nbuf_passkeys_enabled'                 => false,
 				'nbuf_passkey_prompt_enabled'           => true,
 				'nbuf_passkeys_max_per_user'            => 10,
-				'nbuf_passkeys_user_verification'       => 'preferred',
+				'nbuf_passkeys_user_verification'       => 'required',
 				'nbuf_passkeys_attestation'             => 'none',
 				'nbuf_passkeys_timeout'                 => 60000,
 				'nbuf_magic_links_enabled'              => false,
